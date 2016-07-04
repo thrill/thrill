@@ -432,9 +432,9 @@ private:
  */
 template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
           typename ... DIAs>
-auto Zip(const ZipFunction &zip_function,
-         const DIA<FirstDIAType, FirstDIAStack>&first_dia,
-         const DIAs &... dias) {
+auto Zip(const ZipFunction& zip_function,
+         const DIA<FirstDIAType, FirstDIAStack>& first_dia,
+         const DIAs& ... dias) {
 
     using VarForeachExpander = int[];
 
@@ -491,9 +491,9 @@ auto Zip(const ZipFunction &zip_function,
 template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
           typename ... DIAs>
 auto Zip(struct CutTag,
-         const ZipFunction &zip_function,
-         const DIA<FirstDIAType, FirstDIAStack>&first_dia,
-         const DIAs &... dias) {
+         const ZipFunction& zip_function,
+         const DIA<FirstDIAType, FirstDIAStack>& first_dia,
+         const DIAs& ... dias) {
 
     using VarForeachExpander = int[];
 
@@ -550,9 +550,9 @@ auto Zip(struct CutTag,
 template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
           typename ... DIAs>
 auto Zip(struct PadTag,
-         const ZipFunction &zip_function,
-         const DIA<FirstDIAType, FirstDIAStack>&first_dia,
-         const DIAs &... dias) {
+         const ZipFunction& zip_function,
+         const DIA<FirstDIAType, FirstDIAStack>& first_dia,
+         const DIAs& ... dias) {
 
     using VarForeachExpander = int[];
 
@@ -613,10 +613,10 @@ template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
           typename ... DIAs>
 auto Zip(
     struct PadTag,
-    const ZipFunction &zip_function,
-    const typename common::FunctionTraits<ZipFunction>::args_plain & padding,
-    const DIA<FirstDIAType, FirstDIAStack>&first_dia,
-    const DIAs &... dias) {
+    const ZipFunction& zip_function,
+    const typename common::FunctionTraits<ZipFunction>::args_plain& padding,
+    const DIA<FirstDIAType, FirstDIAStack>& first_dia,
+    const DIAs& ... dias) {
 
     using VarForeachExpander = int[];
 
@@ -672,9 +672,9 @@ template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
           typename ... DIAs>
 auto Zip(
     struct NoRebalanceTag,
-    const ZipFunction &zip_function,
-    const DIA<FirstDIAType, FirstDIAStack>&first_dia,
-    const DIAs &... dias) {
+    const ZipFunction& zip_function,
+    const DIA<FirstDIAType, FirstDIAStack>& first_dia,
+    const DIAs& ... dias) {
 
     using VarForeachExpander = int[];
 
@@ -710,31 +710,31 @@ auto Zip(
 template <typename ValueType, typename Stack>
 template <typename ZipFunction, typename SecondDIA>
 auto DIA<ValueType, Stack>::Zip(
-    const SecondDIA &second_dia, const ZipFunction &zip_function) const {
+    const SecondDIA& second_dia, const ZipFunction& zip_function) const {
     return api::Zip(zip_function, *this, second_dia);
 }
 
 template <typename ValueType, typename Stack>
 template <typename ZipFunction, typename SecondDIA>
 auto DIA<ValueType, Stack>::Zip(
-    struct CutTag, const SecondDIA &second_dia,
-    const ZipFunction &zip_function) const {
+    struct CutTag, const SecondDIA& second_dia,
+    const ZipFunction& zip_function) const {
     return api::Zip(CutTag, zip_function, *this, second_dia);
 }
 
 template <typename ValueType, typename Stack>
 template <typename ZipFunction, typename SecondDIA>
 auto DIA<ValueType, Stack>::Zip(
-    struct PadTag, const SecondDIA &second_dia,
-    const ZipFunction &zip_function) const {
+    struct PadTag, const SecondDIA& second_dia,
+    const ZipFunction& zip_function) const {
     return api::Zip(PadTag, zip_function, *this, second_dia);
 }
 
 template <typename ValueType, typename Stack>
 template <typename ZipFunction, typename SecondDIA>
 auto DIA<ValueType, Stack>::Zip(
-    struct NoRebalanceTag, const SecondDIA &second_dia,
-    const ZipFunction &zip_function) const {
+    struct NoRebalanceTag, const SecondDIA& second_dia,
+    const ZipFunction& zip_function) const {
     return api::Zip(NoRebalanceTag, zip_function, *this, second_dia);
 }
 

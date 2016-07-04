@@ -53,15 +53,15 @@ public:
             }
         }
 
-       lt_.init();
+        lt_.init();
     }
 
     bool HasNext() const {
         return (remaining_inputs_ != 0);
     }
 
-	std::pair<ValueType, unsigned> NextWithSource() {
-		// take next smallest element out
+    std::pair<ValueType, unsigned> NextWithSource() {
+        // take next smallest element out
         unsigned top = lt_.min_source();
         ValueType res = std::move(current_[top].second);
 
@@ -78,7 +78,7 @@ public:
         }
 
         return std::make_pair(res, top);
-	}
+    }
 
     ValueType Next() {
 
@@ -126,7 +126,7 @@ private:
 template <typename ValueType, typename ReaderIterator, typename Comparator>
 auto make_multiway_merge_tree(
     ReaderIterator seqs_begin, ReaderIterator seqs_end,
-    const Comparator &comp) {
+    const Comparator& comp) {
 
     assert(seqs_end - seqs_begin >= 1);
     return MultiwayMergeTree<

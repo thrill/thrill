@@ -1,5 +1,5 @@
 ################################################################################
-# examples/page_rank/CMakeLists.txt
+# examples/triangles/CMakeLists.txt
 #
 # Part of Project Thrill - http://project-thrill.org
 #

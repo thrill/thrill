@@ -32,7 +32,7 @@ namespace suffix_sorting {
 
 template <typename InputDIA>
 auto ConstructWaveletTree(
-    const InputDIA &input_dia, const std::string & output_path) {
+    const InputDIA& input_dia, const std::string& output_path) {
     static constexpr bool debug = false;
 
     using namespace thrill; // NOLINT

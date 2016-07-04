@@ -1,10 +1,10 @@
 /*******************************************************************************
- * examples/triangles/triangles.hpp
+ * examples/triangles/triangles_run.cpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2016 Alexander Noe <aleexnoe@gmail.com>
- * 
+ *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
@@ -31,77 +31,77 @@ static constexpr bool debug = true;
 using Node = size_t;
 using Edge = std::pair<Node, Node>;
 
-
 static size_t CountTrianglesPerLine(
-	api::Context& ctx,
-	const std::vector<std::string>& input_path) {
-	auto edges = ReadLines(ctx, input_path).template FlatMap<Edge>(
-		[](const std::string& input, auto emit) {
-			// parse "source\ttarget\n" lines
-			char* endptr;
-		    unsigned long src = std::strtoul(input.c_str(), &endptr, 10);
-			die_unless(endptr && *endptr == ' ' &&
-					   "Could not parse src tgt line");
-		    unsigned long tgt = std::strtoul(endptr + 1, &endptr, 10);
-			die_unless(endptr && *endptr == 0 &&
-					   "Could not parse src tgt line");
+    api::Context& ctx,
+    const std::vector<std::string>& input_path) {
+    auto edges = ReadLines(ctx, input_path).template FlatMap<Edge>(
+        [](const std::string& input, auto emit) {
+            // parse "source\ttarget\n" lines
+            char* endptr;
+            unsigned long src = std::strtoul(input.c_str(), &endptr, 10);
+            die_unless(endptr && *endptr == ' ' &&
+                       "Could not parse src tgt line");
+            unsigned long tgt = std::strtoul(endptr + 1, &endptr, 10);
+            die_unless(endptr && *endptr == 0 &&
+                       "Could not parse src tgt line");
 
-			if (src < tgt) {
-				emit(std::make_pair(src, tgt));
-			} else {
-				if (src > tgt) {
-					emit(std::make_pair(tgt, src));
-				} 
-				//self-loop: do not emit;
-			}			
-		}).Cache();
-	
-	return examples::triangles::CountTriangles(edges);
+            if (src < tgt) {
+                emit(std::make_pair(src, tgt));
+            }
+            else {
+                if (src > tgt) {
+                    emit(std::make_pair(tgt, src));
+                }
+                // self-loop: do not emit;
+            }
+        }).Cache();
+
+    return examples::triangles::CountTriangles(edges);
 }
- 
-static size_t CountTrianglesGenerated(
-	api::Context& ctx,
-	const ZipfGraphGen& base_graph_gen,
-	const size_t& num_vertices) {
 
-	auto edge_lists = Generate(
-		ctx,
-		[graph_gen = ZipfGraphGen(base_graph_gen, num_vertices),
+static size_t CountTrianglesGenerated(
+    api::Context& ctx,
+    const ZipfGraphGen& base_graph_gen,
+    const size_t& num_vertices) {
+
+    auto edge_lists = Generate(
+        ctx,
+        [graph_gen = ZipfGraphGen(base_graph_gen, num_vertices),
          rng = std::default_random_engine(std::random_device { } ())](
             size_t index) mutable {
             return std::make_pair(index, graph_gen.GenerateOutgoing(rng));
         },
         num_vertices);
 
-	auto edges = edge_lists.template FlatMap<Edge>(
-		[](std::pair<Node, std::vector<Node>> neighbors, auto emit) {
-			for (auto neighbor : neighbors.second) {
-				if (neighbors.first > neighbor) {
-					emit(std::make_pair(neighbor, neighbors.first));
-				} else {
-					if (neighbors.first < neighbor) {
-						emit(std::make_pair(neighbors.first, neighbor));
-					}
-					//self-loop: do not emit
-				}
-			}
-		}).Cache();
+    auto edges = edge_lists.template FlatMap<Edge>(
+        [](std::pair<Node, std::vector<Node> > neighbors, auto emit) {
+            for (auto neighbor : neighbors.second) {
+                if (neighbors.first > neighbor) {
+                    emit(std::make_pair(neighbor, neighbors.first));
+                }
+                else {
+                    if (neighbors.first < neighbor) {
+                        emit(std::make_pair(neighbors.first, neighbor));
+                    }
+                    // self-loop: do not emit
+                }
+            }
+        }).Cache();
 
-	return examples::triangles::CountTriangles(edges);
+    return examples::triangles::CountTriangles(edges);
 }
 
 int main(int argc, char* argv[]) {
 
     common::CmdlineParser clp;
 
-
     bool generate = false;
     clp.AddFlag('g', "generate", generate,
                 "generate graph data, set input = #pages");
 
-	size_t num_vertices;
+    size_t num_vertices;
 
-	clp.AddSizeT('n', "vertices", num_vertices, "Number of vertices");
+    clp.AddSizeT('n', "vertices", num_vertices, "Number of vertices");
 
     // Graph Generator
     ZipfGraphGen gg(1);
@@ -122,7 +122,7 @@ int main(int argc, char* argv[]) {
                   "generated: Zipf exponent parameter for outgoing links, "
                   "default: " + std::to_string(gg.link_zipf_exponent));
 
-	std::vector<std::string> input_path;
+    std::vector<std::string> input_path;
     clp.AddParamStringlist("input", input_path,
                            "input file pattern(s)");
 
@@ -130,27 +130,26 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-
-
     die_unless(!generate || input_path.size() == 1);
 
     clp.PrintResult();
 
     return api::Run(
         [&](api::Context& ctx) {
-			ctx.enable_consume();
+            ctx.enable_consume();
 
-			size_t triangles;
-			if (generate) {
-				triangles = CountTrianglesGenerated(
-					ctx, gg, num_vertices);
-			} else {
-				triangles = CountTrianglesPerLine(
-					ctx, input_path);
-			}
+            size_t triangles;
+            if (generate) {
+                triangles = CountTrianglesGenerated(
+                    ctx, gg, num_vertices);
+            }
+            else {
+                triangles = CountTrianglesPerLine(
+                    ctx, input_path);
+            }
 
-			LOG1 << "#triangles=" << triangles;
-			return triangles;
+            LOG1 << "#triangles=" << triangles;
+            return triangles;
         });
 }
 

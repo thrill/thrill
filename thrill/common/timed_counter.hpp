@@ -38,7 +38,7 @@ public:
     //! Adds the occurences of another TimedCounter to this instance.
     //! Occurences will be sorted to be ascending
     TimedCounter& operator += (const TimedCounter& rhs) {
-        for (auto& o : rhs.Occurences())
+        for (auto & o : rhs.Occurences())
             occurences_.push_back(o);
         std::sort(occurences_.begin(), occurences_.end());
         return *this;

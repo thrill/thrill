@@ -21,7 +21,7 @@ namespace api {
 template <typename ValueType, typename Stack>
 template <typename MaxFunction>
 auto DIA<ValueType, Stack>::Max(
-    const MaxFunction &max_function, const ValueType &initial_value) const {
+    const MaxFunction& max_function, const ValueType& initial_value) const {
     assert(IsValid());
 
     using MaxNode = api::AllReduceNode<ValueType, MaxFunction>;

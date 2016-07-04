@@ -296,7 +296,7 @@ public:
                 // if item and key equals, then reduce.
                 if (equal_to_function_(kv.first, bi->first))
                 {
-					//    LOGC(debug_items)
+                    //    LOGC(debug_items)
                     //    << "match of key: " << kv.first
                     //    << " and " << bi->first << " ... reducing...";
 

@@ -28,23 +28,21 @@ using namespace examples::triangles;
 TEST(TriangleCount, FullyConnected) {
 
     auto start_func = [&](Context& ctx) {
-		size_t size = 100;
+                          size_t size = 100;
 
-		auto input = Generate(
-			ctx, size);
+                          auto input = Generate(
+                              ctx, size);
 
-		auto edges = input.template FlatMap<Edge>([&size](const size_t& index, auto emit) {
-				for (size_t target = index + 1; target < size; ++target) {
-					emit(std::make_pair(index, target));
-				}
-			}).Cache(); 
+                          auto edges = input.template FlatMap<Edge>([&size](const size_t& index, auto emit) {
+                                                                        for (size_t target = index + 1; target < size; ++target) {
+                                                                            emit(std::make_pair(index, target));
+                                                                        }
+                                                                    }).Cache();
 
-		
+                          size_t size_over_3 = size * (size - 1) * (size - 2) / 6;
 
-		size_t size_over_3 = size * (size - 1) * (size - 2) / 6;
-
-		ASSERT_EQ(CountTriangles(edges), size_over_3);
-        };
+                          ASSERT_EQ(CountTriangles(edges), size_over_3);
+                      };
 
     api::RunLocalTests(start_func);
 }
@@ -52,24 +50,22 @@ TEST(TriangleCount, FullyConnected) {
 TEST(TriangleCount, FullyConnectedWithMultiEdges) {
 
     auto start_func = [&](Context& ctx) {
-		size_t size = 100;
+                          size_t size = 100;
 
-		auto input = Generate(
-			ctx, size);
+                          auto input = Generate(
+                              ctx, size);
 
-		auto edges = input.template FlatMap<Edge>([&size](const size_t& index, auto emit) {
-				for (size_t target = index + 1; target < size; ++target) {
-					emit(std::make_pair(index, target));
-					emit(std::make_pair(index, target));
+                          auto edges = input.template FlatMap<Edge>([&size](const size_t& index, auto emit) {
+                                                                        for (size_t target = index + 1; target < size; ++target) {
+                                                                            emit(std::make_pair(index, target));
+                                                                            emit(std::make_pair(index, target));
+                                                                        }
+                                                                    }).Cache();
 
+                          size_t size_over_3 = size * (size - 1) * (size - 2) / 6;
 
-				}
-			}).Cache(); 
-
-		size_t size_over_3 = size * (size - 1) * (size - 2) / 6;
-
-		ASSERT_EQ(CountTriangles(edges), size_over_3 * 8);
-        };
+                          ASSERT_EQ(CountTriangles(edges), size_over_3 * 8);
+                      };
 
     api::RunLocalTests(start_func);
 }
@@ -77,24 +73,22 @@ TEST(TriangleCount, FullyConnectedWithMultiEdges) {
 TEST(TriangleCount, SomewhatSparse) {
 
     auto start_func = [&](Context& ctx) {
-		size_t size = 1000;
-		size_t multiple = 10;
+                          size_t size = 1000;
+                          size_t multiple = 10;
 
-		auto input = Generate(
-			ctx, size);
+                          auto input = Generate(
+                              ctx, size);
 
-		auto edges = input.template FlatMap<Edge>([&size, &multiple](const size_t& index, auto emit) {
-				for (size_t target = index + multiple; target < size; target = target + multiple) {
-					emit(std::make_pair(index, target));
-				}
-			}).Cache(); 
+                          auto edges = input.template FlatMap<Edge>([&size, &multiple](const size_t& index, auto emit) {
+                                                                        for (size_t target = index + multiple; target < size; target = target + multiple) {
+                                                                            emit(std::make_pair(index, target));
+                                                                        }
+                                                                    }).Cache();
 
-		
+                          size_t size_over_3 = multiple * (size / multiple) * ((size / multiple) - 1) * ((size / multiple) - 2) / 6;
 
-		size_t size_over_3 = multiple * (size / multiple) * ((size / multiple) - 1) * ((size / multiple) - 2) / 6;
-
-		ASSERT_EQ(CountTriangles(edges), size_over_3);
-        };
+                          ASSERT_EQ(CountTriangles(edges), size_over_3);
+                      };
 
     api::RunLocalTests(start_func);
 }

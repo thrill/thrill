@@ -248,7 +248,7 @@ public:
             [&]() {
                 RunTimer net_timer(timer_communication_);
 
-                    // global prefix
+                // global prefix
                 T** locals = reinterpret_cast<T**>(alloca(thread_count_ * sizeof(T*)));
 
                 for (size_t i = 0; i < thread_count_; i++) {
@@ -410,7 +410,7 @@ public:
 
         barrier_.Await(
             [&]() {
-                    // copy from primary PE to all others
+                // copy from primary PE to all others
                 T res = *GetLocalShared<T>(step, primary_pe);
                 for (size_t i = 0; i < thread_count_; i++) {
                     *GetLocalShared<T>(step, i) = res;
@@ -451,7 +451,7 @@ public:
             [&]() {
                 RunTimer net_timer(timer_communication_);
 
-                    // local reduce
+                // local reduce
                 T local_sum = *GetLocalShared<T>(step, 0);
                 for (size_t i = 1; i < thread_count_; i++) {
                     local_sum = sum_op(local_sum, *GetLocalShared<T>(step, i));
@@ -460,7 +460,7 @@ public:
                 // global reduce
                 group_.Reduce(local_sum, root / thread_count_, sum_op);
 
-                    // set the local value only at the root
+                // set the local value only at the root
                 if (root / thread_count_ == group_.my_host_rank())
                     *GetLocalShared<T>(step, root % thread_count_) = local_sum;
             });
@@ -496,7 +496,7 @@ public:
             [&]() {
                 RunTimer net_timer(timer_communication_);
 
-                    // local reduce
+                // local reduce
                 T local_sum = *GetLocalShared<T>(step, 0);
                 for (size_t i = 1; i < thread_count_; i++) {
                     local_sum = sum_op(local_sum, *GetLocalShared<T>(step, i));
@@ -505,7 +505,7 @@ public:
                 // global reduce
                 group_.AllReduce(local_sum, sum_op);
 
-                    // distribute back to local workers
+                // distribute back to local workers
                 for (size_t i = 0; i < thread_count_; i++) {
                     *GetLocalShared<T>(step, i) = local_sum;
                 }
@@ -545,9 +545,9 @@ public:
             // if we already have k items, then "transmit" them to our successor
             if (local_id_ + 1 != thread_count_) {
                 SetLocalShared(step, &my_values);
-                // release memory inside vector
+            // release memory inside vector
                 std::atomic_thread_fence(std::memory_order_release);
-                // increment generation counter to match this_step.
+            // increment generation counter to match this_step.
                 shmem_[local_id_].IncCounter();
             }
             else if (host_rank_ + 1 != num_hosts_) {
@@ -558,20 +558,20 @@ public:
                 else {
                     group_.SendTo(host_rank_ + 1, my_values);
                 }
-                // increment generation counter for synchronizing
+            // increment generation counter for synchronizing
                 shmem_[local_id_].IncCounter();
             }
             else {
-                // increment generation counter for synchronizing
+            // increment generation counter for synchronizing
                 shmem_[local_id_].IncCounter();
             }
 
             // and wait for the predecessor to deliver its batch
             if (local_id_ != 0) {
-                // wait on generation counter of predecessor
+            // wait on generation counter of predecessor
                 shmem_[local_id_ - 1].WaitCounter(this_gen);
 
-                // acquire memory inside vector
+            // acquire memory inside vector
                 std::atomic_thread_fence(std::memory_order_acquire);
 
                 std::vector<T>* pre =
@@ -588,10 +588,10 @@ public:
         else {
             // we don't have k items, wait for our predecessor to send some.
             if (local_id_ != 0) {
-                // wait on generation counter of predecessor
+            // wait on generation counter of predecessor
                 shmem_[local_id_ - 1].WaitCounter(this_gen);
 
-                // acquire memory inside vector
+            // acquire memory inside vector
                 std::atomic_thread_fence(std::memory_order_acquire);
 
                 std::vector<T>* pre =
@@ -623,9 +623,9 @@ public:
             // them to our successor
             if (local_id_ + 1 != thread_count_) {
                 SetLocalShared(step, &send_values);
-                // release memory inside vector
+            // release memory inside vector
                 std::atomic_thread_fence(std::memory_order_release);
-                // increment generation counter to match this_step.
+            // increment generation counter to match this_step.
                 shmem_[local_id_].IncCounter();
             }
             else if (host_rank_ + 1 != num_hosts_) {
@@ -634,7 +634,7 @@ public:
                 shmem_[local_id_].IncCounter();
             }
             else {
-                // increment generation counter for synchronizing
+                        // increment generation counter for synchronizing
                 shmem_[local_id_].IncCounter();
             }
         }
@@ -681,7 +681,7 @@ extern template std::array<size_t, 4> FlowControlChannel::ExPrefixSumTotal(
     std::array<size_t, 4>&, const std::array<size_t, 4>&,
     const common::ComponentSum<std::array<size_t, 4> >&);
 
-extern template size_t FlowControlChannel::Broadcast(const size_t &, size_t);
+extern template size_t FlowControlChannel::Broadcast(const size_t&, size_t);
 
 extern template std::array<size_t, 2> FlowControlChannel::Broadcast(
     const std::array<size_t, 2>&, size_t);

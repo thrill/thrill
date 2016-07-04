@@ -207,7 +207,7 @@ void CatStream::Close() {
 
 bool CatStream::closed() const {
     bool closed = true;
-    for (auto& q : queues_) {
+    for (auto & q : queues_) {
         closed = closed && q.write_closed();
     }
     return closed;

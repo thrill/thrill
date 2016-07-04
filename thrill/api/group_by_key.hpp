@@ -238,8 +238,8 @@ template <typename ValueType, typename Stack>
 template <typename ValueOut, typename KeyExtractor,
           typename GroupFunction, typename HashFunction>
 auto DIA<ValueType, Stack>::GroupByKey(
-    const KeyExtractor &key_extractor,
-    const GroupFunction &groupby_function) const {
+    const KeyExtractor& key_extractor,
+    const GroupFunction& groupby_function) const {
 
     using DOpResult = ValueOut;
 

@@ -135,7 +135,7 @@ private:
 template <typename ValueType, typename Stack>
 template <typename ZipFunction>
 auto DIA<ValueType, Stack>::ZipWithIndex(
-    const ZipFunction &zip_function) const {
+    const ZipFunction& zip_function) const {
 
     static_assert(
         common::FunctionTraits<ZipFunction>::arity == 2,

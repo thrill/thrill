@@ -21,7 +21,7 @@ namespace api {
 template <typename ValueType, typename Stack>
 template <typename MinFunction>
 auto DIA<ValueType, Stack>::Min(
-    const MinFunction &min_function, const ValueType &initial_value) const {
+    const MinFunction& min_function, const ValueType& initial_value) const {
     assert(IsValid());
 
     using MinNode = api::AllReduceNode<ValueType, MinFunction>;

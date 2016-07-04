@@ -60,7 +60,7 @@ using OutgoingLinks = std::vector<PageId>;
 using OutgoingLinksRank = std::pair<std::vector<PageId>, Rank>;
 
 template <typename InStack>
-auto PageRank(const DIA<OutgoingLinks, InStack>&links,
+auto PageRank(const DIA<OutgoingLinks, InStack>& links,
               size_t num_pages, size_t iterations) {
 
     api::Context& ctx = links.context();

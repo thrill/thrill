@@ -20,14 +20,14 @@ using Edge = std::pair<Node, Node>;
 
 using namespace thrill; // NOLINT
 
-namespace std { //i am sorry.
+namespace std {         //i am sorry.
 
-	template <> struct hash<Edge> {
-		size_t operator()(const Edge& e) const {
-			return hash<Node>()(e.first) ^ hash<Node>()(e.second);
-		}
-	};
-
+template <>
+struct hash<Edge>{
+    size_t operator () (const Edge& e) const {
+        return hash<Node>()(e.first) ^ hash<Node>()(e.second);
+    }
+};
 } //namespace std
 
 namespace examples {
@@ -36,24 +36,24 @@ namespace triangles {
 template <typename Stack>
 size_t CountTriangles(const DIA<Edge, Stack>& edges) {
 
-	auto edges_length_2 = edges.InnerJoinWith(edges, [](const Edge& e) {
-			return e.second;
-		}, [](const Edge& e) {
-			return e.first;
-		}, [](const Edge& e1, const Edge& e2) {
-			assert(e1.second == e2.first);
-			return std::make_pair(e1.first, e2.second);
-		});
+    auto edges_length_2 = edges.InnerJoinWith(edges, [](const Edge& e) {
+                                                  return e.second;
+                                              }, [](const Edge& e) {
+                                                  return e.first;
+                                              }, [](const Edge& e1, const Edge& e2) {
+                                                  assert(e1.second == e2.first);
+                                                  return std::make_pair(e1.first, e2.second);
+                                              });
 
-	auto triangles = edges_length_2.InnerJoinWith(edges, [](const Edge& e) {
-			return e;
-		}, [](const Edge& e) {
-			return e;
-		}, [](const Edge& /*e1*/, const Edge& /*e2*/) {
-			return (size_t)1;
-		});
+    auto triangles = edges_length_2.InnerJoinWith(edges, [](const Edge& e) {
+                                                      return e;
+                                                  }, [](const Edge& e) {
+                                                      return e;
+                                                  }, [](const Edge& /*e1*/, const Edge& /*e2*/) {
+                                                      return (size_t)1;
+                                                  });
 
-	return triangles.Size();
+    return triangles.Size();
 }
 
 } // namespace triangles

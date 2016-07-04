@@ -289,7 +289,7 @@ public:
      * \ingroup dia_lops
      */
     template <typename MapFunction>
-    auto Map(const MapFunction &map_function) const {
+    auto Map(const MapFunction& map_function) const {
         assert(IsValid());
 
         using MapArgument
@@ -334,7 +334,7 @@ public:
      * \ingroup dia_lops
      */
     template <typename FilterFunction>
-    auto Filter(const FilterFunction &filter_function) const {
+    auto Filter(const FilterFunction& filter_function) const {
         assert(IsValid());
 
         using FilterArgument
@@ -385,7 +385,7 @@ public:
      * \ingroup dia_lops
      */
     template <typename ResultType = ValueType, typename FlatmapFunction>
-    auto FlatMap(const FlatmapFunction &flatmap_function) const {
+    auto FlatMap(const FlatmapFunction& flatmap_function) const {
         assert(IsValid());
 
         size_t new_id = context().next_dia_id();
@@ -423,7 +423,7 @@ public:
      * \ingroup dia_lops
      */
     template <typename SecondDIA>
-    auto Union(const SecondDIA &second_dia) const;
+    auto Union(const SecondDIA& second_dia) const;
 
     //! \}
 
@@ -505,7 +505,7 @@ public:
      * \ingroup dia_actions
      */
     template <typename ReduceFunction>
-    auto AllReduce(const ReduceFunction &reduce_function,
+    auto AllReduce(const ReduceFunction& reduce_function,
                    const ValueType& initial_value = ValueType()) const;
 
     /*!
@@ -627,8 +627,8 @@ public:
      */
     template <typename KeyExtractor, typename ReduceFunction,
               typename ReduceConfig = class DefaultReduceConfig>
-    auto ReduceByKey(const KeyExtractor &key_extractor,
-                     const ReduceFunction &reduce_function,
+    auto ReduceByKey(const KeyExtractor& key_extractor,
+                     const ReduceFunction& reduce_function,
                      const ReduceConfig& reduce_config = ReduceConfig()) const;
 
     /*!
@@ -663,8 +663,8 @@ public:
     template <typename KeyExtractor, typename ReduceFunction,
               typename ReduceConfig = class DefaultReduceConfig>
     auto ReduceByKey(struct VolatileKeyTag,
-                     const KeyExtractor &key_extractor,
-                     const ReduceFunction &reduce_function,
+                     const KeyExtractor& key_extractor,
+                     const ReduceFunction& reduce_function,
                      const ReduceConfig& reduce_config = ReduceConfig()) const;
 
     /*!
@@ -691,7 +691,7 @@ public:
      */
     template <typename ReduceFunction,
               typename ReduceConfig = class DefaultReduceConfig>
-    auto ReducePair(const ReduceFunction &reduce_function,
+    auto ReducePair(const ReduceFunction& reduce_function,
                     const ReduceConfig& reduce_config = ReduceConfig()) const;
 
     /*!
@@ -733,8 +733,8 @@ public:
     template <typename KeyExtractor, typename ReduceFunction,
               typename ReduceConfig = class DefaultReduceToIndexConfig>
     auto ReduceToIndex(
-        const KeyExtractor &key_extractor,
-        const ReduceFunction &reduce_function,
+        const KeyExtractor& key_extractor,
+        const ReduceFunction& reduce_function,
         size_t size,
         const ValueType& neutral_element = ValueType(),
         const ReduceConfig& reduce_config = ReduceConfig()) const;
@@ -780,8 +780,8 @@ public:
               typename ReduceConfig = class DefaultReduceToIndexConfig>
     auto ReduceToIndex(
         struct VolatileKeyTag,
-        const KeyExtractor &key_extractor,
-        const ReduceFunction &reduce_function,
+        const KeyExtractor& key_extractor,
+        const ReduceFunction& reduce_function,
         size_t size,
         const ValueType& neutral_element = ValueType(),
         const ReduceConfig& reduce_config = ReduceConfig()) const;
@@ -819,8 +819,8 @@ public:
     template <typename ValueOut, typename KeyExtractor,
               typename GroupByFunction, typename HashFunction =
                   std::hash<typename FunctionTraits<KeyExtractor>::result_type> >
-    auto GroupByKey(const KeyExtractor &key_extractor,
-                    const GroupByFunction &groupby_function) const;
+    auto GroupByKey(const KeyExtractor& key_extractor,
+                    const GroupByFunction& groupby_function) const;
 
     /*!
      * GroupBy is a DOp, which groups elements of the DIA by its key.
@@ -862,8 +862,8 @@ public:
      */
     template <typename ValueOut, typename KeyExtractor,
               typename GroupByFunction>
-    auto GroupToIndex(const KeyExtractor &key_extractor,
-                      const GroupByFunction &groupby_function,
+    auto GroupToIndex(const KeyExtractor& key_extractor,
+                      const GroupByFunction& groupby_function,
                       const size_t size,
                       const ValueOut& neutral_element = ValueOut()) const;
 
@@ -888,8 +888,8 @@ public:
      * \ingroup dia_dops
      */
     template <typename ZipFunction, typename SecondDIA>
-    auto Zip(const SecondDIA &second_dia,
-             const ZipFunction &zip_function) const;
+    auto Zip(const SecondDIA& second_dia,
+             const ZipFunction& zip_function) const;
 
     /*!
      * Zips two DIAs in style of functional programming by applying zip_function
@@ -912,8 +912,8 @@ public:
      * \ingroup dia_dops
      */
     template <typename ZipFunction, typename SecondDIA>
-    auto Zip(struct CutTag, const SecondDIA &second_dia,
-             const ZipFunction &zip_function) const;
+    auto Zip(struct CutTag, const SecondDIA& second_dia,
+             const ZipFunction& zip_function) const;
 
     /*!
      * Zips two DIAs in style of functional programming by applying zip_function
@@ -936,35 +936,34 @@ public:
      * \ingroup dia_dops
      */
     template <typename ZipFunction, typename SecondDIA>
-    auto Zip(struct PadTag, const SecondDIA &second_dia,
-             const ZipFunction &zip_function) const;
+    auto Zip(struct PadTag, const SecondDIA& second_dia,
+             const ZipFunction& zip_function) const;
 
-
-	/*!
-     * Zips two DIAs in style of functional programming by applying zip_function
-     * to the i-th elements of both input DIAs to form the i-th element of the
-     * output DIA. The type of the output DIA can be inferred from the
-     * zip_function.
-     *
-     * In this variant, the DIA partitions on all PEs must have matching
-     * length. No rebalancing is performed, and the program will die if any
-     * partition mismatches. This enables Zip to proceed without any
-     * communication.
-     *
-     * \tparam ZipFunction Type of the zip_function. This is a function with two
-     * input elements, both of the local type, and one output element, which is
-     * the type of the Zip node.
-     *
-     * \param zip_function Zip function, which zips two elements together
-     *
-     * \param second_dia DIA, which is zipped together with the original
-     * DIA.
-     *
-     * \ingroup dia_dops
-     */
+    /*!
+ * Zips two DIAs in style of functional programming by applying zip_function
+ * to the i-th elements of both input DIAs to form the i-th element of the
+ * output DIA. The type of the output DIA can be inferred from the
+ * zip_function.
+ *
+ * In this variant, the DIA partitions on all PEs must have matching
+ * length. No rebalancing is performed, and the program will die if any
+ * partition mismatches. This enables Zip to proceed without any
+ * communication.
+ *
+ * \tparam ZipFunction Type of the zip_function. This is a function with two
+ * input elements, both of the local type, and one output element, which is
+ * the type of the Zip node.
+ *
+ * \param zip_function Zip function, which zips two elements together
+ *
+ * \param second_dia DIA, which is zipped together with the original
+ * DIA.
+ *
+ * \ingroup dia_dops
+ */
     template <typename ZipFunction, typename SecondDIA>
-    auto Zip(struct NoRebalanceTag, const SecondDIA &second_dia,
-             const ZipFunction &zip_function) const;
+    auto Zip(struct NoRebalanceTag, const SecondDIA& second_dia,
+             const ZipFunction& zip_function) const;
 
     /*!
      * Zips each item of a DIA with its zero-based array index. This requires a
@@ -977,7 +976,7 @@ public:
      * \ingroup dia_dops
      */
     template <typename ZipFunction>
-    auto ZipWithIndex(const ZipFunction &zip_function) const;
+    auto ZipWithIndex(const ZipFunction& zip_function) const;
 
     /*!
      * Performs an inner join between this DIA and the DIA given in the first
@@ -1006,10 +1005,10 @@ public:
      */
     template <typename KeyExtractor1, typename KeyExtractor2,
               typename JoinFunction, typename SecondDIA>
-    auto InnerJoinWith(const SecondDIA &second_dia,
-                       const KeyExtractor1 &key_extractor1,
-                       const KeyExtractor2 &key_extractor2,
-                       const JoinFunction &join_function) const;
+    auto InnerJoinWith(const SecondDIA& second_dia,
+                       const KeyExtractor1& key_extractor1,
+                       const KeyExtractor2& key_extractor2,
+                       const JoinFunction& join_function) const;
 
     /*!
      * Sort is a DOp, which sorts a given DIA according to the given compare_function.
@@ -1040,8 +1039,8 @@ public:
      * \ingroup dia_dops
      */
     template <typename CompareFunction, typename SortFunction>
-    auto Sort(const CompareFunction &compare_function,
-              const SortFunction &sort_algorithm) const;
+    auto Sort(const CompareFunction& compare_function,
+              const SortFunction& sort_algorithm) const;
 
     /*!
      * Merge is a DOp, which merges two sorted DIAs to a single sorted DIA.
@@ -1058,7 +1057,7 @@ public:
      * \ingroup dia_dops
      */
     template <typename Comparator = std::less<ValueType>, typename SecondDIA>
-    auto Merge(const SecondDIA &second_dia,
+    auto Merge(const SecondDIA& second_dia,
                const Comparator& comparator = Comparator()) const;
 
     /*!
@@ -1106,8 +1105,8 @@ public:
      */
     template <typename WindowFunction, typename PartialWindowFunction>
     auto Window(size_t window_size,
-                const WindowFunction &window_function,
-                const PartialWindowFunction &partial_window_function) const;
+                const WindowFunction& window_function,
+                const PartialWindowFunction& partial_window_function) const;
 
     /*!
      * Window is a DOp, which applies a window function to every k
@@ -1122,7 +1121,7 @@ public:
      */
     template <typename WindowFunction>
     auto Window(struct DisjointTag, size_t window_size,
-                const WindowFunction &window_function) const;
+                const WindowFunction& window_function) const;
 
     /*!
      * FlatWindow is a DOp, which applies a window function to every k
@@ -1157,8 +1156,8 @@ public:
     template <typename ValueOut, typename WindowFunction,
               typename PartialWindowFunction>
     auto FlatWindow(size_t window_size,
-                    const WindowFunction &window_function,
-                    const PartialWindowFunction &partial_window_function) const;
+                    const WindowFunction& window_function,
+                    const PartialWindowFunction& partial_window_function) const;
 
     /*!
      * FlatWindow is a DOp, which applies a window function to every k
@@ -1173,7 +1172,7 @@ public:
      */
     template <typename ValueOut, typename WindowFunction>
     auto FlatWindow(struct DisjointTag, size_t window_size,
-                    const WindowFunction &window_function) const;
+                    const WindowFunction& window_function) const;
 
     /*!
      * Concat is a DOp, which concatenates any number of DIAs to a single DIA.
@@ -1186,7 +1185,7 @@ public:
      * \ingroup dia_dops
      */
     template <typename SecondDIA>
-    auto Concat(const SecondDIA &second_dia) const;
+    auto Concat(const SecondDIA& second_dia) const;
 
     /*!
      * Rebalance is a DOp, which rebalances a single DIA among all workers; in

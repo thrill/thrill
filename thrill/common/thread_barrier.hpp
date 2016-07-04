@@ -102,7 +102,7 @@ public:
         : thread_count_(thread_count) { }
 
     ~ThreadBarrierSpinning() {
-        LOG1 << "ThreadBarrierSpinning() needed "
+        LOG0 << "ThreadBarrierSpinning() needed "
              << wait_time_.load() << " us for " << thread_count_ << " threads "
              << " = "
              << wait_time_.load() / static_cast<double>(thread_count_) / 1e6

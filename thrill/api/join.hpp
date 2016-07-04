@@ -73,7 +73,7 @@ class JoinNode final : public DOpNode<ValueType>
 
     using Key = typename common::FunctionTraits<KeyExtractor1>::result_type;
 
-	using CounterType = size_t;
+    using CounterType = size_t;
 
 public:
     /*!
@@ -86,18 +86,18 @@ public:
         : Super(parent1.ctx(), "Join",
                 { parent1.id(), parent2.id() },
                 { parent1.node(), parent2.node() }),
-		key_extractor1_(key_extractor1),
-		key_extractor2_(key_extractor2),
-		join_function_(join_function),
-		hash_stream1_(parent1.ctx().GetNewMixStream(this)),
-		hash_writers1_(hash_stream1_->GetWriters()),
-		hash_stream2_(parent2.ctx().GetNewMixStream(this)),
-		hash_writers2_(hash_stream2_->GetWriters()),
-		pre_file1_(context_.GetFilePtr(this)),
-		pre_file2_(context_.GetFilePtr(this)),
-		location_detection_(parent1.ctx(), Super::id(), 
-							std::plus<CounterType>())
-		{
+          key_extractor1_(key_extractor1),
+          key_extractor2_(key_extractor2),
+          join_function_(join_function),
+          hash_stream1_(parent1.ctx().GetNewMixStream(this)),
+          hash_writers1_(hash_stream1_->GetWriters()),
+          hash_stream2_(parent2.ctx().GetNewMixStream(this)),
+          hash_writers2_(hash_stream2_->GetWriters()),
+          pre_file1_(context_.GetFilePtr(this)),
+          pre_file2_(context_.GetFilePtr(this)),
+          location_detection_(parent1.ctx(), Super::id(),
+                              std::plus<CounterType>())
+    {
 
         auto pre_op_fn1 = [this](const InputTypeFirst& input) {
                               PreOp1(input);
@@ -115,29 +115,28 @@ public:
 
     void Execute() final {
 
-		if (UseLocationDetection) {
-			
-			size_t max_hash;
-			std::unordered_map<size_t, size_t> target_processors; 
-			max_hash = location_detection_.Flush(target_processors);
-	    
-			auto file1reader = pre_file1_->GetConsumeReader();
-			while (file1reader.HasNext()) {
-				InputTypeFirst in1 = file1reader.template Next<InputTypeFirst>();
-				size_t hr = std::hash<Key>()(key_extractor1_(in1)) % max_hash;
-				size_t target_processor = target_processors.find(hr)->second;
-				hash_writers1_[target_processor].Put(in1);
-			}
+        if (UseLocationDetection) {
 
-			auto file2reader = pre_file2_->GetConsumeReader();
-			while (file2reader.HasNext()) {
-				InputTypeSecond in2 = file2reader.template Next<InputTypeSecond>();
-				size_t hr = std::hash<Key>()(key_extractor2_(in2)) % max_hash;
-				size_t target_processor = target_processors.find(hr)->second;
-				hash_writers2_[target_processor].Put(in2);
-			}
-		}
+            size_t max_hash;
+            std::unordered_map<size_t, size_t> target_processors;
+            max_hash = location_detection_.Flush(target_processors);
 
+            auto file1reader = pre_file1_->GetConsumeReader();
+            while (file1reader.HasNext()) {
+                InputTypeFirst in1 = file1reader.template Next<InputTypeFirst>();
+                size_t hr = std::hash<Key>()(key_extractor1_(in1)) % max_hash;
+                size_t target_processor = target_processors.find(hr)->second;
+                hash_writers1_[target_processor].Put(in1);
+            }
+
+            auto file2reader = pre_file2_->GetConsumeReader();
+            while (file2reader.HasNext()) {
+                InputTypeSecond in2 = file2reader.template Next<InputTypeSecond>();
+                size_t hr = std::hash<Key>()(key_extractor2_(in2)) % max_hash;
+                size_t target_processor = target_processors.find(hr)->second;
+                hash_writers2_[target_processor].Put(in2);
+            }
+        }
 
         for (size_t i = 0; i < hash_writers1_.size(); ++i) {
             hash_writers1_[i].Close();
@@ -253,7 +252,6 @@ public:
         files2_.clear();
     }
 
-	
 private:
     //! files for sorted datasets
     std::deque<data::File> files1_;
@@ -270,26 +268,26 @@ private:
     data::MixStreamPtr hash_stream2_;
     std::vector<data::Stream::Writer> hash_writers2_;
 
-	//! location detection and associated files
-	data::FilePtr pre_file1_;
-	data::File::Writer pre_writer1_;
-	data::FilePtr pre_file2_;
-	data::File::Writer pre_writer2_;
+    //! location detection and associated files
+    data::FilePtr pre_file1_;
+    data::File::Writer pre_writer1_;
+    data::FilePtr pre_file2_;
+    data::File::Writer pre_writer2_;
 
-	core::LocationDetection<ValueType, Key, UseLocationDetection, CounterType, 
-							core::ReduceByHash<Key>, std::hash<Key>,
-							std::plus<CounterType>> location_detection_;
-	
+    core::LocationDetection<ValueType, Key, UseLocationDetection, CounterType,
+                            core::ReduceByHash<Key>, std::hash<Key>,
+                            std::plus<CounterType> > location_detection_;
+
     //! Receive elements from other workers, create pre-sorted files
     void MainOp() {
-		data::MixStream::MixReader reader1_ =
+        data::MixStream::MixReader reader1_ =
             hash_stream1_->GetMixReader(/* consume */ true);
 
         size_t capacity = DIABase::mem_limit_ / sizeof(InputTypeFirst) / 2;
 
         RecieveItems<InputTypeFirst>(capacity, reader1_, files1_, key_extractor1_);
 
-		data::MixStream::MixReader reader2_ =
+        data::MixStream::MixReader reader2_ =
             hash_stream2_->GetMixReader(/* consume */ true);
 
         capacity = DIABase::mem_limit_ / sizeof(InputTypeSecond) / 2;
@@ -298,79 +296,81 @@ private:
     }
 
     void PreOp1(const InputTypeFirst& input) {
-		if (UseLocationDetection) {
-			pre_writer1_.Put(input);
-			location_detection_.Insert(key_extractor1_(input));
-		} else {
-			hash_writers1_[
-			    core::ReduceByHash < Key > ()(key_extractor1_(input),
-											  context_.num_workers(),
-											  0, 0).partition_id].Put(input);
-		}
+        if (UseLocationDetection) {
+            pre_writer1_.Put(input);
+            location_detection_.Insert(key_extractor1_(input));
+        }
+        else {
+            hash_writers1_[
+                core::ReduceByHash < Key > ()(key_extractor1_(input),
+                                              context_.num_workers(),
+                                              0, 0).partition_id].Put(input);
+        }
     }
 
     void PreOp2(const InputTypeSecond& input) {
-		if (UseLocationDetection) {
-			pre_writer2_.Put(input);
-			location_detection_.Insert(key_extractor2_(input));
-		} else {
-			hash_writers2_[
-				core::ReduceByHash < Key > ()(key_extractor2_(input),
-											  context_.num_workers(),
-											  0, 0).partition_id].Put(input);
-		}
+        if (UseLocationDetection) {
+            pre_writer2_.Put(input);
+            location_detection_.Insert(key_extractor2_(input));
+        }
+        else {
+            hash_writers2_[
+                core::ReduceByHash < Key > ()(key_extractor2_(input),
+                                              context_.num_workers(),
+                                              0, 0).partition_id].Put(input);
+        }
     }
 
-	template <typename ItemType>
-	size_t JoinCapacity() {
-		return DIABase::mem_limit_ / sizeof(ItemType) / 4;
-	}
+    template <typename ItemType>
+    size_t JoinCapacity() {
+        return DIABase::mem_limit_ / sizeof(ItemType) / 4;
+    }
 
-	 /*!
-     * Adds all elements from merge tree to a data::File, potentially to external memory,
-	 * afterwards sets the first_element pointer to the first element with a different key.
-     *
-     * \param puller Input merge tree
-     *
-     * \param first_element First element with target key
-     *
-     * \param key_extractor Key extractor function
-	 *
-	 * \param writer File writer
-     *
-	 * \param Key target key
-	 *
-     * \return Pair of bools, first bool indicates whether the merge tree is
-     * emptied, second bool indicates whether external memory was needed (always true, when
-	 * this method was called).
-     */
+    /*!
+* Adds all elements from merge tree to a data::File, potentially to external memory,
+    * afterwards sets the first_element pointer to the first element with a different key.
+*
+* \param puller Input merge tree
+*
+* \param first_element First element with target key
+*
+* \param key_extractor Key extractor function
+    *
+    * \param writer File writer
+*
+    * \param Key target key
+    *
+* \return Pair of bools, first bool indicates whether the merge tree is
+* emptied, second bool indicates whether external memory was needed (always true, when
+    * this method was called).
+*/
     template <typename ItemType, typename KeyExtractor, typename MergeTree>
     std::pair<bool, bool> AddEqualKeysToFile(MergeTree& puller,
-											 ItemType& first_element,
-											 const KeyExtractor& key_extractor,
-											 data::File::Writer& writer,
-											 Key key) {
-		ItemType next_element; 
-		if (puller.HasNext()) {
+                                             ItemType& first_element,
+                                             const KeyExtractor& key_extractor,
+                                             data::File::Writer& writer,
+                                             Key key) {
+        ItemType next_element;
+        if (puller.HasNext()) {
             next_element = puller.Next();
         }
         else {
             return std::make_pair(true, true);
         }
-		
+
         while (key_extractor(next_element) == key) {
-			writer.Put(next_element);
-			if (puller.HasNext()) {
+            writer.Put(next_element);
+            if (puller.HasNext()) {
                 next_element = puller.Next();
             }
             else {
                 return std::make_pair(true, true);
             }
-		}
-		
+        }
+
         first_element = next_element;
         return std::make_pair(false, true);
-	}
+    }
 
     /*!
      * Adds all elements from merge tree to a vector, afterwards sets the first_element
@@ -383,8 +383,8 @@ private:
      * \param first_element First element with target key
      *
      * \param key_extractor Key extractor function
-	 *
-	 * \param file_ptr Pointer to a data::File
+         *
+         * \param file_ptr Pointer to a data::File
      *
      * \return Pair of bools, first bool indicates whether the merge tree is
      * emptied, second bool indicates whether external memory was needed.
@@ -394,13 +394,12 @@ private:
                                             MergeTree& puller,
                                             ItemType& first_element,
                                             const KeyExtractor& key_extractor,
-											data::FilePtr& file_ptr) {
+                                            data::FilePtr& file_ptr) {
 
         vec.push_back(first_element);
         ItemType next_element;
         Key key = key_extractor(first_element);
-		
-		
+
         size_t capacity = JoinCapacity<ItemType>();
 
         if (puller.HasNext()) {
@@ -409,23 +408,24 @@ private:
         else {
             return std::make_pair(true, false);
         }
-		
-        while (key_extractor(next_element) == key) {
-			
-            if (!mem::memory_exceeded && vec.size() < capacity) {
-				vec.push_back(next_element);
-			} else {
-				file_ptr = context_.GetFilePtr(this);
-				data::File::Writer writer = file_ptr->GetWriter();
-				for (const ItemType& item : vec) {
-					writer.Put(item);
-				}
-				writer.Put(next_element);
-				//! vec is very large when this happens, swap with empty vector to free the mem
-				std::vector<ItemType>().swap(vec);
 
-				return AddEqualKeysToFile(puller, first_element, key_extractor, writer, key);
-			}
+        while (key_extractor(next_element) == key) {
+
+            if (!mem::memory_exceeded && vec.size() < capacity) {
+                vec.push_back(next_element);
+            }
+            else {
+                file_ptr = context_.GetFilePtr(this);
+                data::File::Writer writer = file_ptr->GetWriter();
+                for (const ItemType& item : vec) {
+                    writer.Put(item);
+                }
+                writer.Put(next_element);
+                //! vec is very large when this happens, swap with empty vector to free the mem
+                std::vector<ItemType>().swap(vec);
+
+                return AddEqualKeysToFile(puller, first_element, key_extractor, writer, key);
+            }
             if (puller.HasNext()) {
                 next_element = puller.Next();
             }
@@ -438,26 +438,24 @@ private:
         return std::make_pair(false, false);
     }
 
-	DIAMemUse PreOpMemUse() final {
-		return DIAMemUse::Max();
-	}
+    DIAMemUse PreOpMemUse() final {
+        return DIAMemUse::Max();
+    }
 
-	
     void StartPreOp(size_t /* id */) final {
         LOG << *this << " running StartPreOp";
-		location_detection_.Initialize(DIABase::mem_limit_);
+        location_detection_.Initialize(DIABase::mem_limit_);
 
-		pre_writer1_ = pre_file1_->GetWriter();
-		pre_writer2_ = pre_file2_->GetWriter();
-		
-	}
+        pre_writer1_ = pre_file1_->GetWriter();
+        pre_writer2_ = pre_file2_->GetWriter();
+    }
 
-	void StopPreOp(size_t /* id */) final {
-		LOG << *this << " running StopPreOp";
-		
-		pre_writer1_.Close();
-		pre_writer2_.Close();
-	}
+    void StopPreOp(size_t /* id */) final {
+        LOG << *this << " running StopPreOp";
+
+        pre_writer1_.Close();
+        pre_writer2_.Close();
+    }
 
     DIAMemUse ExecuteMemUse() final {
         return DIAMemUse::Max();
@@ -487,14 +485,14 @@ private:
         }
 
         if (vec.size())
-			SortAndWriteToFile(vec, files, key_extractor);
+            SortAndWriteToFile(vec, files, key_extractor);
     }
 
     //! calculate maximum merging degree from available memory and the number of
     //! files. additionally calculate the prefetch size of each File.
     std::pair<size_t, size_t> MaxMergeDegreePrefetch(std::deque<data::File>& files) {
-        // 1/4 of avail_blocks in api::Sort, as Join has two mergers and two vectors of 
-		// data to join
+        // 1/4 of avail_blocks in api::Sort, as Join has two mergers and two vectors of
+        // data to join
         size_t avail_blocks = DIABase::mem_limit_ / data::default_block_size / 4;
         if (files.size() >= avail_blocks) {
             // more files than blocks available -> partial merge of avail_blocks
@@ -555,10 +553,8 @@ private:
         }
     }
 
-	
-
-	data::FilePtr join_file1_;
-	data::FilePtr join_file2_;	
+    data::FilePtr join_file1_;
+    data::FilePtr join_file2_;
 
     /*!
      * Joins all elements in cartesian product of both vectors. Uses files when
@@ -569,8 +565,8 @@ private:
                          const std::vector<InputTypeSecond>& vec2, bool external2) {
 
         if (!external1 && !external2) {
-            for (auto const& join1 : vec1) {
-                for (auto const& join2 : vec2) {
+            for (auto const & join1 : vec1) {
+                for (auto const & join2 : vec2) {
                     assert(key_extractor1_(join1) == key_extractor2_(join2));
                     this->PushItem(join_function_(join1, join2));
                 }
@@ -581,15 +577,15 @@ private:
             LOG1 << "Thrill: Warning: Too many equal keys for main memory "
                  << "in first DIA";
 
-			data::File::Reader reader = join_file1_->GetReader(/*consume*/ true);
+            data::File::Reader reader = join_file1_->GetReader(/*consume*/ true);
 
-			while (reader.HasNext()) {
-				InputTypeFirst join1 = reader.template Next<InputTypeFirst>();
-				for (auto const& join2 : vec2) {
+            while (reader.HasNext()) {
+                InputTypeFirst join1 = reader.template Next<InputTypeFirst>();
+                for (auto const & join2 : vec2) {
                     assert(key_extractor1_(join1) == key_extractor2_(join2));
                     this->PushItem(join_function_(join1, join2));
-				}
-			}
+                }
+            }
 
             return;
         }
@@ -598,15 +594,15 @@ private:
             LOG1 << "Thrill: Warning: Too many equal keys for main memory "
                  << "in second DIA";
 
-			data::File::Reader reader = join_file2_->GetReader(/*consume*/ true);
+            data::File::Reader reader = join_file2_->GetReader(/*consume*/ true);
 
-			while (reader.HasNext()) {
-				InputTypeSecond join2 = reader.template Next<InputTypeSecond>();
-				for (auto const& join1 : vec1) {
+            while (reader.HasNext()) {
+                InputTypeSecond join2 = reader.template Next<InputTypeSecond>();
+                for (auto const & join1 : vec1) {
                     assert(key_extractor1_(join1) == key_extractor2_(join2));
                     this->PushItem(join_function_(join1, join2));
-				}
-			}
+                }
+            }
 
             return;
         }
@@ -615,38 +611,38 @@ private:
             LOG1 << "Thrill: Warning: Too many equal keys for main memory "
                  << "in both DIAs. This is very slow.";
 
-			size_t capacity = JoinCapacity<InputTypeFirst>();
+            size_t capacity = JoinCapacity<InputTypeFirst>();
 
-			std::vector<InputTypeFirst> temp_vec;
-			temp_vec.reserve(capacity);
+            std::vector<InputTypeFirst> temp_vec;
+            temp_vec.reserve(capacity);
 
-			//! file 2 needs to be read multiple times 
-			data::File::Reader reader1 = join_file1_->GetReader(/*consume*/ true);
+            //! file 2 needs to be read multiple times
+            data::File::Reader reader1 = join_file1_->GetReader(/*consume*/ true);
 
-			while (reader1.HasNext()) {
+            while (reader1.HasNext()) {
 
-				for (size_t i = 0; i < capacity && reader1.HasNext() && !mem::memory_exceeded; ++i) {
-					temp_vec.push_back(reader1.template Next<InputTypeFirst>());
-				}
-				
-				data::File::Reader reader2 = join_file2_->GetReader(/*consume*/ false);
-				
-				size_t test = 0;
-				while (reader2.HasNext()) {
-					++test;
-					InputTypeSecond join2 = reader2.template Next<InputTypeSecond>();
-					for (auto const& join1 : temp_vec) {
-						assert(key_extractor1_(join1) == key_extractor2_(join2));
-						this->PushItem(join_function_(join1, join2));
-					}
-				}
-				temp_vec.clear();
-			}
+                for (size_t i = 0; i < capacity && reader1.HasNext() && !mem::memory_exceeded; ++i) {
+                    temp_vec.push_back(reader1.template Next<InputTypeFirst>());
+                }
 
-			//! non-consuming reader, need to clear now
-			join_file2_->Clear();
+                data::File::Reader reader2 = join_file2_->GetReader(/*consume*/ false);
 
-			return;
+                size_t test = 0;
+                while (reader2.HasNext()) {
+                    ++test;
+                    InputTypeSecond join2 = reader2.template Next<InputTypeSecond>();
+                    for (auto const & join1 : temp_vec) {
+                        assert(key_extractor1_(join1) == key_extractor2_(join2));
+                        this->PushItem(join_function_(join1, join2));
+                    }
+                }
+                temp_vec.clear();
+            }
+
+            //! non-consuming reader, need to clear now
+            join_file2_->Clear();
+
+            return;
         }
     }
 
@@ -656,13 +652,13 @@ private:
     template <typename ItemType, typename KeyExtractor>
     void SortAndWriteToFile(
         std::vector<ItemType>& vec, std::deque<data::File>& files,
-		const KeyExtractor& key_extractor) {
+        const KeyExtractor& key_extractor) {
         // advise block pool to write out data if necessary
         context_.block_pool().AdviseFree(vec.size() * sizeof(ValueType));
 
         std::sort(vec.begin(), vec.end(), [&key_extractor](ItemType i1, ItemType i2) {
-				return key_extractor(i1) < key_extractor(i2);
-			});
+                      return key_extractor(i1) < key_extractor(i2);
+                  });
 
         files.emplace_back(context_.GetFile(this));
         auto writer = files.back().GetWriter();
@@ -680,10 +676,10 @@ template <typename KeyExtractor1,
           typename KeyExtractor2,
           typename JoinFunction,
           typename SecondDIA>
-auto DIA<ValueType, Stack>::InnerJoinWith(const SecondDIA &second_dia,
-                                          const KeyExtractor1 &key_extractor1,
-                                          const KeyExtractor2 &key_extractor2,
-                                          const JoinFunction &join_function) const {
+auto DIA<ValueType, Stack>::InnerJoinWith(const SecondDIA& second_dia,
+                                          const KeyExtractor1& key_extractor1,
+                                          const KeyExtractor2& key_extractor2,
+                                          const JoinFunction& join_function) const {
 
     assert(IsValid());
     assert(second_dia.IsValid());

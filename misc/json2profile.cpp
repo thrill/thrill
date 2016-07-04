@@ -565,15 +565,15 @@ void ProcessJsonProfile() {
     min_ts = std::min(min_ts, c_BlockPool.front().ts);
     min_ts = std::min(min_ts, c_StageBuilder.front().ts);
 
-    for (auto& c : c_Cmdline) c.ts -= min_ts;
-    for (auto& c : c_LinuxProcStats) c.ts -= min_ts;
-    for (auto& c : c_NetManager) c.ts -= min_ts;
-    for (auto& c : c_MemProfile) c.ts -= min_ts;
-    for (auto& c : c_BlockPool) c.ts -= min_ts;
-    for (auto& c : c_Stream) c.ts -= min_ts;
-    for (auto& c : c_File) c.ts -= min_ts;
-    for (auto& c : c_DIABase) c.ts -= min_ts;
-    for (auto& c : c_StageBuilder) c.ts -= min_ts;
+    for (auto & c : c_Cmdline) c.ts -= min_ts;
+    for (auto & c : c_LinuxProcStats) c.ts -= min_ts;
+    for (auto & c : c_NetManager) c.ts -= min_ts;
+    for (auto & c : c_MemProfile) c.ts -= min_ts;
+    for (auto & c : c_BlockPool) c.ts -= min_ts;
+    for (auto & c : c_Stream) c.ts -= min_ts;
+    for (auto & c : c_File) c.ts -= min_ts;
+    for (auto & c : c_DIABase) c.ts -= min_ts;
+    for (auto & c : c_StageBuilder) c.ts -= min_ts;
 }
 
 /******************************************************************************/
