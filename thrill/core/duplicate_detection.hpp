@@ -234,43 +234,48 @@ public:
         std::vector<data::CatStream::Writer> duplicate_writers =
             duplicates_stream->GetWriters();
 
+        std::vector<core::DynamicBitset<size_t>*> bitsets;
+        std::vector<size_t> deltas(context.num_workers(), 0);
+        std::vector<size_t> element_counters(context.num_workers(), 0);
+
         for (size_t i = 0; i < context.num_workers(); ++i) {
-            core::DynamicBitset<size_t> bitset(upper_space_bound, false, b);
+            bitsets.emplace_back(new core::DynamicBitset<size_t>(
+                                     upper_space_bound, false, b));
+        }
 
-            size_t delta = 0;
-            size_t element_counter = 0;
+        if (hashes_dups.size()) {
 
-            if (hashes_dups.size()) {
+            size_t j = 0;
 
-                size_t j = 0;
+            while (j < hashes_dups.size() - 1) {
+                //! finds all duplicated hashes and insert them in the
+                //! according golomb codes
+                if ((hashes_dups[j].first == hashes_dups[j + 1].first)) {
 
-                while (j < hashes_dups.size() - 1) {
-                    //! finds all duplicated hashes and insert them in the
-                    //! golomb code for duplicates (regardless whether they
-                    //! appear on 2 or multiple workers)
-                    if ((hashes_dups[j].first == hashes_dups[j + 1].first)) {
+                    size_t cmp = hashes_dups[j].first;
+                    while (j < hashes_dups.size() &&
+                           hashes_dups[j].first == cmp) {
 
-                        size_t cmp = hashes_dups[j].first;
-                        while (j < hashes_dups.size() &&
-                               hashes_dups[j].first == cmp) {
-                            if (hashes_dups[j++].second == i) {
-                                bitset.golomb_in(cmp - delta);
-                                delta = cmp;
-                                element_counter++;
-                            }
-                        }
-                    }
-                    else {
-                        ++j;
+                        size_t proc = hashes_dups[j++].second;
+                        bitsets[proc]->golomb_in(cmp - deltas[proc]);
+                        deltas[proc] = cmp;
+                        element_counters[proc]++;
                     }
                 }
+                else {
+                    ++j;
+                }
             }
+        }
 
-            duplicate_writers[i].Put(bitset.size());
-            duplicate_writers[i].Put(element_counter);
-            duplicate_writers[i].Append(bitset.GetGolombData(),
-                                        bitset.size() * sizeof(size_t));
+
+        for (size_t i = 0; i < context.num_workers(); ++i) {
+            duplicate_writers[i].Put(bitsets[i]->size());
+            duplicate_writers[i].Put(element_counters[i]);
+            duplicate_writers[i].Append(bitsets[i]->GetGolombData(),
+                                        bitsets[i]->size() * sizeof(size_t));
             duplicate_writers[i].Close();
+            delete bitsets[i];
         }
 
         ReadEncodedHashesToVector(duplicates_stream,
