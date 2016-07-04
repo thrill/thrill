@@ -95,10 +95,10 @@ private:
             }
 
             //! Send raw data through data stream.
-            writers[i].Put(golomb_code.byte_size() + sizeof(size_t));
+            writers[i].Put(golomb_code.byte_size());
             writers[i].Put(num_elements);
             writers[i].Append(golomb_code.GetGolombData(),
-                              golomb_code.byte_size() + sizeof(size_t));
+                              golomb_code.byte_size());
             writers[i].Close();
         }
     }

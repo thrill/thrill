@@ -77,7 +77,7 @@ public:
           log2b_(common::IntegerLog2Ceil(b_)), // helper var for golomb in
           max_little_value_((((BaseType)1) << log2b_) - b_) {
         bitset_size_bits_ = n;
-        bitset_size_base_ = bitset_size_bits_ / (sizeof(BaseType) * 8) + 1;
+        bitset_size_base_ = bitset_size_bits_ / (sizeof(BaseType) * 8) + 2;
         memory_ = new byte[sizeof(BaseType) * bitset_size_base_ + alignment];
         in_called_already_ = false;
         out_called_already_ = false;
