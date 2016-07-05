@@ -250,7 +250,7 @@ public:
             while (j < hashes_dups.size() - 1) {
                 //! finds all duplicated hashes and insert them in the
                 //! according golomb codes
-                if ((hashes_dups[j].first == hashes_dups[j + 1].first)) {
+                if (hashes_dups[j].first == hashes_dups[j + 1].first) {
 
                     size_t cmp = hashes_dups[j].first;
                     while (j < hashes_dups.size() &&

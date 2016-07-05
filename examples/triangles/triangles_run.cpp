@@ -26,7 +26,6 @@
 
 using namespace thrill;              // NOLINT
 using examples::page_rank::ZipfGraphGen;
-static constexpr bool debug = true;
 
 using Node = size_t;
 using Edge = std::pair<Node, Node>;

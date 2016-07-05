@@ -50,7 +50,9 @@ public:
         : vec_(vec),
           hash_function_(hash_function) { }
 
-    static void Put(const KeyCounterPair& p, data::DynBlockWriter& writer) {
+    static void Put(const KeyCounterPair& /*p*/,
+                    data::DynBlockWriter& /*writer*/) {
+        /* Should not be called */
         assert(0);
     }
 

@@ -8,7 +8,12 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
+
+#include <cmath>
+#include <random>
+
 #include <thrill/common/cmdline_parser.hpp>
+#include <thrill/common/math.hpp>
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/core/dynamic_bitset.hpp>
 
@@ -37,8 +42,13 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
+
+    size_t space_bound = num_elements *
+        (2 + thrill::common::IntegerLog2Ceil((size_t) fpr_parameter));
+
     thrill::core::DynamicBitset<size_t>
-    golomb_code((num_elements * average_distance) * (2 + std::log2(fpr_parameter)), false, golomb_param);
+        golomb_code(space_bound,
+                    false, golomb_param);
 
     std::default_random_engine generator(std::random_device { } ());
     std::uniform_int_distribution<int> distribution(1, (2 * average_distance) - 1);

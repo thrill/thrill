@@ -24,8 +24,6 @@
 
 using namespace thrill; // NOLINT
 
-static constexpr bool debug = false;
-
 TEST(Join, PairsUnique) {
 
     auto start_func =

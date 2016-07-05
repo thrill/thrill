@@ -35,8 +35,8 @@ class DynamicBitset
 {
 private:
     //! Helper constants
-    static const int bit_length = sizeof(BaseType) * 8, bit_length_doubled = 2 * bit_length, logbase = std::log2(bit_length);
-    static const BaseType mask = (((BaseType)1) << logbase) - 1, all_set = ~((BaseType)0), msb_set = ((BaseType)1) << (bit_length - 1);
+    const size_t bit_length = sizeof(BaseType) * 8, bit_length_doubled = 2 * bit_length, logbase = common::IntegerLog2Floor(bit_length);
+    const BaseType mask = (((BaseType)1) << logbase) - 1, all_set = ~((BaseType)0), msb_set = ((BaseType)1) << (bit_length - 1);
 
     static constexpr bool debug = false;
     //! Used to compute total amount of entropy encoded
@@ -65,6 +65,15 @@ private:
     const BaseType max_little_value_;
 
 public:
+
+
+    DynamicBitset() = default;
+
+    DynamicBitset(const DynamicBitset& other) = default;
+    DynamicBitset& operator = (const DynamicBitset& other) = default;
+    DynamicBitset(DynamicBitset&& other) = default;
+    DynamicBitset& operator = (DynamicBitset&& other) = default;
+
     /*!
      * Create a new bitset, allocate memory
      *
@@ -197,10 +206,11 @@ public:
 
     inline size_t byte_size() const {
         if (maxpos_ > 0) {
-            return (maxpos_ * bit_length / 8) + common::IntegerDivRoundUp(bits_, 8);
+            return (maxpos_ * bit_length / 8) +
+                common::IntegerDivRoundUp(bits_, (size_t) 8);
         }
         else {
-            return common::IntegerDivRoundUp(bits_, 8);
+            return common::IntegerDivRoundUp(bits_, (size_t) 8);
         }
     }
 
@@ -314,7 +324,7 @@ public:
 private:
     BaseType buffer_;
     IndexType pos_, maxpos_;
-    int bits_;
+    size_t bits_;
     size_t num_elements_;
 
 public:
@@ -344,7 +354,7 @@ public:
      * \param length size of the new value in bits
      * \param value new value
      */
-    inline void stream_in(short length, BaseType value) {
+    inline void stream_in(uint8_t length, BaseType value) {
         assert(pos_ * 8 < bitset_size_bits_ + alignment);
         if (bits_ + length > bit_length) {
             //! buffer overflown
@@ -471,7 +481,7 @@ public:
             // of 1s is greater than bit_length, which is not
             // supported by the original implementation!
             // See microbench_golomb_coding_pathological_case.cpp for an example.
-            while (static_cast<int>(q) >= bit_length) {
+            while (q >= bit_length) {
                 q -= bit_length;
                 stream_in(bit_length, all_set);
             }
