@@ -53,27 +53,30 @@ size_t StreamSink::peer_worker_rank() const {
     return peer_rank_ * workers_per_host() + peer_local_worker_;
 }
 
-void StreamSink::AppendBlock(const Block& block) {
-    return AppendPinnedBlock(block.PinWait(local_worker_id()));
+void StreamSink::AppendBlock(const Block& block, bool is_last_block) {
+    return AppendPinnedBlock(block.PinWait(local_worker_id()), is_last_block);
 }
 
-void StreamSink::AppendBlock(Block&& block) {
-    return AppendPinnedBlock(block.PinWait(local_worker_id()));
+void StreamSink::AppendBlock(Block&& block, bool is_last_block) {
+    return AppendPinnedBlock(block.PinWait(local_worker_id()), is_last_block);
 }
 
-void StreamSink::AppendPinnedBlock(const PinnedBlock& block) {
+void StreamSink::AppendPinnedBlock(const PinnedBlock& block, bool is_last_block) {
     if (block.size() == 0) return;
 
     sem_.wait();
 
-    sLOG << "StreamSink::AppendBlock" << block;
+    LOG << "StreamSink::AppendPinnedBlock()"
+        << " block=" << block
+        << " is_last_block=" << is_last_block;
+
+    sLOG << "sending block" << common::Hexdump(block.ToString());
 
     StreamMultiplexerHeader header(magic_, block);
     header.stream_id = id_;
     header.sender_worker = (host_rank_ * workers_per_host()) + local_worker_id_;
     header.receiver_local_worker = peer_local_worker_;
-
-    sLOG << "sending block" << common::Hexdump(block.ToString());
+    header.is_last_block = is_last_block;
 
     net::BufferBuilder bb;
     header.Serialize(bb);
@@ -90,25 +93,44 @@ void StreamSink::AppendPinnedBlock(const PinnedBlock& block) {
         // send out Buffer and Block, guaranteed to be successive
         std::move(buffer), PinnedBlock(block),
         [this](net::Connection&) { sem_.signal(); });
+
+    if (is_last_block) {
+        assert(!closed_);
+        closed_ = true;
+
+        // wait for the last Blocks to be transmitted (take away semaphore
+        // tokens)
+        for (size_t i = 0; i < num_queue_; ++i)
+            sem_.wait();
+
+        LOG << "StreamSink::AppendPinnedBlock()"
+            << " sent 'piggy-backed close stream' id=" << id_
+            << " from=" << my_worker_rank()
+            << " (host=" << host_rank_ << ")"
+            << " to=" << peer_worker_rank()
+            << " (host=" << peer_rank_ << ")";
+
+        Finalize();
+    }
 }
 
-void StreamSink::AppendPinnedBlock(PinnedBlock&& block) {
-    return AppendPinnedBlock(block);
+void StreamSink::AppendPinnedBlock(PinnedBlock&& block, bool is_last_block) {
+    return AppendPinnedBlock(block, is_last_block);
 }
 
 void StreamSink::Close() {
-    assert(!closed_);
+    if (closed_) return;
     closed_ = true;
 
     // wait for the last Blocks to be transmitted (take away semaphore tokens)
     for (size_t i = 0; i < num_queue_; ++i)
         sem_.wait();
 
-    LOG << "sending 'close stream' id " << id_
-        << " from " << my_worker_rank()
-        << " (host " << host_rank_ << ")"
-        << " to " << peer_worker_rank()
-        << " (host " << peer_rank_ << ")";
+    LOG << "StreamSink::Close() sending 'close stream' id=" << id_
+        << " from=" << my_worker_rank()
+        << " (host=" << host_rank_ << ")"
+        << " to=" << peer_worker_rank()
+        << " (host=" << peer_rank_ << ")";
 
     StreamMultiplexerHeader header;
     header.magic = magic_;
@@ -128,6 +150,10 @@ void StreamSink::Close() {
     stream_.multiplexer_.dispatcher_.AsyncWrite(
         *connection_, std::move(buffer));
 
+    Finalize();
+}
+
+void StreamSink::Finalize() {
     logger()
         << "class" << "StreamSink"
         << "event" << "close"

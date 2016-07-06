@@ -84,12 +84,12 @@ std::vector<MixStream::Writer> MixStream::GetWriters() {
                      multiplexer_.active_streams_);
     }
 
-    LOG1 << "MixStream::GetWriters()"
-         << " hard_ram_limit=" << hard_ram_limit
-         << " block_size_base=" << block_size_base
-         << " block_size=" << block_size
-         << " active_streams=" << multiplexer_.active_streams_
-         << " max_active_streams=" << multiplexer_.max_active_streams_;
+    LOG << "MixStream::GetWriters()"
+        << " hard_ram_limit=" << hard_ram_limit
+        << " block_size_base=" << block_size_base
+        << " block_size=" << block_size
+        << " active_streams=" << multiplexer_.active_streams_
+        << " max_active_streams=" << multiplexer_.max_active_streams_;
 
     tx_timespan_.StartEventually();
 

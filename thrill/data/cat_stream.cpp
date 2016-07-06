@@ -122,12 +122,12 @@ std::vector<CatStream::Writer> CatStream::GetWriters() {
                      multiplexer_.active_streams_);
     }
 
-    LOG1 << "CatStream::GetWriters()"
-         << " hard_ram_limit=" << hard_ram_limit
-         << " block_size_base=" << block_size_base
-         << " block_size=" << block_size
-         << " active_streams=" << multiplexer_.active_streams_
-         << " max_active_streams=" << multiplexer_.max_active_streams_;
+    LOG << "CatStream::GetWriters()"
+        << " hard_ram_limit=" << hard_ram_limit
+        << " block_size_base=" << block_size_base
+        << " block_size=" << block_size
+        << " active_streams=" << multiplexer_.active_streams_
+        << " max_active_streams=" << multiplexer_.max_active_streams_;
 
     tx_timespan_.StartEventually();
 
@@ -258,7 +258,7 @@ void CatStream::OnStreamBlock(size_t from, PinnedBlock&& b) {
              << common::Hexdump(b.ToString());
     }
 
-    queues_[from].AppendPinnedBlock(std::move(b));
+    queues_[from].AppendPinnedBlock(std::move(b), /* is_last_block */ false);
 }
 
 void CatStream::OnCloseStream(size_t from) {

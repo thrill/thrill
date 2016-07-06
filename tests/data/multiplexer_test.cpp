@@ -46,9 +46,9 @@ TEST_F(MultiplexerHeaderTest, ParsesAndSerializesHeader) {
     candidate.Serialize(bb);
     net::Buffer b = bb.ToBuffer();
 
-    data::StreamMultiplexerHeader result;
     net::BufferReader br(b);
-    result.ParseHeader(br);
+    data::StreamMultiplexerHeader result =
+        data::StreamMultiplexerHeader::Parse(br);
 
     ASSERT_EQ(candidate.stream_id, result.stream_id);
     ASSERT_EQ(candidate.size, result.size);

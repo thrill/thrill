@@ -148,7 +148,8 @@ public:
             sink_->AppendPinnedBlock(
                 PinnedBlock(std::move(bytes_), 0, current_ - bytes_->begin(),
                             first_offset_, nitems_,
-                            static_cast<bool>(/* typecode_verify */ self_verify)));
+                            /* typecode_verify */ static_cast<bool>(self_verify)),
+                /* is_last_block */ closed_);
         }
 
         // reset
@@ -161,16 +162,20 @@ public:
     //! current one if need be).
     void AppendBlocks(const std::vector<Block>& blocks) {
         Flush();
-        for (const Block& b : blocks)
-            sink_->AppendBlock(b);
+        for (std::vector<Block>::const_iterator bi = blocks.begin();
+             bi != blocks.end(); ++bi) {
+            sink_->AppendBlock(*bi, /* is_last_block */ bi + 1 == blocks.end());
+        }
     }
 
     //! Directly write Blocks to the underlying BlockSink (after flushing the
     //! current one if need be).
     void AppendBlocks(const std::deque<Block>& blocks) {
         Flush();
-        for (const Block& b : blocks)
-            sink_->AppendBlock(b);
+        for (std::deque<Block>::const_iterator bi = blocks.begin();
+             bi != blocks.end(); ++bi) {
+            sink_->AppendBlock(*bi, /* is_last_block */ bi + 1 == blocks.end());
+        }
     }
 
     //! \name Appending (Generic) Serializable Items
@@ -253,7 +258,8 @@ public:
 
             // item fully serialized, push out finished blocks.
             while (!sink_queue_.empty()) {
-                sink_->AppendPinnedBlock(sink_queue_.front());
+                sink_->AppendPinnedBlock(sink_queue_.front(),
+                                         /* is_last_block */ false);
                 sink_queue_.pop_front();
             }
 

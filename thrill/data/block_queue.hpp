@@ -68,14 +68,14 @@ public:
     //! move-assignment operator: default
     BlockQueue& operator = (BlockQueue&&) = default;
 
-    void AppendBlock(const Block& b) final {
+    void AppendBlock(const Block& b, bool /* is_last_block */) final {
         LOG << "BlockQueue::AppendBlock() " << b;
         item_counter_ += b.num_items();
         byte_counter_ += b.size();
         block_counter_++;
         queue_.emplace(b);
     }
-    void AppendBlock(Block&& b) final {
+    void AppendBlock(Block&& b, bool /* is_last_block */) final {
         LOG << "BlockQueue::AppendBlock() move " << b;
         item_counter_ += b.num_items();
         byte_counter_ += b.size();
