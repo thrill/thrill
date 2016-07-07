@@ -219,11 +219,14 @@ public:
 
         size_t total_elements = 0;
 
+		std::vector<size_t*> data_pointers;
+
         for (auto & reader : readers) {
             assert(reader.HasNext());
             size_t data_size = reader.template Next<size_t>();
             size_t num_elements = reader.template Next<size_t>();
             size_t* raw_data = new size_t[data_size];
+			data_pointers.push_back(raw_data);
             reader.Read(raw_data, data_size * sizeof(size_t));
             total_elements += num_elements;
 
@@ -277,6 +280,10 @@ public:
             delta = next_hr;
             location_bitset.stream_in(processor_bitsize, src_max);
         }
+
+		for (auto ptr : data_pointers) {
+			delete ptr;
+		}		
 
         data::CatStreamPtr duplicates_stream = context_.GetNewCatStream(dia_id_);
 

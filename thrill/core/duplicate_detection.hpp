@@ -199,6 +199,7 @@ public:
             golomb_data_stream->GetReaders();
 
         std::vector<GolombReader> g_readers;
+		std::vector<size_t*> data_pointers;
 
         size_t total_elements = 0;
 
@@ -207,6 +208,7 @@ public:
             size_t data_size = reader.template Next<size_t>();
             size_t num_elements = reader.template Next<size_t>();
             size_t* raw_data = new size_t[data_size + 1];
+			data_pointers.push_back(raw_data);
 
             reader.Read(raw_data, data_size * sizeof(size_t));
 
@@ -267,6 +269,10 @@ public:
                 }
             }
         }
+
+		for (auto ptr : data_pointers) {
+			delete[] ptr;
+		}
 
 
         for (size_t i = 0; i < context.num_workers(); ++i) {
