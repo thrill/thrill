@@ -21,6 +21,7 @@
 #include <thrill/core/multiway_merge.hpp>
 
 #include <algorithm>
+#include <memory>
 
 namespace thrill {
 namespace core {
@@ -199,7 +200,8 @@ public:
             golomb_data_stream->GetReaders();
 
         std::vector<GolombReader> g_readers;
-		std::vector<size_t*> data_pointers;
+		std::vector<std::unique_ptr<size_t[]>> data_pointers(
+			context.num_workers());
 
         size_t total_elements = 0;
 
@@ -207,15 +209,16 @@ public:
             assert(reader.HasNext());
             size_t data_size = reader.template Next<size_t>();
             size_t num_elements = reader.template Next<size_t>();
-            size_t* raw_data = new size_t[data_size + 1];
-			data_pointers.push_back(raw_data);
+			// size_t* raw_data = new size_t[data_size + 1];
+			data_pointers.push_back(
+				std::make_unique<size_t[]>(data_size + 1));
 
-            reader.Read(raw_data, data_size * sizeof(size_t));
+            reader.Read(data_pointers.back().get(), data_size * sizeof(size_t));
 
             total_elements += num_elements;
 
             g_readers.push_back(
-                GolombReader(data_size, raw_data, num_elements, b));
+                GolombReader(data_size, data_pointers.back().get(), num_elements, b));
         }
 
         auto puller = make_multiway_merge_tree<size_t>
@@ -269,11 +272,6 @@ public:
                 }
             }
         }
-
-		for (auto ptr : data_pointers) {
-			delete[] ptr;
-		}
-
 
         for (size_t i = 0; i < context.num_workers(); ++i) {
             duplicate_writers[i].Put(bitsets[i]->size());

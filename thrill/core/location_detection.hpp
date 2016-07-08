@@ -217,21 +217,24 @@ public:
 
         std::vector<GolombPairReader<CounterType> > g_readers;
 
-        size_t total_elements = 0;
+		std::vector<std::unique_ptr<size_t[]>> data_pointers(
+			context_.num_workers());
 
-		std::vector<size_t*> data_pointers;
+        size_t total_elements = 0;
 
         for (auto & reader : readers) {
             assert(reader.HasNext());
             size_t data_size = reader.template Next<size_t>();
             size_t num_elements = reader.template Next<size_t>();
-            size_t* raw_data = new size_t[data_size];
-			data_pointers.push_back(raw_data);
-            reader.Read(raw_data, data_size * sizeof(size_t));
+			data_pointers.push_back(
+				std::make_unique<size_t[]>(data_size + 1));
+            reader.Read(data_pointers.back().get(), data_size * sizeof(size_t));
             total_elements += num_elements;
 
             g_readers.push_back(
-                GolombPairReader<CounterType>(data_size, raw_data, num_elements, b, 8));
+                GolombPairReader<CounterType>(data_size,
+											  data_pointers.back().get(),
+											  num_elements, b, 8));
         }
 
         auto puller = make_multiway_merge_tree<HashCounterPair>
@@ -281,10 +284,6 @@ public:
             location_bitset.stream_in(processor_bitsize, src_max);
         }
 
-		for (auto ptr : data_pointers) {
-			delete ptr;
-		}		
-
         data::CatStreamPtr duplicates_stream = context_.GetNewCatStream(dia_id_);
 
         std::vector<data::CatStream::Writer> duplicate_writers =
@@ -306,7 +305,7 @@ public:
 
             size_t data_size = duplicates_reader.template Next<size_t>();
             size_t num_elements = duplicates_reader.template Next<size_t>();
-            size_t* raw_data = new size_t[data_size];
+            size_t* raw_data = new size_t[data_size + 1];
             duplicates_reader.Read(raw_data, data_size * sizeof(size_t));
 
             //! Builds golomb encoded bitset from data recieved by the stream.
