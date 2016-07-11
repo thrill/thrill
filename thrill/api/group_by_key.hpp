@@ -123,7 +123,7 @@ public:
             seq.reserve(num_runs);
 
             for (size_t t = 0; t < num_runs; ++t)
-                seq.emplace_back(files_[t].GetConsumeReader());
+                seq.emplace_back(files_[t].GetReader(consume));
 
             LOG << "start multiwaymerge for real";
             auto puller = core::make_multiway_merge_tree<ValueIn>(
