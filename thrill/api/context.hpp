@@ -30,6 +30,7 @@
 #include <algorithm>
 #include <cassert>
 #include <functional>
+#include <numeric>
 #include <string>
 #include <tuple>
 #include <vector>

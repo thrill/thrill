@@ -85,7 +85,7 @@ namespace common {
 #define THRILL_ATTRIBUTE_FORMAT_PRINTF(X, Y) \
     __attribute__ ((format(printf, X, Y))) // NOLINT
 #else
-#define THRILL_ATTRIBUTE_FORMAT_PRINTF
+#define THRILL_ATTRIBUTE_FORMAT_PRINTF(X, Y)
 #endif
 
 /******************************************************************************/

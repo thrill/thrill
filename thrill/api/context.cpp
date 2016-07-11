@@ -154,7 +154,7 @@ RunLoopbackThreads(
 /******************************************************************************/
 // Other Configuration Options
 
-static bool SetupBlockSize() {
+static inline bool SetupBlockSize() {
 
     const char* env_block_size = getenv("THRILL_BLOCK_SIZE");
     if (!env_block_size || !*env_block_size) return true;

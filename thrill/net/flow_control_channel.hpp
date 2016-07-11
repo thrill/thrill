@@ -655,6 +655,8 @@ public:
 /******************************************************************************/
 // extern templates
 
+#if !defined(_MSC_VER)
+
 extern template size_t FlowControlChannel::PrefixSum(
     const size_t&, const size_t&, const std::plus<size_t>&, bool);
 
@@ -692,6 +694,8 @@ extern template std::array<size_t, 4> FlowControlChannel::Broadcast(
 
 extern template size_t FlowControlChannel::AllReduce(
     const size_t&, const std::plus<size_t>&);
+
+#endif // !defined(_MSC_VER)
 
 //! \}
 
