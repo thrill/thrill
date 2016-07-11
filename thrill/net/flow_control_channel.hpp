@@ -695,7 +695,7 @@ extern template std::array<size_t, 4> FlowControlChannel::Broadcast(
 extern template size_t FlowControlChannel::AllReduce(
     const size_t&, const std::plus<size_t>&);
 
-#endif // !defined(_MSC_VER)
+#endif  // !defined(_MSC_VER)
 
 //! \}
 
