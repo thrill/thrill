@@ -217,8 +217,9 @@ public:
 
         std::vector<GolombPairReader<CounterType> > g_readers;
 
-		std::vector<std::unique_ptr<size_t[]>> data_pointers(
-			context_.num_workers());
+        std::vector<std::unique_ptr<size_t[]>> data_pointers;
+
+        data_pointers.reserve(context_.num_workers());
 
         size_t total_elements = 0;
 
