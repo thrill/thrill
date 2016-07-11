@@ -14,6 +14,8 @@
 #ifndef THRILL_COMMON_DEFINES_HEADER
 #define THRILL_COMMON_DEFINES_HEADER
 
+#include <type_traits>
+
 namespace thrill {
 namespace common {
 
@@ -92,11 +94,23 @@ namespace common {
 // UNUSED(variable)
 
 template <typename U>
-void UNUSED(U&&)
-{ }
+void UNUSED(U&&) { }
 
 } // namespace common
 } // namespace thrill
+
+/******************************************************************************/
+// std::is_trivially_copyable<T> work-around for libstdc++ < 5.0
+
+#if defined(__GLIBCXX__) && __GLIBCXX__ < 20150801 // NOLINT
+namespace std {
+
+template <typename T>
+struct is_trivially_copyable
+    : integral_constant<bool, __has_trivial_copy(T)>{ };  // NOLINT
+
+} // namespace std
+#endif  // GLIBCXX work-around
 
 #endif // !THRILL_COMMON_DEFINES_HEADER
 

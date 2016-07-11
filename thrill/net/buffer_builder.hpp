@@ -17,6 +17,7 @@
 #ifndef THRILL_NET_BUFFER_BUILDER_HEADER
 #define THRILL_NET_BUFFER_BUILDER_HEADER
 
+#include <thrill/common/defines.hpp>
 #include <thrill/common/item_serialization_tools.hpp>
 #include <thrill/net/buffer.hpp>
 
