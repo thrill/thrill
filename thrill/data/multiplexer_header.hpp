@@ -26,6 +26,10 @@
 namespace thrill {
 namespace data {
 
+#if defined(_MSC_VER)
+#pragma pack(push, 1)
+#endif
+
 //! \addtogroup data_layer
 //! \{
 
@@ -40,17 +44,17 @@ public:
     // previous two bits are packed with first_item
     uint32_t first_item : 30;
     //! typecode self verify
-    bool typecode_verify : 1;
+    uint32_t typecode_verify : 1;
     //! is last block piggybacked indicator
-    bool is_last_block : 1;
+    uint32_t is_last_block : 1;
 
     MultiplexerHeader() = default;
 
     explicit MultiplexerHeader(MagicByte m, const PinnedBlock& b)
         : magic(m),
-          size(b.size()),
-          num_items(b.num_items()),
-          first_item(b.first_item_relative()),
+          size(static_cast<uint32_t>(b.size())),
+          num_items(static_cast<uint32_t>(b.num_items())),
+          first_item(static_cast<uint32_t>(b.first_item_relative())),
           typecode_verify(b.typecode_verify()) {
         if (!self_verify)
             assert(!typecode_verify);
@@ -145,6 +149,10 @@ public:
 static_assert(
     sizeof(PartitionMultiplexerHeader) == MultiplexerHeader::total_size,
     "PartitionMultiplexerHeader has invalid size");
+
+#if defined(_MSC_VER)
+#pragma pack(pop)
+#endif
 
 //! \}
 
