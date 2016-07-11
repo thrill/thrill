@@ -55,8 +55,8 @@ void radix_sort_CI(Iterator begin, Iterator end, size_t K,
     // count character occurrences
     size_t* bkt_size = reinterpret_cast<size_t*>(alloca(K * sizeof(size_t)));
     std::fill(bkt_size, bkt_size + K, 0);
-    for (const Char* cc = char_cache; cc != char_cache + size; ++cc)
-        ++bkt_size[*cc];
+    for (const Char* cci = char_cache; cci != char_cache + size; ++cci)
+        ++bkt_size[*cci];
 
     // inclusive prefix sum
     size_t* bkt_index = reinterpret_cast<size_t*>(alloca(K * sizeof(size_t)));
