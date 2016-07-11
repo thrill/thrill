@@ -150,10 +150,10 @@ private:
 
 public:
     /*!
-     * Identifies all hashes which occur on more than a single worker.
-     * Returns them in form of a vector of hashes.
+     * Identifies all hashes which occur on only a single worker.
+     * Returns all local uniques in form of a vector of hashes.
      *
-     * \param duplicates Empty vector, which contains all duplicate hashes
+     * \param duplicates Empty vector, which contains all non-duplicate hashes
      *   after this method
      * \param hashes Hashes for all elements on this worker.
      * \param context Thrill context, used for collective communication
@@ -163,10 +163,10 @@ public:
      * \return Modulo used on all hashes. (Use this modulo on all hashes to
      *  identify possible duplicates)
      */
-    size_t FindDuplicates(std::vector<size_t>& duplicates,
-                          std::vector<size_t>& hashes,
-                          Context& context,
-                          size_t dia_id) {
+    size_t FindNonDuplicates(std::vector<size_t>& non_duplicates,
+                             std::vector<size_t>& hashes,
+                             Context& context,
+                             size_t dia_id) {
 
         //! This bound could often be lowered when we have many duplicates.
         //! This would however require a large amount of added communication.
@@ -255,21 +255,32 @@ public:
             while (j < hashes_dups.size() - 1) {
                 //! finds all duplicated hashes and insert them in the
                 //! according golomb codes
-                if (hashes_dups[j].first == hashes_dups[j + 1].first) {
-
+                
+                
+                if (hashes_dups[j].first != hashes_dups[j + 1].first) {
+                    size_t proc = hashes_dups[j].second;
+                    bitsets[proc]->golomb_in(hashes_dups[j].first -
+                                             deltas[proc]);
+                    deltas[proc] = hashes_dups[j].first;
+                    element_counters[proc]++;
+                    ++j;
+                }
+                else {                    
                     size_t cmp = hashes_dups[j].first;
                     while (j < hashes_dups.size() &&
                            hashes_dups[j].first == cmp) {
-
-                        size_t proc = hashes_dups[j++].second;
-                        bitsets[proc]->golomb_in(cmp - deltas[proc]);
-                        deltas[proc] = cmp;
-                        element_counters[proc]++;
+                        ++j;
                     }
                 }
-                else {
-                    ++j;
-                }
+            }
+
+            j = hashes_dups.size() - 1;
+            if (hashes_dups[j].first != hashes_dups[j-1].first) {
+                size_t proc = hashes_dups[j].second;
+                bitsets[proc]->golomb_in(hashes_dups[j].first -
+                                         deltas[proc]);
+                deltas[proc] = hashes_dups[j].first;
+                element_counters[proc]++;
             }
         }
 
@@ -283,9 +294,9 @@ public:
         }
 
         ReadEncodedHashesToVector(duplicates_stream,
-                                  duplicates, b);
+                                  non_duplicates, b);
 
-        assert(std::is_sorted(duplicates.begin(), duplicates.end()));
+        assert(std::is_sorted(non_duplicates.begin(), non_duplicates.end()));
 
         return max_hash;
     }

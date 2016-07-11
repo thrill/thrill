@@ -17,7 +17,7 @@ using namespace thrill; //NOLINT
 TEST(DuplicateDetection, AllDuplicatedList) {
 
     auto start_func = [](Context& ctx) {
-                          size_t elements = 10000;
+                          size_t elements = 10;
 
                           std::vector<size_t> duplicates;
                           std::vector<size_t> hashes;
@@ -28,16 +28,16 @@ TEST(DuplicateDetection, AllDuplicatedList) {
 
                           core::DuplicateDetection duplicate_detection;
 
-                          duplicate_detection.FindDuplicates(duplicates,
-                                                             hashes,
-                                                             ctx,
-                                                             0);
+                          duplicate_detection.FindNonDuplicates(duplicates,
+                                                                hashes,
+                                                                ctx,
+                                                                0);
 
                           if (ctx.num_workers() > 1) {
-                              ASSERT_EQ(hashes, duplicates);
+                              ASSERT_EQ(duplicates, std::vector<size_t>());
                           }
                           else {
-                              ASSERT_EQ(duplicates, std::vector<size_t>());
+                              ASSERT_EQ(duplicates, hashes);
                           }
                       };
 
@@ -56,7 +56,7 @@ TEST(DuplicateDetection, SomeDuplicatedElements) {
 
                           // save unneeded test complexity, lower delta if this fails
                           // test will remain pretty much the same
-                          assert(elements > delta * ctx.num_workers());
+                          assert(elements > 2 * delta * ctx.num_workers());
 
                           std::vector<size_t> splitters;
 
@@ -66,7 +66,7 @@ TEST(DuplicateDetection, SomeDuplicatedElements) {
                                   static_cast<size_t>(std::ceil(static_cast<double>(i + 1) * per_pe)));
                           }
 
-                          std::vector<size_t> duplicates;
+                          std::vector<size_t> non_duplicates;
                           std::vector<size_t> hashes;
 
                           common::Range my_range = common::CalculateLocalRange(
@@ -78,41 +78,44 @@ TEST(DuplicateDetection, SomeDuplicatedElements) {
 
                           core::DuplicateDetection duplicate_detection;
 
-                          duplicate_detection.FindDuplicates(duplicates,
-                                                             hashes,
-                                                             ctx,
-                                                             0);
+                          duplicate_detection.FindNonDuplicates(non_duplicates,
+                                                                hashes,
+                                                                ctx,
+                                                                0);
 
                           if (ctx.num_workers() > 1) {
+                              size_t my_range_size =
+                                  my_range.end - my_range.begin;
                               if (ctx.my_rank() == 0 ||
                                   ctx.my_rank() == ctx.num_workers() - 1) {
-                                  ASSERT_EQ(delta, duplicates.size());
+                                  ASSERT_EQ(my_range_size,
+                                            non_duplicates.size());
                               } else {
-                                  ASSERT_EQ(2 * delta, duplicates.size());
+                                  ASSERT_EQ(my_range_size - delta,
+                                            non_duplicates.size());
                               }
                           } else {
-                              ASSERT_EQ((size_t) 0, duplicates.size());
+                              ASSERT_EQ(elements + delta, non_duplicates.size());
                           }
 
-                          //check of lower duplicates are there
-                          for (size_t j = 0; j < delta; ++j) {
-                              if (ctx.my_rank() == 0)
-                                  break;
-                              ASSERT_EQ(duplicates[j],
-                                        splitters[ctx.my_rank() - 1] + j);
+                          size_t start_uniques, end_uniques;
+
+                          if (ctx.my_rank() == 0) {
+                              start_uniques = 0;
+                          } else {
+                              start_uniques = my_range.begin + delta;
                           }
 
-                          //check if upper duplicates are there
-                          for (size_t j = 0; j < delta; ++j) {
-                              size_t lower_dups = 0;
-                              if (ctx.my_rank() > 0)
-                                  lower_dups = delta;
+                          if (ctx.my_rank() == ctx.num_workers() - 1) {
+                              end_uniques = elements + delta;
+                          } else {
+                              end_uniques = my_range.end;
+                          }
 
-                              if (ctx.my_rank() == ctx.num_workers() - 1)
-                                  break;
-
-                              ASSERT_EQ(duplicates[lower_dups + j],
-                                        splitters[ctx.my_rank()] + j);
+                          for (size_t j = 0;
+                               j < (end_uniques - start_uniques); ++j) {
+                              ASSERT_EQ(non_duplicates[j],
+                                        j + start_uniques);
                           }
 
 
@@ -144,7 +147,7 @@ TEST(DuplicateDetection, SomeDuplicatedElementsNonConsec) {
                                   static_cast<size_t>(std::ceil(static_cast<double>((i + 1) * per_pe))));
                           }
 
-                          std::vector<size_t> duplicates;
+                          std::vector<size_t> non_duplicates;
                           std::vector<size_t> hashes;
 
                           common::Range my_range = common::CalculateLocalRange(
@@ -156,42 +159,44 @@ TEST(DuplicateDetection, SomeDuplicatedElementsNonConsec) {
 
                           core::DuplicateDetection duplicate_detection;
 
-                          duplicate_detection.FindDuplicates(duplicates,
-                                                             hashes,
-                                                             ctx,
-                                                             0);
+                          duplicate_detection.FindNonDuplicates(non_duplicates,
+                                                                hashes,
+                                                                ctx,
+                                                                0);
 
-                          if (ctx.num_workers() > 1) {
+                           if (ctx.num_workers() > 1) {
+                              size_t my_range_size =
+                                  my_range.end - my_range.begin;
                               if (ctx.my_rank() == 0 ||
                                   ctx.my_rank() == ctx.num_workers() - 1) {
-                                  ASSERT_EQ(delta, duplicates.size());
+                                  ASSERT_EQ(my_range_size,
+                                            non_duplicates.size());
                               } else {
-                                  ASSERT_EQ(2 * delta, duplicates.size());
+                                  ASSERT_EQ(my_range_size - delta,
+                                            non_duplicates.size());
                               }
                           } else {
-                              ASSERT_EQ((size_t) 0, duplicates.size());
+                              ASSERT_EQ(elements + delta, non_duplicates.size());
                           }
 
-                          //check of lower duplicates are there
-                          for (size_t j = 0; j < delta; ++j) {
-                              if (ctx.my_rank() == 0)
-                                  break;
-                              ASSERT_EQ(duplicates[j],
-                                        (splitters[ctx.my_rank() - 1] + j) *
-                                         multiplier);
+                          size_t start_uniques, end_uniques;
+
+                          if (ctx.my_rank() == 0) {
+                              start_uniques = 0;
+                          } else {
+                              start_uniques = my_range.begin + delta;
                           }
 
-                          for (size_t j = 0; j < delta; ++j) {
-                              size_t lower_dups = 0;
-                              if (ctx.my_rank() > 0)
-                                  lower_dups = delta;
+                          if (ctx.my_rank() == ctx.num_workers() - 1) {
+                              end_uniques = elements + delta;
+                          } else {
+                              end_uniques = my_range.end;
+                          }
 
-                              if (ctx.my_rank() == ctx.num_workers() - 1)
-                                  break;
-
-                              ASSERT_EQ(duplicates[lower_dups + j],
-                                        (splitters[ctx.my_rank()] + j) *
-                                         multiplier);
+                          for (size_t j = 0;
+                               j < (end_uniques - start_uniques); ++j) {
+                              ASSERT_EQ(non_duplicates[j],
+                                        multiplier * (j + start_uniques));
                           }
                       };
 
@@ -212,16 +217,16 @@ TEST(DuplicateDetection, AllDuplicatedHash) {
 
                           core::DuplicateDetection duplicate_detection;
 
-                          duplicate_detection.FindDuplicates(duplicates,
-                                                             hashes,
-                                                             ctx,
-                                                             0);
+                          duplicate_detection.FindNonDuplicates(duplicates,
+                                                                hashes,
+                                                                ctx,
+                                                                0);
 
                           if (ctx.num_workers() > 1) {
-                              ASSERT_EQ(hashes, duplicates);
+                              ASSERT_EQ(duplicates, std::vector<size_t>());
                           }
                           else {
-                              ASSERT_EQ(duplicates, std::vector<size_t>());
+                              ASSERT_EQ(duplicates, hashes);
                           }
                       };
 

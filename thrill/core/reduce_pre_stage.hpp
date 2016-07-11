@@ -178,10 +178,10 @@ public:
     void FlushAll() {
         if (UseDuplicateDetection) {
             DuplicateDetection dup_detect;
-            max_hash_ = dup_detect.FindDuplicates(duplicates_,
-                                                  hashes_,
-                                                  table_.ctx(),
-                                                  table_.dia_id());
+            max_hash_ = dup_detect.FindNonDuplicates(non_duplicates_,
+                                                     hashes_,
+                                                     table_.ctx(),
+                                                     table_.dia_id());
         }
 
         for (size_t id = 0; id < table_.num_partitions(); ++id) {
@@ -195,8 +195,10 @@ public:
             table_.FlushPartitionEmit(
                 partition_id, consume,
                 [this](const size_t& partition_id, const KeyValuePair& p) {
-                    if (std::binary_search(duplicates_.begin(), duplicates_.end(),
-                                           (std::hash<Key>()(p.first) % max_hash_))) {
+                    if (!std::binary_search(non_duplicates_.begin(),
+                                            non_duplicates_.end(),
+                                            (std::hash<Key>()(p.first) %
+                                             max_hash_))) {
 
                         duplicated_elements_++;
                         emit_.Emit(partition_id, p);
@@ -209,11 +211,13 @@ public:
 
             if (table_.has_spilled_data_on_partition(partition_id)) {
                 data::File::Reader reader =
-                    table_.partition_files()[partition_id].GetReader(/* consume */ true);
+                    table_.partition_files()[partition_id].GetReader(true);
                 while (reader.HasNext()) {
                     KeyValuePair kv = reader.Next<KeyValuePair>();
-                    if (std::binary_search(duplicates_.begin(), duplicates_.end(),
-                                           (std::hash<Key>()(kv.first) % max_hash_))) {
+                    if (!std::binary_search(non_duplicates_.begin(),
+                                            non_duplicates_.end(),
+                                            (std::hash<Key>()(kv.first) %
+                                            max_hash_))) {
 
                         duplicated_elements_++;
                         emit_.Emit(partition_id, kv);
@@ -275,7 +279,7 @@ private:
     std::vector<size_t> hashes_;
     //! All elements occuring on more than one worker. (Elements not appearing here
     //! can be reduced locally)
-    std::vector<size_t> duplicates_;
+    std::vector<size_t> non_duplicates_;
 
     //! Number of non-duplicates sent to a worker
     size_t non_duplicate_elements_ = 0;
