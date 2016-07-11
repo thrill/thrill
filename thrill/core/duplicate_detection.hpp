@@ -27,25 +27,27 @@ namespace thrill {
 namespace core {
 
 /*!
- * Duplicate detection to identify all elements occuring on multiple workers.
+ * Duplicate detection to identify all elements occuring only on one worker.
  * This information can be used to locally reduce uniquely-occuring elements.
  * Therefore this saves communication volume in operations such as api::Reduce()
  * or api::Join().
  *
  * Internally, this duplicate detection uses a golomb encoded distributed single
- * shot bloom filter to find duplicates with as low communication volume as possible.
- * Due to the bloom filter's inherent properties, this has false positives but no
- * false negatives.
+ * shot bloom filter to find duplicates and non-duplicates with as low 
+ * communication volume as possible. Due to the bloom filter's inherent 
+ * properties, this has false duplicates but no false non-duplicates.
  *
- * Should only be used when a large amount of uniquely-occuring elements are expected.
+ * Should only be used when a large amount of uniquely-occuring elements are 
+ * expected.
  */
 class DuplicateDetection
 {
 
 private:
     /*!
-     * Sends all hashes in [max_hash / num_workers * p, max_hash / num_workers * (p + 1))
-     * to worker p. These hashes are encoded with a golomb encoder in core::DynamicBitset.
+     * Sends all hashes in the range
+     * [max_hash / num_workers * p, max_hash / num_workers * (p + 1)) to worker 
+     * p. These hashes are encoded with a golomb encoder in core::DynamicBitset.
      *
      * \param stream_pointer Pointer to data stream
      * \param hashes Sorted vector of all hashes modulo max_hash
@@ -153,15 +155,15 @@ public:
      * Identifies all hashes which occur on only a single worker.
      * Returns all local uniques in form of a vector of hashes.
      *
-     * \param duplicates Empty vector, which contains all non-duplicate hashes
-     *   after this method
+     * \param non_duplicates Empty vector, which contains all non-duplicate
+     * hashes after this method
      * \param hashes Hashes for all elements on this worker.
      * \param context Thrill context, used for collective communication
      * \param dia_id Id of the operation, which calls this method. Used
      *   to uniquely identify the data streams used.
      *
      * \return Modulo used on all hashes. (Use this modulo on all hashes to
-     *  identify possible duplicates)
+     *  identify possible non-duplicates)
      */
     size_t FindNonDuplicates(std::vector<size_t>& non_duplicates,
                              std::vector<size_t>& hashes,
@@ -177,7 +179,8 @@ public:
         //! Parameter for false positive rate (FPR: 1/fpr_parameter)
         double fpr_parameter = 8;
         size_t b = (size_t)fpr_parameter;  //(size_t)(std::log(2) * fpr_parameter);
-        size_t upper_space_bound = upper_bound_uniques * (2 + std::log2(fpr_parameter));
+        size_t upper_space_bound = upper_bound_uniques * 
+            (2 + std::log2(fpr_parameter));
         size_t max_hash = upper_bound_uniques * fpr_parameter;
 
         for (size_t i = 0; i < hashes.size(); ++i) {
@@ -200,8 +203,9 @@ public:
             golomb_data_stream->GetReaders();
 
         std::vector<GolombReader> g_readers;
-		std::vector<std::unique_ptr<size_t[]>> data_pointers(
-			context.num_workers());
+        std::vector<std::unique_ptr<size_t[]>> data_pointers;
+        
+	data_pointers.reserve(context.num_workers());
 
         size_t total_elements = 0;
 
