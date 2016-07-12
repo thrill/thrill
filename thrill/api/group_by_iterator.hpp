@@ -66,18 +66,17 @@ public:
     GroupByIterator(Reader& reader, const KeyExtractor& key_extractor)
         : reader_(reader),
           key_extractor_(key_extractor),
-          is_first_elem_(true),
-          is_reader_empty(false),
+          is_reader_empty_(false),
+          equal_key_(true),
           elem_(reader_.template Next<ValueIn>()),
-          old_key_(key_extractor_(elem_)),
-          new_key_(old_key_) { }
+          key_(key_extractor_(elem_)) { }
 
     bool HasNext() {
-        return (!is_reader_empty && old_key_ == new_key_) || is_first_elem_;
+        return (!is_reader_empty_ && equal_key_);
     }
 
     ValueIn Next() {
-        assert(!is_reader_empty);
+        assert(!is_reader_empty_);
         ValueIn elem = elem_;
         GetNextElem();
         return elem;
@@ -85,41 +84,34 @@ public:
 
 private:
     bool HasNextForReal() {
-        is_first_elem_ = true;
-        return !is_reader_empty;
+        return !is_reader_empty_;
     }
 
-    Key GetNextKey() {
-        return new_key_;
+    const Key& GetNextKey() {
+        equal_key_ = true;
+        return key_;
     }
 
 private:
     Reader& reader_;
     const KeyExtractor& key_extractor_;
-    bool is_first_elem_;
-    bool is_reader_empty;
+    bool is_reader_empty_;
+    bool equal_key_;
     ValueIn elem_;
-    Key old_key_;
-    Key new_key_;
+    Key key_;
 
     void GetNextElem() {
-        is_first_elem_ = false;
         if (reader_.HasNext()) {
             elem_ = reader_.template Next<ValueIn>();
-            old_key_ = std::move(new_key_);
-            new_key_ = key_extractor_(elem_);
+            Key key = key_extractor_(elem_);
+            if (key != key_) {
+                key_ = std::move(key);
+                equal_key_ = false;
+            }
         }
         else {
-            is_reader_empty = true;
+            is_reader_empty_ = true;
         }
-    }
-
-    void SetFirstElem() {
-        assert(reader_.HasNext());
-        is_first_elem_ = true;
-        elem_ = reader_.template Next<ValueIn>();
-        old_key_ = key_extractor_(elem_);
-        new_key_ = old_key_;
     }
 };
 
@@ -149,18 +141,17 @@ public:
     GroupByMultiwayMergeIterator(Puller& reader, const KeyExtractor& key_extractor)
         : reader_(reader),
           key_extractor_(key_extractor),
-          is_first_elem_(true),
-          is_reader_empty(false),
+          is_reader_empty_(false),
+          equal_key_(true),
           elem_(reader_.Next()),
-          old_key_(key_extractor_(elem_)),
-          new_key_(old_key_) { }
+          key_(key_extractor_(elem_)) { }
 
     bool HasNext() {
-        return (!is_reader_empty && old_key_ == new_key_) || is_first_elem_;
+        return (!is_reader_empty_ && equal_key_);
     }
 
     ValueIn Next() {
-        assert(!is_reader_empty);
+        assert(!is_reader_empty_);
         ValueIn elem = elem_;
         GetNextElem();
         return elem;
@@ -168,41 +159,34 @@ public:
 
 private:
     bool HasNextForReal() {
-        is_first_elem_ = true;
-        return !is_reader_empty;
+        return !is_reader_empty_;
     }
 
-    Key GetNextKey() {
-        return new_key_;
+    const Key& GetNextKey() {
+        equal_key_ = true;
+        return key_;
     }
 
 private:
     Puller& reader_;
     const KeyExtractor& key_extractor_;
-    bool is_first_elem_;
-    bool is_reader_empty;
+    bool is_reader_empty_;
+    bool equal_key_;
     ValueIn elem_;
-    Key old_key_;
-    Key new_key_;
+    Key key_;
 
     void GetNextElem() {
-        is_first_elem_ = false;
         if (reader_.HasNext()) {
             elem_ = reader_.Next();
-            old_key_ = std::move(new_key_);
-            new_key_ = key_extractor_(elem_);
+            Key next_key = key_extractor_(elem_);
+            if (next_key != key_) {
+                key_ = std::move(next_key);
+                equal_key_ = false;
+            }
         }
         else {
-            is_reader_empty = true;
+            is_reader_empty_ = true;
         }
-    }
-
-    void SetFirstElem() {
-        assert(reader_.HasNext());
-        is_first_elem_ = true;
-        elem_ = reader_.Next();
-        old_key_ = key_extractor_(elem_);
-        new_key_ = old_key_;
     }
 };
 
