@@ -19,6 +19,7 @@
 #include <thrill/api/group_by_iterator.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/data/file.hpp>
 
 #include <algorithm>
 #include <functional>
@@ -119,7 +120,7 @@ public:
         else {
             // otherwise sort all runs using multiway merge
             LOG << "start multiwaymerge";
-            std::vector<data::File::ConsumeReader> seq;
+            std::vector<data::File::Reader> seq;
             seq.reserve(num_runs);
 
             for (size_t t = 0; t < num_runs; ++t)
