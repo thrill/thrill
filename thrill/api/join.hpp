@@ -96,7 +96,8 @@ public:
           pre_file1_(context_.GetFilePtr(this)),
           pre_file2_(context_.GetFilePtr(this)),
           location_detection_(parent1.ctx(), Super::id(),
-                              std::plus<CounterType>())
+                              std::plus<CounterType>()),
+        location_detection_initialized_(false)
     {
 
         auto pre_op_fn1 = [this](const InputTypeFirst& input) {
@@ -109,8 +110,10 @@ public:
 
         auto lop_chain1 = parent1.stack().push(pre_op_fn1).fold();
         auto lop_chain2 = parent2.stack().push(pre_op_fn2).fold();
-        parent1.node()->AddChild(this, lop_chain1);
-        parent2.node()->AddChild(this, lop_chain2);
+        parent1.node()->AddChild(this, lop_chain1, 0);
+        parent2.node()->AddChild(this, lop_chain2, 1);
+
+        LOG1 << parent1.id() << " -- " << parent2.id();
     }
 
     void Execute() final {
@@ -147,14 +150,14 @@ public:
 
     void PushData(bool consume) final {
 
-        auto compare_function_1 = [this](InputTypeFirst in1,
-                                         InputTypeFirst in2) {
+        auto compare_function_1 = [this](const InputTypeFirst& in1,
+                                         const InputTypeFirst& in2) {
                                       return key_extractor1_(in1)
                                              < key_extractor1_(in2);
                                   };
 
-        auto compare_function_2 = [this](InputTypeSecond in1,
-                                         InputTypeSecond in2) {
+        auto compare_function_2 = [this](const InputTypeSecond& in1,
+                                         const InputTypeSecond& in2) {
                                       return key_extractor2_(in1) <
                                              key_extractor2_(in2);
                                   };
@@ -277,6 +280,7 @@ private:
     core::LocationDetection<ValueType, Key, UseLocationDetection, CounterType,
                             core::ReduceByHash<Key>, std::hash<Key>,
                             std::plus<CounterType> > location_detection_;
+    bool location_detection_initialized_;
 
     //! Receive elements from other workers, create pre-sorted files
     void MainOp() {
@@ -297,6 +301,7 @@ private:
 
     void PreOp1(const InputTypeFirst& input) {
         if (UseLocationDetection) {
+            op1++;
             pre_writer1_.Put(input);
             location_detection_.Insert(key_extractor1_(input));
         }
@@ -310,6 +315,7 @@ private:
 
     void PreOp2(const InputTypeSecond& input) {
         if (UseLocationDetection) {
+            op2++;
             pre_writer2_.Put(input);
             location_detection_.Insert(key_extractor2_(input));
         }
@@ -442,19 +448,36 @@ private:
         return DIAMemUse::Max();
     }
 
-    void StartPreOp(size_t /* id */) final {
-        LOG << *this << " running StartPreOp";
-        location_detection_.Initialize(DIABase::mem_limit_);
+    void StartPreOp(size_t id) final {
+        LOG1 << *this << " running StartPreOp parent_idx=" << id;
+        if (!location_detection_initialized_) {
+            location_detection_.Initialize(DIABase::mem_limit_);
+            location_detection_initialized_ = true;
+        }
 
-        pre_writer1_ = pre_file1_->GetWriter();
-        pre_writer2_ = pre_file2_->GetWriter();
+        auto ids = this->parent_ids();
+
+        if (id == 0) {
+            pre_writer1_ = pre_file1_->GetWriter();
+            LOG1 << "start1";
+        }
+        if (id == 1) {
+            pre_writer2_ = pre_file2_->GetWriter();
+            LOG1 << "start2";
+        }
     }
 
-    void StopPreOp(size_t /* id */) final {
-        LOG << *this << " running StopPreOp";
+    void StopPreOp(size_t id) final {
+        LOG1 << *this << " running StopPreOp parent_idx=" << id;
 
-        pre_writer1_.Close();
-        pre_writer2_.Close();
+        if (id == 0) {
+            pre_writer1_.Close();
+            LOG1 << "preop1: " << op1;
+        }
+        if (id == 1) {
+            pre_writer2_.Close();
+            LOG1 << "preop2: " << op2;
+        }
     }
 
     DIAMemUse ExecuteMemUse() final {
@@ -464,6 +487,9 @@ private:
     DIAMemUse PushDataMemUse() final {
         return DIAMemUse::Max();
     }
+
+    size_t op1 = 0;
+    size_t op2 = 0;
 
     /*!
      * Recieve all elements from a stream and write them to files sorted by key.
@@ -656,7 +682,8 @@ private:
         // advise block pool to write out data if necessary
         context_.block_pool().AdviseFree(vec.size() * sizeof(ValueType));
 
-        std::sort(vec.begin(), vec.end(), [&key_extractor](ItemType i1, ItemType i2) {
+        std::sort(vec.begin(), vec.end(), [&key_extractor](const ItemType& i1,
+                                                           const ItemType& i2) {
                       return key_extractor(i1) < key_extractor(i2);
                   });
 
