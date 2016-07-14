@@ -327,7 +327,7 @@ sub process_cpp {
         }
 
         # check for double underscore identifiers
-        if ($data[$i] =~ m@\s__(?!(attribute__|sync_|builtin_|has_feature|FILE__|LINE__|FUNCTION__|PRETTY_FUNCTION__|GNUC__|linux__|APPLE__|FreeBSD__|clang__|STDC_WANT_SECURE_LIB__))@) {
+        if ($data[$i] =~ m@\s__(?!(attribute__|sync_|builtin_|has_feature|FILE__|LINE__|FUNCTION__|PRETTY_FUNCTION__|GNUC__|linux__|APPLE__|FreeBSD__|clang__|STDC_WANT_SECURE_LIB__))@ && $data[$i] !~ /NOLINT/) {
             print("double underscore identifier found in $path:$i\n");
             print("$data[$i]\n");
         }

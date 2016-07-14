@@ -17,7 +17,7 @@ git submodule update
 CMAKE_OPTS=
 
 # try to find a modern C++ compiler
-for CMD in g++-5 g++-5.3.0 g++-5.2.0 g++-5.1.0 g++-4.9 g++-4.9.3; do
+for CMD in g++-5 g++-5.4.0 g++-5.4 g++-5.3.0 g++-5.3 g++-5.2.0 g++-5.2 g++-5.1.0 g++-5.1 g++-4.9.3 g++-4.9; do
     if command -v "$CMD" > /dev/null; then
         CMAKE_OPTS="$CMAKE_OPTS -DCMAKE_CXX_COMPILER=$CMD"
         break

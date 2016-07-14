@@ -30,6 +30,7 @@
 #include <algorithm>
 #include <cassert>
 #include <functional>
+#include <numeric>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -289,10 +290,7 @@ public:
 
     //! Returns a new File, wrapped in a CountingPtr, containing a sequence of
     //! local Blocks.
-    data::FilePtr GetFilePtr(size_t dia_id) {
-        return common::MakeCounting<data::File>(
-            block_pool_, local_worker_id_, dia_id);
-    }
+    data::FilePtr GetFilePtr(size_t dia_id);
 
     //! Returns a new File, wrapped in a CountingPtr, containing a sequence of
     //! local Blocks.
@@ -301,9 +299,7 @@ public:
     //! Returns a reference to a new CatStream. This method alters the state of
     //! the context and must be called on all Workers to ensure correct
     //! communication coordination.
-    data::CatStreamPtr GetNewCatStream(size_t dia_id) {
-        return multiplexer_.GetNewCatStream(local_worker_id_, dia_id);
-    }
+    data::CatStreamPtr GetNewCatStream(size_t dia_id);
 
     //! Returns a reference to a new CatStream. This method alters the state of
     //! the context and must be called on all Workers to ensure correct
@@ -313,9 +309,7 @@ public:
     //! Returns a reference to a new MixStream. This method alters the state
     //! of the context and must be called on all Workers to ensure correct
     //! communication coordination.
-    data::MixStreamPtr GetNewMixStream(size_t dia_id) {
-        return multiplexer_.GetNewMixStream(local_worker_id_, dia_id);
-    }
+    data::MixStreamPtr GetNewMixStream(size_t dia_id);
 
     //! Returns a reference to a new MixStream. This method alters the state
     //! of the context and must be called on all Workers to ensure correct

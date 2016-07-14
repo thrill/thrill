@@ -135,7 +135,8 @@ public:
             mem_use = context_.mem_limit();
         node_->set_mem_limit(mem_use);
 
-        data::BlockPoolMemoryHolder mem_holder(context_.block_pool(), mem_use);
+        // old: acquire memory from BlockPool -tb
+        // data::BlockPoolMemoryHolder mem_holder(context_.block_pool(), mem_use);
 
         common::StatsTimerStart timer;
         try {
@@ -242,7 +243,8 @@ public:
         // execute push data: hold memory for DIANodes, and remove filled
         // children afterwards
 
-        data::BlockPoolMemoryHolder mem_holder(context_.block_pool(), const_mem);
+        // old: acquire memory from BlockPool
+        // data::BlockPoolMemoryHolder mem_holder(context_.block_pool(), const_mem);
 
         common::StatsTimerStart timer;
         try {

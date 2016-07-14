@@ -87,7 +87,7 @@ MixBlockQueueSink::MixBlockQueueSink(
       from_global_(from_global)
 { }
 
-void MixBlockQueueSink::AppendBlock(const Block& b) {
+void MixBlockQueueSink::AppendBlock(const Block& b, bool /* is_last_block */) {
     LOG << "MixBlockQueueSink::AppendBlock()"
         << " from_global_=" << from_global_ << " b=" << b;
     item_counter_ += b.num_items();
@@ -96,7 +96,7 @@ void MixBlockQueueSink::AppendBlock(const Block& b) {
     dst_mix_queue_.AppendBlock(from_global_, b);
 }
 
-void MixBlockQueueSink::AppendBlock(Block&& b) {
+void MixBlockQueueSink::AppendBlock(Block&& b, bool /* is_last_block */) {
     LOG << "MixBlockQueueSink::AppendBlock()"
         << " from_global_=" << from_global_ << " b=" << b;
     item_counter_ += b.num_items();
@@ -196,7 +196,7 @@ bool MixBlockQueueReader::PullBlock() {
 
             // save block with data for reader
             mix_queue_.queues_[src_blk.src].AppendBlock(
-                std::move(src_blk.block));
+                std::move(src_blk.block), /* is_last_block */ false);
 
             // add available items: one less than in the blocks.
             available_at_[src_blk.src] += num_items;
@@ -210,7 +210,7 @@ bool MixBlockQueueReader::PullBlock() {
 
             // save block with data for reader
             mix_queue_.queues_[src_blk.src].AppendBlock(
-                std::move(src_blk.block));
+                std::move(src_blk.block), /* is_last_block */ false);
 
             // check if we can still read the last item
             if (available_at_[src_blk.src]) {

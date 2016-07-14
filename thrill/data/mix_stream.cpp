@@ -15,6 +15,7 @@
 #include <thrill/data/multiplexer.hpp>
 #include <thrill/data/multiplexer_header.hpp>
 
+#include <algorithm>
 #include <vector>
 
 namespace thrill {
@@ -68,8 +69,28 @@ void MixStream::set_dia_id(size_t dia_id) {
     queue_.set_dia_id(dia_id);
 }
 
-std::vector<MixStream::Writer>
-MixStream::GetWriters(size_t block_size) {
+std::vector<MixStream::Writer> MixStream::GetWriters() {
+    size_t hard_ram_limit = multiplexer_.block_pool_.hard_ram_limit();
+    size_t block_size_base = hard_ram_limit / 16 / multiplexer_.num_workers();
+    size_t block_size = common::RoundDownToPowerOfTwo(block_size_base);
+    if (block_size == 0 || block_size > default_block_size)
+        block_size = default_block_size;
+
+    {
+        std::unique_lock<std::mutex> lock(multiplexer_.mutex_);
+        multiplexer_.active_streams_++;
+        multiplexer_.max_active_streams_ =
+            std::max(multiplexer_.max_active_streams_,
+                     multiplexer_.active_streams_);
+    }
+
+    LOG << "MixStream::GetWriters()"
+        << " hard_ram_limit=" << hard_ram_limit
+        << " block_size_base=" << block_size_base
+        << " block_size=" << block_size
+        << " active_streams=" << multiplexer_.active_streams_
+        << " max_active_streams=" << multiplexer_.max_active_streams_;
+
     tx_timespan_.StartEventually();
 
     std::vector<Writer> result;
@@ -127,10 +148,12 @@ void MixStream::Close() {
 
     // wait for all close packets to arrive.
     for (size_t i = 0; i < (num_hosts() - 1) * workers_per_host(); ++i) {
-        LOG << "MixStream wait for closing block"
+        LOG << "MixStream::Close() wait for closing block"
             << " local_worker_id_=" << local_worker_id_;
         sem_closing_blocks_.wait();
     }
+
+    multiplexer_.active_streams_--;
 
     tx_lifetime_.StopEventually();
     tx_timespan_.StopEventually();

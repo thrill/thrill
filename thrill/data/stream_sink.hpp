@@ -55,19 +55,22 @@ public:
     StreamSink& operator = (StreamSink&&) = default;
 
     //! Appends data to the StreamSink.  Data may be sent but may be delayed.
-    void AppendBlock(const Block& block) final;
+    void AppendBlock(const Block& block, bool is_last_block) final;
 
     //! Appends data to the StreamSink.  Data may be sent but may be delayed.
-    void AppendBlock(Block&& block) final;
+    void AppendBlock(Block&& block, bool is_last_block) final;
 
     //! Appends data to the StreamSink.  Data may be sent but may be delayed.
-    void AppendPinnedBlock(const PinnedBlock& block) final;
+    void AppendPinnedBlock(const PinnedBlock& block, bool is_last_block) final;
 
     //! Appends data to the StreamSink.  Data may be sent but may be delayed.
-    void AppendPinnedBlock(PinnedBlock&& block) final;
+    void AppendPinnedBlock(PinnedBlock&& block, bool is_last_block) final;
 
     //! Closes the connection
     void Close() final;
+
+    //! Finalize structure after sending the piggybacked or explicit close
+    void Finalize();
 
     //! return close flag
     bool closed() const { return closed_; }

@@ -143,8 +143,9 @@ public:
     //! advancing the cursor. Be careful with implicit type conversions!
     template <typename Type>
     Type Get() {
-        static_assert(std::is_pod<Type>::value,
-                      "You only want to Get() POD types as raw values.");
+        static_assert(
+            std::is_trivially_copyable<Type>::value,
+            "You only want to Get() trivially copyable types as raw values.");
 
         CheckAvailable(sizeof(Type));
 

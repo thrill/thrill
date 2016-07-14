@@ -73,7 +73,7 @@ public:
         clp.AddBytes('b', "bytes", bytes_,
                      "number of bytes to process (default 1024)");
 
-        clp.AddBytes('s', "block_size", block_size_,
+        clp.AddSizeT('s', "block_size", data::default_block_size,
                      "block size (system default)");
 
         clp.AddBytes('l', "lower", min_size_,
@@ -89,9 +89,6 @@ public:
 protected:
     //! total bytes to process (default: 1024)
     uint64_t bytes_ = 1024;
-
-    //! block size used
-    uint64_t block_size_ = data::default_block_size;
 
     //! lower bound for variable element length (default 1)
     uint64_t min_size_ = 1;
@@ -155,7 +152,7 @@ public:
 
         for (unsigned i = 0; i < iterations_; i++) {
             auto file = ctx.GetFile(nullptr);
-            auto writer = file.GetWriter(block_size_);
+            auto writer = file.GetWriter();
             auto data = Generator<Type>(bytes_, min_size_, max_size_);
 
             StatsTimerStart write_timer;
@@ -175,7 +172,7 @@ public:
                  << " experiment=" << "file"
                  << " datatype=" << type_as_string_
                  << " size=" << bytes_
-                 << " block_size=" << block_size_
+                 << " block_size=" << data::default_block_size
                  << " avg_element_size="
                  << static_cast<double>(min_size_ + max_size_) / 2.0
                  << " reader=" << reader_type_
@@ -254,7 +251,7 @@ public:
             StatsTimerStopped write_timer;
             threads.Enqueue(
                 [&]() {
-                    auto writer = queue.GetWriter(block_size_);
+                    auto writer = queue.GetWriter();
                     write_timer.Start();
                     while (data.HasNext()) {
                         writer.Put(data.Next());
@@ -284,7 +281,7 @@ public:
                  << " hosts=" << ctx.num_hosts()
                  << " datatype=" << type_as_string_
                  << " size=" << bytes_
-                 << " block_size=" << block_size_
+                 << " block_size=" << data::default_block_size
                  << " avg_element_size="
                  << static_cast<double>(min_size_ + max_size_) / 2.0
                  << " reader=" << reader_type_
@@ -367,7 +364,7 @@ public:
 
         StatsTimerStart write_timer;
         {
-            auto writers = stream->GetWriters(block_size_);
+            auto writers = stream->GetWriters();
             while (data.HasNext())
                 writers[peer_id].Put(data.Next());
         }
@@ -397,7 +394,7 @@ public:
         {
             // this opens and closes the writers. this must be done,
             // otherwise the reader will wait infinitely on the loopback!
-            auto writers = stream->GetWriters(block_size_);
+            auto writers = stream->GetWriters();
         }
 
         StatsTimerStart read_timer;
@@ -500,7 +497,7 @@ void StreamOneFactorExperiment<Stream>::Test(api::Context& ctx) {
              << " hosts=" << ctx.num_hosts()
              << " datatype=" << type_as_string_
              << " size=" << bytes_
-             << " block_size=" << block_size_
+             << " block_size=" << data::default_block_size
              << " avg_element_size="
              << static_cast<double>(min_size_ + max_size_) / 2.0
              << " total_time=" << timer;
@@ -593,7 +590,7 @@ public:
                 });
 
             // start writer threads: send to all workers
-            auto writers = stream->GetWriters(block_size_);
+            auto writers = stream->GetWriters();
             std::chrono::microseconds::rep write_time = 0;
             for (size_t target = 0; target < ctx.num_workers(); target++) {
                 threads.Enqueue(
@@ -621,7 +618,7 @@ public:
                  << " hosts=" << ctx.num_hosts()
                  << " datatype=" << type_as_string_
                  << " size=" << bytes_
-                 << " block_size=" << block_size_
+                 << " block_size=" << data::default_block_size
                  << " avg_element_size="
                  << static_cast<double>(min_size_ + max_size_) / 2.0
                  << " total_time=" << total_timer
@@ -751,7 +748,7 @@ public:
                  << " hosts=" << ctx.num_hosts()
                  << " datatype=" << type_as_string_
                  << " size=" << bytes_
-                 << " block_size=" << block_size_
+                 << " block_size=" << data::default_block_size
                  << " avg_element_size="
                  << static_cast<double>(min_size_ + max_size_) / 2.0
                  << " total_time=" << total_timer

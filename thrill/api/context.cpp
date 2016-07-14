@@ -154,7 +154,7 @@ RunLoopbackThreads(
 /******************************************************************************/
 // Other Configuration Options
 
-static bool SetupBlockSize() {
+static inline bool SetupBlockSize() {
 
     const char* env_block_size = getenv("THRILL_BLOCK_SIZE");
     if (!env_block_size || !*env_block_size) return true;
@@ -898,11 +898,12 @@ void MemoryConfig::apply() {
     // divide up ram_
 
     ram_workers_ = ram_ / 3;
-    ram_block_pool_hard_ = ram_ / 3 + ram_workers_;
+    ram_block_pool_hard_ = ram_ / 3;
     ram_block_pool_soft_ = ram_block_pool_hard_ * 9 / 10;
-    ram_floating_ = ram_ - ram_block_pool_hard_;
+    ram_floating_ = ram_ - ram_block_pool_hard_ - ram_workers_;
 
-    // set memory limit, only BlockPool is excluded from malloc tracking
+    // set memory limit, only BlockPool is excluded from malloc tracking, as
+    // only it uses bypassing allocators.
     mem::set_memory_limit_indication(ram_floating_ + ram_workers_);
 }
 
@@ -988,12 +989,25 @@ data::File Context::GetFile(DIABase* dia) {
     return GetFile(dia ? dia->id() : 0);
 }
 
+data::FilePtr Context::GetFilePtr(size_t dia_id) {
+    return common::MakeCounting<data::File>(
+        block_pool_, local_worker_id_, dia_id);
+}
+
 data::FilePtr Context::GetFilePtr(DIABase* dia) {
     return GetFilePtr(dia ? dia->id() : 0);
 }
 
+data::CatStreamPtr Context::GetNewCatStream(size_t dia_id) {
+    return multiplexer_.GetNewCatStream(local_worker_id_, dia_id);
+}
+
 data::CatStreamPtr Context::GetNewCatStream(DIABase* dia) {
     return GetNewCatStream(dia ? dia->id() : 0);
+}
+
+data::MixStreamPtr Context::GetNewMixStream(size_t dia_id) {
+    return multiplexer_.GetNewMixStream(local_worker_id_, dia_id);
 }
 
 data::MixStreamPtr Context::GetNewMixStream(DIABase* dia) {

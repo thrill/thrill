@@ -15,6 +15,7 @@
 #include <thrill/data/multiplexer.hpp>
 #include <thrill/data/multiplexer_header.hpp>
 
+#include <algorithm>
 #include <vector>
 
 namespace thrill {
@@ -106,8 +107,28 @@ void CatStream::set_dia_id(size_t dia_id) {
     }
 }
 
-std::vector<CatStream::Writer>
-CatStream::GetWriters(size_t block_size) {
+std::vector<CatStream::Writer> CatStream::GetWriters() {
+    size_t hard_ram_limit = multiplexer_.block_pool_.hard_ram_limit();
+    size_t block_size_base = hard_ram_limit / 16 / multiplexer_.num_workers();
+    size_t block_size = common::RoundDownToPowerOfTwo(block_size_base);
+    if (block_size == 0 || block_size > default_block_size)
+        block_size = default_block_size;
+
+    {
+        std::unique_lock<std::mutex> lock(multiplexer_.mutex_);
+        multiplexer_.active_streams_++;
+        multiplexer_.max_active_streams_ =
+            std::max(multiplexer_.max_active_streams_,
+                     multiplexer_.active_streams_);
+    }
+
+    LOG << "CatStream::GetWriters()"
+        << " hard_ram_limit=" << hard_ram_limit
+        << " block_size_base=" << block_size_base
+        << " block_size=" << block_size
+        << " active_streams=" << multiplexer_.active_streams_
+        << " max_active_streams=" << multiplexer_.max_active_streams_;
+
     tx_timespan_.StartEventually();
 
     std::vector<Writer> result;
@@ -200,9 +221,18 @@ void CatStream::Close() {
     for (size_t i = 0; i < queues_.size() - workers_per_host(); ++i)
         sem_closing_blocks_.wait();
 
+    {
+        std::unique_lock<std::mutex> lock(multiplexer_.mutex_);
+        multiplexer_.active_streams_--;
+    }
+
     tx_lifetime_.StopEventually();
     tx_timespan_.StopEventually();
     OnAllClosed("CatStream");
+
+    LOG << "CatStream::Close() finished"
+        << " id_=" << id_
+        << " local_worker_id_=" << local_worker_id_;
 }
 
 bool CatStream::closed() const {
@@ -228,7 +258,7 @@ void CatStream::OnStreamBlock(size_t from, PinnedBlock&& b) {
              << common::Hexdump(b.ToString());
     }
 
-    queues_[from].AppendPinnedBlock(std::move(b));
+    queues_[from].AppendPinnedBlock(std::move(b), /* is_last_block */ false);
 }
 
 void CatStream::OnCloseStream(size_t from) {
