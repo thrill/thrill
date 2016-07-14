@@ -47,13 +47,16 @@ TEST(Join, PairsUnique) {
                           };
 
             auto join_fn = [](intpair input1, intpair input2) {
-                               return std::make_tuple(input1.first, input1.second, input2.second);
+                               return std::make_tuple(input1.first,
+                                                      input1.second,
+                                                      input2.second);
                            };
 
             auto joined = dia1.InnerJoinWith(dia2, key_ex, key_ex, join_fn);
             std::vector<intuple> out_vec = joined.AllGather();
 
-            std::sort(out_vec.begin(), out_vec.end(), [](intuple in1, intuple in2) {
+            std::sort(out_vec.begin(), out_vec.end(), [](const intuple& in1,
+                                                         const intuple& in2) {
                           return std::get<0>(in1) < std::get<0>(in2);
                       });
 
@@ -88,13 +91,15 @@ TEST(Join, PairsSameKey) {
                           };
 
             auto join_fn = [](intpair input1, intpair input2) {
-                               return std::make_pair(input1.second, input2.second);
+                               return std::make_pair(input1.second,
+                                                     input2.second);
                            };
 
             auto joined = dia1.InnerJoinWith(dia2, key_ex, key_ex, join_fn);
             std::vector<intpair> out_vec = joined.AllGather();
 
-            std::sort(out_vec.begin(), out_vec.end(), [](intpair in1, intpair in2) {
+            std::sort(out_vec.begin(), out_vec.end(), [](const intpair& in1,
+                                                         const intpair& in2) {
                           if (in1.first == in2.first) {
                               return in1.second < in2.second;
                           }
@@ -135,13 +140,15 @@ TEST(Join, PairsSameKeyDiffSizes) {
                           };
 
             auto join_fn = [](intpair input1, intpair input2) {
-                               return std::make_pair(input1.second, input2.second);
+                               return std::make_pair(input1.second,
+                                                     input2.second);
                            };
 
             auto joined = dia1.InnerJoinWith(dia2, key_ex, key_ex, join_fn);
             std::vector<intpair> out_vec = joined.AllGather();
 
-            std::sort(out_vec.begin(), out_vec.end(), [](intpair in1, intpair in2) {
+            std::sort(out_vec.begin(), out_vec.end(), [](const intpair& in1,
+                                                         const intpair& in2) {
                           if (in1.first == in2.first) {
                               return in1.second < in2.second;
                           }
@@ -187,19 +194,25 @@ TEST(Join, DifferentTypes) {
                            };
 
             auto join_fn = [](intpair input1, intuple3 input2) {
-                               return std::make_tuple(input1.first, input1.second, std::get<0>(input2), std::get<1>(input2), std::get<2>(input2));
+                               return std::make_tuple(input1.first,
+                                                      input1.second,
+                                                      std::get<0>(input2),
+                                                      std::get<1>(input2),
+                                                      std::get<2>(input2));
                            };
 
             auto joined = dia1.InnerJoinWith(dia2, key_ex1, key_ex2, join_fn);
             std::vector<intuple5> out_vec = joined.AllGather();
 
-            std::sort(out_vec.begin(), out_vec.end(), [](intuple5 in1, intuple5 in2) {
+            std::sort(out_vec.begin(), out_vec.end(), [](const intuple5& in1,
+                                                         const intuple5& in2) {
                           return std::get<0>(in1) < std::get<0>(in2);
                       });
 
             ASSERT_EQ(n, out_vec.size());
             for (size_t i = 0; i < out_vec.size(); i++) {
-                ASSERT_EQ(std::make_tuple(i, i * i, i, i * i, i * i * i), out_vec[i]);
+                ASSERT_EQ(std::make_tuple(i, i * i, i, i * i, i * i * i),
+                          out_vec[i]);
             }
         };
 

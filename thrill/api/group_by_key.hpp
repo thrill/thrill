@@ -191,14 +191,12 @@ private:
         std::sort(v.begin(), v.end(), ValueComparator(*this));
         totalsize_ += v.size();
 
-        data::File f = context_.GetFile(this);
-        data::File::Writer w = f.GetWriter();
+        files_.emplace_back(context_.GetFile(this));
+        data::File::Writer w = files_.back().GetWriter();
         for (const ValueIn& e : v) {
             w.Put(e);
         }
         w.Close();
-
-        files_.emplace_back(std::move(f));
     }
 
     //! Receive elements from other workers.

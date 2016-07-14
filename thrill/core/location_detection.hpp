@@ -62,7 +62,7 @@ public:
 
     void Emit(const size_t& /*partition_id*/, const KeyCounterPair& p) {
         assert(modulo_ > 1);
-        vec_.push_back(std::make_pair(hash_function_(p.first) % modulo_, p.second));
+        vec_.emplace_back(hash_function_(p.first) % modulo_, p.second);
     }
 
     std::vector<HashCounterPair>& vec_;

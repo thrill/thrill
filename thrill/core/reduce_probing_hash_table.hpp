@@ -242,9 +242,9 @@ public:
         {
             if (equal_to_function_(iter->first, kv.first))
             {
-                LOGC(debug_items)
-                    << "match of key: " << kv.first
-                    << " and " << iter->first << " ... reducing...";
+                //  LOGC(debug_items)
+//                    << "match of key: " << kv.first
+                    //                  << " and " << iter->first << " ... reducing...";
 
                 iter->second = reduce_function_(iter->second, kv.second);
 
