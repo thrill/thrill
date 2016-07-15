@@ -559,11 +559,17 @@ void ProcessJsonProfile() {
 
     // subtract overall minimum timestamp
 
-    uint64_t min_ts =
-        std::min(c_LinuxProcStats.front().ts, c_NetManager.front().ts);
-    min_ts = std::min(min_ts, c_MemProfile.front().ts);
-    min_ts = std::min(min_ts, c_BlockPool.front().ts);
-    min_ts = std::min(min_ts, c_StageBuilder.front().ts);
+    uint64_t min_ts = std::numeric_limits<uint64_t>::max();
+    if (c_LinuxProcStats.size())
+        min_ts = std::min(min_ts, c_LinuxProcStats.front().ts);
+    if (c_NetManager.size())
+        min_ts = std::min(min_ts, c_NetManager.front().ts);
+    if (c_MemProfile.size())
+        min_ts = std::min(min_ts, c_MemProfile.front().ts);
+    if (c_BlockPool.size())
+        min_ts = std::min(min_ts, c_BlockPool.front().ts);
+    if (c_StageBuilder.size())
+        min_ts = std::min(min_ts, c_StageBuilder.front().ts);
 
     for (auto& c : c_Cmdline) c.ts -= min_ts;
     for (auto& c : c_LinuxProcStats) c.ts -= min_ts;
