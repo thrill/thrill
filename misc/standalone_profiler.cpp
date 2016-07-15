@@ -8,6 +8,7 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
+#include <thrill/api/context.hpp>
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/json_logger.hpp>
 #include <thrill/common/linux_proc_stats.hpp>
@@ -40,6 +41,10 @@ int main(int argc, char* argv[]) {
     if (!clp.Process(argc, argv)) return -1;
 
     signal(SIGINT, sig_int_handler);
+
+    // check some environment variables
+    if (api::RunCheckDieWithParent() < 0) return -1;
+    if (api::RunCheckUnlinkBinary() < 0) return -1;
 
     common::JsonLogger logger(output);
 

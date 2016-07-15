@@ -701,11 +701,7 @@ const char * DetectNetBackend() {
 #endif
 }
 
-//! Check environment variable THRILL_DIE_WITH_PARENT and enable process flag:
-//! this is useful for ssh/invoke.sh: it kills spawned processes when the ssh
-//! connection breaks. Hence: no more zombies.
-static inline
-int RunDieWithParent() {
+int RunCheckDieWithParent() {
 
     const char* env_die_with_parent = getenv("THRILL_DIE_WITH_PARENT");
     if (!env_die_with_parent || !*env_die_with_parent) return 0;
@@ -736,11 +732,7 @@ int RunDieWithParent() {
 #endif
 }
 
-//! Check environment variable THRILL_UNLINK_BINARY and unlink given program
-//! path: this is useful for ssh/invoke.sh: it removes the copied program files
-//! _while_ it is running, hence it is gone even if the program crashes.
-static inline
-int RunUnlinkBinary() {
+int RunCheckUnlinkBinary() {
 
     const char* env_unlink_binary = getenv("THRILL_UNLINK_BINARY");
     if (!env_unlink_binary || !*env_unlink_binary) return 0;
@@ -754,21 +746,12 @@ int RunUnlinkBinary() {
     return 0;
 }
 
-/*!
- * Runs the given job startpoint with a context instance.  Startpoints may be
- * called multiple times with concurrent threads and different context instances
- * across different workers.  The Thrill configuration is taken from environment
- * variables starting the THRILL_.
- *
- * \returns 0 if execution was fine on all threads. Otherwise, the first
- * non-zero return value of any thread is returned.
- */
 int Run(const std::function<void(Context&)>& job_startpoint) {
 
-    if (RunDieWithParent() < 0)
+    if (RunCheckDieWithParent() < 0)
         return -1;
 
-    if (RunUnlinkBinary() < 0)
+    if (RunCheckUnlinkBinary() < 0)
         return -1;
 
     // parse environment: THRILL_NET

@@ -483,6 +483,20 @@ void RunLocalTests(
  */
 void RunLocalSameThread(const std::function<void(Context&)>& job_startpoint);
 
+/*!
+ * Check environment variable THRILL_DIE_WITH_PARENT and enable process flag:
+ * this is useful for ssh/invoke.sh: it kills spawned processes when the ssh
+ * connection breaks. Hence: no more zombies.
+ */
+int RunCheckDieWithParent();
+
+/*!
+ * Check environment variable THRILL_UNLINK_BINARY and unlink given program
+ * path: this is useful for ssh/invoke.sh: it removes the copied program files
+ * _while_ it is running, hence it is gone even if the program crashes.
+ */
+int RunCheckUnlinkBinary();
+
 //! \}
 
 /*!
