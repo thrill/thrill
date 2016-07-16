@@ -166,14 +166,14 @@ public:
     //! Flush all partitions
     void FlushAll() {
         for (size_t id = 0; id < table_.num_partitions(); ++id) {
-            FlushPartition(id, /* consume */ true);
+            FlushPartition(id, /* consume */ true, /* grow */ false);
         }
     }
 
     //! Flushes all items of a partition.
-    void FlushPartition(size_t partition_id, bool consume) {
+    void FlushPartition(size_t partition_id, bool consume, bool grow) {
 
-        table_.FlushPartition(partition_id, consume);
+        table_.FlushPartition(partition_id, consume, grow);
 
         // flush elements pushed into emitter
         emit_.Flush(partition_id);

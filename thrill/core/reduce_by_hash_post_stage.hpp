@@ -160,7 +160,7 @@ public:
                         << " fully reduced items";
 
                     table_.FlushPartitionEmit(
-                        id, consume,
+                        id, consume, /* grow */ false,
                         [this, writer](
                             const size_t& partition_id, const KeyValuePair& p) {
                             if (DoCache) writer->Put(p);
@@ -241,7 +241,7 @@ public:
                              << "fully reduced items";
 
                         subtable.FlushPartitionEmit(
-                            id, /* consume */ true,
+                            id, /* consume */ true, /* grow */ false,
                             [this, writer](
                                 const size_t& partition_id, const KeyValuePair& p) {
                                 if (DoCache) writer->Put(p);

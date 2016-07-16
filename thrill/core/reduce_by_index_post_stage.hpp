@@ -155,7 +155,7 @@ public:
                 size_t index = file_range.begin;
 
                 table.FlushPartitionEmit(
-                    id, consume,
+                    id, consume, /* grow */ false,
                     [this, &table, &file_range, &index, writer](
                         const size_t& /* partition_id */, const KeyValuePair& p) {
                         for ( ; index < p.first; ++index) {

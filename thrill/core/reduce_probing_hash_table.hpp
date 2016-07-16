@@ -323,8 +323,10 @@ public:
     //! Spill all items of a partition into an external memory File.
     void SpillPartition(size_t partition_id) {
 
-        if (immediate_flush_)
-            return FlushPartition(partition_id, true);
+        if (immediate_flush_) {
+            return FlushPartition(
+                partition_id, /* consume */ true, /* grow */ true);
+        }
 
         LOG << "Spilling " << items_per_partition_[partition_id]
             << " items of partition with id: " << partition_id;
@@ -393,7 +395,8 @@ public:
     //! \{
 
     template <typename Emit>
-    void FlushPartitionEmit(size_t partition_id, bool consume, Emit emit) {
+    void FlushPartitionEmit(
+        size_t partition_id, bool consume, bool grow, Emit emit) {
 
         LOG << "Flushing " << items_per_partition_[partition_id]
             << " items of partition: " << partition_id;
@@ -428,12 +431,13 @@ public:
 
         LOG << "Done flushed items of partition: " << partition_id;
 
-        GrowPartition(partition_id);
+        if (grow)
+            GrowPartition(partition_id);
     }
 
-    void FlushPartition(size_t partition_id, bool consume) {
+    void FlushPartition(size_t partition_id, bool consume, bool grow) {
         FlushPartitionEmit(
-            partition_id, consume,
+            partition_id, consume, grow,
             [this](const size_t& partition_id, const KeyValuePair& p) {
                 this->emitter_.Emit(partition_id, p);
             });
@@ -441,7 +445,7 @@ public:
 
     void FlushAll() {
         for (size_t i = 0; i < num_partitions_; ++i) {
-            FlushPartition(i, true);
+            FlushPartition(i, /* consume */ true, /* grow */ false);
         }
     }
 
