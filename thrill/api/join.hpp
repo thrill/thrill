@@ -60,7 +60,8 @@ namespace api {
  */
 template <typename ValueType, typename FirstDIA, typename SecondDIA,
           typename KeyExtractor1, typename KeyExtractor2,
-          typename JoinFunction, bool UseLocationDetection = true>
+          typename JoinFunction, typename HashFunction,
+          bool UseLocationDetection = false>
 class JoinNode final : public DOpNode<ValueType>
 {
     static constexpr bool debug = false;
@@ -82,13 +83,15 @@ public:
     JoinNode(const FirstDIA& parent1, const SecondDIA& parent2,
              const KeyExtractor1& key_extractor1,
              const KeyExtractor2& key_extractor2,
-             const JoinFunction& join_function)
+             const JoinFunction& join_function,
+             const HashFunction& hash_function)
         : Super(parent1.ctx(), "Join",
                 { parent1.id(), parent2.id() },
                 { parent1.node(), parent2.node() }),
           key_extractor1_(key_extractor1),
           key_extractor2_(key_extractor2),
           join_function_(join_function),
+          hash_function_(hash_function),
           hash_stream1_(parent1.ctx().GetNewMixStream(this)),
           hash_writers1_(hash_stream1_->GetWriters()),
           hash_stream2_(parent2.ctx().GetNewMixStream(this)),
@@ -96,8 +99,8 @@ public:
           pre_file1_(context_.GetFilePtr(this)),
           pre_file2_(context_.GetFilePtr(this)),
           location_detection_(parent1.ctx(), Super::id(),
-                              std::plus<CounterType>()),
-        location_detection_initialized_(false)
+                              std::plus<CounterType>(), hash_function),
+          location_detection_initialized_(false)
     {
 
         auto pre_op_fn1 = [this](const InputTypeFirst& input) {
@@ -112,8 +115,6 @@ public:
         auto lop_chain2 = parent2.stack().push(pre_op_fn2).fold();
         parent1.node()->AddChild(this, lop_chain1, 0);
         parent2.node()->AddChild(this, lop_chain2, 1);
-
-        LOG1 << parent1.id() << " -- " << parent2.id();
     }
 
     void Execute() final {
@@ -127,16 +128,21 @@ public:
             auto file1reader = pre_file1_->GetConsumeReader();
             while (file1reader.HasNext()) {
                 InputTypeFirst in1 = file1reader.template Next<InputTypeFirst>();
-                size_t hr = std::hash<Key>()(key_extractor1_(in1)) % max_hash;
-                size_t target_processor = target_processors.find(hr)->second;
+                Key key = key_extractor1_(in1);
+                size_t hr = hash_function_(key) % max_hash;
+                //  auto processor_it = target_processors.find(hr);
+                //assert(processor_it != target_processors.end());
+                size_t target_processor = target_processors[hr];//processor_it->second;
                 hash_writers1_[target_processor].Put(in1);
             }
 
             auto file2reader = pre_file2_->GetConsumeReader();
             while (file2reader.HasNext()) {
                 InputTypeSecond in2 = file2reader.template Next<InputTypeSecond>();
-                size_t hr = std::hash<Key>()(key_extractor2_(in2)) % max_hash;
-                size_t target_processor = target_processors.find(hr)->second;
+                size_t hr = hash_function_(key_extractor2_(in2)) % max_hash;
+                //auto processor_it = target_processors.find(hr);
+                //assert(processor_it != target_processors.end());
+                size_t target_processor = target_processors[hr];//processor_it->second;
                 hash_writers2_[target_processor].Put(in2);
             }
         }
@@ -264,6 +270,7 @@ private:
     KeyExtractor1 key_extractor1_;
     KeyExtractor2 key_extractor2_;
     JoinFunction join_function_;
+    HashFunction hash_function_;
 
     //! data streams for inter-worker communication of DIA elements
     data::MixStreamPtr hash_stream1_;
@@ -278,7 +285,7 @@ private:
     data::File::Writer pre_writer2_;
 
     core::LocationDetection<ValueType, Key, UseLocationDetection, CounterType,
-                            core::ReduceByHash<Key>, std::hash<Key>,
+                            HashFunction, core::ReduceByHash<Key>,
                             std::plus<CounterType> > location_detection_;
     bool location_detection_initialized_;
 
@@ -449,7 +456,7 @@ private:
     }
 
     void StartPreOp(size_t id) final {
-        LOG1 << *this << " running StartPreOp parent_idx=" << id;
+        LOG << *this << " running StartPreOp parent_idx=" << id;
         if (!location_detection_initialized_) {
             location_detection_.Initialize(DIABase::mem_limit_);
             location_detection_initialized_ = true;
@@ -459,24 +466,22 @@ private:
 
         if (id == 0) {
             pre_writer1_ = pre_file1_->GetWriter();
-            LOG1 << "start1";
         }
         if (id == 1) {
             pre_writer2_ = pre_file2_->GetWriter();
-            LOG1 << "start2";
         }
     }
 
     void StopPreOp(size_t id) final {
-        LOG1 << *this << " running StopPreOp parent_idx=" << id;
+        LOG << *this << " running StopPreOp parent_idx=" << id;
 
         if (id == 0) {
             pre_writer1_.Close();
-            LOG1 << "preop1: " << op1;
+            LOG1 << op1;
         }
         if (id == 1) {
             pre_writer2_.Close();
-            LOG1 << "preop2: " << op2;
+            LOG1 << op2;
         }
     }
 
@@ -702,11 +707,14 @@ template <typename ValueType, typename Stack>
 template <typename KeyExtractor1,
           typename KeyExtractor2,
           typename JoinFunction,
-          typename SecondDIA>
+          typename SecondDIA,
+          typename HashFunction>
 auto DIA<ValueType, Stack>::InnerJoinWith(const SecondDIA& second_dia,
                                           const KeyExtractor1& key_extractor1,
                                           const KeyExtractor2& key_extractor2,
-                                          const JoinFunction& join_function) const {
+                                          const JoinFunction& join_function,
+                                          const HashFunction& hash_function)
+    const {
 
     assert(IsValid());
     assert(second_dia.IsValid());
@@ -751,10 +759,11 @@ auto DIA<ValueType, Stack>::InnerJoinWith(const SecondDIA& second_dia,
 
     using JoinNode = api::JoinNode<JoinResult, DIA, SecondDIA,
                                    KeyExtractor1, KeyExtractor2,
-                                   JoinFunction>;
+                                   JoinFunction, HashFunction>;
 
     auto node = common::MakeCounting<JoinNode>(
-        *this, second_dia, key_extractor1, key_extractor2, join_function);
+        *this, second_dia, key_extractor1, key_extractor2, join_function,
+        hash_function);
 
     return DIA<JoinResult>(node);
 }

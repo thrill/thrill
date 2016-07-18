@@ -35,25 +35,24 @@ static size_t CountTrianglesPerLine(
     const std::vector<std::string>& input_path) {
     auto edges = ReadLines(ctx, input_path).template FlatMap<Edge>(
         [](const std::string& input, auto emit) {
-            // parse "source\ttarget\n" lines
+            // parse "source\ttarget\ttarget...\n" lines
             char* endptr;
             unsigned long src = std::strtoul(input.c_str(), &endptr, 10);
-            die_unless(endptr && *endptr == ' ' &&
-                       "Could not parse src tgt line");
-            unsigned long tgt = std::strtoul(endptr + 1, &endptr, 10);
-            die_unless(endptr && *endptr == 0 &&
-                       "Could not parse src tgt line");
+            //die_unless(endptr && *endptr == ' ' &&
+            //         "Could not parse src tgt line");
+            while (*endptr != 0) {
+                unsigned long tgt = std::strtoul(endptr + 1, &endptr, 10);
 
-            if (src < tgt) {
-                emit(std::make_pair(src, tgt));
-            }
-            else {
-                if (src > tgt) {
-                    emit(std::make_pair(tgt, src));
+                if (src < tgt) {
+                    emit(std::make_pair(src, tgt));                }
+                else {
+                    if (src > tgt) {
+                        emit(std::make_pair(tgt, src));
+                    }
+                    // self-loop: do not emit;
                 }
-                // self-loop: do not emit;
             }
-        }).Cache();
+        }).Keep();
 
     return examples::triangles::CountTriangles(edges);
 }
@@ -85,7 +84,7 @@ static size_t CountTrianglesGenerated(
                     // self-loop: do not emit
                 }
             }
-        }).Cache();
+        }).Keep();
 
     return examples::triangles::CountTriangles(edges);
 }

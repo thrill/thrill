@@ -1004,11 +1004,16 @@ public:
      * \ingroup dia_dops
      */
     template <typename KeyExtractor1, typename KeyExtractor2,
-              typename JoinFunction, typename SecondDIA>
+              typename JoinFunction, typename SecondDIA, typename HashFunction =
+              std::hash<typename common::FunctionTraits<KeyExtractor1>::result_type>>
     auto InnerJoinWith(const SecondDIA& second_dia,
                        const KeyExtractor1& key_extractor1,
                        const KeyExtractor2& key_extractor2,
-                       const JoinFunction& join_function) const;
+                       const JoinFunction& join_function,
+                       const HashFunction& hash_function =
+                       std::hash<typename
+                       common::FunctionTraits<KeyExtractor1>::
+                       result_type>()) const;
 
     /*!
      * Sort is a DOp, which sorts a given DIA according to the given compare_function.

@@ -71,8 +71,8 @@ public:
 };
 
 template <typename ValueType, typename Key, bool UseLocationDetection,
-          typename CounterType, typename IndexFunction,
-          typename HashFunction, typename AddFunction>
+          typename CounterType, typename HashFunction,
+          typename IndexFunction, typename AddFunction>
 class LocationDetection
 {
     static constexpr bool debug = false;
@@ -151,8 +151,8 @@ public:
     std::function<void()> void_fn = []() { };
 
     LocationDetection(Context& ctx, size_t dia_id, AddFunction add_function,
-                      const IndexFunction& index_function = IndexFunction(),
                       const HashFunction& hash_function = HashFunction(),
+                      const IndexFunction& index_function = IndexFunction(),
                       const ReduceConfig& config = ReduceConfig())
         : emit_(hash_function, data_),
           context_(ctx),
@@ -234,8 +234,8 @@ public:
 
             g_readers.push_back(
                 GolombPairReader<CounterType>(data_size,
-											  data_pointers.back().get(),
-											  num_elements, b, 8));
+                                              data_pointers.back().get(),
+                                              num_elements, b, 8));
         }
 
         auto puller = make_multiway_merge_tree<HashCounterPair>
@@ -279,6 +279,7 @@ public:
                     finished = true;
                 }
             }
+
             num_elements++;
             location_bitset.golomb_in(next_hr - delta);
             delta = next_hr;
@@ -322,6 +323,7 @@ public:
 
                 size_t processor = golomb_code.stream_out(processor_bitsize);
                 target_processors.emplace(new_elem, processor);
+
             }
             delete[] raw_data;
         }

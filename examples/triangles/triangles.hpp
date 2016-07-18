@@ -15,20 +15,53 @@
 #include <thrill/api/join.hpp>
 #include <thrill/api/size.hpp>
 
+#include <x86intrin.h>
+//#include <functional>
+
 using Node = size_t;
 using Edge = std::pair<Node, Node>;
 
 using namespace thrill; // NOLINT
 
-namespace std {         //i am sorry.
+namespace thrill {
 
-template <>
-struct hash<Edge>{
-    size_t operator () (const Edge& e) const {
-        return hash<Node>()(e.first) ^ hash<Node>()(e.second);
+struct hash {
+
+    inline size_t operator()(const Node& n) const {
+        size_t hash = _mm_crc32_u32((size_t) 28475421, n);
+        hash = hash << 32;
+        hash += _mm_crc32_u32((size_t) 52150599, n);
+        return hash;
     }
 };
-} //namespace std
+
+/*struct edgehash{
+    size_t operator()(const Edge& v) const
+    {
+      size_t seed = 0;
+      seed ^= hash()(v.first) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+      seed ^= hash()(v.second) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+
+      return seed;
+    }
+    };*/
+}
+
+namespace std {
+
+template<>
+struct hash<Edge>{
+    size_t operator()(const Edge& v) const
+    {
+
+      size_t seed = 0;
+      seed ^= thrill::hash()(v.first) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+      seed ^= thrill::hash()(v.second) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+      // LOG1 << "hashing to " << seed << ", was " << v.first << " - " << v.second;
+      return seed;
+    }
+};
+}
 
 namespace examples {
 namespace triangles {
@@ -43,7 +76,7 @@ size_t CountTriangles(const DIA<Edge, Stack>& edges) {
                                               }, [](const Edge& e1, const Edge& e2) {
                                                   assert(e1.second == e2.first);
                                                   return std::make_pair(e1.first, e2.second);
-                                              });
+        }, thrill::hash());
 
     auto triangles = edges_length_2.InnerJoinWith(edges, [](const Edge& e) {
                                                       return e;
@@ -51,7 +84,7 @@ size_t CountTriangles(const DIA<Edge, Stack>& edges) {
                                                       return e;
                                                   }, [](const Edge& /*e1*/, const Edge& /*e2*/) {
                                                       return (size_t)1;
-                                                  });
+        }, std::hash<Edge>());
 
     return triangles.Size();
 }
