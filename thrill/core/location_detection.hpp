@@ -16,6 +16,7 @@
 
 #include <thrill/common/function_traits.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/common/stats_timer.hpp>
 #include <thrill/core/dynamic_bitset.hpp>
 #include <thrill/core/golomb_reader.hpp>
 #include <thrill/core/multiway_merge.hpp>
@@ -190,6 +191,7 @@ public:
      */
     size_t Flush(std::unordered_map<HashResult,
                                     typename KeyCounterPair::second_type>& target_processors) {
+        common::StatsTimerStart timer;
 
         // golomb code parameters
         size_t upper_bound_uniques = context_.net.AllReduce(table_.num_items());
@@ -197,6 +199,8 @@ public:
         size_t b = (size_t)fpr_parameter;
         size_t upper_space_bound = upper_bound_uniques * (2 + std::log2(fpr_parameter));
         size_t max_hash = upper_bound_uniques * fpr_parameter;
+
+        target_processors.reserve(upper_bound_uniques);
 
         emit_.SetModulo(max_hash);
 
@@ -322,10 +326,12 @@ public:
                 last = new_elem;
 
                 size_t processor = golomb_code.stream_out(processor_bitsize);
-                target_processors.emplace(new_elem, processor);
+                target_processors[new_elem] = processor;
             }
+
             delete[] raw_data;
         }
+
         return max_hash;
     }
 

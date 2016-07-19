@@ -17,6 +17,7 @@
 #include <thrill/common/function_traits.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/common/stats_timer.hpp>
 #include <thrill/core/location_detection.hpp>
 #include <thrill/core/multiway_merge.hpp>
 #include <thrill/data/file.hpp>
@@ -61,7 +62,7 @@ namespace api {
 template <typename ValueType, typename FirstDIA, typename SecondDIA,
           typename KeyExtractor1, typename KeyExtractor2,
           typename JoinFunction, typename HashFunction,
-          bool UseLocationDetection = false>
+          bool UseLocationDetection = true>
 class JoinNode final : public DOpNode<ValueType>
 {
     static constexpr bool debug = false;
@@ -120,11 +121,9 @@ public:
     void Execute() final {
 
         if (UseLocationDetection) {
-
             size_t max_hash;
             std::unordered_map<size_t, size_t> target_processors;
             max_hash = location_detection_.Flush(target_processors);
-
             auto file1reader = pre_file1_->GetConsumeReader();
             while (file1reader.HasNext()) {
                 InputTypeFirst in1 = file1reader.template Next<InputTypeFirst>();
@@ -304,7 +303,6 @@ private:
 
     void PreOp1(const InputTypeFirst& input) {
         if (UseLocationDetection) {
-            op1++;
             pre_writer1_.Put(input);
             location_detection_.Insert(key_extractor1_(input));
         }
@@ -318,7 +316,6 @@ private:
 
     void PreOp2(const InputTypeSecond& input) {
         if (UseLocationDetection) {
-            op2++;
             pre_writer2_.Put(input);
             location_detection_.Insert(key_extractor2_(input));
         }
@@ -473,11 +470,9 @@ private:
 
         if (id == 0) {
             pre_writer1_.Close();
-            LOG1 << op1;
         }
         if (id == 1) {
             pre_writer2_.Close();
-            LOG1 << op2;
         }
     }
 
@@ -488,9 +483,6 @@ private:
     DIAMemUse PushDataMemUse() final {
         return DIAMemUse::Max();
     }
-
-    size_t op1 = 0;
-    size_t op2 = 0;
 
     /*!
      * Recieve all elements from a stream and write them to files sorted by key.
