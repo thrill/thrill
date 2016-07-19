@@ -150,9 +150,9 @@ public:
     MixBlockQueueSink(MixStream& dst_mix_stream,
                       size_t from_global, size_t from_local);
 
-    void AppendBlock(const Block& b) final;
+    void AppendBlock(const Block& b, bool is_last_block) final;
 
-    void AppendBlock(Block&& b) final;
+    void AppendBlock(Block&& b, bool is_last_block) final;
 
     void Close() final;
 

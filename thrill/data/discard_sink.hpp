@@ -38,10 +38,10 @@ public:
     { }
 
     //! Discards a Block.
-    void AppendBlock(const Block&) final { }
+    void AppendBlock(const Block&, bool) final { }
 
     //! Discards a Block.
-    void AppendBlock(Block&&) final { }
+    void AppendBlock(Block&&, bool) final { }
 
     //! Closes the sink
     void Close() final {

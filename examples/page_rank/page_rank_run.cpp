@@ -58,9 +58,11 @@ static void RunPageRankEdgePerLine(
              });
 
     size_t num_pages =
-        input
+        input.Keep()
         .Map([](const PagePageLink& ppl) { return std::max(ppl.src, ppl.tgt); })
         .Max() + 1;
+
+    auto number_edges = input.Keep().Size();
 
     // aggregate all outgoing links of a page in this format: by index
     // ([linked_url, linked_url, ...])
@@ -99,8 +101,6 @@ static void RunPageRankEdgePerLine(
     }
 
     timer.Stop();
-
-    auto number_edges = input.Size();
 
     if (ctx.my_rank() == 0) {
         LOG1 << "FINISHED PAGERANK COMPUTATION";

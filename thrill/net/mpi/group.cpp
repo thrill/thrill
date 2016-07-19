@@ -129,6 +129,7 @@ std::unique_ptr<net::Dispatcher> Group::ConstructDispatcher(
 }
 
 void Group::Barrier() {
+    std::unique_lock<std::mutex> lock(g_mutex);
     int r = MPI_Barrier(MPI_COMM_WORLD);
     if (r != MPI_SUCCESS)
         throw Exception("Error during MPI_Barrier()", r);

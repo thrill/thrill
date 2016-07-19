@@ -565,7 +565,7 @@ private:
         // common::qsort_three_pivots(vec.begin(), vec.end(), compare_function_);
         timer_sort_.Stop();
 
-        LOG << "SortAndWriteToFile() sort took " << time;
+        LOG << "SortAndWriteToFile() sort took " << timer_sort_;
 
         Timer write_time;
         write_time.Start();

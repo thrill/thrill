@@ -75,19 +75,19 @@ public:
     virtual void Close() = 0;
 
     //! Appends the (unpinned) Block
-    virtual void AppendBlock(const Block& b) = 0;
+    virtual void AppendBlock(const Block& b, bool is_last_block) = 0;
 
     //! Appends the (unpinned) Block
-    virtual void AppendBlock(Block&& b) = 0;
+    virtual void AppendBlock(Block&& b, bool is_last_block) = 0;
 
     //! Appends the PinnedBlock
-    virtual void AppendPinnedBlock(const PinnedBlock& b) {
-        return AppendBlock(b.ToBlock());
+    virtual void AppendPinnedBlock(const PinnedBlock& b, bool is_last_block) {
+        return AppendBlock(b.ToBlock(), is_last_block);
     }
 
     //! Appends the PinnedBlock
-    virtual void AppendPinnedBlock(PinnedBlock&& b) {
-        return AppendBlock(std::move(b).MoveToBlock());
+    virtual void AppendPinnedBlock(PinnedBlock&& b, bool is_last_block) {
+        return AppendBlock(std::move(b).MoveToBlock(), is_last_block);
     }
 
     //! local worker id to associate pinned block with

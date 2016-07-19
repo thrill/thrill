@@ -9,6 +9,7 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
+#include <thrill/common/defines.hpp>
 #include <thrill/common/json_logger.hpp>
 #include <thrill/common/porting.hpp>
 #include <thrill/common/string.hpp>
@@ -40,7 +41,7 @@ void PortSetCloseOnExec(int fd) {
         throw ErrnoException("Error setting FD_CLOEXEC on file descriptor");
     }
 #else
-    (void)fd;
+    UNUSED(fd);
 #endif
 }
 
@@ -98,6 +99,8 @@ void LogCmdlineParams(JsonLogger& logger) {
            << "program" << prog
            << "argv" << args
            << "cmdline" << cmdline.str();
+#else
+    UNUSED(logger);
 #endif
 }
 
@@ -112,6 +115,9 @@ void SetCpuAffinity(std::thread& thread, size_t cpu_id) {
         LOG1 << "Error calling pthread_setaffinity_np(): "
              << rc << ": " << strerror(errno);
     }
+#else
+    UNUSED(thread);
+    UNUSED(cpu_id);
 #endif
 }
 

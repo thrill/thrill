@@ -162,9 +162,9 @@ static void RunKMeansFile(
                 return p;
             });
 
-    auto result = KMeans(points, dimensions, num_clusters, iterations);
+    auto result = KMeans(points.Keep(), dimensions, num_clusters, iterations);
 
-    double cost = result.ComputeCost(points);
+    double cost = result.ComputeCost(points.Keep());
     if (ctx.my_rank() == 0)
         LOG1 << "k-means cost: " << cost;
 

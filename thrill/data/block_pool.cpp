@@ -839,6 +839,11 @@ size_t BlockPool::Data::int_total_blocks() noexcept {
            + swapped_.size() + reading_.size();
 }
 
+size_t BlockPool::hard_ram_limit() noexcept {
+    std::unique_lock<std::mutex> lock(mutex_);
+    return d_->hard_ram_limit_;
+}
+
 size_t BlockPool::total_bytes() noexcept {
     std::unique_lock<std::mutex> lock(mutex_);
     return d_->int_total_bytes();

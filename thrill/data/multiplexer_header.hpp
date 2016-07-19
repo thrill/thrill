@@ -26,6 +26,10 @@
 namespace thrill {
 namespace data {
 
+#if defined(_MSC_VER)
+#pragma pack(push, 1)
+#endif
+
 //! \addtogroup data_layer
 //! \{
 
@@ -33,58 +37,38 @@ class MultiplexerHeader
 {
 public:
     static constexpr bool self_verify = common::g_self_verify;
-    static constexpr size_t size_t_highest = 8 * sizeof(size_t) - 1;
 
     MagicByte magic = MagicByte::Invalid;
-    size_t size = 0;
-    size_t num_items = 0;
-    size_t first_item = 0;
+    uint32_t size = 0;
+    uint32_t num_items = 0;
+    // previous two bits are packed with first_item
+    uint32_t first_item : 30;
     //! typecode self verify
-    bool typecode_verify = false;
+    uint32_t typecode_verify : 1;
+    //! is last block piggybacked indicator
+    uint32_t is_last_block : 1;
 
     MultiplexerHeader() = default;
 
     explicit MultiplexerHeader(MagicByte m, const PinnedBlock& b)
         : magic(m),
-          size(b.size()),
-          num_items(b.num_items()),
-          first_item(b.first_item_relative()),
-          typecode_verify(b.typecode_verify())
-    { }
+          size(static_cast<uint32_t>(b.size())),
+          num_items(static_cast<uint32_t>(b.num_items())),
+          first_item(static_cast<uint32_t>(b.first_item_relative())),
+          typecode_verify(b.typecode_verify()) {
+        if (!self_verify)
+            assert(!typecode_verify);
+    }
 
     static constexpr size_t header_size =
-        sizeof(MagicByte) + 3 * sizeof(size_t);
+        sizeof(MagicByte) + 3 * sizeof(uint32_t);
 
     static constexpr size_t total_size =
         header_size + 3 * sizeof(size_t);
+} THRILL_ATTRIBUTE_PACKED;
 
-    void SerializeMultiplexerHeader(net::BufferBuilder& bb) const {
-        bb.Put<MagicByte>(magic);
-        bb.Put<size_t>(size);
-        bb.Put<size_t>(num_items);
-        if (!self_verify) {
-            assert(!typecode_verify);
-            bb.Put<size_t>(first_item);
-        }
-        else {
-            // store typecode_verify flag in first_item's highest bit
-            bb.Put<size_t>(first_item |
-                           (typecode_verify ? size_t(1) << size_t_highest : 0));
-        }
-    }
-
-    void ParseMultiplexerHeader(net::BufferReader& br) {
-        magic = br.Get<MagicByte>();
-        size = br.Get<size_t>();
-        num_items = br.Get<size_t>();
-        first_item = br.Get<size_t>();
-        if (self_verify) {
-            // unpack typecode_verify
-            typecode_verify = (first_item & (size_t(1) << size_t_highest)) != 0;
-            first_item &= ~(size_t(1) << size_t_highest);
-        }
-    }
-};
+static_assert(sizeof(MultiplexerHeader) == MultiplexerHeader::header_size,
+              "MultiplexerHeader has invalid size");
 
 /*!
  * Block header is sent before a sequence of blocks it indicates the number of
@@ -104,23 +88,17 @@ public:
     StreamMultiplexerHeader() = default;
 
     explicit StreamMultiplexerHeader(MagicByte m, const PinnedBlock& b)
-        : MultiplexerHeader(m, b)
-    { }
+        : MultiplexerHeader(m, b) { }
 
     //! Serializes the whole block struct into a buffer
     void Serialize(net::BufferBuilder& bb) const {
-        SerializeMultiplexerHeader(bb);
-        bb.Put<size_t>(stream_id);
-        bb.Put<size_t>(receiver_local_worker);
-        bb.Put<size_t>(sender_worker);
+        bb.Reserve(MultiplexerHeader::total_size);
+        bb.Put<StreamMultiplexerHeader>(*this);
     }
 
     //! Reads the stream id and the number of elements in this block
-    void ParseHeader(net::BufferReader& br) {
-        ParseMultiplexerHeader(br);
-        stream_id = br.Get<size_t>();
-        receiver_local_worker = br.Get<size_t>();
-        sender_worker = br.Get<size_t>();
+    static StreamMultiplexerHeader Parse(net::BufferReader& br) {
+        return br.Get<StreamMultiplexerHeader>();
     }
 
     //! Indicates if this is the end-of-line block header
@@ -132,45 +110,49 @@ public:
     size_t CalcHostRank(size_t workers_per_host) const {
         return sender_worker / workers_per_host;
     }
-};
+} THRILL_ATTRIBUTE_PACKED;
+
+static_assert(sizeof(StreamMultiplexerHeader) == MultiplexerHeader::total_size,
+              "StreamMultiplexerHeader has invalid size");
 
 class PartitionMultiplexerHeader : public MultiplexerHeader
 {
 public:
     size_t partition_set_id = 0;
-    size_t partition_index = 0;
+    // probably needed
+    // size_t partition_index = 0;
     size_t receiver_local_worker = 0;
     size_t sender_worker = 0;
 
     PartitionMultiplexerHeader() = default;
 
     explicit PartitionMultiplexerHeader(const PinnedBlock& b)
-        : MultiplexerHeader(MagicByte::PartitionBlock, b)
-    { }
+        : MultiplexerHeader(MagicByte::PartitionBlock, b) { }
 
     //! Serializes the whole block struct into a buffer
     void Serialize(net::BufferBuilder& bb) const {
-        SerializeMultiplexerHeader(bb);
-        bb.Put<size_t>(partition_set_id);
-        bb.Put<size_t>(partition_index);
-        bb.Put<size_t>(receiver_local_worker);
-        bb.Put<size_t>(sender_worker);
+        bb.Reserve(MultiplexerHeader::total_size);
+        bb.Put<PartitionMultiplexerHeader>(*this);
     }
 
     //! Reads the stream id and the number of elements in this block
-    void ParseHeader(net::BufferReader& br) {
-        ParseMultiplexerHeader(br);
-        partition_set_id = br.Get<size_t>();
-        partition_index = br.Get<size_t>();
-        receiver_local_worker = br.Get<size_t>();
-        sender_worker = br.Get<size_t>();
+    static PartitionMultiplexerHeader Parse(net::BufferReader& br) {
+        return br.Get<PartitionMultiplexerHeader>();
     }
 
     //! Indicates if this is the end-of-line block header
     bool IsEnd() const {
         return size == 0;
     }
-};
+} THRILL_ATTRIBUTE_PACKED;
+
+static_assert(
+    sizeof(PartitionMultiplexerHeader) == MultiplexerHeader::total_size,
+    "PartitionMultiplexerHeader has invalid size");
+
+#if defined(_MSC_VER)
+#pragma pack(pop)
+#endif
 
 //! \}
 

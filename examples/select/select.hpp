@@ -14,6 +14,7 @@
 
 #include <thrill/api/bernoulli_sample.hpp>
 #include <thrill/api/collapse.hpp>
+#include <thrill/api/dia.hpp>
 #include <thrill/api/gather.hpp>
 #include <thrill/api/size.hpp>
 #include <thrill/api/sum.hpp>
@@ -23,7 +24,6 @@
 #include <cmath>
 #include <functional>
 #include <utility>
-#include <vector>
 
 namespace examples {
 namespace select {

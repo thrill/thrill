@@ -17,6 +17,7 @@
 #ifndef THRILL_NET_BUFFER_BUILDER_HEADER
 #define THRILL_NET_BUFFER_BUILDER_HEADER
 
+#include <thrill/common/defines.hpp>
 #include <thrill/common/item_serialization_tools.hpp>
 #include <thrill/net/buffer.hpp>
 
@@ -25,6 +26,7 @@
 #include <cstdlib>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 
 namespace thrill {
 namespace net {
@@ -304,8 +306,9 @@ public:
     //! careful with implicit type conversions!
     template <typename Type>
     BufferBuilder& Put(const Type& item) {
-        static_assert(std::is_pod<Type>::value,
-                      "You only want to Put() POD types as raw values.");
+        static_assert(
+            std::is_trivially_copyable<Type>::value,
+            "You only want to Put() trivially copyable types as raw values.");
 
         if (size_ + sizeof(Type) > capacity_) DynReserve(size_ + sizeof(Type));
 

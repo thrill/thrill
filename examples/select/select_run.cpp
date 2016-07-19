@@ -15,7 +15,6 @@
 #include <thrill/api/generate.hpp>
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/stats_timer.hpp>
 
 using namespace thrill;           // NOLINT
 using namespace examples::select; // NOLINT

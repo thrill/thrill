@@ -154,7 +154,7 @@ RunLoopbackThreads(
 /******************************************************************************/
 // Other Configuration Options
 
-static bool SetupBlockSize() {
+static inline bool SetupBlockSize() {
 
     const char* env_block_size = getenv("THRILL_BLOCK_SIZE");
     if (!env_block_size || !*env_block_size) return true;
@@ -541,10 +541,6 @@ int RunBackendMpi(const std::function<void(Context&)>& job_startpoint) {
               << " as rank " << mpi_rank << "."
               << std::endl;
 
-    // increase size of ByteBlocks for larger transfers
-    data::start_block_size = 2 * 1024 * 1024;
-    data::default_block_size = 16 * 1024 * 1024;
-
     if (!SetupBlockSize()) return -1;
 
     static constexpr size_t kGroupCount = net::Manager::kGroupCount;
@@ -630,10 +626,6 @@ int RunBackendIb(const std::function<void(Context&)>& job_startpoint) {
               << " as rank " << mpi_rank << "."
               << std::endl;
 
-    // increase size of ByteBlocks for larger transfers
-    data::start_block_size = 2 * 1024 * 1024;
-    data::default_block_size = 16 * 1024 * 1024;
-
     if (!SetupBlockSize()) return -1;
 
     static constexpr size_t kGroupCount = net::Manager::kGroupCount;
@@ -709,11 +701,7 @@ const char * DetectNetBackend() {
 #endif
 }
 
-//! Check environment variable THRILL_DIE_WITH_PARENT and enable process flag:
-//! this is useful for ssh/invoke.sh: it kills spawned processes when the ssh
-//! connection breaks. Hence: no more zombies.
-static inline
-int RunDieWithParent() {
+int RunCheckDieWithParent() {
 
     const char* env_die_with_parent = getenv("THRILL_DIE_WITH_PARENT");
     if (!env_die_with_parent || !*env_die_with_parent) return 0;
@@ -744,11 +732,7 @@ int RunDieWithParent() {
 #endif
 }
 
-//! Check environment variable THRILL_UNLINK_BINARY and unlink given program
-//! path: this is useful for ssh/invoke.sh: it removes the copied program files
-//! _while_ it is running, hence it is gone even if the program crashes.
-static inline
-int RunUnlinkBinary() {
+int RunCheckUnlinkBinary() {
 
     const char* env_unlink_binary = getenv("THRILL_UNLINK_BINARY");
     if (!env_unlink_binary || !*env_unlink_binary) return 0;
@@ -762,21 +746,12 @@ int RunUnlinkBinary() {
     return 0;
 }
 
-/*!
- * Runs the given job startpoint with a context instance.  Startpoints may be
- * called multiple times with concurrent threads and different context instances
- * across different workers.  The Thrill configuration is taken from environment
- * variables starting the THRILL_.
- *
- * \returns 0 if execution was fine on all threads. Otherwise, the first
- * non-zero return value of any thread is returned.
- */
 int Run(const std::function<void(Context&)>& job_startpoint) {
 
-    if (RunDieWithParent() < 0)
+    if (RunCheckDieWithParent() < 0)
         return -1;
 
-    if (RunUnlinkBinary() < 0)
+    if (RunCheckUnlinkBinary() < 0)
         return -1;
 
     // parse environment: THRILL_NET
@@ -906,11 +881,12 @@ void MemoryConfig::apply() {
     // divide up ram_
 
     ram_workers_ = ram_ / 3;
-    ram_block_pool_hard_ = ram_ / 3 + ram_workers_;
+    ram_block_pool_hard_ = ram_ / 3;
     ram_block_pool_soft_ = ram_block_pool_hard_ * 9 / 10;
-    ram_floating_ = ram_ - ram_block_pool_hard_;
+    ram_floating_ = ram_ - ram_block_pool_hard_ - ram_workers_;
 
-    // set memory limit, only BlockPool is excluded from malloc tracking
+    // set memory limit, only BlockPool is excluded from malloc tracking, as
+    // only it uses bypassing allocators.
     mem::set_memory_limit_indication(ram_floating_ + ram_workers_);
 }
 
@@ -996,12 +972,25 @@ data::File Context::GetFile(DIABase* dia) {
     return GetFile(dia ? dia->id() : 0);
 }
 
+data::FilePtr Context::GetFilePtr(size_t dia_id) {
+    return common::MakeCounting<data::File>(
+        block_pool_, local_worker_id_, dia_id);
+}
+
 data::FilePtr Context::GetFilePtr(DIABase* dia) {
     return GetFilePtr(dia ? dia->id() : 0);
 }
 
+data::CatStreamPtr Context::GetNewCatStream(size_t dia_id) {
+    return multiplexer_.GetNewCatStream(local_worker_id_, dia_id);
+}
+
 data::CatStreamPtr Context::GetNewCatStream(DIABase* dia) {
     return GetNewCatStream(dia ? dia->id() : 0);
+}
+
+data::MixStreamPtr Context::GetNewMixStream(size_t dia_id) {
+    return multiplexer_.GetNewMixStream(local_worker_id_, dia_id);
 }
 
 data::MixStreamPtr Context::GetNewMixStream(DIABase* dia) {

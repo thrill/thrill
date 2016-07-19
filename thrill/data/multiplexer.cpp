@@ -225,9 +225,8 @@ void Multiplexer::OnMultiplexerHeader(Connection& s, net::Buffer&& buffer) {
     // received invalid Buffer: the connection has closed?
     if (!buffer.IsValid()) return;
 
-    StreamMultiplexerHeader header;
     net::BufferReader br(buffer);
-    header.ParseHeader(br);
+    StreamMultiplexerHeader header = StreamMultiplexerHeader::Parse(br);
 
     LOG << "OnMultiplexerHeader() header"
         << " magic=" << unsigned(header.magic)
@@ -324,6 +323,9 @@ void Multiplexer::OnCatStreamBlock(
                     header.first_item, header.num_items,
                     header.typecode_verify));
 
+    if (header.is_last_block)
+        stream->OnCloseStream(header.sender_worker);
+
     AsyncReadMultiplexerHeader(s);
 }
 
@@ -341,6 +343,9 @@ void Multiplexer::OnMixStreamBlock(
         PinnedBlock(std::move(bytes), 0, header.size,
                     header.first_item, header.num_items,
                     header.typecode_verify));
+
+    if (header.is_last_block)
+        stream->OnCloseStream(header.sender_worker);
 
     AsyncReadMultiplexerHeader(s);
 }

@@ -131,6 +131,9 @@ public:
     //! \name Block Statistics
     //! \{
 
+    //! Hard limit on amount of memory used for ByteBlock
+    size_t hard_ram_limit() noexcept;
+
     //! Total number of allocated blocks of this block pool
     size_t total_blocks() noexcept;
 
