@@ -207,10 +207,10 @@ public:
     inline size_t byte_size() const {
         if (maxpos_ > 0) {
             return (maxpos_ * bit_length / 8) +
-                common::IntegerDivRoundUp(bits_, (size_t) 8);
+                   common::IntegerDivRoundUp(bits_, (size_t)8);
         }
         else {
-            return common::IntegerDivRoundUp(bits_, (size_t) 8);
+            return common::IntegerDivRoundUp(bits_, (size_t)8);
         }
     }
 

@@ -131,7 +131,7 @@ public:
                 Key key = key_extractor1_(in1);
                 size_t hr = hash_function_(key) % max_hash;
                 //  auto processor_it = target_processors.find(hr);
-                //assert(processor_it != target_processors.end());
+                // assert(processor_it != target_processors.end());
                 size_t target_processor = target_processors[hr];//processor_it->second;
                 hash_writers1_[target_processor].Put(in1);
             }
@@ -140,8 +140,8 @@ public:
             while (file2reader.HasNext()) {
                 InputTypeSecond in2 = file2reader.template Next<InputTypeSecond>();
                 size_t hr = hash_function_(key_extractor2_(in2)) % max_hash;
-                //auto processor_it = target_processors.find(hr);
-                //assert(processor_it != target_processors.end());
+                // auto processor_it = target_processors.find(hr);
+                // assert(processor_it != target_processors.end());
                 size_t target_processor = target_processors[hr];//processor_it->second;
                 hash_writers2_[target_processor].Put(in2);
             }
@@ -714,7 +714,7 @@ auto DIA<ValueType, Stack>::InnerJoinWith(const SecondDIA& second_dia,
                                           const KeyExtractor2& key_extractor2,
                                           const JoinFunction& join_function,
                                           const HashFunction& hash_function)
-    const {
+const {
 
     assert(IsValid());
     assert(second_dia.IsValid());

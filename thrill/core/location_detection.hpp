@@ -217,7 +217,7 @@ public:
 
         std::vector<GolombPairReader<CounterType> > g_readers;
 
-        std::vector<std::unique_ptr<size_t[]>> data_pointers;
+        std::vector<std::unique_ptr<size_t[]> > data_pointers;
 
         data_pointers.reserve(context_.num_workers());
 
@@ -227,8 +227,8 @@ public:
             assert(reader.HasNext());
             size_t data_size = reader.template Next<size_t>();
             size_t num_elements = reader.template Next<size_t>();
-			data_pointers.push_back(
-				std::make_unique<size_t[]>(data_size + 1));
+            data_pointers.push_back(
+                std::make_unique<size_t[]>(data_size + 1));
             reader.Read(data_pointers.back().get(), data_size * sizeof(size_t));
             total_elements += num_elements;
 
@@ -323,7 +323,6 @@ public:
 
                 size_t processor = golomb_code.stream_out(processor_bitsize);
                 target_processors.emplace(new_elem, processor);
-
             }
             delete[] raw_data;
         }

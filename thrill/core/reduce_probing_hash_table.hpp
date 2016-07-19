@@ -244,7 +244,7 @@ public:
             {
                 //  LOGC(debug_items)
 //                    << "match of key: " << kv.first
-                    //                  << " and " << iter->first << " ... reducing...";
+                //                  << " and " << iter->first << " ... reducing...";
 
                 iter->second = reduce_function_(iter->second, kv.second);
 

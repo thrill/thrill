@@ -90,11 +90,13 @@ TEST(DuplicateDetection, SomeDuplicatedElements) {
                                   ctx.my_rank() == ctx.num_workers() - 1) {
                                   ASSERT_EQ(my_range_size,
                                             non_duplicates.size());
-                              } else {
+                              }
+                              else {
                                   ASSERT_EQ(my_range_size - delta,
                                             non_duplicates.size());
                               }
-                          } else {
+                          }
+                          else {
                               ASSERT_EQ(elements + delta, non_duplicates.size());
                           }
 
@@ -102,13 +104,15 @@ TEST(DuplicateDetection, SomeDuplicatedElements) {
 
                           if (ctx.my_rank() == 0) {
                               start_uniques = 0;
-                          } else {
+                          }
+                          else {
                               start_uniques = my_range.begin + delta;
                           }
 
                           if (ctx.my_rank() == ctx.num_workers() - 1) {
                               end_uniques = elements + delta;
-                          } else {
+                          }
+                          else {
                               end_uniques = my_range.end;
                           }
 
@@ -117,8 +121,6 @@ TEST(DuplicateDetection, SomeDuplicatedElements) {
                               ASSERT_EQ(non_duplicates[j],
                                         j + start_uniques);
                           }
-
-
                       };
 
     api::RunLocalTests(start_func);
@@ -164,18 +166,20 @@ TEST(DuplicateDetection, SomeDuplicatedElementsNonConsec) {
                                                                 ctx,
                                                                 0);
 
-                           if (ctx.num_workers() > 1) {
+                          if (ctx.num_workers() > 1) {
                               size_t my_range_size =
                                   my_range.end - my_range.begin;
                               if (ctx.my_rank() == 0 ||
                                   ctx.my_rank() == ctx.num_workers() - 1) {
                                   ASSERT_EQ(my_range_size,
                                             non_duplicates.size());
-                              } else {
+                              }
+                              else {
                                   ASSERT_EQ(my_range_size - delta,
                                             non_duplicates.size());
                               }
-                          } else {
+                          }
+                          else {
                               ASSERT_EQ(elements + delta, non_duplicates.size());
                           }
 
@@ -183,13 +187,15 @@ TEST(DuplicateDetection, SomeDuplicatedElementsNonConsec) {
 
                           if (ctx.my_rank() == 0) {
                               start_uniques = 0;
-                          } else {
+                          }
+                          else {
                               start_uniques = my_range.begin + delta;
                           }
 
                           if (ctx.my_rank() == ctx.num_workers() - 1) {
                               end_uniques = elements + delta;
-                          } else {
+                          }
+                          else {
                               end_uniques = my_range.end;
                           }
 

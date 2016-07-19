@@ -33,11 +33,11 @@ namespace core {
  * or api::Join().
  *
  * Internally, this duplicate detection uses a golomb encoded distributed single
- * shot bloom filter to find duplicates and non-duplicates with as low 
- * communication volume as possible. Due to the bloom filter's inherent 
+ * shot bloom filter to find duplicates and non-duplicates with as low
+ * communication volume as possible. Due to the bloom filter's inherent
  * properties, this has false duplicates but no false non-duplicates.
  *
- * Should only be used when a large amount of uniquely-occuring elements are 
+ * Should only be used when a large amount of uniquely-occuring elements are
  * expected.
  */
 class DuplicateDetection
@@ -46,7 +46,7 @@ class DuplicateDetection
 private:
     /*!
      * Sends all hashes in the range
-     * [max_hash / num_workers * p, max_hash / num_workers * (p + 1)) to worker 
+     * [max_hash / num_workers * p, max_hash / num_workers * (p + 1)) to worker
      * p. These hashes are encoded with a golomb encoder in core::DynamicBitset.
      *
      * \param stream_pointer Pointer to data stream
@@ -179,8 +179,8 @@ public:
         //! Parameter for false positive rate (FPR: 1/fpr_parameter)
         double fpr_parameter = 8;
         size_t b = (size_t)fpr_parameter;  //(size_t)(std::log(2) * fpr_parameter);
-        size_t upper_space_bound = upper_bound_uniques * 
-            (2 + std::log2(fpr_parameter));
+        size_t upper_space_bound = upper_bound_uniques *
+                                   (2 + std::log2(fpr_parameter));
         size_t max_hash = upper_bound_uniques * fpr_parameter;
 
         for (size_t i = 0; i < hashes.size(); ++i) {
@@ -203,9 +203,9 @@ public:
             golomb_data_stream->GetReaders();
 
         std::vector<GolombReader> g_readers;
-        std::vector<std::unique_ptr<size_t[]>> data_pointers;
-        
-	data_pointers.reserve(context.num_workers());
+        std::vector<std::unique_ptr<size_t[]> > data_pointers;
+
+        data_pointers.reserve(context.num_workers());
 
         size_t total_elements = 0;
 
@@ -213,9 +213,9 @@ public:
             assert(reader.HasNext());
             size_t data_size = reader.template Next<size_t>();
             size_t num_elements = reader.template Next<size_t>();
-			// size_t* raw_data = new size_t[data_size + 1];
-			data_pointers.push_back(
-				std::make_unique<size_t[]>(data_size + 1));
+            // size_t* raw_data = new size_t[data_size + 1];
+            data_pointers.push_back(
+                std::make_unique<size_t[]>(data_size + 1));
 
             reader.Read(data_pointers.back().get(), data_size * sizeof(size_t));
 
@@ -259,8 +259,7 @@ public:
             while (j < hashes_dups.size() - 1) {
                 //! finds all duplicated hashes and insert them in the
                 //! according golomb codes
-                
-                
+
                 if (hashes_dups[j].first != hashes_dups[j + 1].first) {
                     size_t proc = hashes_dups[j].second;
                     bitsets[proc]->golomb_in(hashes_dups[j].first -
@@ -269,7 +268,7 @@ public:
                     element_counters[proc]++;
                     ++j;
                 }
-                else {                    
+                else {
                     size_t cmp = hashes_dups[j].first;
                     while (j < hashes_dups.size() &&
                            hashes_dups[j].first == cmp) {
@@ -279,7 +278,7 @@ public:
             }
 
             j = hashes_dups.size() - 1;
-            if (hashes_dups[j].first != hashes_dups[j-1].first) {
+            if (hashes_dups[j].first != hashes_dups[j - 1].first) {
                 size_t proc = hashes_dups[j].second;
                 bitsets[proc]->golomb_in(hashes_dups[j].first -
                                          deltas[proc]);

@@ -38,13 +38,14 @@ static size_t CountTrianglesPerLine(
             // parse "source\ttarget\ttarget...\n" lines
             char* endptr;
             unsigned long src = std::strtoul(input.c_str(), &endptr, 10);
-            //die_unless(endptr && *endptr == ' ' &&
+            // die_unless(endptr && *endptr == ' ' &&
             //         "Could not parse src tgt line");
             while (*endptr != 0) {
                 unsigned long tgt = std::strtoul(endptr + 1, &endptr, 10);
 
                 if (src < tgt) {
-                    emit(std::make_pair(src, tgt));                }
+                    emit(std::make_pair(src, tgt));
+                }
                 else {
                     if (src > tgt) {
                         emit(std::make_pair(tgt, src));

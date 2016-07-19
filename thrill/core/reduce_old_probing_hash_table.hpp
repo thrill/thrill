@@ -223,7 +223,7 @@ public:
         {
             if (equal_to_function_(iter->first, kv.first))
             {
-                //LOGC(debug_items)
+                // LOGC(debug_items)
                 //    << "match of key: " << kv.first
                 //    << " and " << iter->first << " ... reducing...";
 

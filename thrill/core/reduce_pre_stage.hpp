@@ -217,7 +217,7 @@ public:
                     if (!std::binary_search(non_duplicates_.begin(),
                                             non_duplicates_.end(),
                                             (std::hash<Key>()(kv.first) %
-                                            max_hash_))) {
+                                             max_hash_))) {
 
                         duplicated_elements_++;
                         emit_.Emit(partition_id, kv);
