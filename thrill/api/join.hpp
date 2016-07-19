@@ -130,9 +130,7 @@ public:
                 InputTypeFirst in1 = file1reader.template Next<InputTypeFirst>();
                 Key key = key_extractor1_(in1);
                 size_t hr = hash_function_(key) % max_hash;
-                //  auto processor_it = target_processors.find(hr);
-                // assert(processor_it != target_processors.end());
-                size_t target_processor = target_processors[hr];//processor_it->second;
+                size_t target_processor = target_processors[hr];
                 hash_writers1_[target_processor].Put(in1);
             }
 
@@ -140,9 +138,7 @@ public:
             while (file2reader.HasNext()) {
                 InputTypeSecond in2 = file2reader.template Next<InputTypeSecond>();
                 size_t hr = hash_function_(key_extractor2_(in2)) % max_hash;
-                // auto processor_it = target_processors.find(hr);
-                // assert(processor_it != target_processors.end());
-                size_t target_processor = target_processors[hr];//processor_it->second;
+                size_t target_processor = target_processors[hr];
                 hash_writers2_[target_processor].Put(in2);
             }
         }
