@@ -32,6 +32,7 @@
 #include <unordered_map>
 #include <vector>
 
+
 namespace thrill {
 namespace api {
 
@@ -121,9 +122,8 @@ public:
     void Execute() final {
 
         if (UseLocationDetection) {
-            size_t max_hash;
             std::unordered_map<size_t, size_t> target_processors;
-            max_hash = location_detection_.Flush(target_processors);
+            size_t max_hash = location_detection_.Flush(target_processors);
             auto file1reader = pre_file1_->GetConsumeReader();
             while (file1reader.HasNext()) {
                 InputTypeFirst in1 = file1reader.template Next<InputTypeFirst>();

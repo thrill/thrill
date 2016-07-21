@@ -28,6 +28,7 @@
 #include <functional>
 #include <type_traits>
 #include <typeinfo>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -39,7 +40,7 @@ namespace api {
  */
 template <typename ValueType,
           typename KeyExtractor, typename GroupFunction, typename HashFunction,
-          bool UseLocationDetection = false>
+          bool UseLocationDetection = true>
 class GroupByNode final : public DOpNode<ValueType>
 {
     static constexpr bool debug = false;
@@ -81,7 +82,6 @@ public:
         hash_function_(hash_function),
         location_detection_(parent.ctx(), Super::id(),
                             std::plus<CounterType>(), hash_function),
-        location_detection_initialized_(false),
         pre_file_(context_.GetFilePtr(this))
     {
         // Hook PreOp
@@ -97,11 +97,7 @@ public:
     void StartPreOp(size_t /* id */) final {
         emitter_ = stream_->GetWriters();
         pre_writer_ = pre_file_->GetWriter();
-
-        if (!location_detection_initialized_) {
-            location_detection_.Initialize(DIABase::mem_limit_);
-            location_detection_initialized_ = true;
-        }
+        location_detection_.Initialize(DIABase::mem_limit_);
     }
 
     //! Send all elements to their designated PEs
@@ -119,9 +115,10 @@ public:
 
     void StopPreOp(size_t /* id */) final {
         pre_writer_.Close();
-        // data has been pushed during pre-op -> close emitters
-        for (size_t i = 0; i < emitter_.size(); i++)
-            emitter_[i].Close();
+    }
+
+    DIAMemUse PreOpMemUse() final {
+        return DIAMemUse::Max();
     }
 
     DIAMemUse ExecuteMemUse() final {
@@ -140,6 +137,22 @@ public:
     }
 
     void Execute() override {
+        if (UseLocationDetection) {
+            std::unordered_map<size_t, size_t> target_processors;
+            size_t max_hash = location_detection_.Flush(target_processors);
+            auto file_reader = pre_file_->GetConsumeReader();
+            while (file_reader.HasNext()) {
+                ValueIn in = file_reader.template Next<ValueIn>();
+                Key key = key_extractor_(in);
+                size_t hr = hash_function_(key) % max_hash;
+                size_t target_processor = target_processors[hr];
+                emitter_[target_processor].Put(in);
+            }
+        }
+        // data has been pushed during pre-op -> close emitters
+        for (size_t i = 0; i < emitter_.size(); i++)
+            emitter_[i].Close();
+
         MainOp();
     }
 
@@ -235,12 +248,9 @@ private:
     GroupFunction groupby_function_;
     HashFunction hash_function_;
 
-
     core::LocationDetection<ValueType, Key, UseLocationDetection, CounterType,
                             HashFunction, core::ReduceByHash<Key>,
                             std::plus<CounterType> > location_detection_;
-    bool location_detection_initialized_;
-
 
     data::CatStreamPtr stream_ { context_.GetNewCatStream(this) };
     std::vector<data::Stream::Writer> emitter_;
