@@ -6,6 +6,7 @@
  * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Huyen Chau Nguyen <hello@chau-nguyen.de>
+ * Copyright (C) 2016 Alexander Noe <aleexnoe@gmail.com>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
@@ -102,6 +103,21 @@ public:
             emitter_[i].Close();
     }
 
+    DIAMemUse ExecuteMemUse() final {
+        return DIAMemUse::Max();
+    }
+
+    DIAMemUse PushDataMemUse() final {
+        if (files_.size() <= 1) {
+            // direct push, no merge necessary
+            return 0;
+        }
+        else {
+            // need to perform multiway merging
+            return DIAMemUse::Max();
+        }
+    }
+
     void Execute() override {
         MainOp();
     }
@@ -118,8 +134,46 @@ public:
             RunUserFunc(files_[0], consume);
         }
         else {
+
             // otherwise sort all runs using multiway merge
-            LOG << "start multiwaymerge";
+            size_t merge_degree, prefetch;
+
+            // merge batches of files if necessary
+            while (files_.size() > MaxMergeDegreePrefetch().first)
+            {
+                std::tie(merge_degree, prefetch) = MaxMergeDegreePrefetch();
+
+                sLOG1 << "Partial multi-way-merge of"
+                      << merge_degree << "files with prefetch" << prefetch;
+
+                // create merger for first merge_degree_ Files
+                std::vector<data::File::ConsumeReader> seq;
+                seq.reserve(merge_degree);
+
+                for (size_t t = 0; t < merge_degree; ++t)
+                    seq.emplace_back(files_[t].GetConsumeReader(0));
+
+                StartPrefetch(seq, prefetch);
+
+                auto puller = core::make_multiway_merge_tree<ValueType>(
+                    seq.begin(), seq.end(), ValueComparator(*this));
+
+                // create new File for merged items
+                files_.emplace_back(context_.GetFile(this));
+                auto writer = files_.back().GetWriter();
+
+                while (puller.HasNext()) {
+                    writer.Put(puller.Next());
+                }
+                writer.Close();
+
+                // this clear is important to release references to the files.
+                seq.clear();
+
+                // remove merged files
+                files_.erase(files_.begin(), files_.begin() + merge_degree);
+            }
+
             std::vector<data::File::Reader> seq;
             seq.reserve(num_runs);
 
@@ -162,7 +216,7 @@ private:
 
     data::CatStreamPtr stream_ { context_.GetNewCatStream(this) };
     std::vector<data::Stream::Writer> emitter_;
-    std::vector<data::File> files_;
+    std::deque<data::File> files_;
     data::File sorted_elems_ { context_.GetFile(this) };
     size_t totalsize_ = 0;
 
@@ -228,6 +282,24 @@ private:
             << " name=mainop"
             << " time=" << timer
             << " number_files=" << files_.size();
+    }
+
+    //! calculate maximum merging degree from available memory and the number of
+    //! files. additionally calculate the prefetch size of each File.
+    std::pair<size_t, size_t> MaxMergeDegreePrefetch() {
+        size_t avail_blocks = DIABase::mem_limit_ / data::default_block_size;
+        if (files_.size() >= avail_blocks) {
+            // more files than blocks available -> partial merge of avail_blocks
+            // Files with prefetch = 0, which is one read Block per File.
+            return std::make_pair(avail_blocks, 0u);
+        }
+        else {
+            // less files than available Blocks -> split blocks equally among
+            // Files.
+            return std::make_pair(
+                files_.size(),
+                std::min<size_t>(16u, (avail_blocks / files_.size()) - 1));
+        }
     }
 };
 
