@@ -20,6 +20,8 @@
 #include <thrill/api/group_by_iterator.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/core/location_detection.hpp>
+#include <thrill/core/reduce_functional.hpp>
 #include <thrill/data/file.hpp>
 
 #include <algorithm>
@@ -36,7 +38,8 @@ namespace api {
  * \ingroup api_layer
  */
 template <typename ValueType,
-          typename KeyExtractor, typename GroupFunction, typename HashFunction>
+          typename KeyExtractor, typename GroupFunction, typename HashFunction,
+          bool UseLocationDetection = false>
 class GroupByNode final : public DOpNode<ValueType>
 {
     static constexpr bool debug = false;
@@ -48,6 +51,7 @@ class GroupByNode final : public DOpNode<ValueType>
     using ValueOut = ValueType;
     using ValueIn =
               typename common::FunctionTraits<KeyExtractor>::template arg_plain<0>;
+    using CounterType = size_t;
 
     struct ValueComparator {
     public:
@@ -72,9 +76,13 @@ public:
                 const GroupFunction& groupby_function,
                 const HashFunction& hash_function = HashFunction())
         : Super(parent.ctx(), "GroupByKey", { parent.id() }, { parent.node() }),
-          key_extractor_(key_extractor),
-          groupby_function_(groupby_function),
-          hash_function_(hash_function)
+        key_extractor_(key_extractor),
+        groupby_function_(groupby_function),
+        hash_function_(hash_function),
+        location_detection_(parent.ctx(), Super::id(),
+                            std::plus<CounterType>(), hash_function),
+        location_detection_initialized_(false),
+        pre_file_(context_.GetFilePtr(this))
     {
         // Hook PreOp
         auto pre_op_fn = [=](const ValueIn& input) {
@@ -88,16 +96,29 @@ public:
 
     void StartPreOp(size_t /* id */) final {
         emitter_ = stream_->GetWriters();
+        pre_writer_ = pre_file_->GetWriter();
+
+        if (!location_detection_initialized_) {
+            location_detection_.Initialize(DIABase::mem_limit_);
+            location_detection_initialized_ = true;
+        }
     }
 
     //! Send all elements to their designated PEs
     void PreOp(const ValueIn& v) {
-        const Key k = key_extractor_(v);
-        const size_t recipient = hash_function_(k) % emitter_.size();
-        emitter_[recipient].Put(v);
+        if (UseLocationDetection) {
+            pre_writer_.Put(v);
+            location_detection_.Insert(key_extractor_(v));
+        }
+        else {
+            const Key k = key_extractor_(v);
+            const size_t recipient = hash_function_(k) % emitter_.size();
+            emitter_[recipient].Put(v);
+        }
     }
 
     void StopPreOp(size_t /* id */) final {
+        pre_writer_.Close();
         // data has been pushed during pre-op -> close emitters
         for (size_t i = 0; i < emitter_.size(); i++)
             emitter_[i].Close();
@@ -214,11 +235,22 @@ private:
     GroupFunction groupby_function_;
     HashFunction hash_function_;
 
+
+    core::LocationDetection<ValueType, Key, UseLocationDetection, CounterType,
+                            HashFunction, core::ReduceByHash<Key>,
+                            std::plus<CounterType> > location_detection_;
+    bool location_detection_initialized_;
+
+
     data::CatStreamPtr stream_ { context_.GetNewCatStream(this) };
     std::vector<data::Stream::Writer> emitter_;
     std::deque<data::File> files_;
     data::File sorted_elems_ { context_.GetFile(this) };
     size_t totalsize_ = 0;
+
+    //! location detection and associated files
+    data::FilePtr pre_file_;
+    data::File::Writer pre_writer_;
 
     void RunUserFunc(data::File& f, bool consume) {
         auto r = f.GetReader(consume);

@@ -34,7 +34,8 @@ namespace api {
 
 // forward declarations for friend classes
 template <typename ValueType,
-          typename KeyExtractor, typename GroupFunction, typename HashFunction>
+          typename KeyExtractor, typename GroupFunction, typename HashFunction,
+          bool UseLocationDetection>
 class GroupByNode;
 
 template <typename ValueType,
@@ -49,7 +50,8 @@ class GroupByIterator
     template <typename T1,
               typename T2,
               typename T3,
-              typename T4>
+              typename T4,
+              bool T5>
     friend class GroupByNode;
 
     template <typename T1,
@@ -123,7 +125,8 @@ class GroupByMultiwayMergeIterator
     template <typename T1,
               typename T2,
               typename T3,
-              typename T4>
+              typename T4,
+              bool T5>
     friend class GroupByNode;
 
     template <typename T1,
