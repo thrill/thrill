@@ -450,7 +450,7 @@ private:
 
     void StartPreOp(size_t id) final {
         LOG << *this << " running StartPreOp parent_idx=" << id;
-        if (!location_detection_initialized_) {
+        if (!location_detection_initialized_ && UseLocationDetection) {
             location_detection_.Initialize(DIABase::mem_limit_);
             location_detection_initialized_ = true;
         }

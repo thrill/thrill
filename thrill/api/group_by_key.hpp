@@ -97,7 +97,8 @@ public:
     void StartPreOp(size_t /* id */) final {
         emitter_ = stream_->GetWriters();
         pre_writer_ = pre_file_->GetWriter();
-        location_detection_.Initialize(DIABase::mem_limit_);
+        if (UseLocationDetection)
+            location_detection_.Initialize(DIABase::mem_limit_);
     }
 
     //! Send all elements to their designated PEs
@@ -144,6 +145,7 @@ public:
             while (file_reader.HasNext()) {
                 ValueIn in = file_reader.template Next<ValueIn>();
                 Key key = key_extractor_(in);
+
                 size_t hr = hash_function_(key) % max_hash;
                 size_t target_processor = target_processors[hr];
                 emitter_[target_processor].Put(in);
