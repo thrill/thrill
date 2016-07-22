@@ -215,7 +215,7 @@ private:
 
     core::ReducePreStage<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, VolatileKey,
-        ReduceConfig, /*use duplicate detection */ true> pre_stage_;
+        ReduceConfig, /*use duplicate detection */ false> pre_stage_;
 
     core::ReduceByHashPostStage<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, Emitter, SendPair,

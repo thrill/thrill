@@ -40,7 +40,7 @@ namespace api {
  */
 template <typename ValueType,
           typename KeyExtractor, typename GroupFunction, typename HashFunction,
-          bool UseLocationDetection = true>
+          bool UseLocationDetection = false>
 class GroupByNode final : public DOpNode<ValueType>
 {
     static constexpr bool debug = false;
@@ -191,7 +191,7 @@ public:
 
                 StartPrefetch(seq, prefetch);
 
-                auto puller = core::make_multiway_merge_tree<ValueType>(
+                auto puller = core::make_multiway_merge_tree<ValueIn>(
                     seq.begin(), seq.end(), ValueComparator(*this));
 
                 // create new File for merged items

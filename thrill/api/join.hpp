@@ -63,7 +63,7 @@ namespace api {
 template <typename ValueType, typename FirstDIA, typename SecondDIA,
           typename KeyExtractor1, typename KeyExtractor2,
           typename JoinFunction, typename HashFunction,
-          bool UseLocationDetection = true>
+          bool UseLocationDetection = false>
 class JoinNode final : public DOpNode<ValueType>
 {
     static constexpr bool debug = false;
