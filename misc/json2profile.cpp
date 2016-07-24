@@ -500,7 +500,7 @@ void LoadJsonProfile(std::istream& in) {
     while (std::getline(in, line)) {
         rapidjson::Document d;
         d.Parse<0>(line.c_str());
-        if (!d["class"].IsString()) continue;
+        if (d.HasParseError() || !d["class"].IsString()) continue;
 
         std::string class_str = d["class"].GetString();
 
