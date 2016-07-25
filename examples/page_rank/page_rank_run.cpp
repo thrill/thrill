@@ -291,6 +291,9 @@ int main(int argc, char* argv[]) {
     bool generate = false;
     clp.AddFlag('g', "generate", generate,
                 "generate graph data, set input = #pages");
+    bool useJoin = false;
+    clp.AddFlag('j', "join", useJoin,
+                "use Join() instead of *ByIndex()");
 
     // Graph Generator
     ZipfGraphGen gg(1);
@@ -332,11 +335,17 @@ int main(int argc, char* argv[]) {
 
     return api::Run(
         [&](api::Context& ctx) {
-            if (generate)
+            if (generate && !useJoin)
                 return RunPageRankGenerated(
                     ctx, input_path[0], gg, output_path, iter);
-            else
+            else if (!generate && !useJoin)
                 return RunPageRankEdgePerLine(
+                    ctx, input_path, output_path, iter);
+            else if (generate && useJoin)
+                return RunPageRankJoinGenerated(
+                    ctx, input_path[0], gg, output_path, iter);
+            else if (!generate && useJoin)
+                return RunJoinPageRankEdgePerLine(
                     ctx, input_path, output_path, iter);
         });
 }
