@@ -151,6 +151,7 @@ public:
 
     void PushData(bool consume) final {
 
+
         auto compare_function_1 = [this](const InputTypeFirst& in1,
                                          const InputTypeFirst& in2) {
                                       return key_extractor1_(in1)
@@ -495,7 +496,7 @@ private:
         vec.reserve(capacity);
 
         while (reader.HasNext()) {
-            if (!mem::memory_exceeded && vec.size() < capacity) {
+            if (vec.size() < capacity) {
                 vec.push_back(reader.template Next<ItemType>());
             }
             else {
@@ -582,6 +583,10 @@ private:
      */
     void JoinAllElements(const std::vector<InputTypeFirst>& vec1, bool external1,
                          const std::vector<InputTypeSecond>& vec2, bool external2) {
+
+
+        context_.block_pool().AdviseFree(vec1.size() * sizeof(InputTypeFirst) +
+                                         vec2.size() * sizeof(InputTypeSecond));
 
         if (!external1 && !external2) {
             for (auto const & join1 : vec1) {

@@ -30,6 +30,20 @@
 #include <functional>
 #include <unordered_map>
 
+#include <x86intrin.h>
+namespace thrill {
+
+struct hash {
+
+    inline size_t operator () (const size_t& n) const {
+        size_t hash = _mm_crc32_u32((size_t)28475421, n);
+        hash = hash << 32;
+        hash += _mm_crc32_u32((size_t)52150599, n);
+        return hash;
+    }
+};
+}
+
 namespace thrill {
 namespace core {
 
@@ -190,7 +204,7 @@ public:
      * Flushes the table and detects the most common location for each element.
      */
     size_t Flush(std::unordered_map<HashResult,
-                                    typename KeyCounterPair::second_type>& target_processors) {
+                 typename KeyCounterPair::second_type>& target_processors) {
         common::StatsTimerStart timer;
 
         // golomb code parameters
@@ -199,8 +213,6 @@ public:
         size_t b = (size_t)fpr_parameter;
         size_t upper_space_bound = upper_bound_uniques * (2 + std::log2(fpr_parameter));
         size_t max_hash = upper_bound_uniques * fpr_parameter;
-
-        target_processors.reserve(upper_bound_uniques);
 
         emit_.SetModulo(max_hash);
 

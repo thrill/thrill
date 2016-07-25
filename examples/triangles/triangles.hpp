@@ -23,30 +23,6 @@ using Edge = std::pair<Node, Node>;
 
 using namespace thrill; // NOLINT
 
-namespace thrill {
-
-struct hash {
-
-    inline size_t operator () (const Node& n) const {
-        size_t hash = _mm_crc32_u32((size_t)28475421, n);
-        hash = hash << 32;
-        hash += _mm_crc32_u32((size_t)52150599, n);
-        return hash;
-    }
-};
-
-/*struct edgehash{
-    size_t operator()(const Edge& v) const
-    {
-      size_t seed = 0;
-      seed ^= hash()(v.first) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-      seed ^= hash()(v.second) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-
-      return seed;
-    }
-    };*/
-}
-
 namespace std {
 
 template <>
@@ -56,7 +32,6 @@ struct hash<Edge>{
         size_t seed = 0;
         seed ^= thrill::hash()(v.first) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
         seed ^= thrill::hash()(v.second) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-        // LOG1 << "hashing to " << seed << ", was " << v.first << " - " << v.second;
         return seed;
     }
 };
