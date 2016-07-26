@@ -4,6 +4,7 @@
  * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2016 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2016 Alexander Noe <aleexnoe@gmail.com>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
@@ -209,7 +210,7 @@ auto PageRankJoin(const DIA<LinkedPage, InStack>& links, size_t num_pages,
                                           dampening * p.rank +
                                           (1 - dampening) / num_pages_d);
                  })
-            .Collapse();
+            .Collapse().Execute();
     }
 
     return ranks;

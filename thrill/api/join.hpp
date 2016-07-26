@@ -248,6 +248,7 @@ public:
                                       key_extractor2_, join_file2_);
 
                 JoinAllElements(equal_keys1, external1, equal_keys2, external2);
+
             }
         }
     }
@@ -584,9 +585,6 @@ private:
     void JoinAllElements(const std::vector<InputTypeFirst>& vec1, bool external1,
                          const std::vector<InputTypeSecond>& vec2, bool external2) {
 
-
-        context_.block_pool().AdviseFree(vec1.size() * sizeof(InputTypeFirst) +
-                                         vec2.size() * sizeof(InputTypeSecond));
 
         if (!external1 && !external2) {
             for (auto const & join1 : vec1) {

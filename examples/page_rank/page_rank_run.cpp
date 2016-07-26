@@ -4,6 +4,7 @@
  * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2016 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2016 Alexander Noe <aleexnoe@gmail.com>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
@@ -157,7 +158,7 @@ static void RunJoinPageRankEdgePerLine(
                 all.push_back(r.Next().tgt);
             }
             return std::make_pair(pid, all);
-        }).Cache();
+        }).Cache().Keep();
 
     // perform actual page rank calculation iterations
 
@@ -257,7 +258,7 @@ static void RunPageRankJoinGenerated(
             size_t index) mutable {
             return std::make_pair(index, graph_gen.GenerateOutgoing(rng));
         },
-        num_pages).Cache();
+        num_pages).Cache().KeepForever();
 
     // perform actual page rank calculation iterations
 
