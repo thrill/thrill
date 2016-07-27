@@ -186,10 +186,10 @@ public:
 
         while (remaining_files.size())
         {
-            sLOG1 << "ReducePostStage: re-reducing items from"
-                  << remaining_files.size() << "spilled files"
-                  << "iteration" << iteration;
-            sLOG1 << "-- Try to increase the amount of RAM to avoid this.";
+            sLOG << "ReducePostStage: re-reducing items from"
+                 << remaining_files.size() << "spilled files"
+                 << "iteration" << iteration;
+            sLOG << "-- Try to increase the amount of RAM to avoid this.";
 
             std::vector<data::File> next_remaining_files;
 

@@ -50,7 +50,7 @@ public:
     static constexpr ReduceTableImpl table_impl_ = ReduceTableImpl::PROBING;
 
     //! only for growing ProbingHashTable: items initially in a partition.
-    static constexpr size_t initial_items_per_partition_ = 16;
+    static constexpr size_t initial_items_per_partition_ = 512;
 
     //! only for BucketHashTable: size of a block in the bucket chain in bytes
     //! (must be a static constexpr)

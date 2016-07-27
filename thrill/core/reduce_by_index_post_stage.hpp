@@ -261,8 +261,8 @@ public:
 
         size_t iteration = 1;
 
-        sLOG1 << "ReduceToIndexPostStage: re-reducing items from"
-              << remaining_files.size() << "spilled files";
+        sLOG << "ReduceToIndexPostStage: re-reducing items from"
+             << remaining_files.size() << "spilled files";
 
         while (remaining_files.size())
         {

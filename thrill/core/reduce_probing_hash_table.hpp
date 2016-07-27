@@ -145,10 +145,12 @@ public:
                && "limit_partition_fill_rate must be between 0.0 and 1.0. "
                "with a fill rate of 0.0, items are immediately flushed.");
 
-        limit_items_per_partition_ = (size_t)(
-            static_cast<double>(num_buckets_per_partition_) * limit_fill_rate);
+        limit_items_per_partition_.resize(
+            num_partitions_,
+            static_cast<size_t>(
+                static_cast<double>(partition_size_[0]) * limit_fill_rate));
 
-        assert(limit_items_per_partition_ >= 0);
+        assert(limit_items_per_partition_[0] >= 0);
 
         // actually allocate the table and initialize the valid ranges, the + 1
         // is for the sentinel's slot.
@@ -193,7 +195,7 @@ public:
      */
     void Insert(const KeyValuePair& kv) {
 
-        while (mem::memory_exceeded && num_items_ != 0)
+        while (THRILL_UNLIKELY(mem::memory_exceeded && num_items_ != 0))
             SpillAnyPartition();
 
         typename IndexFunction::Result h = index_function_(
@@ -202,7 +204,7 @@ public:
 
         assert(h.partition_id < num_partitions_);
 
-        if (kv.first == Key()) {
+        if (THRILL_UNLIKELY(kv.first == Key())) {
             // handle pairs with sentinel key specially by reducing into last
             // element of items.
             KeyValuePair& sentinel = items_[num_buckets_];
@@ -217,8 +219,11 @@ public:
             ++items_per_partition_[h.partition_id];
             ++num_items_;
 
-            while (items_per_partition_[h.partition_id] > limit_items_per_partition_)
+            while (THRILL_UNLIKELY(
+                       items_per_partition_[h.partition_id] >
+                       limit_items_per_partition_[h.partition_id])) {
                 SpillPartition(h.partition_id);
+            }
 
             return;
         }
@@ -248,11 +253,11 @@ public:
             ++iter;
 
             // wrap around if beyond the current partition
-            if (iter == pend)
+            if (THRILL_UNLIKELY(iter == pend))
                 iter = pbegin;
 
             // flush partition and retry, if all slots are reserved
-            if (iter == begin_iter) {
+            if (THRILL_UNLIKELY(iter == begin_iter)) {
                 SpillPartition(h.partition_id);
                 return Insert(kv);
             }
@@ -265,8 +270,15 @@ public:
         ++items_per_partition_[h.partition_id];
         ++num_items_;
 
-        while (items_per_partition_[h.partition_id] > limit_items_per_partition_)
+        while (THRILL_UNLIKELY(
+                   items_per_partition_[h.partition_id] >=
+                   limit_items_per_partition_[h.partition_id])) {
+            LOG << "Spill due to "
+                << items_per_partition_[h.partition_id] << " >= "
+                << limit_items_per_partition_[h.partition_id]
+                << " among " << partition_size_[h.partition_id];
             SpillPartition(h.partition_id);
+        }
     }
 
     //! Deallocate items and memory
@@ -302,7 +314,8 @@ public:
             num_buckets_per_partition_, 2 * partition_size_[partition_id]);
 
         sLOG << "Growing partition" << partition_id
-             << "from" << partition_size_[partition_id] << "to" << new_size;
+             << "from" << partition_size_[partition_id] << "to" << new_size
+             << "limit_items" << new_size * config_.limit_partition_fill_rate();
 
         // initialize new items
 
@@ -315,6 +328,8 @@ public:
             new (iter)KeyValuePair();
 
         partition_size_[partition_id] = new_size;
+        limit_items_per_partition_[partition_id]
+            = new_size * config_.limit_partition_fill_rate();
     }
 
     //! \name Spilling Mechanisms to External Memory Files
@@ -458,7 +473,6 @@ private:
     using Super::index_function_;
     using Super::items_per_partition_;
     using Super::key_extractor_;
-    using Super::limit_items_per_partition_;
     using Super::limit_memory_bytes_;
     using Super::num_buckets_;
     using Super::num_buckets_per_partition_;
@@ -472,6 +486,10 @@ private:
 
     //! Current sizes of the partitions because the valid allocated areas grow
     std::vector<size_t> partition_size_;
+
+    //! Current limits on the number of items in a partitions, different for
+    //! different partitions, because the valid allocated areas grow.
+    std::vector<size_t> limit_items_per_partition_;
 
     //! sentinel for invalid partition or no sentinel.
     static constexpr size_t invalid_partition_ = size_t(-1);
