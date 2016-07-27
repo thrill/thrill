@@ -998,14 +998,21 @@ int main(int argc, char* argv[]) {
     clp.SetDescription("Thrill Json Profile Parser");
 
     std::vector<std::string> inputs;
-    clp.AddParamStringlist("inputs", inputs, "json inputs");
+    clp.AddOptParamStringlist("inputs", inputs, "json inputs");
 
     if (!clp.Process(argc, argv)) return -1;
 
-    for (const std::string& input : inputs)
-    {
-        std::ifstream in(input);
-        LoadJsonProfile(in);
+    if (inputs.size() == 0) {
+        clp.PrintUsage(std::cerr);
+        std::cerr << "No paths given, reading json from stdin." << std::endl;
+        inputs.push_back("stdin");
+        LoadJsonProfile(std::cin);
+    }
+    else {
+        for (const std::string& input : inputs) {
+            std::ifstream in(input);
+            LoadJsonProfile(in);
+        }
     }
 
     ProcessJsonProfile();
