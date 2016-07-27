@@ -1,6 +1,6 @@
 #!/bin/bash
 ################################################################################
-# run/ssh/invoke.sh
+# misc/standalone_profiler_run.sh
 #
 # Part of Project Thrill - http://project-thrill.org
 #

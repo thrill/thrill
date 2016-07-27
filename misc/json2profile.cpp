@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <fstream>
+#include <limits>
 #include <map>
 #include <string>
 #include <tuple>
@@ -191,6 +192,9 @@ public:
     double net_tx_speed;
     double net_rx_speed;
 
+    uint64_t net_tx_bytes;
+    uint64_t net_rx_bytes;
+
     double diskstats_rd_bytes;
     double diskstats_wr_bytes;
 
@@ -201,6 +205,8 @@ public:
           pr_rss(GetDouble(d, "pr_rss")),
           net_tx_speed(GetDouble(d, "net_tx_speed")),
           net_rx_speed(GetDouble(d, "net_rx_speed")),
+          net_tx_bytes(GetUint64(d, "net_tx_bytes")),
+          net_rx_bytes(GetUint64(d, "net_rx_bytes")),
           diskstats_rd_bytes(GetDouble(d, "diskstats", "rd_bytes")),
           diskstats_wr_bytes(GetDouble(d, "diskstats", "wr_bytes"))
     { }
@@ -543,6 +549,8 @@ void LoadJsonProfile(std::istream& in) {
     }
 }
 
+uint64_t g_min_ts = 0, g_max_ts = 0;
+
 void ProcessJsonProfile() {
 
     // sort
@@ -560,16 +568,27 @@ void ProcessJsonProfile() {
     // subtract overall minimum timestamp
 
     uint64_t min_ts = std::numeric_limits<uint64_t>::max();
-    if (c_LinuxProcStats.size())
+    uint64_t max_ts = std::numeric_limits<uint64_t>::min();
+    if (c_LinuxProcStats.size()) {
         min_ts = std::min(min_ts, c_LinuxProcStats.front().ts);
-    if (c_NetManager.size())
+        max_ts = std::max(max_ts, c_LinuxProcStats.back().ts);
+    }
+    if (c_NetManager.size()) {
         min_ts = std::min(min_ts, c_NetManager.front().ts);
-    if (c_MemProfile.size())
+        max_ts = std::max(max_ts, c_NetManager.back().ts);
+    }
+    if (c_MemProfile.size()) {
         min_ts = std::min(min_ts, c_MemProfile.front().ts);
-    if (c_BlockPool.size())
+        max_ts = std::max(max_ts, c_MemProfile.back().ts);
+    }
+    if (c_BlockPool.size()) {
         min_ts = std::min(min_ts, c_BlockPool.front().ts);
-    if (c_StageBuilder.size())
+        max_ts = std::max(max_ts, c_BlockPool.back().ts);
+    }
+    if (c_StageBuilder.size()) {
         min_ts = std::min(min_ts, c_StageBuilder.front().ts);
+        max_ts = std::max(max_ts, c_StageBuilder.back().ts);
+    }
 
     for (auto& c : c_Cmdline) c.ts -= min_ts;
     for (auto& c : c_LinuxProcStats) c.ts -= min_ts;
@@ -580,6 +599,9 @@ void ProcessJsonProfile() {
     for (auto& c : c_File) c.ts -= min_ts;
     for (auto& c : c_DIABase) c.ts -= min_ts;
     for (auto& c : c_StageBuilder) c.ts -= min_ts;
+
+    g_min_ts = min_ts;
+    g_max_ts = max_ts;
 }
 
 /******************************************************************************/
@@ -637,6 +659,32 @@ void AddStageLines(common::JsonLine& xAxis) {
         o.sub("label")
             << "text" << (c.label + "." + std::to_string(c.id) + " " + c.event);
     }
+}
+
+/******************************************************************************/
+
+template <typename Stats, typename Select>
+auto CalcSum(const std::vector<Stats>&c_Stats, const Select &select)
+->decltype(select(c_Stats[0])) {
+    if (c_Stats.size() == 0) return 0;
+
+    auto value = select(c_Stats[0]);
+    for (size_t i = 1; i < c_Stats.size(); ++i) {
+        value += select(c_Stats[i]);
+    }
+    return value;
+}
+
+template <typename Stats, typename Select>
+auto CalcAverage(const std::vector<Stats>&c_Stats, const Select &select)
+->decltype(select(c_Stats[0])) {
+    if (c_Stats.size() == 0) return 0;
+
+    auto value = select(c_Stats[0]);
+    for (size_t i = 1; i < c_Stats.size(); ++i) {
+        value += select(c_Stats[i]);
+    }
+    return value / c_Stats.size();
 }
 
 /******************************************************************************/
@@ -919,6 +967,65 @@ std::string PageMain() {
     oss << "    });\n";
     oss << "  </script>\n";
     oss << "\n";
+
+    /**************************************************************************/
+
+    auto two_cells_IEC = [&oss](const auto& v) {
+                             oss << "<td>" << common::FormatIecUnits(v) << "B</td>";
+                             oss << "<td>" << v << " B</td>";
+                         };
+
+    oss << "<h2>Summary</h2>\n";
+
+    oss << "<table border=\"1\" class=\"dataframe\">";
+
+    oss << "<tr><td>Running time</td><td>"
+        << (g_max_ts - g_min_ts) / 1000000.0
+        << " s</td></tr>";
+
+    oss << "<tr><td>CPU user+sys average</td><td>"
+        << CalcAverage(c_LinuxProcStats,
+                   [](const CLinuxProcStats& c) {
+                       return c.cpu_user + c.cpu_sys;
+                   })
+        << " %</td></tr>";
+
+    oss << "<tr><td>CPU user average</td><td>"
+        << CalcAverage(c_LinuxProcStats,
+                   [](const CLinuxProcStats& c) {
+                       return c.cpu_user;
+                   })
+        << " %</td></tr>";
+
+    oss << "<tr><td>TX+RX net total</td>";
+    two_cells_IEC(CalcSum(c_LinuxProcStats,
+                          [](const CLinuxProcStats& c) {
+                              return c.net_tx_bytes + c.net_rx_bytes;
+                          }));
+    oss << "</tr>";
+
+    oss << "<tr><td>TX net total</td>";
+    two_cells_IEC(CalcSum(c_LinuxProcStats,
+                          [](const CLinuxProcStats& c) {
+                              return c.net_tx_bytes;
+                          }));
+    oss << "</tr>";
+
+    oss << "<tr><td>RX net total</td>";
+    two_cells_IEC(CalcSum(c_LinuxProcStats,
+                          [](const CLinuxProcStats& c) {
+                              return c.net_rx_bytes;
+                          }));
+    oss << "</tr>";
+
+    oss << "<tr><td>I/O sys read+write</td>";
+    two_cells_IEC(CalcSum(c_LinuxProcStats,
+                          [](const CLinuxProcStats& c) {
+                              return c.diskstats_rd_bytes + c.diskstats_wr_bytes;
+                          }));
+    oss << "</tr>";
+
+    oss << "</table>";
 
     /**************************************************************************/
 
