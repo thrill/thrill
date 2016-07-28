@@ -36,23 +36,23 @@ matrix:
       os: linux
       addons: *gcc5
 
-    # # clang 3.7 without AddressSanitizer, Debug & Release
-    # - env: CMAKE_CC="clang-3.7" CMAKE_CXX="clang++-3.7" BUILD_TYPE="Debug" COMPILER_FLAGS="" CMAKE_ARGS="-DTHRILL_FULL_BUILD=ON"
-    #   os: linux
-    #   addons: &clang37
-    #     apt:
-    #       sources:
-    #         - kalakris-cmake
-    #         - ubuntu-toolchain-r-test
-    #         - llvm-toolchain-precise-3.7
-    #       packages:
-    #         - cmake
-    #         - clang-3.7
+    # clang 3.7 without AddressSanitizer, Debug & Release
+    - env: CMAKE_CC="clang-3.7" CMAKE_CXX="clang++-3.7" BUILD_TYPE="Debug" COMPILER_FLAGS="" CMAKE_ARGS="-DTHRILL_FULL_BUILD=ON"
+      os: linux
+      addons: &clang37
+        apt:
+          sources:
+            - kalakris-cmake
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-precise-3.7
+          packages:
+            - cmake
+            - clang-3.7
 
-    # # clang 3.7 without AddressSanitizer (there are some system-dependent LeakSanitizer errors)
-    # - env: CMAKE_CC="clang-3.7" CMAKE_CXX="clang++-3.7" BUILD_TYPE="Release" COMPILER_FLAGS="" CMAKE_ARGS="-DTHRILL_FULL_BUILD=ON"
-    #   os: linux
-    #   addons: *clang37
+    # clang 3.7 without AddressSanitizer (there are some system-dependent LeakSanitizer errors)
+    - env: CMAKE_CC="clang-3.7" CMAKE_CXX="clang++-3.7" BUILD_TYPE="Release" COMPILER_FLAGS="" CMAKE_ARGS="-DTHRILL_FULL_BUILD=ON"
+      os: linux
+      addons: *clang37
 
     # clang 3.7 on MacOSX without AddressSanitizer, Debug & Release, not FULL_BUILD
     - env: CMAKE_CC="clang" CMAKE_CXX="clang++" BUILD_TYPE="Debug" COMPILER_FLAGS=""
