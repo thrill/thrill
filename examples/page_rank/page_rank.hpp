@@ -49,16 +49,8 @@ struct PagePageLink {
     }
 } THRILL_ATTRIBUTE_PACKED;
 
-//! A pair (page, rank)
-struct PageRankPair {
-    PageId page;
-    Rank   rank;
 
-    friend std::ostream& operator << (std::ostream& os, const PageRankPair& a) {
-        return os << '(' << a.page << '|' << a.rank << ')';
-    }
-} THRILL_ATTRIBUTE_PACKED;
-
+using PageRankPair = std::pair<PageId, Rank>;
 using OutgoingLinks = std::vector<PageId>;
 using OutgoingLinksRank = std::pair<std::vector<PageId>, Rank>;
 using LinkedPage = std::pair<PageId, OutgoingLinks>;
@@ -122,12 +114,12 @@ auto PageRank(const DIA<OutgoingLinks, InStack>& links,
         ranks =
             contribs
             .ReduceToIndex(
-                [](const PageRankPair& p) { return p.page; },
+                [](const PageRankPair& p) { return p.first; },
                 [](const PageRankPair& p1, const PageRankPair& p2) {
-                    return PageRankPair { p1.page, p1.rank + p2.rank };
+                    return std::make_pair(p1.first, p1.second + p2.second);
                 }, num_pages)
             .Map([num_pages_d](const PageRankPair& p) {
-                     return dampening * p.rank + (1 - dampening) / num_pages_d;
+                     return dampening * p.second + (1 - dampening) / num_pages_d;
                  })
             .Collapse();
     }
@@ -191,7 +183,7 @@ auto PageRankJoin(const DIA<LinkedPage, InStack>& links, size_t num_pages,
                 if (p.first.size() > 0) {
                     Rank rank_contrib = p.second / static_cast<double>(p.first.size());
                     for (const PageId& tgt : p.first)
-                        emit(PageRankPair { tgt, rank_contrib });
+                        emit(std::make_pair(tgt, rank_contrib));
                 }
             });
 
@@ -200,17 +192,16 @@ auto PageRankJoin(const DIA<LinkedPage, InStack>& links, size_t num_pages,
 
         ranks =
             contribs
-            .ReduceByKey(
-                [](const PageRankPair& p) { return p.page; },
-                [](const PageRankPair& p1, const PageRankPair& p2) {
-                    return PageRankPair { p1.page, p1.rank + p2.rank };
+            .ReducePair(
+                [](const Rank& p1, const Rank& p2) {
+                    return  p1 + p2 ;
                 })
             .Map([num_pages_d](const PageRankPair& p) {
-                    return std::make_pair(p.page,
-                                          dampening * p.rank +
+                    return std::make_pair(p.first,
+                                          dampening * p.second +
                                           (1 - dampening) / num_pages_d);
-                 })
-            .Collapse().Execute();
+                 }).Execute();
+
     }
 
     return ranks;

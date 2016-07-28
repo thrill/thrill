@@ -158,7 +158,7 @@ static void RunJoinPageRankEdgePerLine(
                 all.push_back(r.Next().tgt);
             }
             return std::make_pair(pid, all);
-        }).Cache().Keep();
+        }).Cache().KeepForever();
 
     // perform actual page rank calculation iterations
 
