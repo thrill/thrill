@@ -47,7 +47,7 @@ public:
     double bucket_rate_ = 0.6;
 
     //! select the hash table in the reduce stage by enum
-    static constexpr ReduceTableImpl table_impl_ = ReduceTableImpl::OLD_PROBING;
+    static constexpr ReduceTableImpl table_impl_ = ReduceTableImpl::BUCKET;
 
     //! only for growing ProbingHashTable: items initially in a partition.
     static constexpr size_t initial_items_per_partition_ = 16;

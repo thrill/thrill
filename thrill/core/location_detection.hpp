@@ -203,10 +203,7 @@ public:
     /*!
      * Flushes the table and detects the most common location for each element.
      */
-    size_t Flush(std::unordered_map<HashResult,
-                 typename KeyCounterPair::second_type>& target_processors) {
-        common::StatsTimerStart timer;
-
+    size_t Flush(std::vector<CounterType>& target_processors) {
         // golomb code parameters
         size_t upper_bound_uniques = context_.net.AllReduce(table_.num_items());
         double fpr_parameter = 8;
@@ -215,6 +212,8 @@ public:
         size_t max_hash = upper_bound_uniques * fpr_parameter;
 
         emit_.SetModulo(max_hash);
+
+        data_.reserve(table_.num_items());
 
         table_.FlushAll();
 
@@ -318,6 +317,8 @@ public:
         }
 
         auto duplicates_reader = duplicates_stream->GetCatReader(/* consume */ true);
+
+        target_processors.resize(upper_bound_uniques);
 
         while (duplicates_reader.HasNext()) {
 

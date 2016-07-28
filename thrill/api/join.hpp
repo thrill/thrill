@@ -29,7 +29,6 @@
 #include <array>
 #include <functional>
 #include <tuple>
-#include <unordered_map>
 #include <vector>
 
 
@@ -122,7 +121,7 @@ public:
     void Execute() final {
 
         if (UseLocationDetection) {
-            std::unordered_map<size_t, size_t> target_processors;
+            std::vector<size_t> target_processors;
             size_t max_hash = location_detection_.Flush(target_processors);
             auto file1reader = pre_file1_->GetConsumeReader();
             while (file1reader.HasNext()) {
