@@ -38,7 +38,7 @@ static inline uint64_t GetUint64(const rapidjson::Document& d, const char* key) 
 }
 
 static inline double GetDouble(const rapidjson::Document& d, const char* key1) {
-    if (!d[key1].IsDouble()) return 0;
+    if (!d[key1].IsNumber()) return 0;
     return d[key1].GetDouble();
 }
 
@@ -50,7 +50,7 @@ static inline std::string GetString(const rapidjson::Document& d, const char* ke
 static inline double GetDouble(const rapidjson::Document& d,
                                const char* key1, const char* key2) {
     if (!d[key1].IsObject()) return 0;
-    if (!d[key1][key2].IsDouble()) return 0;
+    if (!d[key1][key2].IsNumber()) return 0;
     return d[key1][key2].GetDouble();
 }
 
