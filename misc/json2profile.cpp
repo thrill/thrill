@@ -607,8 +607,8 @@ void ProcessJsonProfile() {
 /******************************************************************************/
 
 template <typename Stats, typename Select>
-common::JsonVerbatim
-MakeSeries(const std::vector<Stats>& c_Stats, const Select& select) {
+bool MakeSeries(const std::vector<Stats>& c_Stats, std::string& output,
+                const Select& select) {
 
     auto where = [](const Stats&) { return true; };
 
@@ -618,6 +618,7 @@ MakeSeries(const std::vector<Stats>& c_Stats, const Select& select) {
     uint64_t ts_sum = 0;
     double value_sum = 0;
     size_t value_count = 0;
+    bool non_zero_series = false;
 
     std::ostringstream oss;
     oss << '[';
@@ -630,6 +631,8 @@ MakeSeries(const std::vector<Stats>& c_Stats, const Select& select) {
                 value_sum /= value_count;
                 if (!first) oss << ',', first = false;
                 oss << '[' << ts_sum / 1000 << ',' << value_sum << ']' << ',';
+                if (value_sum != 0)
+                    non_zero_series = true;
             }
             ts_sum = 0;
             value_sum = 0;
@@ -643,7 +646,8 @@ MakeSeries(const std::vector<Stats>& c_Stats, const Select& select) {
     }
     oss << ']';
 
-    return common::JsonVerbatim(oss.str());
+    output = oss.str();
+    return non_zero_series;
 }
 
 /******************************************************************************/
@@ -771,196 +775,248 @@ std::string PageMain() {
     }
     {
         common::JsonLine s = j.arr("series");
+        std::string data;
 
         // ProcStats
 
-        s.obj()
-            << "name" << "CPU"
-            << BObj("tooltip") << "valueSuffix" << " %" << EObj()
-            << "data"
-            << MakeSeries(c_LinuxProcStats,
-                      [](const CLinuxProcStats& c) {
-                          return c.cpu_user + c.cpu_sys;
-                      });
+        if (MakeSeries(c_LinuxProcStats, data,
+                       [](const CLinuxProcStats& c) {
+                           return c.cpu_user + c.cpu_sys;
+                       }))
+        {
+            s.obj()
+                << "name" << "CPU"
+                << BObj("tooltip") << "valueSuffix" << " %" << EObj()
+                << "data" << common::JsonVerbatim(data);
+        }
 
-        s.obj()
-            << "name" << "CPU User" << "visible" << false
-            << BObj("tooltip") << "valueSuffix" << " %" << EObj()
-            << "data"
-            << MakeSeries(c_LinuxProcStats,
-                      [](const CLinuxProcStats& c) { return c.cpu_user; });
+        if (MakeSeries(c_LinuxProcStats, data,
+                       [](const CLinuxProcStats& c) { return c.cpu_user; }))
+        {
+            s.obj()
+                << "name" << "CPU User" << "visible" << false
+                << BObj("tooltip") << "valueSuffix" << " %" << EObj()
+                << "data" << common::JsonVerbatim(data);
+        }
 
-        s.obj()
-            << "name" << "CPU Sys" << "visible" << false
-            << BObj("tooltip") << "valueSuffix" << " %" << EObj()
-            << "data"
-            << MakeSeries(c_LinuxProcStats,
-                      [](const CLinuxProcStats& c) { return c.cpu_sys; });
+        if (MakeSeries(c_LinuxProcStats, data,
+                       [](const CLinuxProcStats& c) { return c.cpu_sys; }))
+        {
+            s.obj()
+                << "name" << "CPU Sys" << "visible" << false
+                << BObj("tooltip") << "valueSuffix" << " %" << EObj()
+                << "data" << common::JsonVerbatim(data);
+        }
 
-        s.obj()
-            << "name" << "Mem RSS" << "visible" << false << "yAxis" << 2
-            << BObj("tooltip") << "valueSuffix" << " B" << EObj()
-            << "data"
-            << MakeSeries(c_LinuxProcStats,
-                      [](const CLinuxProcStats& c) { return c.pr_rss; });
+        if (MakeSeries(c_LinuxProcStats, data,
+                       [](const CLinuxProcStats& c) { return c.pr_rss; }))
+        {
+            s.obj()
+                << "name" << "Mem RSS" << "visible" << false << "yAxis" << 2
+                << BObj("tooltip") << "valueSuffix" << " B" << EObj()
+                << "data" << common::JsonVerbatim(data);
+        }
 
         // Network
 
-        s.obj()
-            << "name" << "TX+RX net" << "yAxis" << 1
-            << BObj("tooltip") << "valueSuffix" << " B/s" << EObj()
-            << "data"
-            << MakeSeries(c_NetManager,
-                      [](const CNetManager& c) { return c.tx_speed + c.rx_speed; });
+        if (MakeSeries(c_NetManager, data,
+                       [](const CNetManager& c) { return c.tx_speed + c.rx_speed; }))
+        {
+            s.obj()
+                << "name" << "TX+RX net" << "yAxis" << 1
+                << BObj("tooltip") << "valueSuffix" << " B/s" << EObj()
+                << "data" << common::JsonVerbatim(data);
+        }
 
-        s.obj()
-            << "name" << "TX net" << "visible" << false << "yAxis" << 1
-            << BObj("tooltip") << "valueSuffix" << " B/s" << EObj()
-            << "data"
-            << MakeSeries(c_NetManager,
-                      [](const CNetManager& c) { return c.tx_speed; });
+        if (MakeSeries(c_NetManager, data,
+                       [](const CNetManager& c) { return c.tx_speed; }))
+        {
+            s.obj()
+                << "name" << "TX net" << "visible" << false << "yAxis" << 1
+                << BObj("tooltip") << "valueSuffix" << " B/s" << EObj()
+                << "data" << common::JsonVerbatim(data);
+        }
 
-        s.obj()
-            << "name" << "RX net" << "visible" << false << "yAxis" << 1
-            << BObj("tooltip") << "valueSuffix" << " B/s" << EObj()
-            << "data"
-            << MakeSeries(c_NetManager,
-                      [](const CNetManager& c) { return c.rx_speed; });
+        if (MakeSeries(c_NetManager, data,
+                       [](const CNetManager& c) { return c.rx_speed; }))
+        {
+            s.obj()
+                << "name" << "RX net" << "visible" << false << "yAxis" << 1
+                << BObj("tooltip") << "valueSuffix" << " B/s" << EObj()
+                << "data" << common::JsonVerbatim(data);
+        }
 
-        s.obj()
-            << "name" << "TX+RX sys net" << "yAxis" << 1
-            << BObj("tooltip") << "valueSuffix" << " B/s" << EObj()
-            << "data"
-            << MakeSeries(c_LinuxProcStats, [](const CLinuxProcStats& c) {
-                          return c.net_tx_speed + c.net_rx_speed;
-                      });
+        if (MakeSeries(c_LinuxProcStats, data,
+                       [](const CLinuxProcStats& c) {
+                           return c.net_tx_speed + c.net_rx_speed;
+                       }))
+        {
+            s.obj()
+                << "name" << "TX+RX sys net" << "yAxis" << 1
+                << BObj("tooltip") << "valueSuffix" << " B/s" << EObj()
+                << "data" << common::JsonVerbatim(data);
+        }
 
-        s.obj()
-            << "name" << "TX sys net" << "visible" << false << "yAxis" << 1
-            << BObj("tooltip") << "valueSuffix" << " B/s" << EObj()
-            << "data"
-            << MakeSeries(c_LinuxProcStats,
-                      [](const CLinuxProcStats& c) { return c.net_tx_speed; });
+        if (MakeSeries(c_LinuxProcStats, data,
+                       [](const CLinuxProcStats& c) { return c.net_tx_speed; }))
+        {
+            s.obj()
+                << "name" << "TX sys net" << "visible" << false << "yAxis" << 1
+                << BObj("tooltip") << "valueSuffix" << " B/s" << EObj()
+                << "data" << common::JsonVerbatim(data);
+        }
 
-        s.obj()
-            << "name" << "RX sys net" << "visible" << false << "yAxis" << 1
-            << BObj("tooltip") << "valueSuffix" << " B/s" << EObj()
-            << "data"
-            << MakeSeries(c_LinuxProcStats,
-                      [](const CLinuxProcStats& c) { return c.net_rx_speed; });
+        if (MakeSeries(c_LinuxProcStats, data,
+                       [](const CLinuxProcStats& c) { return c.net_rx_speed; }))
+        {
+            s.obj()
+                << "name" << "RX sys net" << "visible" << false << "yAxis" << 1
+                << BObj("tooltip") << "valueSuffix" << " B/s" << EObj()
+                << "data" << common::JsonVerbatim(data);
+        }
 
         // Disk
 
-        s.obj()
-            << "name" << "I/O sys" << "yAxis" << 1
-            << BObj("tooltip") << "valueSuffix" << " B/s" << EObj()
-            << "data"
-            << MakeSeries(c_LinuxProcStats,
-                      [](const CLinuxProcStats& c) {
-                          return c.diskstats_rd_bytes + c.diskstats_wr_bytes;
-                      });
+        if (MakeSeries(c_LinuxProcStats, data,
+                       [](const CLinuxProcStats& c) {
+                           return c.diskstats_rd_bytes + c.diskstats_wr_bytes;
+                       }))
+        {
+            s.obj()
+                << "name" << "I/O sys" << "yAxis" << 1
+                << BObj("tooltip") << "valueSuffix" << " B/s" << EObj()
+                << "data" << common::JsonVerbatim(data);
+        }
 
-        s.obj()
-            << "name" << "I/O sys read" << "visible" << false << "yAxis" << 1
-            << BObj("tooltip") << "valueSuffix" << " B/s" << EObj()
-            << "data"
-            << MakeSeries(c_LinuxProcStats,
-                      [](const CLinuxProcStats& c) { return c.diskstats_rd_bytes; });
+        if (MakeSeries(c_LinuxProcStats, data,
+                       [](const CLinuxProcStats& c) { return c.diskstats_rd_bytes; }))
+        {
+            s.obj()
+                << "name" << "I/O sys read" << "visible" << false << "yAxis" << 1
+                << BObj("tooltip") << "valueSuffix" << " B/s" << EObj()
+                << "data" << common::JsonVerbatim(data);
+        }
 
-        s.obj()
-            << "name" << "I/O sys write" << "visible" << false << "yAxis" << 1
-            << BObj("tooltip") << "valueSuffix" << " B/s" << EObj()
-            << "data"
-            << MakeSeries(c_LinuxProcStats,
-                      [](const CLinuxProcStats& c) { return c.diskstats_wr_bytes; });
+        if (MakeSeries(c_LinuxProcStats, data,
+                       [](const CLinuxProcStats& c) { return c.diskstats_wr_bytes; }))
+        {
+            s.obj()
+                << "name" << "I/O sys write" << "visible" << false << "yAxis" << 1
+                << BObj("tooltip") << "valueSuffix" << " B/s" << EObj()
+                << "data" << common::JsonVerbatim(data);
+        }
 
         // BlockPool
 
-        s.obj()
-            << "name" << "Data bytes" << "yAxis" << 2
-            << BObj("tooltip") << "valueSuffix" << " B" << EObj()
-            << "data"
-            << MakeSeries(c_BlockPool,
-                      [](const CBlockPool& c) { return c.total_bytes; });
+        if (MakeSeries(c_BlockPool, data,
+                       [](const CBlockPool& c) { return c.total_bytes; }))
+        {
+            s.obj()
+                << "name" << "Data bytes" << "yAxis" << 2
+                << BObj("tooltip") << "valueSuffix" << " B" << EObj()
+                << "data" << common::JsonVerbatim(data);
+        }
 
-        s.obj()
-            << "name" << "RAM bytes" << "yAxis" << 2
-            << BObj("tooltip") << "valueSuffix" << " B" << EObj()
-            << "data"
-            << MakeSeries(c_BlockPool,
-                      [](const CBlockPool& c) { return c.ram_bytes; });
+        if (MakeSeries(c_BlockPool, data,
+                       [](const CBlockPool& c) { return c.ram_bytes; }))
+        {
+            s.obj()
+                << "name" << "RAM bytes" << "yAxis" << 2
+                << BObj("tooltip") << "valueSuffix" << " B" << EObj()
+                << "data" << common::JsonVerbatim(data);
+        }
 
-        s.obj()
-            << "name" << "Reading bytes" << "visible" << false << "yAxis" << 2
-            << BObj("tooltip") << "valueSuffix" << " B" << EObj()
-            << "data"
-            << MakeSeries(c_BlockPool,
-                      [](const CBlockPool& c) { return c.reading_bytes; });
+        if (MakeSeries(c_BlockPool, data,
+                       [](const CBlockPool& c) { return c.reading_bytes; }))
+        {
+            s.obj()
+                << "name" << "Reading bytes" << "visible" << false << "yAxis" << 2
+                << BObj("tooltip") << "valueSuffix" << " B" << EObj()
+                << "data" << common::JsonVerbatim(data);
+        }
 
-        s.obj()
-            << "name" << "Writing bytes" << "visible" << false << "yAxis" << 2
-            << BObj("tooltip") << "valueSuffix" << " B" << EObj()
-            << "data"
-            << MakeSeries(c_BlockPool,
-                      [](const CBlockPool& c) { return c.writing_bytes; });
+        if (MakeSeries(c_BlockPool, data,
+                       [](const CBlockPool& c) { return c.writing_bytes; }))
+        {
+            s.obj()
+                << "name" << "Writing bytes" << "visible" << false << "yAxis" << 2
+                << BObj("tooltip") << "valueSuffix" << " B" << EObj()
+                << "data" << common::JsonVerbatim(data);
+        }
 
-        s.obj()
-            << "name" << "Pinned bytes" << "visible" << false << "yAxis" << 2
-            << BObj("tooltip") << "valueSuffix" << " B" << EObj()
-            << "data"
-            << MakeSeries(c_BlockPool,
-                      [](const CBlockPool& c) { return c.pinned_bytes; });
+        if (MakeSeries(c_BlockPool, data,
+                       [](const CBlockPool& c) { return c.pinned_bytes; }))
+        {
+            s.obj()
+                << "name" << "Pinned bytes" << "visible" << false << "yAxis" << 2
+                << BObj("tooltip") << "valueSuffix" << " B" << EObj()
+                << "data" << common::JsonVerbatim(data);
+        }
 
-        s.obj()
-            << "name" << "Unpinned bytes" << "visible" << false << "yAxis" << 2
-            << BObj("tooltip") << "valueSuffix" << " B" << EObj()
-            << "data"
-            << MakeSeries(c_BlockPool,
-                      [](const CBlockPool& c) { return c.unpinned_bytes; });
+        if (MakeSeries(c_BlockPool, data,
+                       [](const CBlockPool& c) { return c.unpinned_bytes; }))
+        {
+            s.obj()
+                << "name" << "Unpinned bytes" << "visible" << false << "yAxis" << 2
+                << BObj("tooltip") << "valueSuffix" << " B" << EObj()
+                << "data" << common::JsonVerbatim(data);
+        }
 
-        s.obj()
-            << "name" << "Swapped bytes" << "yAxis" << 2
-            << BObj("tooltip") << "valueSuffix" << " B" << EObj()
-            << "data"
-            << MakeSeries(c_BlockPool,
-                      [](const CBlockPool& c) { return c.swapped_bytes; });
+        if (MakeSeries(c_BlockPool, data,
+                       [](const CBlockPool& c) { return c.swapped_bytes; }))
+        {
+            s.obj()
+                << "name" << "Swapped bytes" << "yAxis" << 2
+                << BObj("tooltip") << "valueSuffix" << " B" << EObj()
+                << "data" << common::JsonVerbatim(data);
+        }
 
-        s.obj()
-            << "name" << "I/O read" << "yAxis" << 1
-            << BObj("tooltip") << "valueSuffix" << " B/s" << EObj()
-            << "data"
-            << MakeSeries(c_BlockPool,
-                      [](const CBlockPool& c) { return c.rd_speed; });
+        if (MakeSeries(c_BlockPool, data,
+                       [](const CBlockPool& c) { return c.rd_speed; }))
+        {
+            s.obj()
+                << "name" << "I/O read" << "yAxis" << 1
+                << BObj("tooltip") << "valueSuffix" << " B/s" << EObj()
+                << "data" << common::JsonVerbatim(data);
+        }
 
-        s.obj()
-            << "name" << "I/O write" << "yAxis" << 1
-            << BObj("tooltip") << "valueSuffix" << " B/s" << EObj()
-            << "data"
-            << MakeSeries(c_BlockPool,
-                      [](const CBlockPool& c) { return c.wr_speed; });
+        if (MakeSeries(c_BlockPool, data,
+                       [](const CBlockPool& c) { return c.wr_speed; }))
+        {
+            s.obj()
+                << "name" << "I/O write" << "yAxis" << 1
+                << BObj("tooltip") << "valueSuffix" << " B/s" << EObj()
+                << "data" << common::JsonVerbatim(data);
+        }
 
         // MemProfile
 
-        s.obj()
-            << "name" << "Mem Total" << "yAxis" << 2 << "visible" << false
-            << BObj("tooltip") << "valueSuffix" << " B" << EObj()
-            << "data"
-            << MakeSeries(c_MemProfile,
-                      [](const CMemProfile& c) { return c.total; });
+        if (MakeSeries(c_MemProfile, data,
+                       [](const CMemProfile& c) { return c.total; }))
+        {
+            s.obj()
+                << "name" << "Mem Total" << "yAxis" << 2 << "visible" << false
+                << BObj("tooltip") << "valueSuffix" << " B" << EObj()
+                << "data" << common::JsonVerbatim(data);
+        }
 
-        s.obj()
-            << "name" << "Mem Float" << "yAxis" << 2 << "visible" << false
-            << BObj("tooltip") << "valueSuffix" << " B" << EObj()
-            << "data"
-            << MakeSeries(c_MemProfile,
-                      [](const CMemProfile& c) { return c.float_; });
+        if (MakeSeries(c_MemProfile, data,
+                       [](const CMemProfile& c) { return c.float_; }))
+        {
+            s.obj()
+                << "name" << "Mem Float" << "yAxis" << 2 << "visible" << false
+                << BObj("tooltip") << "valueSuffix" << " B" << EObj()
+                << "data" << common::JsonVerbatim(data);
+        }
 
-        s.obj()
-            << "name" << "Mem Base" << "yAxis" << 2 << "visible" << false
-            << BObj("tooltip") << "valueSuffix" << " B" << EObj()
-            << "data"
-            << MakeSeries(c_MemProfile,
-                      [](const CMemProfile& c) { return c.base; });
+        if (MakeSeries(c_MemProfile, data,
+                       [](const CMemProfile& c) { return c.base; }))
+        {
+            s.obj()
+                << "name" << "Mem Base" << "yAxis" << 2 << "visible" << false
+                << BObj("tooltip") << "valueSuffix" << " B" << EObj()
+                << "data" << common::JsonVerbatim(data);
+        }
     }
 
     oss << "      });\n";
@@ -970,10 +1026,11 @@ std::string PageMain() {
 
     /**************************************************************************/
 
-    auto two_cells_IEC = [&oss](const auto& v) {
-                             oss << "<td>" << common::FormatIecUnits(v) << "B</td>";
-                             oss << "<td>" << v << " B</td>";
-                         };
+    auto two_cells_IEC =
+        [&oss](const auto& v) {
+            oss << "<td>" << common::FormatIecUnits(v) << "B</td>";
+            oss << "<td>" << v << " B</td>";
+        };
 
     oss << "<h2>Summary</h2>\n";
 
@@ -1029,66 +1086,75 @@ std::string PageMain() {
 
     /**************************************************************************/
 
-    oss << "<h2>Stream Summary</h2>\n";
-
-    oss << "<table border=\"1\" class=\"dataframe\">";
-    oss << "<thead>";
-    CStreamSummary::DetailHtmlHeader(oss);
-    oss << "</thead>";
-    oss << "<tbody>";
+    if (c_Stream.size() != 0)
     {
-        CStreamSummary ss;
-        for (const CStream& c : c_Stream) {
-            if (c.event != "close") continue;
-            if (ss.id != c.id || ss.dia_id != c.dia_id) {
-                if (ss.id != 0) {
-                    ss.DetailHtmlRow(oss);
+        oss << "<h2>Stream Summary</h2>\n";
+
+        oss << "<table border=\"1\" class=\"dataframe\">";
+        oss << "<thead>";
+        CStreamSummary::DetailHtmlHeader(oss);
+        oss << "</thead>";
+        oss << "<tbody>";
+        {
+            CStreamSummary ss;
+            for (const CStream& c : c_Stream) {
+                if (c.event != "close") continue;
+                if (ss.id != c.id || ss.dia_id != c.dia_id) {
+                    if (ss.id != 0) {
+                        ss.DetailHtmlRow(oss);
+                    }
+                    ss.Initialize(c);
                 }
-                ss.Initialize(c);
-            }
-            else {
-                ss.Add(c);
+                else {
+                    ss.Add(c);
+                }
             }
         }
+        oss << "</tbody>";
+        oss << "</table>";
+        oss << "\n";
     }
-    oss << "</tbody>";
-    oss << "</table>";
-    oss << "\n";
 
     /**************************************************************************/
 
-    oss << "<h2>Stream Details</h2>\n";
+    if (c_Stream.size() != 0)
+    {
+        oss << "<h2>Stream Details</h2>\n";
 
-    oss << "<table border=\"1\" class=\"dataframe\">";
-    oss << "<thead>";
-    CStream::DetailHtmlHeader(oss);
-    oss << "</thead>";
-    oss << "<tbody>";
-    for (const CStream& c : c_Stream) {
-        if (c.event != "close") continue;
-        c.DetailHtmlRow(oss);
+        oss << "<table border=\"1\" class=\"dataframe\">";
+        oss << "<thead>";
+        CStream::DetailHtmlHeader(oss);
+        oss << "</thead>";
+        oss << "<tbody>";
+        for (const CStream& c : c_Stream) {
+            if (c.event != "close") continue;
+            c.DetailHtmlRow(oss);
+        }
+        oss << "</tbody>";
+        oss << "</table>";
+        oss << "\n";
     }
-    oss << "</tbody>";
-    oss << "</table>";
-    oss << "\n";
 
     /**************************************************************************/
 
-    oss << "<h2>File Details</h2>\n";
+    if (c_File.size() != 0)
+    {
+        oss << "<h2>File Details</h2>\n";
 
-    oss << "<table border=\"1\" class=\"dataframe\">";
-    oss << "<thead>";
-    CFile::DetailHtmlHeader(oss);
-    oss << "</thead>";
-    oss << "<tbody>";
-    for (const CFile& c : c_File) {
-        if (c.event != "close") continue;
-        if (c.items == 0 && c.bytes == 0) continue;
-        c.DetailHtmlRow(oss);
+        oss << "<table border=\"1\" class=\"dataframe\">";
+        oss << "<thead>";
+        CFile::DetailHtmlHeader(oss);
+        oss << "</thead>";
+        oss << "<tbody>";
+        for (const CFile& c : c_File) {
+            if (c.event != "close") continue;
+            if (c.items == 0 && c.bytes == 0) continue;
+            c.DetailHtmlRow(oss);
+        }
+        oss << "</tbody>";
+        oss << "</table>";
+        oss << "\n";
     }
-    oss << "</tbody>";
-    oss << "</table>";
-    oss << "\n";
 
     /**************************************************************************/
 
