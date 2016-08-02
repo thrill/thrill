@@ -92,12 +92,16 @@ public:
 
 std::vector<CCmdline> c_Cmdline;
 
+std::string s_title;
+
 static inline
 std::string GetProgramName() {
-    if (c_Cmdline.size() == 0)
-        return "<unknown>";
-    else
+    if (s_title.size() != 0)
+        return s_title;
+    else if (c_Cmdline.size() != 0)
         return c_Cmdline.front().program;
+    else
+        return "<unknown>";
 }
 
 // {"ts":1460574124046450,"host_rank":0,"class":"NetManager","event":"profile","flow":{"tx_bytes":243,"rx_bytes":128,"tx_speed":159.995,"rx_speed":79.9973,"tx_per_host":[0,123,96,24],"rx_per_host":[0,44,44,40]},"data":{"tx_bytes":13658972,"rx_bytes":207441,"tx_speed":2.72665e+07,"rx_speed":277389,"tx_per_host":[0,20208,13618556,20208],"rx_per_host":[0,105042,51168,51231]},"tx_bytes":13659215,"rx_bytes":207569,"tx_speed":2.72666e+07,"rx_speed":277469}
@@ -1029,60 +1033,124 @@ std::string PageMain() {
     auto two_cells_IEC =
         [&oss](const auto& v) {
             oss << "<td>" << common::FormatIecUnits(v) << "B</td>";
-            oss << "<td>" << v << " B</td>";
+            oss << "<td>" << std::fixed << v << " B</td>";
+        };
+
+    auto two_cells_IEC_per_sec =
+        [&oss](const auto& v) {
+            oss << "<td>" << common::FormatIecUnits(v) << "B/s</td>";
+            oss << "<td>" << std::fixed << v << " B/s</td>";
         };
 
     oss << "<h2>Summary</h2>\n";
 
     oss << "<table border=\"1\" class=\"dataframe\">";
 
+    double running_time = (g_max_ts - g_min_ts) / 1000000.0;
+    double cpu_user_sys = CalcAverage(c_LinuxProcStats,
+                                      [](const CLinuxProcStats& c) {
+                                          return c.cpu_user + c.cpu_sys;
+                                      });
+    double cpu_user = CalcAverage(c_LinuxProcStats,
+                                  [](const CLinuxProcStats& c) {
+                                      return c.cpu_user;
+                                  });
+    uint64_t net_tx_rx_bytes =
+        CalcSum(c_LinuxProcStats,
+                [](const CLinuxProcStats& c) {
+                    return c.net_tx_bytes + c.net_rx_bytes;
+                });
+    uint64_t net_tx_bytes =
+        CalcSum(c_LinuxProcStats,
+                [](const CLinuxProcStats& c) {
+                    return c.net_tx_bytes;
+                });
+    uint64_t net_rx_bytes =
+        CalcSum(c_LinuxProcStats,
+                [](const CLinuxProcStats& c) {
+                    return c.net_rx_bytes;
+                });
+
+    double net_tx_rx_speed =
+        CalcAverage(c_LinuxProcStats,
+                    [](const CLinuxProcStats& c) {
+                        return c.net_tx_speed + c.net_rx_speed;
+                    });
+    double net_tx_speed =
+        CalcAverage(c_LinuxProcStats,
+                    [](const CLinuxProcStats& c) {
+                        return c.net_tx_speed;
+                    });
+    double net_rx_speed =
+        CalcAverage(c_LinuxProcStats,
+                    [](const CLinuxProcStats& c) {
+                        return c.net_rx_speed;
+                    });
+
+    uint64_t diskstats_rd_wr_bytes =
+        CalcSum(c_LinuxProcStats,
+                [](const CLinuxProcStats& c) {
+                    return c.diskstats_rd_bytes + c.diskstats_wr_bytes;
+                });
+
     oss << "<tr><td>Running time</td><td>"
-        << (g_max_ts - g_min_ts) / 1000000.0
-        << " s</td></tr>";
+        << running_time << " s</td></tr>";
 
     oss << "<tr><td>CPU user+sys average</td><td>"
-        << CalcAverage(c_LinuxProcStats,
-                   [](const CLinuxProcStats& c) {
-                       return c.cpu_user + c.cpu_sys;
-                   })
-        << " %</td></tr>";
+        << cpu_user_sys << " %</td></tr>";
 
     oss << "<tr><td>CPU user average</td><td>"
-        << CalcAverage(c_LinuxProcStats,
-                   [](const CLinuxProcStats& c) {
-                       return c.cpu_user;
-                   })
-        << " %</td></tr>";
+        << cpu_user << " %</td></tr>";
 
     oss << "<tr><td>TX+RX net total</td>";
-    two_cells_IEC(CalcSum(c_LinuxProcStats,
-                          [](const CLinuxProcStats& c) {
-                              return c.net_tx_bytes + c.net_rx_bytes;
-                          }));
+    two_cells_IEC(net_tx_rx_bytes);
     oss << "</tr>";
 
     oss << "<tr><td>TX net total</td>";
-    two_cells_IEC(CalcSum(c_LinuxProcStats,
-                          [](const CLinuxProcStats& c) {
-                              return c.net_tx_bytes;
-                          }));
+    two_cells_IEC(net_tx_bytes);
     oss << "</tr>";
 
     oss << "<tr><td>RX net total</td>";
-    two_cells_IEC(CalcSum(c_LinuxProcStats,
-                          [](const CLinuxProcStats& c) {
-                              return c.net_rx_bytes;
-                          }));
+    two_cells_IEC(net_rx_bytes);
+    oss << "</tr>";
+
+    oss << "<tr><td>TX+RX net average</td>";
+    two_cells_IEC_per_sec(net_tx_rx_speed);
+    oss << "</tr>";
+
+    oss << "<tr><td>TX net average</td>";
+    two_cells_IEC_per_sec(net_tx_speed);
+    oss << "</tr>";
+
+    oss << "<tr><td>RX net average</td>";
+    two_cells_IEC_per_sec(net_rx_speed);
     oss << "</tr>";
 
     oss << "<tr><td>I/O sys read+write</td>";
-    two_cells_IEC(CalcSum(c_LinuxProcStats,
-                          [](const CLinuxProcStats& c) {
-                              return c.diskstats_rd_bytes + c.diskstats_wr_bytes;
-                          }));
+    two_cells_IEC(diskstats_rd_wr_bytes);
     oss << "</tr>";
 
     oss << "</table>";
+
+    // sneek in a RESULT line for SqlPlotTools inside a HTML comment
+
+    oss << "\n<!--\n";
+
+    oss << "RESULT"
+        << " title=" << GetProgramName()
+        << " running_time=" << running_time
+        << " cpu_user_sys=" << cpu_user_sys
+        << " cpu_user=" << cpu_user
+        << " net_tx_rx_bytes=" << net_tx_rx_bytes
+        << " net_tx_bytes=" << net_tx_bytes
+        << " net_rx_bytes=" << net_rx_bytes
+        << " net_tx_rx_speed=" << net_tx_rx_speed
+        << " net_tx_speed=" << net_tx_speed
+        << " net_rx_speed=" << net_rx_speed
+        << " diskstats_rd_wr_bytes=" << diskstats_rd_wr_bytes
+        << "\n";
+
+    oss << "-->\n";
 
     /**************************************************************************/
 
@@ -1172,6 +1240,8 @@ int main(int argc, char* argv[]) {
 
     std::vector<std::string> inputs;
     clp.AddOptParamStringlist("inputs", inputs, "json inputs");
+
+    clp.AddString('t', "title", s_title, "override title");
 
     if (!clp.Process(argc, argv)) return -1;
 
