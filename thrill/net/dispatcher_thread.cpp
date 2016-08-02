@@ -166,14 +166,28 @@ void DispatcherThread::Work() {
                 job();
         }
 
+        // set busy flag, but check once again for jobs.
+        busy_ = true;
+        {
+            Job job;
+            if (jobqueue_.try_pop(job)) {
+                busy_ = false;
+                job();
+                continue;
+            }
+        }
+
         // run one dispatch
         dispatcher_->Dispatch();
+
+        busy_ = false;
     }
 }
 
 //! wake up select() in dispatching thread.
 void DispatcherThread::WakeUpThread() {
-    dispatcher_->Interrupt();
+    if (busy_)
+        dispatcher_->Interrupt();
 }
 
 } // namespace net

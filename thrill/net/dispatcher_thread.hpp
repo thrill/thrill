@@ -171,6 +171,9 @@ private:
     //! termination flag
     std::atomic<bool> terminate_ { false };
 
+    //! whether to call Interrupt() in WakeUpThread()
+    std::atomic<bool> busy_ { false };
+
     //! thread name for logging
     mem::by_string name_;
 };
