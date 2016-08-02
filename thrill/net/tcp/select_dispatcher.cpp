@@ -161,6 +161,32 @@ void SelectDispatcher::DispatchOne(const std::chrono::milliseconds& timeout) {
     }
 }
 
+void SelectDispatcher::Interrupt() {
+    // there are multiple very platform-dependent ways to do this. we'll try
+    // to use the self-pipe trick for now. The select() method waits on
+    // another fd, which we write one byte to when we need to interrupt the
+    // select().
+
+    // another method would be to send a signal() via pthread_kill() to the
+    // select thread, but that had a race condition for waking up the other
+    // thread. -tb
+
+    // send one byte to wake up the select() handler.
+    ssize_t wb;
+    while ((wb = write(self_pipe_[1], this, 1)) == 0) {
+        LOG1 << "WakeUp: error sending to self-pipe: " << errno;
+    }
+    die_unless(wb == 1);
+}
+
+bool SelectDispatcher::SelfPipeCallback() {
+    while (read(self_pipe_[0],
+                self_pipe_buffer_, sizeof(self_pipe_buffer_)) > 0) {
+        /* repeat, until empty pipe */
+    }
+    return true;
+}
+
 } // namespace tcp
 } // namespace net
 } // namespace thrill

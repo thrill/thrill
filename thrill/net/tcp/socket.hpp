@@ -156,27 +156,36 @@ public:
     }
 
     //! Turn socket into non-blocking state.
-    bool SetNonBlocking(bool non_blocking) {
-        assert(IsValid());
+    static bool SetNonBlocking(int fd, bool non_blocking) {
 
-        if (non_blocking == non_blocking_) return true;
-
-        int old_opts = fcntl(fd_, F_GETFL);
+        int old_opts = fcntl(fd, F_GETFL);
 
         int new_opts = non_blocking
                        ? (old_opts | O_NONBLOCK) : (old_opts & ~O_NONBLOCK);
 
-        if (fcntl(fd_, F_SETFL, new_opts) != 0)
+        if (fcntl(fd, F_SETFL, new_opts) != 0)
         {
             LOG << "Socket::SetNonBlocking()"
-                << " fd_=" << fd_
+                << " fd=" << fd
                 << " non_blocking=" << non_blocking
                 << " error=" << strerror(errno);
             return false;
         }
 
-        non_blocking_ = non_blocking;
         return true;
+    }
+
+    //! Turn socket into non-blocking state.
+    bool SetNonBlocking(bool non_blocking) {
+        assert(IsValid());
+
+        if (non_blocking == non_blocking_) return true;
+
+        if (SetNonBlocking(fd_, non_blocking)) {
+            non_blocking_ = non_blocking;
+            return true;
+        }
+        return false;
     }
 
     //! Return the current local socket address.

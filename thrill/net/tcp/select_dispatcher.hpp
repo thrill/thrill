@@ -64,6 +64,10 @@ public:
         // allocate self-pipe
         common::MakePipe(self_pipe_);
 
+        if (!Socket::SetNonBlocking(self_pipe_[0], true)) {
+            LOG1 << "SelectDispatcher() cannot set up self-pipe for non-blocking reads";
+        }
+
         // Ignore PIPE signals (received when writing to closed sockets)
         signal(SIGPIPE, SIG_IGN);
 
@@ -159,23 +163,7 @@ public:
     void DispatchOne(const std::chrono::milliseconds& timeout) final;
 
     //! Interrupt the current select via self-pipe
-    void Interrupt() final {
-        // there are multiple very platform-dependent ways to do this. we'll try
-        // to use the self-pipe trick for now. The select() method waits on
-        // another fd, which we write one byte to when we need to interrupt the
-        // select().
-
-        // another method would be to send a signal() via pthread_kill() to the
-        // select thread, but that had a race condition for waking up the other
-        // thread. -tb
-
-        // send one byte to wake up the select() handler.
-        ssize_t wb;
-        while ((wb = write(self_pipe_[1], this, 1)) == 0) {
-            LOG1 << "WakeUp: error sending to self-pipe: " << errno;
-        }
-        die_unless(wb == 1);
-    }
+    void Interrupt() final;
 
 private:
     //! select() manager object
@@ -184,8 +172,8 @@ private:
     //! self-pipe to wake up select.
     int self_pipe_[2];
 
-    //! buffer to receive one byte from self-pipe
-    int self_pipe_buffer_;
+    //! buffer to receive one byte signals from self-pipe
+    char self_pipe_buffer_[32];
 
     //! callback vectors per watched file descriptor
     struct Watch {
@@ -212,14 +200,7 @@ private:
     }
 
     //! Self-pipe callback
-    bool SelfPipeCallback() {
-        ssize_t rb;
-        while ((rb = read(self_pipe_[0], &self_pipe_buffer_, 1)) == 0) {
-            LOG1 << "Work: error reading from self-pipe: " << errno;
-        }
-        die_unless(rb == 1);
-        return true;
-    }
+    bool SelfPipeCallback();
 };
 
 //! \}
