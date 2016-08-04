@@ -58,8 +58,8 @@ public:
     explicit Socket(int fd)
         : fd_(fd) {
         SetNoDelay(true);
-        SetSndBuf(2 * 1024 * 1024);
-        SetRcvBuf(2 * 1024 * 1024);
+        SetSndBuf(4 * 1024 * 1024);
+        SetRcvBuf(4 * 1024 * 1024);
     }
 
     //! default constructor: invalid socket.

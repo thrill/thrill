@@ -169,8 +169,7 @@ public:
     }
 
     ssize_t SendOne(const void* data, size_t size, Flags flags) final {
-        SetNonBlocking(true);
-        int f = 0;
+        int f = MSG_DONTWAIT;
         if (flags & MsgMore) f |= MSG_MORE;
         ssize_t wb = socket_.send_one(data, size, f);
         if (wb > 0) tx_bytes_ += wb;
@@ -185,8 +184,7 @@ public:
     }
 
     ssize_t RecvOne(void* out_data, size_t size) final {
-        SetNonBlocking(true);
-        ssize_t rb = socket_.recv_one(out_data, size);
+        ssize_t rb = socket_.recv_one(out_data, size, MSG_DONTWAIT);
         if (rb > 0) rx_bytes_ += rb;
         return rb;
     }
