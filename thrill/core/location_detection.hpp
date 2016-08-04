@@ -318,7 +318,7 @@ public:
 
         auto duplicates_reader = duplicates_stream->GetCatReader(/* consume */ true);
 
-        target_processors.resize(upper_bound_uniques);
+        target_processors.resize(max_hash);
 
         while (duplicates_reader.HasNext()) {
 
@@ -336,10 +336,12 @@ public:
             for (size_t i = 0; i < num_elements; ++i) {
                 //! Golomb code contains deltas, we want the actual values in target_vec
                 size_t new_elem = golomb_code.golomb_out() + last;
+
                 last = new_elem;
 
                 size_t processor = golomb_code.stream_out(processor_bitsize);
                 target_processors[new_elem] = processor;
+
             }
 
             delete[] raw_data;

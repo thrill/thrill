@@ -12,7 +12,9 @@
 #include <examples/triangles/triangles.hpp>
 
 #include <thrill/api/cache.hpp>
+#include <thrill/api/dia.hpp>
 #include <thrill/api/generate.hpp>
+#include <thrill/api/join.hpp>
 #include <thrill/api/read_lines.hpp>
 #include <thrill/api/size.hpp>
 #include <thrill/common/cmdline_parser.hpp>
@@ -33,35 +35,113 @@ using LineItem = std::tuple<size_t, size_t, size_t, size_t, size_t, double,
                             std::string, std::string, std::string>;
 using Order = std::tuple<size_t, size_t, char, double, time_t, std::string,
                          std::string, bool, std::string>;
+using Joined = std::tuple<size_t, size_t, size_t, size_t, size_t, double,
+                          double, double, char, char, time_t, time_t, time_t,
+                          std::string, std::string, std::string, size_t, size_t,
+                          char, double, time_t, std::string, std::string, bool,
+                          std::string>;
 
 
 static size_t JoinTPCH4(
     api::Context& ctx,
     const std::vector<std::string>& input_path) {
-    auto lineitems = ReadLines(ctx, input_path).Map(
-        [](const std::string& input, auto emit) {
+
+    std::string s_lineitems = input_path[0] + std::string("lineitem.tbl*");
+    auto lineitems = ReadLines(ctx, s_lineitems).Map(
+        [](const std::string& input) {
 
             char* end;
             std::vector<std::string> splitted = common::Split(input, '|');
-            size_t orderkey = std::strtoul(splitted[0], &end, 10);
-            size_t partkey = std::strtoul(splitted[1], &end, 10);
-            size_t suppkey = std::strtoul(splitted[2], &end, 10);
-            size_t linenumber = std::strtoul(splitted[3], &end, 10);
-            size_t quantity = std::strtoul(splitted[4], &end, 10);
-            double extendedprice = std::strtod(splitted[5], &end);
-            double discount = std::strtod(splitted[6], &end);
-            double tax = std::strtod(splitted[7], &end);
+            size_t orderkey = std::strtoul(splitted[0].c_str(), &end, 10);
+            size_t partkey = std::strtoul(splitted[1].c_str(), &end, 10);
+            size_t suppkey = std::strtoul(splitted[2].c_str(), &end, 10);
+            size_t linenumber = std::strtoul(splitted[3].c_str(), &end, 10);
+            size_t quantity = std::strtoul(splitted[4].c_str(), &end, 10);
+            double extendedprice = std::strtod(splitted[5].c_str(), &end);
+            double discount = std::strtod(splitted[6].c_str(), &end);
+            double tax = std::strtod(splitted[7].c_str(), &end);
             char returnflag = splitted[8][0];
             char linestatus = splitted[9][0];
 
+            //make dates
+            struct tm time_ship;
+            time_ship.tm_year = std::strtoul(splitted[10].substr(0,4).c_str(),
+                                               &end, 10) - 1900;
+            time_ship.tm_mon = std::strtoul(splitted[10].substr(5,2).c_str(),
+                                                &end, 10);
+            time_ship.tm_mday = std::strtoul(splitted[10].substr(8).c_str(),
+                                              &end, 10);
+            time_t ship = std::mktime(&time_ship);
 
-            }
-        }).Keep();
+            struct tm time_cmt;
+            time_cmt.tm_year = std::strtoul(splitted[11].substr(0,4).c_str(),
+                                               &end, 10) - 1900;
+            time_cmt.tm_mon = std::strtoul(splitted[11].substr(5,2).c_str(),
+                                                &end, 10);
+            time_cmt.tm_mday = std::strtoul(splitted[11].substr(8).c_str(),
+                                              &end, 10);
+            time_t commit = std::mktime(&time_cmt);
 
-    return 23;
+            struct tm time_rcpt;
+            time_rcpt.tm_year = std::strtoul(splitted[12].substr(0,4).c_str(),
+                                               &end, 10) - 1900;
+            time_rcpt.tm_mon = std::strtoul(splitted[12].substr(5,2).c_str(),
+                                                &end, 10);
+            time_rcpt.tm_mday = std::strtoul(splitted[12].substr(8).c_str(),
+                                              &end, 10);
+            time_t receipt = std::mktime(&time_rcpt);
+
+            return std::make_tuple(orderkey, partkey, suppkey, linenumber,
+                                   quantity, extendedprice, discount, tax,
+                                   returnflag, linestatus, ship, commit,
+                                   receipt, splitted[13], splitted[14],
+                                   splitted[15]);
+
+        });
+
+
+    std::string s_orders = input_path[0] + std::string("orders.tbl*");
+    auto orders = ReadLines(ctx, s_orders).Map(
+        [](const std::string& input) {
+
+            char* end;
+            std::vector<std::string> splitted = common::Split(input, '|');
+            size_t orderkey = std::strtoul(splitted[0].c_str(), &end, 10);
+            size_t custkey = std::strtoul(splitted[1].c_str(), &end, 10);
+            char orderstatus = splitted[2][0];
+            double totalprice = std::strtod(splitted[3].c_str(), &end);
+
+
+            struct tm time_order;
+            time_order.tm_year = std::strtoul(splitted[4].substr(0,4).c_str(),
+                                               &end, 10) - 1900;
+            time_order.tm_mon = std::strtoul(splitted[4].substr(5,2).c_str(),
+                                                &end, 10);
+            time_order.tm_mday = std::strtoul(splitted[4].substr(8).c_str(),
+                                              &end, 10);
+            time_t order = std::mktime(&time_order);
+
+            bool priority = (splitted[7][0] != '0');
+
+            return std::make_tuple(orderkey, custkey, orderstatus, totalprice,
+                                   order, splitted[5], splitted[6],
+                                   priority, splitted[8]);
+
+        });
+
+    auto joined = lineitems.InnerJoinWith(orders,
+                                          [](const LineItem& li) {
+                                              return std::get<0>(li);
+                                          },
+                                          [](const Order& o) {
+                                              return std::get<0>(o);
+                                          },
+                                          [](const LineItem& li, const Order& o) {
+                                              return std::tuple_cat(li, o);
+                                          });
+
+    return joined.Size();
 }
-
-static
 
 int main(int argc, char* argv[]) {
 
@@ -83,7 +163,7 @@ int main(int argc, char* argv[]) {
         [&](api::Context& ctx) {
             ctx.enable_consume();
 
-            JoinTPCH4(ctx, input_path);
+            LOG1 << JoinTPCH4(ctx, input_path);
 
             return 42;
         });

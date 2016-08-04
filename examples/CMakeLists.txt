@@ -14,6 +14,7 @@ add_subdirectory(page_rank)
 add_subdirectory(select)
 #add_subdirectory(suffix_sorting)
 add_subdirectory(terasort)
+add_subdirectory(tpch)
 add_subdirectory(triangles)
 add_subdirectory(word_count)
 
