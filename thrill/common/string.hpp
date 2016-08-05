@@ -164,6 +164,8 @@ std::vector<std::string> Split(
     const std::string& str, char sep,
     std::string::size_type limit = std::string::npos);
 
+void SplitRef(const std::string& str, char sep, std::vector<std::string>& vec);
+
 /*!
  * Split the given string at each separator string into distinct
  * substrings. Multiple consecutive separators are considered individually and
