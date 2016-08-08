@@ -717,7 +717,7 @@ auto DIA<ValueType, Stack>::Zip(
 template <typename ValueType, typename Stack>
 template <typename ZipFunction, typename SecondDIA>
 auto DIA<ValueType, Stack>::Zip(
-    struct CutTag, const SecondDIA &second_dia,
+    struct CutTag const &, const SecondDIA &second_dia,
     const ZipFunction &zip_function) const {
     return api::Zip(CutTag, zip_function, *this, second_dia);
 }
@@ -725,7 +725,7 @@ auto DIA<ValueType, Stack>::Zip(
 template <typename ValueType, typename Stack>
 template <typename ZipFunction, typename SecondDIA>
 auto DIA<ValueType, Stack>::Zip(
-    struct PadTag, const SecondDIA &second_dia,
+    struct PadTag const &, const SecondDIA &second_dia,
     const ZipFunction &zip_function) const {
     return api::Zip(PadTag, zip_function, *this, second_dia);
 }
@@ -733,7 +733,7 @@ auto DIA<ValueType, Stack>::Zip(
 template <typename ValueType, typename Stack>
 template <typename ZipFunction, typename SecondDIA>
 auto DIA<ValueType, Stack>::Zip(
-    struct NoRebalanceTag, const SecondDIA &second_dia,
+    struct NoRebalanceTag const &, const SecondDIA &second_dia,
     const ZipFunction &zip_function) const {
     return api::Zip(NoRebalanceTag, zip_function, *this, second_dia);
 }

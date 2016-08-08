@@ -79,16 +79,13 @@ size_t DIA<ValueType, Stack>::Size() const {
     assert(IsValid());
 
     using SizeNode = api::SizeNode<ValueType>;
-
     auto node = common::MakeCounting<SizeNode>(*this);
-
     node->RunScope();
-
     return node->result();
 }
 
 template <typename ValueType, typename Stack>
-Future<size_t> DIA<ValueType, Stack>::Size(struct FutureTag) const {
+Future<size_t> DIA<ValueType, Stack>::Size(const struct FutureTag&) const {
     assert(IsValid());
 
     using SizeNode = api::SizeNode<ValueType>;

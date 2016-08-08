@@ -124,7 +124,7 @@ void DIA<ValueType, Stack>::WriteLinesOne(
 
 template <typename ValueType, typename Stack>
 Future<void> DIA<ValueType, Stack>::WriteLinesOne(
-    struct FutureTag, const std::string& filepath) const {
+    const struct FutureTag&, const std::string& filepath) const {
     assert(IsValid());
 
     static_assert(std::is_same<ValueType, std::string>::value,

@@ -304,7 +304,7 @@ auto DIA<ValueType, Stack>::ReduceToIndex(
 template <typename ValueType, typename Stack>
 template <typename KeyExtractor, typename ReduceFunction, typename ReduceConfig>
 auto DIA<ValueType, Stack>::ReduceToIndex(
-    struct VolatileKeyTag,
+    struct VolatileKeyTag const &,
     const KeyExtractor &key_extractor,
     const ReduceFunction &reduce_function,
     size_t size,

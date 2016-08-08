@@ -55,7 +55,7 @@ ValueType DIA<ValueType, Stack>::Sum(
 template <typename ValueType, typename Stack>
 template <typename SumFunction>
 Future<ValueType> DIA<ValueType, Stack>::Sum(
-    struct FutureTag,
+    const struct FutureTag&,
     const SumFunction& sum_function, const ValueType& initial_value) const {
     assert(IsValid());
 

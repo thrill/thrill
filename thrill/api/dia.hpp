@@ -451,7 +451,7 @@ public:
      *
      * \ingroup dia_actions
      */
-    Future<size_t> Size(struct FutureTag) const;
+    Future<size_t> Size(struct FutureTag const&) const;
 
     /*!
      * Returns the whole DIA in an std::vector on each worker. This is only for
@@ -476,7 +476,7 @@ public:
      *
      * \ingroup dia_actions
      */
-    Future<std::vector<ValueType> > AllGather(struct FutureTag) const;
+    Future<std::vector<ValueType> > AllGather(struct FutureTag const&) const;
 
     /*!
      * Print is an Action, which collects all data of the DIA at the worker 0
@@ -544,7 +544,7 @@ public:
      */
     template <typename ReduceFunction>
     Future<ValueType> AllReduce(
-        struct FutureTag,
+        struct FutureTag const&,
         const ReduceFunction& reduce_function,
         const ValueType& initial_value = ValueType()) const;
 
@@ -573,7 +573,7 @@ public:
      */
     template <typename SumFunction = std::plus<ValueType> >
     Future<ValueType> Sum(
-        struct FutureTag,
+        struct FutureTag const&,
         const SumFunction& sum_function = SumFunction(),
         const ValueType& initial_value = ValueType()) const;
 
@@ -599,7 +599,7 @@ public:
      * \ingroup dia_actions
      */
     Future<ValueType> Min(
-        struct FutureTag,
+        struct FutureTag const&,
         const ValueType& initial_value = ValueType()) const;
 
     /*!
@@ -624,7 +624,7 @@ public:
      * \ingroup dia_actions
      */
     Future<ValueType> Max(
-        struct FutureTag,
+        struct FutureTag const&,
         const ValueType& initial_value = ValueType()) const;
 
     /*!
@@ -646,7 +646,7 @@ public:
      * \ingroup dia_actions
      */
     Future<void> WriteLinesOne(
-        struct FutureTag, const std::string& filepath) const;
+        struct FutureTag const&, const std::string& filepath) const;
 
     /*!
      * WriteLines is an Action, which writes std::strings to multiple output
@@ -682,7 +682,7 @@ public:
      * \ingroup dia_actions
      */
     Future<void> WriteLines(
-        struct FutureTag, const std::string& filepath,
+        struct FutureTag const&, const std::string& filepath,
         size_t target_file_size = 128* 1024* 1024) const;
 
     /*!
@@ -719,7 +719,7 @@ public:
      * \ingroup dia_actions
      */
     Future<void> WriteBinary(
-        struct FutureTag,
+        struct FutureTag const&,
         const std::string& filepath,
         size_t max_file_size = 128* 1024* 1024) const;
 
@@ -792,7 +792,7 @@ public:
      */
     template <typename KeyExtractor, typename ReduceFunction,
               typename ReduceConfig = class DefaultReduceConfig>
-    auto ReduceByKey(struct VolatileKeyTag,
+    auto ReduceByKey(struct VolatileKeyTag const &,
                      const KeyExtractor &key_extractor,
                      const ReduceFunction &reduce_function,
                      const ReduceConfig& reduce_config = ReduceConfig()) const;
@@ -909,7 +909,7 @@ public:
     template <typename KeyExtractor, typename ReduceFunction,
               typename ReduceConfig = class DefaultReduceToIndexConfig>
     auto ReduceToIndex(
-        struct VolatileKeyTag,
+        struct VolatileKeyTag const &,
         const KeyExtractor &key_extractor,
         const ReduceFunction &reduce_function,
         size_t size,
@@ -1042,7 +1042,7 @@ public:
      * \ingroup dia_dops
      */
     template <typename ZipFunction, typename SecondDIA>
-    auto Zip(struct CutTag, const SecondDIA &second_dia,
+    auto Zip(struct CutTag const &, const SecondDIA &second_dia,
              const ZipFunction &zip_function) const;
 
     /*!
@@ -1066,7 +1066,7 @@ public:
      * \ingroup dia_dops
      */
     template <typename ZipFunction, typename SecondDIA>
-    auto Zip(struct PadTag, const SecondDIA &second_dia,
+    auto Zip(struct PadTag const &, const SecondDIA &second_dia,
              const ZipFunction &zip_function) const;
 
     /*!
@@ -1092,7 +1092,7 @@ public:
      * \ingroup dia_dops
      */
     template <typename ZipFunction, typename SecondDIA>
-    auto Zip(struct NoRebalanceTag, const SecondDIA &second_dia,
+    auto Zip(struct NoRebalanceTag const &, const SecondDIA &second_dia,
              const ZipFunction &zip_function) const;
 
     /*!
@@ -1218,7 +1218,7 @@ public:
      * \ingroup dia_dops
      */
     template <typename WindowFunction>
-    auto Window(struct DisjointTag, size_t window_size,
+    auto Window(struct DisjointTag const &, size_t window_size,
                 const WindowFunction &window_function) const;
 
     /*!
@@ -1269,7 +1269,7 @@ public:
      * \ingroup dia_dops
      */
     template <typename ValueOut, typename WindowFunction>
-    auto FlatWindow(struct DisjointTag, size_t window_size,
+    auto FlatWindow(struct DisjointTag const &, size_t window_size,
                     const WindowFunction &window_function) const;
 
     /*!

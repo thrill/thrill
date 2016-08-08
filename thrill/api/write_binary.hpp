@@ -211,7 +211,8 @@ void DIA<ValueType, Stack>::WriteBinary(
 
 template <typename ValueType, typename Stack>
 Future<void> DIA<ValueType, Stack>::WriteBinary(
-    struct FutureTag, const std::string& filepath, size_t max_file_size) const {
+    const struct FutureTag&,
+    const std::string& filepath, size_t max_file_size) const {
 
     using WriteBinaryNode = api::WriteBinaryNode<ValueType>;
 

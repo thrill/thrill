@@ -120,7 +120,7 @@ ValueType DIA<ValueType, Stack>::AllReduce(
 template <typename ValueType, typename Stack>
 template <typename ReduceFunction>
 Future<ValueType> DIA<ValueType, Stack>::AllReduce(
-    struct FutureTag,
+    const struct FutureTag&,
     const ReduceFunction& sum_function, const ValueType& initial_value) const {
     assert(IsValid());
 
