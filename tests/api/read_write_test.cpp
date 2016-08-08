@@ -17,7 +17,7 @@
 #include <thrill/api/read_lines.hpp>
 #include <thrill/api/size.hpp>
 #include <thrill/api/write_binary.hpp>
-#include <thrill/api/write_lines_many.hpp>
+#include <thrill/api/write_lines.hpp>
 #include <thrill/api/write_lines_one.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/system_exception.hpp>
@@ -120,7 +120,7 @@ TEST(IO, GenerateFromFileRandomIntegers) {
                     writer_size++;
                     return std::to_string(item) + "\n";
                 })
-            .WriteLinesMany("outputs/generated", 8 * 1024);
+            .WriteLines("outputs/generated", 8 * 1024);
 
             // DIA contains as many elements as we wanted to generate
             ASSERT_EQ(generate_size, writer_size);

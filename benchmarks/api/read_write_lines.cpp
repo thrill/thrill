@@ -10,7 +10,7 @@
 
 #include <thrill/api/context.hpp>
 #include <thrill/api/read_lines.hpp>
-#include <thrill/api/write_lines_many.hpp>
+#include <thrill/api/write_lines.hpp>
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/stats_timer.hpp>
 
@@ -37,7 +37,7 @@ int main(int argc, const char** argv) {
             [&input_file, &output_file](api::Context& ctx) {
                 common::StatsTimerStart timer;
                 auto lines = ReadLines(ctx, input_file);
-                lines.WriteLinesMany(output_file);
+                lines.WriteLines(output_file);
                 timer.Stop();
                 std::cout << "RESULT"
                           << " input_file=" << input_file

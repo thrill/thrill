@@ -16,7 +16,7 @@
 #include <thrill/api/max.hpp>
 #include <thrill/api/read_lines.hpp>
 #include <thrill/api/sum.hpp>
-#include <thrill/api/write_lines_many.hpp>
+#include <thrill/api/write_lines.hpp>
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/stats_timer.hpp>
@@ -94,7 +94,7 @@ static void RunPageRankEdgePerLine(
             [](const Rank& r, const PageId& p) {
                 return common::str_sprintf("%zu: %g", p, r);
             })
-        .WriteLinesMany(output_path);
+        .WriteLines(output_path);
     }
     else {
         ranks.Execute();
@@ -148,7 +148,7 @@ static void RunPageRankGenerated(
             [](const Rank& r, const PageId& p) {
                 return std::to_string(p) + ": " + std::to_string(r);
             })
-        .WriteLinesMany(output_path);
+        .WriteLines(output_path);
     }
     else {
         ranks.Execute();

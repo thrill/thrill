@@ -11,7 +11,7 @@
 #include <thrill/api/dia.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/write_binary.hpp>
-#include <thrill/api/write_lines_many.hpp>
+#include <thrill/api/write_lines.hpp>
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/fast_string.hpp>
 #include <thrill/common/logger.hpp>
@@ -51,7 +51,7 @@ int main(int argc, char* argv[]) {
                  std::vector<FastString> copy_enforcer;
                  Generate(ctx, [&distribution, &generator](size_t) {
                               return std::to_string(distribution(generator));
-                          }, (size_t)elements).WriteLinesMany(output);
+                          }, (size_t)elements).WriteLines(output);
              });
 }
 

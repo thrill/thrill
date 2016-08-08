@@ -12,7 +12,7 @@
 #include <examples/word_count/word_count.hpp>
 
 #include <thrill/api/read_lines.hpp>
-#include <thrill/api/write_lines_many.hpp>
+#include <thrill/api/write_lines.hpp>
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/string.hpp>
@@ -39,7 +39,7 @@ static void RunWordCount(
         .Map([](const WordCountPair& wc) {
                  return wc.first + ": " + std::to_string(wc.second);
              })
-        .WriteLinesMany(output);
+        .WriteLines(output);
     }
     else {
         word_pairs.Execute();
@@ -60,7 +60,7 @@ static void RunFastWordCount(
         .Map([](const FastWordCountPair& wc) {
                  return wc.first.ToString() + ": " + std::to_string(wc.second);
              })
-        .WriteLinesMany(output);
+        .WriteLines(output);
     }
     else {
         word_pairs.Execute();

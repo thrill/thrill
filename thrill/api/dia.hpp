@@ -649,7 +649,7 @@ public:
         struct FutureTag, const std::string& filepath) const;
 
     /*!
-     * WriteLinesMany is an Action, which writes std::strings to multiple output
+     * WriteLines is an Action, which writes std::strings to multiple output
      * files. Strings are written using fstream with a newline after each
      * entry. Each worker creates its individual file.
      *
@@ -663,11 +663,11 @@ public:
      *
      * \ingroup dia_actions
      */
-    void WriteLinesMany(const std::string& filepath,
-                        size_t target_file_size = 128* 1024* 1024) const;
+    void WriteLines(const std::string& filepath,
+                    size_t target_file_size = 128* 1024* 1024) const;
 
     /*!
-     * WriteLinesMany is an ActionFuture, which writes std::strings to multiple
+     * WriteLines is an ActionFuture, which writes std::strings to multiple
      * output files. Strings are written using fstream with a newline after each
      * entry. Each worker creates its individual file.
      *
@@ -681,9 +681,8 @@ public:
      *
      * \ingroup dia_actions
      */
-    Future<void> WriteLinesMany(
-        struct FutureTag,
-        const std::string& filepath,
+    Future<void> WriteLines(
+        struct FutureTag, const std::string& filepath,
         size_t target_file_size = 128* 1024* 1024) const;
 
     /*!
