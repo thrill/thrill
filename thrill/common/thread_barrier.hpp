@@ -102,7 +102,7 @@ public:
         : thread_count_(thread_count) { }
 
     ~ThreadBarrierSpinning() {
-        LOG1 << "ThreadBarrierSpinning() needed "
+        LOG0 << "ThreadBarrierSpinning() needed "
              << wait_time_.load() << " us for " << thread_count_ << " threads "
              << " = "
              << wait_time_.load() / static_cast<double>(thread_count_) / 1e6
@@ -131,12 +131,12 @@ public:
             step_.fetch_add(1, std::memory_order_acq_rel);
         }
         else {
-            StatsTimerStart timer;
+            // FakeStatsTimerStart timer;
             // spin lock awaiting the last thread to increment the step counter.
             while (step_.load(std::memory_order_relaxed) == this_step) {
                 // std::this_thread::yield();
             }
-            wait_time_ += timer.Microseconds();
+            // wait_time_ += timer.Microseconds();
         }
     }
 
