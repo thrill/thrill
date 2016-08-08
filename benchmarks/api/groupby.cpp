@@ -15,7 +15,6 @@
 #include <thrill/api/read_binary.hpp>
 #include <thrill/api/size.hpp>
 #include <thrill/api/sum.hpp>
-#include <thrill/api/write_lines.hpp>
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/stats_timer.hpp>

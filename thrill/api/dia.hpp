@@ -628,24 +628,24 @@ public:
         const ValueType& initial_value = ValueType()) const;
 
     /*!
-     * WriteLines is an Action, which writes std::strings to an output file.
-     * Strings are written using fstream with a newline after each entry.
+     * WriteLinesOne is an Action, which writes std::strings to a single output
+     * file.
      *
      * \param filepath Destination of the output file.
      *
      * \ingroup dia_actions
      */
-    void WriteLines(const std::string& filepath) const;
+    void WriteLinesOne(const std::string& filepath) const;
 
     /*!
-     * WriteLines is an ActionFuture, which writes std::strings to an output
-     * file.  Strings are written using fstream with a newline after each entry.
+     * WriteLinesOne is an ActionFuture, which writes std::strings to a single
+     * output file.
      *
      * \param filepath Destination of the output file.
      *
      * \ingroup dia_actions
      */
-    Future<void> WriteLines(
+    Future<void> WriteLinesOne(
         struct FutureTag, const std::string& filepath) const;
 
     /*!

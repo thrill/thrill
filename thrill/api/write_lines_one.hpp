@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/api/write_lines.hpp
+ * thrill/api/write_lines_one.hpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -11,8 +11,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_API_WRITE_LINES_HEADER
-#define THRILL_API_WRITE_LINES_HEADER
+#ifndef THRILL_API_WRITE_LINES_ONE_HEADER
+#define THRILL_API_WRITE_LINES_ONE_HEADER
 
 #include <thrill/api/action_node.hpp>
 #include <thrill/api/dia.hpp>
@@ -28,7 +28,7 @@ namespace api {
  * \ingroup api_layer
  */
 template <typename ValueType>
-class WriteLinesNode final : public ActionNode
+class WriteLinesOneNode final : public ActionNode
 {
     static constexpr bool debug = false;
 
@@ -37,9 +37,9 @@ public:
     using Super::context_;
 
     template <typename ParentDIA>
-    WriteLinesNode(const ParentDIA& parent,
-                   const std::string& path_out)
-        : ActionNode(parent.ctx(), "WriteLines",
+    WriteLinesOneNode(const ParentDIA& parent,
+                      const std::string& path_out)
+        : ActionNode(parent.ctx(), "WriteLinesOne",
                      { parent.id() }, { parent.node() }),
           path_out_(path_out),
           file_(path_out_, std::ios::binary)
@@ -68,7 +68,7 @@ public:
     //! Closes the output file
     void Execute() final {
         Super::logger_
-            << "class" << "WriteLinesNode"
+            << "class" << "WriteLinesOneNode"
             << "total_bytes" << local_size_
             << "total_lines" << local_lines_;
 
@@ -108,31 +108,31 @@ private:
 };
 
 template <typename ValueType, typename Stack>
-void DIA<ValueType, Stack>::WriteLines(
+void DIA<ValueType, Stack>::WriteLinesOne(
     const std::string& filepath) const {
     assert(IsValid());
 
     static_assert(std::is_same<ValueType, std::string>::value,
-                  "WriteLines needs an std::string as input parameter");
+                  "WriteLinesOne needs an std::string as input parameter");
 
-    using WriteLinesNode = api::WriteLinesNode<ValueType>;
+    using WriteLinesOneNode = api::WriteLinesOneNode<ValueType>;
 
-    auto node = common::MakeCounting<WriteLinesNode>(*this, filepath);
+    auto node = common::MakeCounting<WriteLinesOneNode>(*this, filepath);
 
     node->RunScope();
 }
 
 template <typename ValueType, typename Stack>
-Future<void> DIA<ValueType, Stack>::WriteLines(
+Future<void> DIA<ValueType, Stack>::WriteLinesOne(
     struct FutureTag, const std::string& filepath) const {
     assert(IsValid());
 
     static_assert(std::is_same<ValueType, std::string>::value,
-                  "WriteLines needs an std::string as input parameter");
+                  "WriteLinesOne needs an std::string as input parameter");
 
-    using WriteLinesNode = api::WriteLinesNode<ValueType>;
+    using WriteLinesOneNode = api::WriteLinesOneNode<ValueType>;
 
-    auto node = common::MakeCounting<WriteLinesNode>(*this, filepath);
+    auto node = common::MakeCounting<WriteLinesOneNode>(*this, filepath);
 
     return Future<void>(node);
 }
@@ -140,6 +140,6 @@ Future<void> DIA<ValueType, Stack>::WriteLines(
 } // namespace api
 } // namespace thrill
 
-#endif // !THRILL_API_WRITE_LINES_HEADER
+#endif // !THRILL_API_WRITE_LINES_ONE_HEADER
 
 /******************************************************************************/

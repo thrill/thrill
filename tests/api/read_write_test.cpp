@@ -17,8 +17,8 @@
 #include <thrill/api/read_lines.hpp>
 #include <thrill/api/size.hpp>
 #include <thrill/api/write_binary.hpp>
-#include <thrill/api/write_lines.hpp>
 #include <thrill/api/write_lines_many.hpp>
+#include <thrill/api/write_lines_one.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/system_exception.hpp>
 #include <thrill/core/file_io.hpp>
@@ -315,7 +315,7 @@ TEST(IO, WriteAndReadBinaryEqualDIAs) {
                 [](const int& item) {
                     return std::to_string(item);
                 })
-            .WriteLines(path);
+            .WriteLinesOne(path);
 
             // Race condition as one worker might be finished while others are
             // still writing to output file.
@@ -358,13 +358,13 @@ TEST(IO, IntegerWriteReadBinaryLinesFutures) {
                     generate_size);
 
                 Future<> fa = dia
-                    .WriteBinary(
-                        FutureTag, tmpdir.get() + "/IO.IntegerBinary", 16 * 1024);
+                              .WriteBinary(
+                    FutureTag, tmpdir.get() + "/IO.IntegerBinary", 16 * 1024);
 
                 Future<> fb =
                     dia
                     .Map([](const size_t& i) { return std::to_string(i); })
-                    .WriteLines(FutureTag, tmpdir.get() + "/IO.IntegerLines");
+                    .WriteLinesOne(FutureTag, tmpdir.get() + "/IO.IntegerLines");
 
                 fa.wait();
                 fb.wait();

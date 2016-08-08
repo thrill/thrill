@@ -32,9 +32,6 @@
 #include <thrill/api/sum.hpp>
 #include <thrill/api/union.hpp>
 #include <thrill/api/window.hpp>
-#include <thrill/api/write_binary.hpp>
-#include <thrill/api/write_lines.hpp>
-#include <thrill/api/write_lines_many.hpp>
 
 #include <gtest/gtest.h>
 
