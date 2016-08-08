@@ -85,8 +85,8 @@ private:
 
 template <typename ValueType, typename Stack>
 template <typename ReduceFunction>
-auto DIA<ValueType, Stack>::AllReduce(
-    const ReduceFunction &sum_function, const ValueType &initial_value) const {
+ValueType DIA<ValueType, Stack>::AllReduce(
+    const ReduceFunction& sum_function, const ValueType& initial_value) const {
     assert(IsValid());
 
     using AllReduceNode = api::AllReduceNode<ValueType, ReduceFunction>;

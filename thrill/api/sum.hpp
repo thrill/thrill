@@ -20,8 +20,8 @@ namespace api {
 
 template <typename ValueType, typename Stack>
 template <typename SumFunction>
-auto DIA<ValueType, Stack>::Sum(
-    const SumFunction &sum_function, const ValueType &initial_value) const {
+ValueType DIA<ValueType, Stack>::Sum(
+    const SumFunction& sum_function, const ValueType& initial_value) const {
     assert(IsValid());
 
     using SumNode = api::AllReduceNode<ValueType, SumFunction>;

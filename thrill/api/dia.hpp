@@ -505,8 +505,8 @@ public:
      * \ingroup dia_actions
      */
     template <typename ReduceFunction>
-    auto AllReduce(const ReduceFunction &reduce_function,
-                   const ValueType& initial_value = ValueType()) const;
+    ValueType AllReduce(const ReduceFunction& reduce_function,
+                        const ValueType& initial_value = ValueType()) const;
 
     /*!
      * Sum is an Action, which computes the sum of all elements globally.
@@ -518,8 +518,8 @@ public:
      * \ingroup dia_actions
      */
     template <typename SumFunction = std::plus<ValueType> >
-    auto Sum(const SumFunction& sum_function = SumFunction(),
-             const ValueType& initial_value = ValueType()) const;
+    ValueType Sum(const SumFunction& sum_function = SumFunction(),
+                  const ValueType& initial_value = ValueType()) const;
 
     /*!
      * Min is an Action, which computes the minimum of all elements globally.
@@ -531,8 +531,8 @@ public:
      * \ingroup dia_actions
      */
     template <typename MinFunction = common::minimum<ValueType> >
-    auto Min(const MinFunction& min_function = MinFunction(),
-             const ValueType& initial_value = ValueType()) const;
+    ValueType Min(const MinFunction& min_function = MinFunction(),
+                  const ValueType& initial_value = ValueType()) const;
 
     /*!
      * Max is an Action, which computes the maximum of all elements globally.
@@ -544,8 +544,8 @@ public:
      * \ingroup dia_actions
      */
     template <typename MaxFunction = common::maximum<ValueType> >
-    auto Max(const MaxFunction& max_function = MaxFunction(),
-             const ValueType& initial_value = ValueType()) const;
+    ValueType Max(const MaxFunction& max_function = MaxFunction(),
+                  const ValueType& initial_value = ValueType()) const;
 
     /*!
      * WriteLines is an Action, which writes std::strings to an output file.
