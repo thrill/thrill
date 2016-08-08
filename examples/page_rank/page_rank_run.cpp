@@ -17,6 +17,7 @@
 #include <thrill/api/read_lines.hpp>
 #include <thrill/api/sum.hpp>
 #include <thrill/api/write_lines.hpp>
+#include <thrill/api/zip_with_index.hpp>
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/stats_timer.hpp>
@@ -88,10 +89,9 @@ static void RunPageRankEdgePerLine(
     // construct output as "pageid: rank"
 
     if (output_path.size()) {
-        ranks.Zip(
+        ranks.ZipWithIndex(
             // generate index numbers: 0...num_pages-1
-            Generate(ctx, num_pages),
-            [](const Rank& r, const PageId& p) {
+            [](const PageId& p, const Rank& r) {
                 return common::str_sprintf("%zu: %g", p, r);
             })
         .WriteLines(output_path);
@@ -142,10 +142,9 @@ static void RunPageRankGenerated(
     // construct output as "pageid: rank"
 
     if (output_path.size()) {
-        ranks.Zip(
+        ranks.ZipWithIndex(
             // generate index numbers: 0...num_pages-1
-            Generate(ctx, num_pages),
-            [](const Rank& r, const PageId& p) {
+            [](const PageId& p, const Rank& r) {
                 return std::to_string(p) + ": " + std::to_string(r);
             })
         .WriteLines(output_path);
