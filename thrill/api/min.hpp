@@ -19,33 +19,13 @@ namespace thrill {
 namespace api {
 
 template <typename ValueType, typename Stack>
-template <typename MinFunction>
-ValueType DIA<ValueType, Stack>::Min(
-    const MinFunction& min_function, const ValueType& initial_value) const {
+ValueType DIA<ValueType, Stack>::Min(const ValueType& initial_value) const {
     assert(IsValid());
 
-    using MinNode = api::AllReduceNode<ValueType, MinFunction>;
-
-    static_assert(
-        std::is_convertible<
-            ValueType,
-            typename FunctionTraits<MinFunction>::template arg<0> >::value,
-        "MinFunction has the wrong input type");
-
-    static_assert(
-        std::is_convertible<
-            ValueType,
-            typename FunctionTraits<MinFunction>::template arg<1> >::value,
-        "MinFunction has the wrong input type");
-
-    static_assert(
-        std::is_convertible<
-            typename FunctionTraits<MinFunction>::result_type,
-            ValueType>::value,
-        "MinFunction has the wrong input type");
+    using MinNode = api::AllReduceNode<ValueType, common::minimum<ValueType> >;
 
     auto node = common::MakeCounting<MinNode>(
-        *this, "Min", min_function, initial_value);
+        *this, "Min", common::minimum<ValueType>(), initial_value);
 
     node->RunScope();
 

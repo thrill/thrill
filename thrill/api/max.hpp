@@ -19,33 +19,13 @@ namespace thrill {
 namespace api {
 
 template <typename ValueType, typename Stack>
-template <typename MaxFunction>
-ValueType DIA<ValueType, Stack>::Max(
-    const MaxFunction& max_function, const ValueType& initial_value) const {
+ValueType DIA<ValueType, Stack>::Max(const ValueType& initial_value) const {
     assert(IsValid());
 
-    using MaxNode = api::AllReduceNode<ValueType, MaxFunction>;
-
-    static_assert(
-        std::is_convertible<
-            ValueType,
-            typename FunctionTraits<MaxFunction>::template arg<0> >::value,
-        "MaxFunction has the wrong input type");
-
-    static_assert(
-        std::is_convertible<
-            ValueType,
-            typename FunctionTraits<MaxFunction>::template arg<1> >::value,
-        "MaxFunction has the wrong input type");
-
-    static_assert(
-        std::is_convertible<
-            typename FunctionTraits<MaxFunction>::result_type,
-            ValueType>::value,
-        "MaxFunction has the wrong input type");
+    using MaxNode = api::AllReduceNode<ValueType, common::maximum<ValueType> >;
 
     auto node = common::MakeCounting<MaxNode>(
-        *this, "Max", max_function, initial_value);
+        *this, "Max", common::maximum<ValueType>(), initial_value);
 
     node->RunScope();
 

@@ -530,9 +530,7 @@ public:
      *
      * \ingroup dia_actions
      */
-    template <typename MinFunction = common::minimum<ValueType> >
-    ValueType Min(const MinFunction& min_function = MinFunction(),
-                  const ValueType& initial_value = ValueType()) const;
+    ValueType Min(const ValueType& initial_value = ValueType()) const;
 
     /*!
      * Max is an Action, which computes the maximum of all elements globally.
@@ -543,9 +541,7 @@ public:
      *
      * \ingroup dia_actions
      */
-    template <typename MaxFunction = common::maximum<ValueType> >
-    ValueType Max(const MaxFunction& max_function = MaxFunction(),
-                  const ValueType& initial_value = ValueType()) const;
+    ValueType Max(const ValueType& initial_value = ValueType()) const;
 
     /*!
      * WriteLines is an Action, which writes std::strings to an output file.
