@@ -45,8 +45,8 @@ public:
     WriteLinesManyNode(const ParentDIA& parent,
                        const std::string& path_out,
                        size_t target_file_size)
-        : ActionNode(parent.ctx(), "WriteLinesMany",
-                     { parent.id() }, { parent.node() }),
+        : Super(parent.ctx(), "WriteLinesMany",
+                { parent.id() }, { parent.node() }),
           out_pathbase_(path_out),
           file_(core::SysFile::OpenForWrite(
                     core::FillFilePattern(
@@ -187,6 +187,23 @@ void DIA<ValueType, Stack>::WriteLinesMany(
         *this, filepath, target_file_size);
 
     node->RunScope();
+}
+
+template <typename ValueType, typename Stack>
+Future<void> DIA<ValueType, Stack>::WriteLinesMany(
+    struct FutureTag,
+    const std::string& filepath, size_t target_file_size) const {
+    assert(IsValid());
+
+    static_assert(std::is_same<ValueType, std::string>::value,
+                  "WriteLinesMany needs an std::string as input parameter");
+
+    using WriteLinesManyNode = api::WriteLinesManyNode<ValueType>;
+
+    auto node = common::MakeCounting<WriteLinesManyNode>(
+        *this, filepath, target_file_size);
+
+    return Future<void>(node);
 }
 
 } // namespace api

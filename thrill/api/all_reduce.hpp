@@ -25,20 +25,20 @@ namespace api {
  * \ingroup api_layer
  */
 template <typename ValueType, typename ReduceFunction>
-class AllReduceNode final : public ActionNode
+class AllReduceNode final : public ActionResultNode<ValueType>
 {
     static constexpr bool debug = false;
 
-    using Super = ActionNode;
+    using Super = ActionResultNode<ValueType>;
     using Super::context_;
 
 public:
     template <typename ParentDIA>
     AllReduceNode(const ParentDIA& parent,
                   const char* label,
-                  const ReduceFunction& reduce_function,
-                  const ValueType& initial_value)
-        : ActionNode(parent.ctx(), label, { parent.id() }, { parent.node() }),
+                  const ValueType& initial_value,
+                  const ReduceFunction& reduce_function = ReduceFunction())
+        : Super(parent.ctx(), label, { parent.id() }, { parent.node() }),
           reduce_function_(reduce_function),
           sum_(initial_value),
           first_(parent.ctx().my_rank() != 0)
@@ -69,7 +69,7 @@ public:
     }
 
     //! Returns result of global sum.
-    ValueType result() const {
+    const ValueType& result() const final {
         return sum_;
     }
 
@@ -110,11 +110,44 @@ ValueType DIA<ValueType, Stack>::AllReduce(
         "ReduceFunction has the wrong input type");
 
     auto node = common::MakeCounting<AllReduceNode>(
-        *this, "AllReduce", sum_function, initial_value);
+        *this, "AllReduce", initial_value, sum_function);
 
     node->RunScope();
 
     return node->result();
+}
+
+template <typename ValueType, typename Stack>
+template <typename ReduceFunction>
+Future<ValueType> DIA<ValueType, Stack>::AllReduce(
+    struct FutureTag,
+    const ReduceFunction& sum_function, const ValueType& initial_value) const {
+    assert(IsValid());
+
+    using AllReduceNode = api::AllReduceNode<ValueType, ReduceFunction>;
+
+    static_assert(
+        std::is_convertible<
+            ValueType,
+            typename FunctionTraits<ReduceFunction>::template arg<0> >::value,
+        "ReduceFunction has the wrong input type");
+
+    static_assert(
+        std::is_convertible<
+            ValueType,
+            typename FunctionTraits<ReduceFunction>::template arg<1> >::value,
+        "ReduceFunction has the wrong input type");
+
+    static_assert(
+        std::is_convertible<
+            typename FunctionTraits<ReduceFunction>::result_type,
+            ValueType>::value,
+        "ReduceFunction has the wrong input type");
+
+    auto node = common::MakeCounting<AllReduceNode>(
+        *this, "AllReduce", initial_value, sum_function);
+
+    return Future<ValueType>(node);
 }
 
 } // namespace api

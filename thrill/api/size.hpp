@@ -24,17 +24,17 @@ namespace api {
  * \ingroup api_layer
  */
 template <typename ValueType>
-class SizeNode final : public ActionNode
+class SizeNode final : public ActionResultNode<size_t>
 {
     static constexpr bool debug = false;
 
-    using Super = ActionNode;
+    using Super = ActionResultNode<size_t>;
     using Super::context_;
 
 public:
     template <typename ParentDIA>
     explicit SizeNode(const ParentDIA& parent)
-        : ActionNode(parent.ctx(), "Size", { parent.id() }, { parent.node() }),
+        : Super(parent.ctx(), "Size", { parent.id() }, { parent.node() }),
           parent_stack_empty_(ParentDIA::stack_empty) {
 
         // Hook PreOp(s)
@@ -61,7 +61,7 @@ public:
     }
 
     //! Returns result of global size.
-    size_t result() const {
+    const size_t& result() const final {
         return global_size_;
     }
 
@@ -85,6 +85,15 @@ size_t DIA<ValueType, Stack>::Size() const {
     node->RunScope();
 
     return node->result();
+}
+
+template <typename ValueType, typename Stack>
+Future<size_t> DIA<ValueType, Stack>::Size(struct FutureTag) const {
+    assert(IsValid());
+
+    using SizeNode = api::SizeNode<ValueType>;
+    auto node = common::MakeCounting<SizeNode>(*this);
+    return Future<size_t>(node);
 }
 
 } // namespace api

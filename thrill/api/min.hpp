@@ -23,13 +23,19 @@ ValueType DIA<ValueType, Stack>::Min(const ValueType& initial_value) const {
     assert(IsValid());
 
     using MinNode = api::AllReduceNode<ValueType, common::minimum<ValueType> >;
-
-    auto node = common::MakeCounting<MinNode>(
-        *this, "Min", common::minimum<ValueType>(), initial_value);
-
+    auto node = common::MakeCounting<MinNode>(*this, "Min", initial_value);
     node->RunScope();
-
     return node->result();
+}
+
+template <typename ValueType, typename Stack>
+Future<ValueType> DIA<ValueType, Stack>::Min(
+    struct FutureTag, const ValueType& initial_value) const {
+    assert(IsValid());
+
+    using MinNode = api::AllReduceNode<ValueType, common::minimum<ValueType> >;
+    auto node = common::MakeCounting<MinNode>(*this, "Min", initial_value);
+    return Future<ValueType>(node);
 }
 
 } // namespace api

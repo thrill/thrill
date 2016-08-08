@@ -23,13 +23,19 @@ ValueType DIA<ValueType, Stack>::Max(const ValueType& initial_value) const {
     assert(IsValid());
 
     using MaxNode = api::AllReduceNode<ValueType, common::maximum<ValueType> >;
-
-    auto node = common::MakeCounting<MaxNode>(
-        *this, "Max", common::maximum<ValueType>(), initial_value);
-
+    auto node = common::MakeCounting<MaxNode>(*this, "Max", initial_value);
     node->RunScope();
-
     return node->result();
+}
+
+template <typename ValueType, typename Stack>
+Future<ValueType> DIA<ValueType, Stack>::Max(
+    struct FutureTag, const ValueType& initial_value) const {
+    assert(IsValid());
+
+    using MaxNode = api::AllReduceNode<ValueType, common::maximum<ValueType> >;
+    auto node = common::MakeCounting<MaxNode>(*this, "Max", initial_value);
+    return Future<ValueType>(node);
 }
 
 } // namespace api

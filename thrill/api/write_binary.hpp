@@ -209,6 +209,18 @@ void DIA<ValueType, Stack>::WriteBinary(
     node->RunScope();
 }
 
+template <typename ValueType, typename Stack>
+Future<void> DIA<ValueType, Stack>::WriteBinary(
+    struct FutureTag, const std::string& filepath, size_t max_file_size) const {
+
+    using WriteBinaryNode = api::WriteBinaryNode<ValueType>;
+
+    auto node = common::MakeCounting<WriteBinaryNode>(
+        *this, filepath, max_file_size);
+
+    return Future<void>(node);
+}
+
 } // namespace api
 } // namespace thrill
 

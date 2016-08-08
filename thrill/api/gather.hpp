@@ -25,18 +25,18 @@ namespace api {
  * \ingroup api_layer
  */
 template <typename ValueType>
-class GatherNode final : public ActionNode
+class GatherNode final : public ActionResultNode<std::vector<ValueType> >
 {
 public:
-    using Super = ActionNode;
+    using Super = ActionResultNode<std::vector<ValueType> >;
     using Super::context_;
 
     template <typename ParentDIA>
     GatherNode(const ParentDIA& parent, const char* label,
                size_t target_id,
                std::vector<ValueType>* out_vector)
-        : ActionNode(parent.ctx(), label,
-                     { parent.id() }, { parent.node() }),
+        : Super(parent.ctx(), label,
+                { parent.id() }, { parent.node() }),
           target_id_(target_id),
           out_vector_(out_vector)
     {
@@ -72,6 +72,10 @@ public:
         while (reader.HasNext()) {
             out_vector_->push_back(reader.template Next<ValueType>());
         }
+    }
+
+    const std::vector<ValueType>& result() const final {
+        return *out_vector_;
     }
 
 private:

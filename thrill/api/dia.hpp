@@ -17,6 +17,7 @@
 #ifndef THRILL_API_DIA_HEADER
 #define THRILL_API_DIA_HEADER
 
+#include <thrill/api/action_node.hpp>
 #include <thrill/api/context.hpp>
 #include <thrill/api/dia_node.hpp>
 #include <thrill/api/function_stack.hpp>
@@ -35,6 +36,14 @@ namespace api {
 
 //! \ingroup api_layer
 //! \{
+
+//! tag structure for returning ActionFutures
+struct FutureTag {
+    FutureTag() { }
+};
+
+//! global const FutureTag instance
+const struct FutureTag FutureTag;
 
 //! tag structure for ReduceByKey(), and ReduceToIndex()
 struct VolatileKeyTag {
@@ -438,6 +447,13 @@ public:
     size_t Size() const;
 
     /*!
+     * Lazily computes the total size of all elements across all workers.
+     *
+     * \ingroup dia_actions
+     */
+    Future<size_t> Size(struct FutureTag) const;
+
+    /*!
      * Returns the whole DIA in an std::vector on each worker. This is only for
      * testing purposes and should not be used on large datasets.
      *
@@ -453,6 +469,14 @@ public:
      * \ingroup dia_actions
      */
     void AllGather(std::vector<ValueType>* out_vector) const;
+
+    /*!
+     * Returns the whole DIA in an std::vector on each worker. This is only for
+     * testing purposes and should not be used on large datasets.
+     *
+     * \ingroup dia_actions
+     */
+    Future<std::vector<ValueType> > AllGather(struct FutureTag) const;
 
     /*!
      * Print is an Action, which collects all data of the DIA at the worker 0
@@ -509,6 +533,22 @@ public:
                         const ValueType& initial_value = ValueType()) const;
 
     /*!
+     * AllReduce is an ActionFuture, which computes the reduction sum of
+     * all elements globally and delivers the same value on all workers.
+     *
+     * \param reduce_function Reduce function.
+     *
+     * \param initial_value Initial value of the reduction.
+     *
+     * \ingroup dia_actions
+     */
+    template <typename ReduceFunction>
+    Future<ValueType> AllReduce(
+        struct FutureTag,
+        const ReduceFunction& reduce_function,
+        const ValueType& initial_value = ValueType()) const;
+
+    /*!
      * Sum is an Action, which computes the sum of all elements globally.
      *
      * \param sum_function Sum function.
@@ -522,6 +562,22 @@ public:
                   const ValueType& initial_value = ValueType()) const;
 
     /*!
+     * Sum is an ActionFuture, which computes the sum of all elements
+     * globally.
+     *
+     * \param sum_function Sum function.
+     *
+     * \param initial_value Initial value of the sum.
+     *
+     * \ingroup dia_actions
+     */
+    template <typename SumFunction = std::plus<ValueType> >
+    Future<ValueType> Sum(
+        struct FutureTag,
+        const SumFunction& sum_function = SumFunction(),
+        const ValueType& initial_value = ValueType()) const;
+
+    /*!
      * Min is an Action, which computes the minimum of all elements globally.
      *
      * \param min_function Min function.
@@ -531,6 +587,20 @@ public:
      * \ingroup dia_actions
      */
     ValueType Min(const ValueType& initial_value = ValueType()) const;
+
+    /*!
+     * Min is an ActionFuture, which computes the minimum of all elements
+     * globally.
+     *
+     * \param min_function Min function.
+     *
+     * \param initial_value Initial value of the min.
+     *
+     * \ingroup dia_actions
+     */
+    Future<ValueType> Min(
+        struct FutureTag,
+        const ValueType& initial_value = ValueType()) const;
 
     /*!
      * Max is an Action, which computes the maximum of all elements globally.
@@ -544,6 +614,20 @@ public:
     ValueType Max(const ValueType& initial_value = ValueType()) const;
 
     /*!
+     * Max is an ActionFuture, which computes the maximum of all elements
+     * globally.
+     *
+     * \param max_function Max function.
+     *
+     * \param initial_value Initial value of the max.
+     *
+     * \ingroup dia_actions
+     */
+    Future<ValueType> Max(
+        struct FutureTag,
+        const ValueType& initial_value = ValueType()) const;
+
+    /*!
      * WriteLines is an Action, which writes std::strings to an output file.
      * Strings are written using fstream with a newline after each entry.
      *
@@ -552,6 +636,17 @@ public:
      * \ingroup dia_actions
      */
     void WriteLines(const std::string& filepath) const;
+
+    /*!
+     * WriteLines is an ActionFuture, which writes std::strings to an output
+     * file.  Strings are written using fstream with a newline after each entry.
+     *
+     * \param filepath Destination of the output file.
+     *
+     * \ingroup dia_actions
+     */
+    Future<void> WriteLines(
+        struct FutureTag, const std::string& filepath) const;
 
     /*!
      * WriteLinesMany is an Action, which writes std::strings to multiple output
@@ -572,6 +667,26 @@ public:
                         size_t target_file_size = 128* 1024* 1024) const;
 
     /*!
+     * WriteLinesMany is an ActionFuture, which writes std::strings to multiple
+     * output files. Strings are written using fstream with a newline after each
+     * entry. Each worker creates its individual file.
+     *
+     * \param filepath Destination of the output file. This filepath must
+     * contain two special substrings: "$$$$$" is replaced by the worker id and
+     * "#####" will be replaced by the file chunk id. The last occurrences of
+     * "$" and "#" are replaced, otherwise "$$$$" and/or "##########" are
+     * automatically appended.
+     *
+     * \param target_file_size target size of each individual file.
+     *
+     * \ingroup dia_actions
+     */
+    Future<void> WriteLinesMany(
+        struct FutureTag,
+        const std::string& filepath,
+        size_t target_file_size = 128* 1024* 1024) const;
+
+    /*!
      * WriteBinary is a function, which writes a DIA to many files per
      * worker. The input DIA can be recreated with ReadBinary and equal
      * filepath.
@@ -588,6 +703,26 @@ public:
      */
     void WriteBinary(const std::string& filepath,
                      size_t max_file_size = 128* 1024* 1024) const;
+
+    /*!
+     * WriteBinary is a function, which writes a DIA to many files per
+     * worker. The input DIA can be recreated with ReadBinary and equal
+     * filepath.
+     *
+     * \param filepath Destination of the output file. This filepath must
+     * contain two special substrings: "$$$$$" is replaced by the worker id and
+     * "#####" will be replaced by the file chunk id. The last occurrences of
+     * "$" and "#" are replaced, otherwise "$$$$" and/or "##########" are
+     * automatically appended.
+     *
+     * \param max_file_size size limit of individual file.
+     *
+     * \ingroup dia_actions
+     */
+    Future<void> WriteBinary(
+        struct FutureTag,
+        const std::string& filepath,
+        size_t max_file_size = 128* 1024* 1024) const;
 
     //! \}
 
@@ -1206,6 +1341,9 @@ private:
 
 //! imported from api namespace
 using api::DIA;
+
+//! imported from api namespace
+using api::FutureTag;
 
 //! imported from api namespace
 using api::DisjointTag;

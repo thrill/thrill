@@ -122,6 +122,21 @@ void DIA<ValueType, Stack>::WriteLines(
     node->RunScope();
 }
 
+template <typename ValueType, typename Stack>
+Future<void> DIA<ValueType, Stack>::WriteLines(
+    struct FutureTag, const std::string& filepath) const {
+    assert(IsValid());
+
+    static_assert(std::is_same<ValueType, std::string>::value,
+                  "WriteLines needs an std::string as input parameter");
+
+    using WriteLinesNode = api::WriteLinesNode<ValueType>;
+
+    auto node = common::MakeCounting<WriteLinesNode>(*this, filepath);
+
+    return Future<void>(node);
+}
+
 } // namespace api
 } // namespace thrill
 

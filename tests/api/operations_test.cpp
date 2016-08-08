@@ -20,6 +20,8 @@
 #include <thrill/api/gather.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/generate_from_file.hpp>
+#include <thrill/api/max.hpp>
+#include <thrill/api/min.hpp>
 #include <thrill/api/prefixsum.hpp>
 #include <thrill/api/print.hpp>
 #include <thrill/api/read_lines.hpp>
@@ -522,7 +524,7 @@ TEST(Operations, PrefixSumCorrectResults) {
                 ASSERT_EQ(out_vec[i], ctr);
             }
 
-            ASSERT_EQ((size_t)16, out_vec.size());
+            ASSERT_EQ(16u, out_vec.size());
         };
 
     api::RunLocalTests(start_func);
@@ -984,6 +986,53 @@ TEST(Operations, WhileLoop) {
                 ASSERT_EQ(out_vec[i], 16 * (i / 16));
             }
             ASSERT_EQ(256u, squares.Size());
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+TEST(Operations, ActionFutures) {
+
+    auto start_func =
+        [](Context& ctx) {
+
+            auto integers = Generate(
+                ctx,
+                [](const size_t& input) {
+                    return long(input + 1);
+                },
+                16).Cache();
+
+            Future<long> minf = integers.Min(FutureTag, 16);
+            Future<long> maxf = integers.Max(FutureTag);
+            Future<long> sumf = integers.Sum(FutureTag);
+
+            Future<size_t> sizef = integers.Size(FutureTag);
+
+            Future<std::vector<long> > vecf = integers.AllGather(FutureTag);
+
+            ASSERT_FALSE(minf.valid());
+            ASSERT_FALSE(maxf.valid());
+            ASSERT_FALSE(sumf.valid());
+            ASSERT_FALSE(vecf.valid());
+            ASSERT_FALSE(sizef.valid());
+
+            sumf.wait();
+            vecf.wait();
+
+            ASSERT_TRUE(sumf.valid());
+            ASSERT_TRUE(vecf.valid());
+
+            ASSERT_EQ(1u, minf());
+            ASSERT_EQ(16u, maxf());
+            ASSERT_EQ(136u, sumf());
+
+            ASSERT_EQ(16u, sizef());
+
+            std::vector<long> out_vec = vecf.get();
+            for (size_t i = 0; i < out_vec.size(); ++i) {
+                ASSERT_EQ(i + 1, out_vec[i]);
+            }
         };
 
     api::RunLocalTests(start_func);
