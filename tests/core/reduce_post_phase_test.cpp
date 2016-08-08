@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/core/reduce_post_stage_test.cpp
+ * tests/core/reduce_post_phase_test.cpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -8,8 +8,8 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <thrill/core/reduce_by_hash_post_stage.hpp>
-#include <thrill/core/reduce_by_index_post_stage.hpp>
+#include <thrill/core/reduce_by_hash_post_phase.hpp>
+#include <thrill/core/reduce_by_index_post_phase.hpp>
 
 #include <gtest/gtest.h>
 
@@ -56,19 +56,19 @@ static void TestAddMyStructByHash(Context& ctx) {
                        result.emplace_back(in);
                    };
 
-    using Stage = core::ReduceByHashPostStage<
+    using Phase = core::ReduceByHashPostPhase<
               MyStruct, size_t, MyStruct,
               decltype(key_ex), decltype(red_fn), decltype(emit_fn), false,
               core::DefaultReduceConfigSelect<table_impl> >;
 
-    Stage stage(ctx, 0, key_ex, red_fn, emit_fn);
-    stage.Initialize(/* limit_memory_bytes */ 64 * 1024);
+    Phase phase(ctx, 0, key_ex, red_fn, emit_fn);
+    phase.Initialize(/* limit_memory_bytes */ 64 * 1024);
 
     for (size_t i = 0; i < test_size; ++i) {
-        stage.Insert(MyStruct { i, i / mod_size });
+        phase.Insert(MyStruct { i, i / mod_size });
     }
 
-    stage.PushData(/* consume */ true);
+    phase.PushData(/* consume */ true);
 
     // check result
     std::sort(result.begin(), result.end());
@@ -88,21 +88,21 @@ static void TestAddMyStructByHash(Context& ctx) {
     }
 }
 
-TEST(ReduceHashStage, BucketAddMyStructByHash) {
+TEST(ReduceHashPhase, BucketAddMyStructByHash) {
     api::RunLocalSameThread(
         [](Context& ctx) {
             TestAddMyStructByHash<core::ReduceTableImpl::BUCKET>(ctx);
         });
 }
 
-TEST(ReduceHashStage, OldProbingAddMyStructByHash) {
+TEST(ReduceHashPhase, OldProbingAddMyStructByHash) {
     api::RunLocalSameThread(
         [](Context& ctx) {
             TestAddMyStructByHash<core::ReduceTableImpl::OLD_PROBING>(ctx);
         });
 }
 
-TEST(ReduceHashStage, ProbingAddMyStructByHash) {
+TEST(ReduceHashPhase, ProbingAddMyStructByHash) {
     api::RunLocalSameThread(
         [](Context& ctx) {
             TestAddMyStructByHash<core::ReduceTableImpl::PROBING>(ctx);
@@ -111,7 +111,7 @@ TEST(ReduceHashStage, ProbingAddMyStructByHash) {
 
 /******************************************************************************/
 
-TEST(ReduceHashStage, PostReduceByIndex) {
+TEST(ReduceHashPhase, PostReduceByIndex) {
     static constexpr bool debug = false;
 
     using IndexMap = core::ReduceByIndex<size_t>;
@@ -167,22 +167,22 @@ static void TestAddMyStructByIndex(Context& ctx) {
                        result.emplace_back(in);
                    };
 
-    using Stage = core::ReduceByIndexPostStage<
+    using Phase = core::ReduceByIndexPostPhase<
               MyStruct, size_t, MyStruct,
               decltype(key_ex), decltype(red_fn), decltype(emit_fn), false,
               core::DefaultReduceConfigSelect<table_impl> >;
 
-    Stage stage(ctx, 0, key_ex, red_fn, emit_fn,
-                typename Stage::ReduceConfig(),
+    Phase phase(ctx, 0, key_ex, red_fn, emit_fn,
+                typename Phase::ReduceConfig(),
                 core::ReduceByIndex<size_t>(0, mod_size),
                 /* neutral_element */ MyStruct { 0, 0 });
-    stage.Initialize(/* limit_memory_bytes */ 64 * 1024);
+    phase.Initialize(/* limit_memory_bytes */ 64 * 1024);
 
     for (size_t i = 0; i < test_size; ++i) {
-        stage.Insert(MyStruct { i, i / mod_size });
+        phase.Insert(MyStruct { i, i / mod_size });
     }
 
-    stage.PushData(/* consume */ true);
+    phase.PushData(/* consume */ true);
 
     // check result
     ASSERT_EQ(mod_size, result.size());
@@ -200,21 +200,21 @@ static void TestAddMyStructByIndex(Context& ctx) {
     }
 }
 
-TEST(ReduceHashStage, BucketAddMyStructByIndex) {
+TEST(ReduceHashPhase, BucketAddMyStructByIndex) {
     api::RunLocalSameThread(
         [](Context& ctx) {
             TestAddMyStructByIndex<core::ReduceTableImpl::BUCKET>(ctx);
         });
 }
 
-TEST(ReduceHashStage, OldProbingAddMyStructByIndex) {
+TEST(ReduceHashPhase, OldProbingAddMyStructByIndex) {
     api::RunLocalSameThread(
         [](Context& ctx) {
             TestAddMyStructByIndex<core::ReduceTableImpl::OLD_PROBING>(ctx);
         });
 }
 
-TEST(ReduceHashStage, ProbingAddMyStructByIndex) {
+TEST(ReduceHashPhase, ProbingAddMyStructByIndex) {
     api::RunLocalSameThread(
         [](Context& ctx) {
             TestAddMyStructByIndex<core::ReduceTableImpl::PROBING>(ctx);
@@ -247,22 +247,22 @@ static void TestAddMyStructByIndexWithHoles(Context& ctx) {
                        result.emplace_back(in);
                    };
 
-    using Stage = core::ReduceByIndexPostStage<
+    using Phase = core::ReduceByIndexPostPhase<
               MyStruct, size_t, MyStruct,
               decltype(key_ex), decltype(red_fn), decltype(emit_fn), false,
               core::DefaultReduceConfigSelect<table_impl> >;
 
-    Stage stage(ctx, 0, key_ex, red_fn, emit_fn,
-                typename Stage::ReduceConfig(),
+    Phase phase(ctx, 0, key_ex, red_fn, emit_fn,
+                typename Phase::ReduceConfig(),
                 core::ReduceByIndex<size_t>(0, mod_size),
                 /* neutral_element */ MyStruct { 0, 0 });
-    stage.Initialize(/* limit_memory_bytes */ 64 * 1024);
+    phase.Initialize(/* limit_memory_bytes */ 64 * 1024);
 
     for (size_t i = 0; i < test_size; ++i) {
-        stage.Insert(MyStruct { i, i / mod_size });
+        phase.Insert(MyStruct { i, i / mod_size });
     }
 
-    stage.PushData(/* consume */ true);
+    phase.PushData(/* consume */ true);
 
     // check result
     ASSERT_EQ(mod_size, result.size());
@@ -283,21 +283,21 @@ static void TestAddMyStructByIndexWithHoles(Context& ctx) {
     }
 }
 
-TEST(ReduceHashStage, BucketAddMyStructByIndexWithHoles) {
+TEST(ReduceHashPhase, BucketAddMyStructByIndexWithHoles) {
     api::RunLocalSameThread(
         [](Context& ctx) {
             TestAddMyStructByIndexWithHoles<core::ReduceTableImpl::BUCKET>(ctx);
         });
 }
 
-TEST(ReduceHashStage, OldProbingAddMyStructByIndexWithHoles) {
+TEST(ReduceHashPhase, OldProbingAddMyStructByIndexWithHoles) {
     api::RunLocalSameThread(
         [](Context& ctx) {
             TestAddMyStructByIndexWithHoles<core::ReduceTableImpl::OLD_PROBING>(ctx);
         });
 }
 
-TEST(ReduceHashStage, ProbingAddMyStructByIndexWithHoles) {
+TEST(ReduceHashPhase, ProbingAddMyStructByIndexWithHoles) {
     api::RunLocalSameThread(
         [](Context& ctx) {
             TestAddMyStructByIndexWithHoles<core::ReduceTableImpl::PROBING>(ctx);

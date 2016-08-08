@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/core/reduce_by_hash_post_stage.hpp
+ * thrill/core/reduce_by_hash_post_phase.hpp
  *
  * Hash table with support for reduce.
  *
@@ -13,8 +13,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_CORE_REDUCE_BY_HASH_POST_STAGE_HEADER
-#define THRILL_CORE_REDUCE_BY_HASH_POST_STAGE_HEADER
+#ifndef THRILL_CORE_REDUCE_BY_HASH_POST_PHASE_HEADER
+#define THRILL_CORE_REDUCE_BY_HASH_POST_PHASE_HEADER
 
 #include <thrill/api/context.hpp>
 #include <thrill/common/logger.hpp>
@@ -36,20 +36,20 @@ namespace thrill {
 namespace core {
 
 //! Emitter implementation to plug into a reduce hash table for
-//! collecting/flushing items while reducing. Items flushed in the post-stage
+//! collecting/flushing items while reducing. Items flushed in the post-phase
 //! are passed to the next DIA node for processing.
 template <
     typename KeyValuePair, typename ValueType, typename Emitter, bool SendPair>
-class ReduceByHashPostStageEmitter
+class ReduceByHashPostPhaseEmitter
 {
 public:
-    explicit ReduceByHashPostStageEmitter(const Emitter& emit)
+    explicit ReduceByHashPostPhaseEmitter(const Emitter& emit)
         : emit_(emit) { }
 
     //! output an element into a partition, template specialized for SendPair
     //! and non-SendPair types
     void Emit(const KeyValuePair& p) {
-        ReducePostStageEmitterSwitch<
+        ReducePostPhaseEmitterSwitch<
             KeyValuePair, ValueType, Emitter, SendPair>::Put(p, emit_);
     }
 
@@ -70,7 +70,7 @@ template <typename ValueType, typename Key, typename Value,
           typename ReduceConfig_ = DefaultReduceConfig,
           typename IndexFunction = ReduceByHash<Key>,
           typename EqualToFunction = std::equal_to<Key> >
-class ReduceByHashPostStage
+class ReduceByHashPostPhase
 {
     static constexpr bool debug = false;
 
@@ -78,13 +78,13 @@ public:
     using KeyValuePair = std::pair<Key, Value>;
     using ReduceConfig = ReduceConfig_;
 
-    using StageEmitter = ReduceByHashPostStageEmitter<
+    using PhaseEmitter = ReduceByHashPostPhaseEmitter<
               KeyValuePair, ValueType, Emitter, SendPair>;
 
     using Table = typename ReduceTableSelect<
               ReduceConfig::table_impl_,
               ValueType, Key, Value,
-              KeyExtractor, ReduceFunction, StageEmitter,
+              KeyExtractor, ReduceFunction, PhaseEmitter,
               !SendPair, ReduceConfig, IndexFunction, EqualToFunction>::type;
 
     /*!
@@ -92,7 +92,7 @@ public:
      * a key extractor function from that value. Afterwards, the value is hashed
      * based on the key into some slot.
      */
-    ReduceByHashPostStage(
+    ReduceByHashPostPhase(
         Context& ctx, size_t dia_id,
         const KeyExtractor& key_extractor,
         const ReduceFunction& reduce_function,
@@ -109,9 +109,9 @@ public:
                  index_function, equal_to_function) { }
 
     //! non-copyable: delete copy-constructor
-    ReduceByHashPostStage(const ReduceByHashPostStage&) = delete;
+    ReduceByHashPostPhase(const ReduceByHashPostPhase&) = delete;
     //! non-copyable: delete assignment operator
-    ReduceByHashPostStage& operator = (const ReduceByHashPostStage&) = delete;
+    ReduceByHashPostPhase& operator = (const ReduceByHashPostPhase&) = delete;
 
     void Initialize(size_t limit_memory_bytes) {
         table_.Initialize(limit_memory_bytes);
@@ -186,7 +186,7 @@ public:
 
         while (remaining_files.size())
         {
-            sLOG << "ReducePostStage: re-reducing items from"
+            sLOG << "ReducePostPhase: re-reducing items from"
                  << remaining_files.size() << "spilled files"
                  << "iteration" << iteration;
             sLOG << "-- Try to increase the amount of RAM to avoid this.";
@@ -305,7 +305,7 @@ private:
     ReduceConfig config_;
 
     //! Emitters used to parameterize hash table for output to next DIA node.
-    StageEmitter emitter_;
+    PhaseEmitter emitter_;
 
     //! the first-level hash table implementation
     Table table_;
@@ -317,6 +317,6 @@ private:
 } // namespace core
 } // namespace thrill
 
-#endif // !THRILL_CORE_REDUCE_BY_HASH_POST_STAGE_HEADER
+#endif // !THRILL_CORE_REDUCE_BY_HASH_POST_PHASE_HEADER
 
 /******************************************************************************/

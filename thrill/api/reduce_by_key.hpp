@@ -22,8 +22,8 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/common/meta.hpp>
 #include <thrill/common/porting.hpp>
-#include <thrill/core/reduce_by_hash_post_stage.hpp>
-#include <thrill/core/reduce_pre_stage.hpp>
+#include <thrill/core/reduce_by_hash_post_phase.hpp>
+#include <thrill/core/reduce_pre_phase.hpp>
 
 #include <functional>
 #include <thread>
@@ -71,14 +71,14 @@ class ReduceNode final : public DOpNode<ValueType>
     using Value = typename common::FunctionTraits<ReduceFunction>::result_type;
     using KeyValuePair = std::pair<Key, Value>;
 
-    using PreStageOutput =
+    using PrePhaseOutput =
               typename common::If<VolatileKey, KeyValuePair, Value>::type;
 
     static constexpr bool use_mix_stream_ = ReduceConfig::use_mix_stream_;
     static constexpr bool use_post_thread_ = ReduceConfig::use_post_thread_;
 
 private:
-    //! Emitter for PostStage to push elements to next DIA object.
+    //! Emitter for PostPhase to push elements to next DIA object.
     class Emitter
     {
     public:
@@ -108,10 +108,10 @@ public:
                       nullptr : parent.ctx().GetNewCatStream(this)),
           emitters_(use_mix_stream_ ?
                     mix_stream_->GetWriters() : cat_stream_->GetWriters()),
-          pre_stage_(
+          pre_phase_(
               context_, Super::id(), parent.ctx().num_workers(),
               key_extractor, reduce_function, emitters_, config),
-          post_stage_(
+          post_phase_(
               context_, Super::id(), key_extractor, reduce_function,
               Emitter(this), config)
     {
@@ -119,7 +119,7 @@ public:
         // reduce each bucket to a single value, afterwards send data to another
         // worker given by the shuffle algorithm.
         auto pre_op_fn = [this](const ValueType& input) {
-                             return pre_stage_.Insert(input);
+                             return pre_phase_.Insert(input);
                          };
         // close the function stack with our pre op and register it at
         // parent node for output
@@ -136,12 +136,12 @@ public:
     void StartPreOp(size_t /* id */) final {
         LOG << *this << " running StartPreOp";
         if (!use_post_thread_) {
-            // use pre_stage without extra thread
-            pre_stage_.Initialize(DIABase::mem_limit_);
+            // use pre_phase without extra thread
+            pre_phase_.Initialize(DIABase::mem_limit_);
         }
         else {
-            pre_stage_.Initialize(DIABase::mem_limit_ / 2);
-            post_stage_.Initialize(DIABase::mem_limit_ / 2);
+            pre_phase_.Initialize(DIABase::mem_limit_ / 2);
+            post_phase_.Initialize(DIABase::mem_limit_ / 2);
 
             // start additional thread to receive from the channel
             thread_ = common::CreateThread([this] { ProcessChannel(); });
@@ -151,8 +151,8 @@ public:
     void StopPreOp(size_t /* id */) final {
         LOG << *this << " running StopPreOp";
         // Flush hash table before the postOp
-        pre_stage_.FlushAll();
-        pre_stage_.CloseAll();
+        pre_phase_.FlushAll();
+        pre_phase_.CloseAll();
         // waiting for the additional thread to finish the reduce
         if (use_post_thread_) thread_.join();
         use_mix_stream_ ? mix_stream_->Close() : cat_stream_->Close();
@@ -168,38 +168,38 @@ public:
 
         if (!use_post_thread_ && !reduced_) {
             // not final reduced, and no additional thread, perform post reduce
-            post_stage_.Initialize(DIABase::mem_limit_);
+            post_phase_.Initialize(DIABase::mem_limit_);
             ProcessChannel();
 
             reduced_ = true;
         }
-        post_stage_.PushData(consume);
+        post_phase_.PushData(consume);
     }
 
-    //! process the inbound data in the post reduce stage
+    //! process the inbound data in the post reduce phase
     void ProcessChannel() {
         if (use_mix_stream_)
         {
             auto reader = mix_stream_->GetMixReader(/* consume */ true);
             sLOG << "reading data from" << mix_stream_->id()
-                 << "to push into post stage which flushes to" << this->id();
+                 << "to push into post phase which flushes to" << this->id();
             while (reader.HasNext()) {
-                post_stage_.Insert(reader.template Next<PreStageOutput>());
+                post_phase_.Insert(reader.template Next<PrePhaseOutput>());
             }
         }
         else
         {
             auto reader = cat_stream_->GetCatReader(/* consume */ true);
             sLOG << "reading data from" << cat_stream_->id()
-                 << "to push into post stage which flushes to" << this->id();
+                 << "to push into post phase which flushes to" << this->id();
             while (reader.HasNext()) {
-                post_stage_.Insert(reader.template Next<PreStageOutput>());
+                post_phase_.Insert(reader.template Next<PrePhaseOutput>());
             }
         }
     }
 
     void Dispose() final {
-        post_stage_.Dispose();
+        post_phase_.Dispose();
     }
 
 private:
@@ -210,16 +210,16 @@ private:
 
     std::vector<data::Stream::Writer> emitters_;
 
-    //! handle to additional thread for post stage
+    //! handle to additional thread for post phase
     std::thread thread_;
 
-    core::ReducePreStage<
+    core::ReducePrePhase<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, VolatileKey,
-        ReduceConfig> pre_stage_;
+        ReduceConfig> pre_phase_;
 
-    core::ReduceByHashPostStage<
+    core::ReduceByHashPostPhase<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, Emitter, SendPair,
-        ReduceConfig> post_stage_;
+        ReduceConfig> post_phase_;
 
     bool reduced_ = false;
 };

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/core/reduce_pre_stage.hpp
+ * thrill/core/reduce_pre_phase.hpp
  *
  * Hash table with support for reduce and partitions.
  *
@@ -13,8 +13,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_CORE_REDUCE_PRE_STAGE_HEADER
-#define THRILL_CORE_REDUCE_PRE_STAGE_HEADER
+#ifndef THRILL_CORE_REDUCE_PRE_PHASE_HEADER
+#define THRILL_CORE_REDUCE_PRE_PHASE_HEADER
 
 #include <thrill/common/logger.hpp>
 #include <thrill/core/reduce_bucket_hash_table.hpp>
@@ -37,10 +37,10 @@ namespace core {
 //! template specialization switch class to output key+value if VolatileKey and
 //! only value if not VolatileKey (RobustKey).
 template <typename KeyValuePair, bool VolatileKey>
-class ReducePreStageEmitterSwitch;
+class ReducePrePhaseEmitterSwitch;
 
 template <typename KeyValuePair>
-class ReducePreStageEmitterSwitch<KeyValuePair, false>
+class ReducePrePhaseEmitterSwitch<KeyValuePair, false>
 {
 public:
     static void Put(const KeyValuePair& p, data::DynBlockWriter& writer) {
@@ -49,7 +49,7 @@ public:
 };
 
 template <typename KeyValuePair>
-class ReducePreStageEmitterSwitch<KeyValuePair, true>
+class ReducePrePhaseEmitterSwitch<KeyValuePair, true>
 {
 public:
     static void Put(const KeyValuePair& p, data::DynBlockWriter& writer) {
@@ -58,15 +58,15 @@ public:
 };
 
 //! Emitter implementation to plug into a reduce hash table for
-//! collecting/flushing items while reducing. Items flushed in the pre-stage are
+//! collecting/flushing items while reducing. Items flushed in the pre-phase are
 //! transmitted via a network Channel.
 template <typename KeyValuePair, bool VolatileKey>
-class ReducePreStageEmitter
+class ReducePrePhaseEmitter
 {
     static constexpr bool debug = false;
 
 public:
-    explicit ReducePreStageEmitter(std::vector<data::DynBlockWriter>& writer)
+    explicit ReducePrePhaseEmitter(std::vector<data::DynBlockWriter>& writer)
         : writer_(writer),
           stats_(writer.size(), 0) { }
 
@@ -75,7 +75,7 @@ public:
     void Emit(const size_t& partition_id, const KeyValuePair& p) {
         assert(partition_id < writer_.size());
         stats_[partition_id]++;
-        ReducePreStageEmitterSwitch<KeyValuePair, VolatileKey>::Put(
+        ReducePrePhaseEmitterSwitch<KeyValuePair, VolatileKey>::Put(
             p, writer_[partition_id]);
     }
 
@@ -107,7 +107,7 @@ template <typename ValueType, typename Key, typename Value,
           typename ReduceConfig_ = DefaultReduceConfig,
           typename IndexFunction = ReduceByHash<Key>,
           typename EqualToFunction = std::equal_to<Key> >
-class ReducePreStage
+class ReducePrePhase
 {
     static constexpr bool debug = false;
 
@@ -115,7 +115,7 @@ public:
     using KeyValuePair = std::pair<Key, Value>;
     using ReduceConfig = ReduceConfig_;
 
-    using Emitter = ReducePreStageEmitter<KeyValuePair, VolatileKey>;
+    using Emitter = ReducePrePhaseEmitter<KeyValuePair, VolatileKey>;
 
     using Table = typename ReduceTableSelect<
               ReduceConfig::table_impl_,
@@ -128,7 +128,7 @@ public:
      * a key extractor function from that value. Afterwards, the value is hashed
      * based on the key into some slot.
      */
-    ReducePreStage(Context& ctx, size_t dia_id,
+    ReducePrePhase(Context& ctx, size_t dia_id,
                    size_t num_partitions,
                    KeyExtractor key_extractor,
                    ReduceFunction reduce_function,
@@ -141,15 +141,15 @@ public:
                  key_extractor, reduce_function, emit_,
                  num_partitions, config, /* immediate_flush */ true,
                  index_function, equal_to_function) {
-        sLOG << "creating ReducePreStage with" << emit.size() << "output emitters";
+        sLOG << "creating ReducePrePhase with" << emit.size() << "output emitters";
 
         assert(num_partitions == emit.size());
     }
 
     //! non-copyable: delete copy-constructor
-    ReducePreStage(const ReducePreStage&) = delete;
+    ReducePrePhase(const ReducePrePhase&) = delete;
     //! non-copyable: delete assignment operator
-    ReducePreStage& operator = (const ReducePreStage&) = delete;
+    ReducePrePhase& operator = (const ReducePrePhase&) = delete;
 
     void Initialize(size_t limit_memory_bytes) {
         table_.Initialize(limit_memory_bytes);
@@ -208,6 +208,6 @@ private:
 } // namespace core
 } // namespace thrill
 
-#endif // !THRILL_CORE_REDUCE_PRE_STAGE_HEADER
+#endif // !THRILL_CORE_REDUCE_PRE_PHASE_HEADER
 
 /******************************************************************************/

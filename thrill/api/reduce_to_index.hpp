@@ -22,8 +22,8 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/common/meta.hpp>
 #include <thrill/common/porting.hpp>
-#include <thrill/core/reduce_by_index_post_stage.hpp>
-#include <thrill/core/reduce_pre_stage.hpp>
+#include <thrill/core/reduce_by_index_post_phase.hpp>
+#include <thrill/core/reduce_pre_phase.hpp>
 
 #include <functional>
 #include <thread>
@@ -72,14 +72,14 @@ class ReduceToIndexNode final : public DOpNode<ValueType>
     static_assert(std::is_same<Key, size_t>::value,
                   "Key must be an unsigned integer");
 
-    using PreStageOutput =
+    using PrePhaseOutput =
               typename common::If<VolatileKey, KeyValuePair, Value>::type;
 
     static constexpr bool use_mix_stream_ = ReduceConfig::use_mix_stream_;
     static constexpr bool use_post_thread_ = ReduceConfig::use_post_thread_;
 
 private:
-    //! Emitter for PostStage to push elements to next DIA object.
+    //! Emitter for PostPhase to push elements to next DIA object.
     class Emitter
     {
     public:
@@ -112,11 +112,11 @@ public:
           emitters_(use_mix_stream_ ?
                     mix_stream_->GetWriters() : cat_stream_->GetWriters()),
           result_size_(result_size),
-          pre_stage_(
+          pre_phase_(
               context_, Super::id(), context_.num_workers(),
               key_extractor, reduce_function, emitters_,
               config, core::ReduceByIndex<Key>(0, result_size)),
-          post_stage_(
+          post_phase_(
               context_, Super::id(),
               key_extractor, reduce_function, Emitter(this),
               config, core::ReduceByIndex<Key>(), neutral_element)
@@ -125,7 +125,7 @@ public:
         // reduce each bucket to a single value, afterwards send data to another
         // worker given by the shuffle algorithm.
         auto pre_op_fn = [this](const ValueType& input) {
-                             return pre_stage_.Insert(input);
+                             return pre_phase_.Insert(input);
                          };
 
         // close the function stack with our pre op and register it at parent
@@ -142,24 +142,24 @@ public:
 
     void StartPreOp(size_t /* id */) final {
         if (!use_post_thread_) {
-            // use pre_stage without extra thread
-            pre_stage_.Initialize(DIABase::mem_limit_);
+            // use pre_phase without extra thread
+            pre_phase_.Initialize(DIABase::mem_limit_);
 
             // re-parameterize with resulting key range on this worker - this is
-            // only know after Initialize() of the pre_stage_.
-            post_stage_.table().index_function() =
+            // only know after Initialize() of the pre_phase_.
+            post_phase_.table().index_function() =
                 core::ReduceByIndex<Key>(
-                    pre_stage_.key_range(context_.my_rank()));
+                    pre_phase_.key_range(context_.my_rank()));
         }
         else {
-            pre_stage_.Initialize(DIABase::mem_limit_ / 2);
+            pre_phase_.Initialize(DIABase::mem_limit_ / 2);
 
             // re-parameterize with resulting key range on this worker - this is
-            // only know after Initialize() of the pre_stage_.
-            post_stage_.table().index_function() =
+            // only know after Initialize() of the pre_phase_.
+            post_phase_.table().index_function() =
                 core::ReduceByIndex<Key>(
-                    pre_stage_.key_range(context_.my_rank()));
-            post_stage_.Initialize(DIABase::mem_limit_ / 2);
+                    pre_phase_.key_range(context_.my_rank()));
+            post_phase_.Initialize(DIABase::mem_limit_ / 2);
 
             // start additional thread to receive from the channel
             thread_ = common::CreateThread([this] { ProcessChannel(); });
@@ -169,8 +169,8 @@ public:
     void StopPreOp(size_t /* id */) final {
         LOG << *this << " running StopPreOp";
         // Flush hash table before the postOp
-        pre_stage_.FlushAll();
-        pre_stage_.CloseAll();
+        pre_phase_.FlushAll();
+        pre_phase_.CloseAll();
         // waiting for the additional thread to finish the reduce
         if (use_post_thread_) thread_.join();
         use_mix_stream_ ? mix_stream_->Close() : cat_stream_->Close();
@@ -186,15 +186,15 @@ public:
 
         if (!use_post_thread_ && !reduced_) {
             // not final reduced, and no additional thread, perform post reduce
-            post_stage_.Initialize(DIABase::mem_limit_);
+            post_phase_.Initialize(DIABase::mem_limit_);
             ProcessChannel();
 
             reduced_ = true;
         }
-        post_stage_.PushData(consume);
+        post_phase_.PushData(consume);
     }
 
-    //! process the inbound data in the post reduce stage
+    //! process the inbound data in the post reduce phase
     void ProcessChannel() {
         if (use_mix_stream_)
         {
@@ -202,7 +202,7 @@ public:
             sLOG << "reading data from" << mix_stream_->id()
                  << "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
-                post_stage_.Insert(reader.template Next<PreStageOutput>());
+                post_phase_.Insert(reader.template Next<PrePhaseOutput>());
             }
         }
         else
@@ -211,13 +211,13 @@ public:
             sLOG << "reading data from" << cat_stream_->id()
                  << "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
-                post_stage_.Insert(reader.template Next<PreStageOutput>());
+                post_phase_.Insert(reader.template Next<PrePhaseOutput>());
             }
         }
     }
 
     void Dispose() final {
-        post_stage_.Dispose();
+        post_phase_.Dispose();
     }
 
 private:
@@ -230,16 +230,16 @@ private:
 
     size_t result_size_;
 
-    //! handle to additional thread for post stage
+    //! handle to additional thread for post phase
     std::thread thread_;
 
-    core::ReducePreStage<
+    core::ReducePrePhase<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, VolatileKey,
-        ReduceConfig, core::ReduceByIndex<Key> > pre_stage_;
+        ReduceConfig, core::ReduceByIndex<Key> > pre_phase_;
 
-    core::ReduceByIndexPostStage<
+    core::ReduceByIndexPostPhase<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, Emitter, SendPair,
-        ReduceConfig> post_stage_;
+        ReduceConfig> post_phase_;
 
     bool reduced_ = false;
 };

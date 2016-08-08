@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/core/reduce_pre_stage_test.cpp
+ * tests/core/reduce_pre_phase_test.cpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -9,7 +9,7 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <thrill/core/reduce_pre_stage.hpp>
+#include <thrill/core/reduce_pre_phase.hpp>
 
 #include <gtest/gtest.h>
 
@@ -35,7 +35,7 @@ struct MyReduceConfig : public core::DefaultReduceConfig {
     //! only for growing ProbingHashTable: items initially in a partition.
     static constexpr size_t                initial_items_per_partition_ = 160000;
 
-    //! select the hash table in the reduce stage by enum
+    //! select the hash table in the reduce phase by enum
     static constexpr core::ReduceTableImpl table_impl_ = table_impl;
 };
 
@@ -67,23 +67,23 @@ static void TestAddMyStructByHash(Context& ctx) {
     for (size_t i = 0; i < num_partitions; ++i)
         emitters.emplace_back(files[i].GetDynWriter());
 
-    // process items with stage
-    using Stage = core::ReducePreStage<
+    // process items with phase
+    using Phase = core::ReducePrePhase<
               MyStruct, size_t, MyStruct,
               decltype(key_ex), decltype(red_fn),
               /* VolatileKey */ false,
               MyReduceConfig<table_impl> >;
 
-    Stage stage(ctx, 0, num_partitions, key_ex, red_fn, emitters);
+    Phase phase(ctx, 0, num_partitions, key_ex, red_fn, emitters);
 
-    stage.Initialize(/* limit_memory_bytes */ 1024 * 1024);
+    phase.Initialize(/* limit_memory_bytes */ 1024 * 1024);
 
     for (size_t i = 0; i < test_size; ++i) {
-        stage.Insert(MyStruct { i, i / mod_size });
+        phase.Insert(MyStruct { i, i / mod_size });
     }
 
-    stage.FlushAll();
-    stage.CloseAll();
+    phase.FlushAll();
+    phase.CloseAll();
 
     // collect items and check result
     std::vector<MyStruct> result;
@@ -105,21 +105,21 @@ static void TestAddMyStructByHash(Context& ctx) {
     }
 }
 
-TEST(ReducePreStage, BucketAddMyStructByHash) {
+TEST(ReducePrePhase, BucketAddMyStructByHash) {
     api::RunLocalSameThread(
         [](Context& ctx) {
             TestAddMyStructByHash<core::ReduceTableImpl::BUCKET>(ctx);
         });
 }
 
-TEST(ReducePreStage, OldProbingAddMyStructByHash) {
+TEST(ReducePrePhase, OldProbingAddMyStructByHash) {
     api::RunLocalSameThread(
         [](Context& ctx) {
             TestAddMyStructByHash<core::ReduceTableImpl::OLD_PROBING>(ctx);
         });
 }
 
-TEST(ReducePreStage, ProbingAddMyStructByHash) {
+TEST(ReducePrePhase, ProbingAddMyStructByHash) {
     api::RunLocalSameThread(
         [](Context& ctx) {
             TestAddMyStructByHash<core::ReduceTableImpl::PROBING>(ctx);
@@ -154,28 +154,28 @@ static void TestAddMyStructByIndex(Context& ctx) {
     for (size_t i = 0; i < num_partitions; ++i)
         emitters.emplace_back(files[i].GetDynWriter());
 
-    // process items with stage
-    using Stage = core::ReducePreStage<
+    // process items with phase
+    using Phase = core::ReducePrePhase<
               MyStruct, size_t, MyStruct,
               decltype(key_ex), decltype(red_fn),
               /* VolatileKey */ false,
               MyReduceConfig<table_impl>,
               core::ReduceByIndex<size_t> >;
 
-    Stage stage(ctx, 0,
+    Phase phase(ctx, 0,
                 num_partitions,
                 key_ex, red_fn, emitters,
-                typename Stage::ReduceConfig(),
+                typename Phase::ReduceConfig(),
                 core::ReduceByIndex<size_t>(0, mod_size));
 
-    stage.Initialize(/* limit_memory_bytes */ 1024 * 1024);
+    phase.Initialize(/* limit_memory_bytes */ 1024 * 1024);
 
     for (size_t i = 0; i < test_size; ++i) {
-        stage.Insert(MyStruct { i, i / mod_size });
+        phase.Insert(MyStruct { i, i / mod_size });
     }
 
-    stage.FlushAll();
-    stage.CloseAll();
+    phase.FlushAll();
+    phase.CloseAll();
 
     // collect items and check result - they must be in correct order!
     std::vector<MyStruct> result;
@@ -195,21 +195,21 @@ static void TestAddMyStructByIndex(Context& ctx) {
     }
 }
 
-TEST(ReducePreStage, BucketAddMyStructByIndex) {
+TEST(ReducePrePhase, BucketAddMyStructByIndex) {
     api::RunLocalSameThread(
         [](Context& ctx) {
             TestAddMyStructByIndex<core::ReduceTableImpl::BUCKET>(ctx);
         });
 }
 
-TEST(ReducePreStage, OldProbingAddMyStructByIndex) {
+TEST(ReducePrePhase, OldProbingAddMyStructByIndex) {
     api::RunLocalSameThread(
         [](Context& ctx) {
             TestAddMyStructByIndex<core::ReduceTableImpl::OLD_PROBING>(ctx);
         });
 }
 
-TEST(ReducePreStage, ProbingAddMyStructByIndex) {
+TEST(ReducePrePhase, ProbingAddMyStructByIndex) {
     api::RunLocalSameThread(
         [](Context& ctx) {
             TestAddMyStructByIndex<core::ReduceTableImpl::PROBING>(ctx);

@@ -406,7 +406,7 @@ public:
 
     //! \}
 
-    //! \name Flushing Mechanisms to Next Stage
+    //! \name Flushing Mechanisms to Next Stage or Phase
     //! \{
 
     template <typename Emit>

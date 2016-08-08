@@ -32,7 +32,7 @@ enum class ReduceTableImpl {
 
 /*!
  * Configuration class to define operational parameters of reduce hash tables
- * and reduce stages. Most members can be defined static constexpr or be mutable
+ * and reduce phases. Most members can be defined static constexpr or be mutable
  * variables. Not all members need to be used by all implementations.
  */
 class DefaultReduceConfig
@@ -46,7 +46,7 @@ public:
     //! relative to the maximum possible number.
     double bucket_rate_ = 0.6;
 
-    //! select the hash table in the reduce stage by enum
+    //! select the hash table in the reduce phase by enum
     static constexpr ReduceTableImpl table_impl_ = ReduceTableImpl::PROBING;
 
     //! only for growing ProbingHashTable: items initially in a partition.
@@ -61,7 +61,7 @@ public:
     static constexpr bool use_mix_stream_ = true;
 
     //! use an additional thread in ReduceNode and ReduceToIndexNode to process
-    //! the pre and post stages simultaneously.
+    //! the pre and post phases simultaneously.
     static constexpr bool use_post_thread_ = true;
 
     //! \name Accessors
@@ -84,7 +84,7 @@ template <ReduceTableImpl table_impl>
 class DefaultReduceConfigSelect : public DefaultReduceConfig
 {
 public:
-    //! select the hash table in the reduce stage by enum
+    //! select the hash table in the reduce phase by enum
     static constexpr ReduceTableImpl table_impl_ = table_impl;
 };
 
@@ -247,7 +247,7 @@ protected:
     //! Reduce function for reducing two values.
     ReduceFunction reduce_function_;
 
-    //! Emitter object to receive items outputted to next stage.
+    //! Emitter object to receive items outputted to next phase.
     Emitter& emitter_;
 
     //! Index Calculation functions: Hash or ByIndex.
@@ -282,7 +282,7 @@ protected:
     size_t limit_items_per_partition_;
 
     //! Whether to spill overfull partitions to disk or to immediately flush to
-    //! next stage.
+    //! next phase.
     bool immediate_flush_;
 
     //! \}

@@ -162,10 +162,10 @@ private:
 //! only value if not SendPair.
 template <
     typename KeyValuePair, typename ValueType, typename Emitter, bool SendPair>
-class ReducePostStageEmitterSwitch;
+class ReducePostPhaseEmitterSwitch;
 
 template <typename KeyValuePair, typename ValueType, typename Emitter>
-class ReducePostStageEmitterSwitch<
+class ReducePostPhaseEmitterSwitch<
         KeyValuePair, ValueType, Emitter, false>
 {
 public:
@@ -175,7 +175,7 @@ public:
 };
 
 template <typename KeyValuePair, typename ValueType, typename Emitter>
-class ReducePostStageEmitterSwitch<
+class ReducePostPhaseEmitterSwitch<
         KeyValuePair, ValueType, Emitter, true>
 {
 public:

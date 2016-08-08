@@ -11,7 +11,7 @@
 
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/stats_timer.hpp>
-#include <thrill/core/reduce_by_hash_post_stage.hpp>
+#include <thrill/core/reduce_by_hash_post_phase.hpp>
 #include <thrill/data/block_writer.hpp>
 #include <thrill/data/discard_sink.hpp>
 #include <thrill/data/file.hpp>
@@ -59,20 +59,20 @@ void RunBenchmark(api::Context& ctx, core::DefaultReduceConfig& base_config) {
     config.limit_partition_fill_rate_ = base_config.limit_partition_fill_rate_;
     config.bucket_rate_ = base_config.bucket_rate_;
 
-    core::ReduceByHashPostStage<
+    core::ReduceByHashPostPhase<
         Key, Key, Key,
         decltype(key_ex), decltype(red_fn), decltype(emit_fn),
         /* SendPair */ true,
         core::DefaultReduceConfigSelect<table_impl> >
-    stage(ctx, 0, key_ex, red_fn, emit_fn,
+    phase(ctx, 0, key_ex, red_fn, emit_fn,
           config);
 
     common::StatsTimerStart timer;
 
     for (uint64_t i = 0; i < num_items; i++)
-        stage.Insert(dist(rng));
+        phase.Insert(dist(rng));
 
-    stage.PushData(/* consume */ true);
+    phase.PushData(/* consume */ true);
 
     timer.Stop();
 

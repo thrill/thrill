@@ -13,7 +13,7 @@
 #include <thrill/core/reduce_old_probing_hash_table.hpp>
 #include <thrill/core/reduce_probing_hash_table.hpp>
 
-#include <thrill/core/reduce_pre_stage.hpp>
+#include <thrill/core/reduce_pre_phase.hpp>
 
 #include <gtest/gtest.h>
 
