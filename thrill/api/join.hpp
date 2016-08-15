@@ -75,7 +75,7 @@ class JoinNode final : public DOpNode<ValueType>
 
     using Key = typename common::FunctionTraits<KeyExtractor1>::result_type;
 
-    using CounterType = size_t;
+    using CounterType = uint16_t;
 
 public:
     /*!

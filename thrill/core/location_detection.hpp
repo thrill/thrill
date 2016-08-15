@@ -141,7 +141,7 @@ private:
                 //! write counter of all values hashing to occurences[j].first
                 //! in next bitsize bits
                 golomb_code.stream_in(bitsize,
-                                      std::min(((CounterType)1 << bitsize) - 1,
+                                      std::min((CounterType)((1 << bitsize) - 1),
                                                occurences[j].second));
             }
 
@@ -203,7 +203,8 @@ public:
     /*!
      * Flushes the table and detects the most common location for each element.
      */
-    size_t Flush(std::vector<CounterType>& target_processors) {
+    size_t Flush(std::vector<size_t>& target_processors) {
+
         // golomb code parameters
         size_t upper_bound_uniques = context_.net.AllReduce(table_.num_items());
         double fpr_parameter = 8;
@@ -280,7 +281,7 @@ public:
 
         while (!finished) {
             size_t src_max = 0;
-            size_t max = 0;
+            CounterType max = 0;
             HashResult next_hr = next.first.first;
             while (next.first.first == next_hr && !finished) {
                 if (next.first.second > max) {
