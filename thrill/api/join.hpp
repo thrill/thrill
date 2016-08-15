@@ -1,3 +1,4 @@
+
 /*******************************************************************************
  * thrill/api/join.hpp
  *
@@ -76,6 +77,7 @@ class JoinNode final : public DOpNode<ValueType>
     using Key = typename common::FunctionTraits<KeyExtractor1>::result_type;
 
     using CounterType = uint16_t;
+    using CounterLocation = std::pair<CounterType, uint8_t>;
 
 public:
     /*!
@@ -100,7 +102,12 @@ public:
           pre_file1_(context_.GetFilePtr(this)),
           pre_file2_(context_.GetFilePtr(this)),
           location_detection_(parent1.ctx(), Super::id(),
-                              std::plus<CounterType>(), hash_function),
+                              [](const CounterLocation& cl1,
+                                 const CounterLocation& cl2) {
+                                  return std::make_pair(cl1.first + cl2.first,
+                                                        cl1.second |
+                                                        cl2.second);
+                              }, hash_function),
           location_detection_initialized_(false)
     {
 
@@ -129,7 +136,9 @@ public:
                 size_t target_processor =
                     target_processors[hash_function_(key_extractor1_(in1))
                                       % max_hash];
-                hash_writers1_[target_processor].Put(in1);
+                if (target_processor < context_.num_workers()) {
+                    hash_writers1_[target_processor].Put(in1);
+                }
             }
 
             auto file2reader = pre_file2_->GetConsumeReader();
@@ -138,7 +147,9 @@ public:
                 size_t target_processor =
                     target_processors[hash_function_(key_extractor2_(in2))
                                       % max_hash];
-                hash_writers2_[target_processor].Put(in2);
+                if (target_processor < context_.num_workers()) {
+                    hash_writers2_[target_processor].Put(in2);
+                }
             }
         }
 
@@ -280,9 +291,11 @@ private:
     data::FilePtr pre_file2_;
     data::File::Writer pre_writer2_;
 
-    core::LocationDetection<ValueType, Key, UseLocationDetection, CounterType,
+    core::LocationDetection<ValueType, Key, UseLocationDetection, CounterLocation,
                             HashFunction, core::ReduceByHash<Key>,
-                            std::plus<CounterType> > location_detection_;
+                            std::function<CounterLocation(CounterLocation,
+                                                          CounterLocation)>>
+        location_detection_;
     bool location_detection_initialized_;
 
     //! Receive elements from other workers, create pre-sorted files
@@ -305,7 +318,7 @@ private:
     void PreOp1(const InputTypeFirst& input) {
         if (UseLocationDetection) {
             pre_writer1_.PutNoSelfVerify(input);
-            location_detection_.Insert(key_extractor1_(input));
+            location_detection_.Insert(key_extractor1_(input), 1);
         }
         else {
             hash_writers1_[
@@ -318,7 +331,7 @@ private:
     void PreOp2(const InputTypeSecond& input) {
         if (UseLocationDetection) {
             pre_writer2_.PutNoSelfVerify(input);
-            location_detection_.Insert(key_extractor2_(input));
+            location_detection_.Insert(key_extractor2_(input), 2);
         }
         else {
             hash_writers2_[

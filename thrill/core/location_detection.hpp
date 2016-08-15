@@ -36,7 +36,7 @@ namespace thrill {
 struct hash {
 
     inline size_t operator () (const size_t& n) const {
-        size_t hash = _mm_crc32_u32((size_t)28475421, n);
+         size_t hash = _mm_crc32_u32((size_t)28475421, n);
         hash = hash << 32;
         hash += _mm_crc32_u32((size_t)52150599, n);
         return hash;
@@ -53,19 +53,21 @@ namespace core {
  * \tparam KeyCounterPair Type of key in table and occurence counter type
  * \tparam HashFunction Hash function for golomb coder
  */
-template <typename KeyCounterPair, typename HashFunction>
+template <typename Key, typename CounterType,
+          typename LocationType, typename HashFunction>
 class ToVectorEmitter
 {
 public:
     using HashResult = typename common::FunctionTraits<HashFunction>::result_type;
-    using HashCounterPair = std::pair<HashResult, typename KeyCounterPair::second_type>;
+    using HashCounterPair = std::pair<HashResult, CounterType>;
+    using TableType = std::pair<Key, std::pair<CounterType, LocationType>>;
 
     ToVectorEmitter(HashFunction hash_function,
                     std::vector<HashCounterPair>& vec)
         : vec_(vec),
           hash_function_(hash_function) { }
 
-    static void Put(const KeyCounterPair& /*p*/,
+    static void Put(const TableType& /*p*/,
                     data::DynBlockWriter& /*writer*/) {
         /* Should not be called */
         assert(0);
@@ -75,9 +77,11 @@ public:
         modulo_ = modulo;
     }
 
-    void Emit(const size_t& /*partition_id*/, const KeyCounterPair& p) {
+    void Emit(const size_t& /*partition_id*/, const TableType& p) {
         assert(modulo_ > 1);
-        vec_.emplace_back(hash_function_(p.first) % modulo_, p.second);
+        if (p.second.second == 3) {
+            vec_.emplace_back(hash_function_(p.first) % modulo_, p.second.first);
+        }
     }
 
     std::vector<HashCounterPair>& vec_;
@@ -86,12 +90,13 @@ public:
 };
 
 template <typename ValueType, typename Key, bool UseLocationDetection,
-          typename CounterType, typename HashFunction,
+          typename CounterLocation, typename HashFunction,
           typename IndexFunction, typename AddFunction>
 class LocationDetection
 {
     static constexpr bool debug = false;
 
+    using CounterType = typename CounterLocation::first_type;
     using HashResult = typename common::FunctionTraits<HashFunction>::result_type;
     using HashCounterPair = std::pair<HashResult, CounterType>;
     using KeyCounterPair = std::pair<Key, CounterType>;
@@ -155,15 +160,18 @@ private:
     }
 
 public:
+
     using ReduceConfig = DefaultReduceConfig;
-    using Emitter = ToVectorEmitter<KeyCounterPair, HashFunction>;
+    using Emitter = ToVectorEmitter<Key, CounterType,
+                                    typename CounterLocation::second_type,
+                                    HashFunction>;
     using Table = typename ReduceTableSelect<
-              ReduceConfig::table_impl_, ValueType, Key, CounterType,
-              std::function<void(void)>, AddFunction, Emitter,
-              false, ReduceConfig, IndexFunction>::type;
+        ReduceConfig::table_impl_, ValueType, Key, CounterLocation,
+        std::function<void()>, AddFunction, Emitter,
+        false, ReduceConfig, IndexFunction>::type;
 
     // we don't need the key_extractor function here
-    std::function<void()> void_fn = []() { };
+    std::function<void()> void_fn = []() {};
 
     LocationDetection(Context& ctx, size_t dia_id, AddFunction add_function,
                       const HashFunction& hash_function = HashFunction(),
@@ -196,8 +204,8 @@ public:
      *
      * \param key Key to insert.
      */
-    void Insert(const Key& key) {
-        table_.Insert(std::make_pair(key, (CounterType)1));
+    void Insert(const Key& key, const uint8_t& dia) {
+        table_.Insert(std::make_pair(key, std::make_pair((CounterType) 1, dia)));
     }
 
     /*!
@@ -319,7 +327,7 @@ public:
 
         auto duplicates_reader = duplicates_stream->GetCatReader(/* consume */ true);
 
-        target_processors.resize(max_hash);
+        target_processors.resize(max_hash, context_.num_workers());
 
         while (duplicates_reader.HasNext()) {
 
