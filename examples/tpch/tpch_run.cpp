@@ -41,6 +41,7 @@ using Joined = std::tuple<size_t, size_t, size_t, size_t, size_t, double,
                           std::string, std::string, std::string, size_t, size_t,
                           char, double, time_t, std::string, std::string, bool,
                           std::string>;
+
 //from: https://gmbabar.wordpress.com/2010/12/01/mktime-slow-use-custom-function/, removed hours as we dont need that
 time_t time_to_epoch ( const struct tm *ltm) {
    const int mon_days [] =
@@ -66,14 +67,12 @@ static size_t JoinTPCH4(
     const std::vector<std::string>& input_path) {
     ctx.enable_consume();
     common::StatsTimerStopped sts;
+    std::vector<std::string> splitted;
     common::StatsTimerStopped notime;
     std::string s_lineitems = input_path[0] + std::string("lineitem.tbl*");
-    std::vector<std::string> splitted;
     auto lineitems = ReadLines(ctx, s_lineitems).Map(
-        [&sts, &notime, &splitted](const std::string& input) {
-            notime.Start();
+        [&splitted](const std::string& input) {
             char* end;
-
             common::SplitRef(input, '|', splitted);
             size_t orderkey = std::strtoul(splitted[0].c_str(), &end, 10);
             size_t partkey = std::strtoul(splitted[1].c_str(), &end, 10);
@@ -85,8 +84,6 @@ static size_t JoinTPCH4(
             double tax = std::strtod(splitted[7].c_str(), &end);
             char returnflag = splitted[8][0];
             char linestatus = splitted[9][0];
-
-            notime.Stop();
 
             //make dates
             struct tm time_ship;
@@ -111,13 +108,9 @@ static size_t JoinTPCH4(
             time_rcpt.tm_mday = std::strtoul(splitted[12].substr(8).c_str(),
                                               &end, 10);
 
-            sts.Start();
-
             time_t ship = time_to_epoch(&time_ship);
             time_t commit = time_to_epoch(&time_cmt);
             time_t receipt = time_to_epoch(&time_rcpt);
-
-            sts.Stop();
 
             return std::make_tuple(orderkey, partkey, suppkey, linenumber,
                                    quantity, extendedprice, discount, tax,
@@ -127,7 +120,7 @@ static size_t JoinTPCH4(
 
         }).Filter([](const LineItem& li) {
                 return std::get<11>(li) < std::get<12>(li);
-            });
+                });
 
     struct tm starttimestr;
     starttimestr.tm_year = 92;
@@ -143,11 +136,10 @@ static size_t JoinTPCH4(
     common::StatsTimerStopped sts2;
     std::string s_orders = input_path[0] + std::string("orders.tbl*");
     auto orders = ReadLines(ctx, s_orders).Map(
-        [&sts2](const std::string& input) {
+        [&splitted](const std::string& input) {
 
-            sts2.Start();
             char* end;
-            std::vector<std::string> splitted = common::Split(input, '|');
+            common::SplitRef(input, '|', splitted);
             size_t orderkey = std::strtoul(splitted[0].c_str(), &end, 10);
             size_t custkey = std::strtoul(splitted[1].c_str(), &end, 10);
             char orderstatus = splitted[2][0];
@@ -156,16 +148,14 @@ static size_t JoinTPCH4(
 
             struct tm time_order;
             time_order.tm_year = std::strtoul(splitted[4].substr(0,4).c_str(),
-                                               &end, 10) - 1900;
+                                              &end, 10) - 1900;
             time_order.tm_mon = std::strtoul(splitted[4].substr(5,2).c_str(),
-                                                &end, 10);
+                                             &end, 10);
             time_order.tm_mday = std::strtoul(splitted[4].substr(8).c_str(),
                                               &end, 10);
             time_t order = time_to_epoch(&time_order);
 
             bool priority = (splitted[7][0] != '0');
-
-            sts2.Stop();
 
             return std::make_tuple(orderkey, custkey, orderstatus, totalprice,
                                    order, splitted[5], splitted[6],
@@ -187,12 +177,9 @@ static size_t JoinTPCH4(
                                           },
                                           [](const LineItem& li, const Order& o) {
                                               return std::tuple_cat(li, o);
-                                          });
+                                          }).Size();
 
-    size_t size = joined.Size();
-
-    LOG1 << sts.Milliseconds() << " to " << notime.Milliseconds() << " " << sts2.Milliseconds();
-    return size;
+    return joined;
 }
 
 int main(int argc, char* argv[]) {
