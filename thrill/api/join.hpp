@@ -340,7 +340,7 @@ private:
             pre_writer2_.PutNoSelfVerify(input);
             location_detection_.Insert(key_extractor2_(input),
                                        std::make_pair((CounterType) 1,
-                                                      (DIAIdxType) 1));
+                                                      (DIAIdxType) 2));
         }
         else {
             hash_writers2_[
