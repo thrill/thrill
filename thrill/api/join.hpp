@@ -77,7 +77,9 @@ class JoinNode final : public DOpNode<ValueType>
     using Key = typename common::FunctionTraits<KeyExtractor1>::result_type;
 
     using CounterType = uint16_t;
-    using CounterLocation = std::pair<CounterType, uint8_t>;
+    using DIAIdxType = uint8_t;
+    using CounterLocation = std::pair<CounterType, DIAIdxType>;
+
 
 public:
     /*!
@@ -291,10 +293,13 @@ private:
     data::FilePtr pre_file2_;
     data::File::Writer pre_writer2_;
 
-    core::LocationDetection<ValueType, Key, UseLocationDetection, CounterLocation,
-                            HashFunction, core::ReduceByHash<Key>,
+
+
+    core::LocationDetection<ValueType, Key, UseLocationDetection, CounterType,
+                            DIAIdxType, HashFunction, core::ReduceByHash<Key>,
                             std::function<CounterLocation(CounterLocation,
-                                                          CounterLocation)>>
+                                                          CounterLocation)>,
+                            true>
         location_detection_;
     bool location_detection_initialized_;
 
@@ -318,7 +323,9 @@ private:
     void PreOp1(const InputTypeFirst& input) {
         if (UseLocationDetection) {
             pre_writer1_.PutNoSelfVerify(input);
-            location_detection_.Insert(key_extractor1_(input), 1);
+            location_detection_.Insert(key_extractor1_(input),
+                                       std::make_pair((CounterType) 1,
+                                                      (DIAIdxType) 1));
         }
         else {
             hash_writers1_[
@@ -331,7 +338,9 @@ private:
     void PreOp2(const InputTypeSecond& input) {
         if (UseLocationDetection) {
             pre_writer2_.PutNoSelfVerify(input);
-            location_detection_.Insert(key_extractor2_(input), 2);
+            location_detection_.Insert(key_extractor2_(input),
+                                       std::make_pair((CounterType) 1,
+                                                      (DIAIdxType) 1));
         }
         else {
             hash_writers2_[

@@ -105,7 +105,7 @@ public:
     void PreOp(const ValueIn& v) {
         if (UseLocationDetection) {
             pre_writer_.Put(v);
-            location_detection_.Insert(key_extractor_(v));
+            location_detection_.Insert(key_extractor_(v), (CounterType) 1);
         }
         else {
             const Key k = key_extractor_(v);
@@ -250,9 +250,9 @@ private:
     GroupFunction groupby_function_;
     HashFunction hash_function_;
 
-    core::LocationDetection<ValueType, Key, UseLocationDetection, CounterType,
+    core::LocationDetection<ValueType, Key, UseLocationDetection, CounterType, uint8_t,
                             HashFunction, core::ReduceByHash<Key>,
-                            std::plus<CounterType> > location_detection_;
+                            std::plus<CounterType>, false> location_detection_;
 
     data::CatStreamPtr stream_ { context_.GetNewCatStream(this) };
     std::vector<data::Stream::Writer> emitter_;

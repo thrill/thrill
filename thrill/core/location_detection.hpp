@@ -47,6 +47,10 @@ struct hash {
 namespace thrill {
 namespace core {
 
+template <bool, typename Key, typename CounterType,
+          typename LocationType, typename HashFunction>
+class ToVectorEmitter;
+
 /*!
  * Emitter for a ReduceTable, which emits all of its data into a vector of hash-counter-pairs.
  *
@@ -55,7 +59,7 @@ namespace core {
  */
 template <typename Key, typename CounterType,
           typename LocationType, typename HashFunction>
-class ToVectorEmitter
+class ToVectorEmitter<true, Key, CounterType, LocationType, HashFunction>
 {
 public:
     using HashResult = typename common::FunctionTraits<HashFunction>::result_type;
@@ -89,17 +93,57 @@ public:
     HashFunction hash_function_;
 };
 
+/*!
+ * Emitter for a ReduceTable, which emits all of its data into a vector of hash-counter-pairs.
+ *
+ * \tparam KeyCounterPair Type of key in table and occurence counter type
+ * \tparam HashFunction Hash function for golomb coder
+ */
+template <typename Key, typename CounterType,
+          typename LocationType, typename HashFunction>
+class ToVectorEmitter<false, Key, CounterType, LocationType, HashFunction>
+{
+public:
+    using HashResult = typename common::FunctionTraits<HashFunction>::result_type;
+    using HashCounterPair = std::pair<HashResult, CounterType>;
+    using TableType = std::pair<Key, CounterType>;
+
+    ToVectorEmitter(HashFunction hash_function,
+                    std::vector<HashCounterPair>& vec)
+        : vec_(vec),
+          hash_function_(hash_function) { }
+
+    static void Put(const TableType& /*p*/,
+                    data::DynBlockWriter& /*writer*/) {
+        /* Should not be called */
+        assert(0);
+    }
+
+    void SetModulo(size_t modulo) {
+        modulo_ = modulo;
+    }
+
+    void Emit(const size_t& /*partition_id*/, const TableType& p) {
+        assert(modulo_ > 1);
+        vec_.emplace_back(hash_function_(p.first) % modulo_, p.second);
+    }
+
+    std::vector<HashCounterPair>& vec_;
+    size_t modulo_ = 1;
+    HashFunction hash_function_;
+};
+
 template <typename ValueType, typename Key, bool UseLocationDetection,
-          typename CounterLocation, typename HashFunction,
-          typename IndexFunction, typename AddFunction>
+          typename CounterType, typename DIAIdxType, typename HashFunction,
+          typename IndexFunction, typename AddFunction, bool Join>
 class LocationDetection
 {
     static constexpr bool debug = false;
 
-    using CounterType = typename CounterLocation::first_type;
     using HashResult = typename common::FunctionTraits<HashFunction>::result_type;
     using HashCounterPair = std::pair<HashResult, CounterType>;
     using KeyCounterPair = std::pair<Key, CounterType>;
+    using TableType = typename common::FunctionTraits<AddFunction>::result_type;
 
 private:
     void WriteOccurenceCounts(data::CatStreamPtr stream_pointer,
@@ -162,11 +206,11 @@ private:
 public:
 
     using ReduceConfig = DefaultReduceConfig;
-    using Emitter = ToVectorEmitter<Key, CounterType,
-                                    typename CounterLocation::second_type,
+    using Emitter = ToVectorEmitter<Join, Key, CounterType,
+                                    DIAIdxType,
                                     HashFunction>;
     using Table = typename ReduceTableSelect<
-        ReduceConfig::table_impl_, ValueType, Key, CounterLocation,
+        ReduceConfig::table_impl_, ValueType, Key, TableType,
         std::function<void()>, AddFunction, Emitter,
         false, ReduceConfig, IndexFunction>::type;
 
@@ -204,10 +248,9 @@ public:
      *
      * \param key Key to insert.
      */
-    void Insert(const Key& key, const uint8_t& dia) {
-        table_.Insert(std::make_pair(key, std::make_pair((CounterType) 1, dia)));
+    void Insert(const Key& key, const TableType& element) {
+        table_.Insert(std::make_pair(key, element));
     }
-
     /*!
      * Flushes the table and detects the most common location for each element.
      */
