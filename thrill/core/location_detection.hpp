@@ -254,7 +254,7 @@ public:
     /*!
      * Flushes the table and detects the most common location for each element.
      */
-    size_t Flush(std::vector<size_t>& target_processors) {
+    size_t Flush(std::unordered_map<size_t, size_t>& target_processors) {
 
         // golomb code parameters
         size_t upper_bound_uniques = context_.net.AllReduce(table_.num_items());
@@ -368,9 +368,11 @@ public:
             duplicate_writers[i].Close();
         }
 
+        size_t uniques = context_.net.AllReduce(num_elements);
+
         auto duplicates_reader = duplicates_stream->GetCatReader(/* consume */ true);
 
-        target_processors.resize(max_hash, context_.num_workers());
+        target_processors.reserve(uniques);
 
         while (duplicates_reader.HasNext()) {
 

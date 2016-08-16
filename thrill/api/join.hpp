@@ -130,27 +130,27 @@ public:
     void Execute() final {
 
         if (UseLocationDetection) {
-            std::vector<size_t> target_processors;
+            std::unordered_map<size_t, size_t> target_processors;
             size_t max_hash = location_detection_.Flush(target_processors);
             auto file1reader = pre_file1_->GetConsumeReader();
             while (file1reader.HasNext()) {
                 InputTypeFirst in1 = file1reader.template NextNoSelfVerify<InputTypeFirst>();
-                size_t target_processor =
-                    target_processors[hash_function_(key_extractor1_(in1))
-                                      % max_hash];
-                if (target_processor < context_.num_workers()) {
-                    hash_writers1_[target_processor].Put(in1);
+                auto target_processor =
+                    target_processors.find(hash_function_(key_extractor1_(in1))
+                                           % max_hash);
+                if (target_processor != target_processors.end()) {
+                    hash_writers1_[target_processor->second].Put(in1);
                 }
             }
 
             auto file2reader = pre_file2_->GetConsumeReader();
             while (file2reader.HasNext()) {
                 InputTypeSecond in2 = file2reader.template NextNoSelfVerify<InputTypeSecond>();
-                size_t target_processor =
-                    target_processors[hash_function_(key_extractor2_(in2))
-                                      % max_hash];
-                if (target_processor < context_.num_workers()) {
-                    hash_writers2_[target_processor].Put(in2);
+                auto target_processor =
+                    target_processors.find(hash_function_(key_extractor2_(in2))
+                                           % max_hash);
+                if (target_processor != target_processors.end()) {
+                    hash_writers2_[target_processor->second].Put(in2);
                 }
             }
         }
