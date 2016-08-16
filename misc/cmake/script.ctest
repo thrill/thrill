@@ -30,7 +30,7 @@ ctest_test(RETURN_VALUE retval)
 message(STATUS "CTEST_SITE: ${CTEST_SITE}")
 
 if(CTEST_SITE MATCHES "^travis-(thrill|bingmann)/")
-  ctest_submit()
+  # ctest_submit()
 endif()
 
 if(NOT ${retval} EQUAL 0)
