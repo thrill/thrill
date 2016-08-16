@@ -177,7 +177,7 @@ static size_t JoinTPCH4(
                                           },
                                           [](const LineItem& li, const Order& o) {
                                               return std::tuple_cat(li, o);
-                                          }).Size();
+                                          }, thrill::hash()).Size();
 
     return joined;
 }
