@@ -105,7 +105,7 @@ public:
     void PreOp(const ValueIn& v) {
         if (UseLocationDetection) {
             pre_writer_.Put(v);
-            location_detection_.Insert(key_extractor_(v), (CounterType) 1);
+            location_detection_.Insert(key_extractor_(v),(CounterType) 1);
         }
         else {
             const Key k = key_extractor_(v);

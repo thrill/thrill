@@ -86,11 +86,11 @@ TEST(Join, PairsSameKey) {
                                      return std::make_pair(1, e * e);
                                  }, n);
 
-            auto key_ex = [](intpair input) {
+            auto key_ex = [](const intpair& input) {
                               return input.first;
                           };
 
-            auto join_fn = [](intpair input1, intpair input2) {
+            auto join_fn = [](const intpair& input1, const intpair& input2) {
                                return std::make_pair(input1.second,
                                                      input2.second);
                            };
@@ -135,11 +135,11 @@ TEST(Join, PairsSameKeyDiffSizes) {
                                      return std::make_pair(1, e * e);
                                  }, n);
 
-            auto key_ex = [](intpair input) {
+            auto key_ex = [](const intpair& input) {
                               return input.first;
                           };
 
-            auto join_fn = [](intpair input1, intpair input2) {
+            auto join_fn = [](const intpair& input1, const intpair& input2) {
                                return std::make_pair(input1.second,
                                                      input2.second);
                            };

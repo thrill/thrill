@@ -29,8 +29,7 @@ public:
                      size_t b,
                      size_t bitsize)
         : golomb_code(raw_data,
-                      common::IntegerDivRoundUp(data_size,
-                                                sizeof(size_t)),
+                      data_size,
                       b, num_elements),
           num_elements_(num_elements),
           returned_elements_(0),
@@ -48,8 +47,9 @@ public:
         size_t new_element = golomb_code.golomb_out() + delta_;
         delta_ = new_element;
         CounterType ctr = golomb_code.stream_out(bitsize_);
+        uint8_t idx = golomb_code.stream_out(2);
         returned_elements_++;
-        return std::make_pair(new_element, ctr);
+        return std::make_pair(new_element, std::make_pair(ctr, idx));
     }
 
 private:
@@ -68,8 +68,7 @@ public:
                  size_t num_elements,
                  size_t b)
         : golomb_code(raw_data,
-                      common::IntegerDivRoundUp(data_size,
-                                                sizeof(size_t)),
+                      data_size,
                       b, num_elements),
           num_elements_(num_elements),
           returned_elements_(0),

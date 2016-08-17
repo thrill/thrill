@@ -424,7 +424,6 @@ public:
             bits_ += length;
             buffer_ <<= length;
         }
-
         return res;
     }
 
@@ -556,8 +555,9 @@ public:
             }
             pos_ = 1;
             bits_ = 0;
-            if (num_elements_ > 1)
+            if (bitset_size_base_ > 1) {
                 buffer_ = data_[1];
+            }
 
             if (debug && !bitset_size_bits_) {
                 inserted_elements_.push_back(data_[0]);

@@ -47,69 +47,30 @@ struct hash {
 namespace thrill {
 namespace core {
 
-template <bool, typename Key, typename CounterType,
-          typename LocationType, typename HashFunction>
+
+/*!
+ * Emitter for a ReduceTable, which emits all of its data into a vector of hash-counter-pairs.
+ *
+ * \tparam KeyCounterPair Type of key in table and occurence counter type
+ * \tparam HashFunction Hash function for golomb coder
+ */
+
+
+template <bool Join, typename Key, typename CounterType,
+          typename LocationType, typename HashFunction, typename DataType>
 class ToVectorEmitter;
 
-/*!
- * Emitter for a ReduceTable, which emits all of its data into a vector of hash-counter-pairs.
- *
- * \tparam KeyCounterPair Type of key in table and occurence counter type
- * \tparam HashFunction Hash function for golomb coder
- */
 template <typename Key, typename CounterType,
-          typename LocationType, typename HashFunction>
-class ToVectorEmitter<true, Key, CounterType, LocationType, HashFunction>
+          typename LocationType, typename HashFunction, typename DataType>
+class ToVectorEmitter<true, Key, CounterType, LocationType, HashFunction, DataType>
 {
 public:
     using HashResult = typename common::FunctionTraits<HashFunction>::result_type;
-    using HashCounterPair = std::pair<HashResult, CounterType>;
-    using TableType = std::pair<Key, std::pair<CounterType, LocationType>>;
+    using ResultTablePair = std::pair<HashResult, DataType>;
+    using TableType = std::pair<Key, DataType>;
 
     ToVectorEmitter(HashFunction hash_function,
-                    std::vector<HashCounterPair>& vec)
-        : vec_(vec),
-          hash_function_(hash_function) { }
-
-    static void Put(const TableType& /*p*/,
-                    data::DynBlockWriter& /*writer*/) {
-        /* Should not be called */
-        assert(0);
-    }
-
-    void SetModulo(size_t modulo) {
-        modulo_ = modulo;
-    }
-
-    void Emit(const size_t& /*partition_id*/, const TableType& p) {
-        assert(modulo_ > 1);
-        if (p.second.second == 3) {
-            vec_.emplace_back(hash_function_(p.first) % modulo_, p.second.first);
-        }
-    }
-
-    std::vector<HashCounterPair>& vec_;
-    size_t modulo_ = 1;
-    HashFunction hash_function_;
-};
-
-/*!
- * Emitter for a ReduceTable, which emits all of its data into a vector of hash-counter-pairs.
- *
- * \tparam KeyCounterPair Type of key in table and occurence counter type
- * \tparam HashFunction Hash function for golomb coder
- */
-template <typename Key, typename CounterType,
-          typename LocationType, typename HashFunction>
-class ToVectorEmitter<false, Key, CounterType, LocationType, HashFunction>
-{
-public:
-    using HashResult = typename common::FunctionTraits<HashFunction>::result_type;
-    using HashCounterPair = std::pair<HashResult, CounterType>;
-    using TableType = std::pair<Key, CounterType>;
-
-    ToVectorEmitter(HashFunction hash_function,
-                    std::vector<HashCounterPair>& vec)
+                    std::vector<ResultTablePair>& vec)
         : vec_(vec),
           hash_function_(hash_function) { }
 
@@ -128,7 +89,43 @@ public:
         vec_.emplace_back(hash_function_(p.first) % modulo_, p.second);
     }
 
-    std::vector<HashCounterPair>& vec_;
+    std::vector<ResultTablePair>& vec_;
+    size_t modulo_ = 1;
+    HashFunction hash_function_;
+};
+
+template <typename Key, typename CounterType,
+          typename LocationType, typename HashFunction, typename DataType>
+class ToVectorEmitter<false, Key, CounterType, LocationType, HashFunction, DataType>
+{
+public:
+    using HashResult = typename common::FunctionTraits<HashFunction>::result_type;
+    using CtrIdxType = std::pair<CounterType, LocationType>;
+    using ResultTablePair = std::pair<HashResult, CtrIdxType>;
+    using TableType = std::pair<Key, DataType>;
+
+    ToVectorEmitter(HashFunction hash_function,
+                    std::vector<ResultTablePair>& vec)
+        : vec_(vec),
+          hash_function_(hash_function) { }
+
+    static void Put(const TableType& /*p*/,
+                    data::DynBlockWriter& /*writer*/) {
+        /* Should not be called */
+        assert(0);
+    }
+
+    void SetModulo(size_t modulo) {
+        modulo_ = modulo;
+    }
+
+    void Emit(const size_t& /*partition_id*/, const TableType& p) {
+        assert(modulo_ > 1);
+        vec_.emplace_back(hash_function_(p.first) % modulo_,
+                          std::make_pair(p.second, (uint8_t) 0));
+    }
+
+    std::vector<ResultTablePair>& vec_;
     size_t modulo_ = 1;
     HashFunction hash_function_;
 };
@@ -141,13 +138,15 @@ class LocationDetection
     static constexpr bool debug = false;
 
     using HashResult = typename common::FunctionTraits<HashFunction>::result_type;
-    using HashCounterPair = std::pair<HashResult, CounterType>;
     using KeyCounterPair = std::pair<Key, CounterType>;
     using TableType = typename common::FunctionTraits<AddFunction>::result_type;
+    using CtrIdxType = std::pair<CounterType, DIAIdxType>;
+    using ResultTablePair = std::pair<HashResult, CtrIdxType>;
+    using HashCounterPair = std::pair<HashResult, CounterType>;
 
 private:
     void WriteOccurenceCounts(data::CatStreamPtr stream_pointer,
-                              const std::vector<HashCounterPair>& occurences,
+                              const std::vector<ResultTablePair>& occurences,
                               size_t b,
                               size_t space_bound,
                               size_t num_workers,
@@ -159,7 +158,8 @@ private:
         // length of counter in bits
         size_t bitsize = 8;
         // total space bound of golomb code
-        size_t space_bound_with_counters = space_bound + occurences.size() * bitsize;
+        size_t space_bound_with_counters = space_bound + occurences.size() *
+            (bitsize + 2);
 
         size_t j = 0;
         for (size_t i = 0; i < num_workers; ++i) {
@@ -172,26 +172,42 @@ private:
             size_t delta = 0;
             size_t num_elements = 0;
 
+            uint8_t dia_indices;
             for (                        /*j is already set from previous workers*/
                 ; j < occurences.size() && occurences[j].first < range_i.end; ++j) {
                 //! Send hash deltas to make the encoded bitset smaller.
-                golomb_code.golomb_in(occurences[j].first - delta);
-                delta = occurences[j].first;
                 num_elements++;
 
+                if (Join) {
+                    dia_indices = 0;
+                    dia_indices |= occurences[j].second.second;
+                }
+
+
                 // accumulate counters hashing to same value
-                size_t acc_occurences = occurences[j].second;
+                size_t acc_occurences = occurences[j].second.first;
                 size_t k = j + 1;
                 while (k < occurences.size() && occurences[k].first == occurences[j].first) {
-                    acc_occurences += occurences[k].second;
+                    acc_occurences += occurences[k].second.first;
+                    if (Join) {
+                        dia_indices |= occurences[k].second.second;
+                    }
                     k++;
                 }
-                j = k - 1;
                 //! write counter of all values hashing to occurences[j].first
                 //! in next bitsize bits
+                golomb_code.golomb_in(occurences[j].first - delta);
+                delta = occurences[j].first;
                 golomb_code.stream_in(bitsize,
                                       std::min((CounterType)((1 << bitsize) - 1),
-                                               occurences[j].second));
+                                               occurences[j].second.first));
+                if (Join) {
+                    golomb_code.stream_in(2, dia_indices);
+                } else {
+                    golomb_code.stream_in(2, 3);
+                }
+
+                j = k - 1;
             }
 
             //! Send raw data through data stream.
@@ -207,8 +223,7 @@ public:
 
     using ReduceConfig = DefaultReduceConfig;
     using Emitter = ToVectorEmitter<Join, Key, CounterType,
-                                    DIAIdxType,
-                                    HashFunction>;
+                                    DIAIdxType, HashFunction, TableType>;
     using Table = typename ReduceTableSelect<
         ReduceConfig::table_impl_, ValueType, Key, TableType,
         std::function<void()>, AddFunction, Emitter,
@@ -263,13 +278,17 @@ public:
         size_t upper_space_bound = upper_bound_uniques * (2 + std::log2(fpr_parameter));
         size_t max_hash = upper_bound_uniques * fpr_parameter;
 
+
         emit_.SetModulo(max_hash);
 
         data_.reserve(table_.num_items());
 
         table_.FlushAll();
 
-        std::sort(data_.begin(), data_.end());
+        std::sort(data_.begin(), data_.end(), [](const ResultTablePair& hcp1,
+                                                 const ResultTablePair& hcp2) {
+                      return hcp1.first < hcp2.first;
+                  });
 
         data::CatStreamPtr golomb_data_stream = context_.GetNewCatStream(dia_id_);
 
@@ -300,15 +319,16 @@ public:
             total_elements += num_elements;
 
             g_readers.push_back(
-                GolombPairReader<CounterType>(data_size,
+                GolombPairReader<CounterType>(data_size + 1,
                                               data_pointers.back().get(),
                                               num_elements, b, 8));
         }
 
-        auto puller = make_multiway_merge_tree<HashCounterPair>
+
+        auto puller = make_multiway_merge_tree<ResultTablePair>
                           (g_readers.begin(), g_readers.end(),
-                          [](const HashCounterPair& hcp1,
-                             const HashCounterPair& hcp2) {
+                          [](const ResultTablePair& hcp1,
+                             const ResultTablePair& hcp2) {
                               return hcp1.first < hcp2.first;
                           });
 
@@ -320,7 +340,7 @@ public:
         core::DynamicBitset<size_t> location_bitset(
             space_bound_with_processors, false, b);
 
-        std::pair<HashCounterPair, unsigned int> next;
+        std::pair<ResultTablePair, unsigned int> next;
 
         bool finished = !puller.HasNext();
 
@@ -331,13 +351,18 @@ public:
         size_t num_elements = 0;
 
         while (!finished) {
+            uint8_t idx = 0;
             size_t src_max = 0;
             CounterType max = 0;
             HashResult next_hr = next.first.first;
             while (next.first.first == next_hr && !finished) {
-                if (next.first.second > max) {
+                idx |= next.first.second.second;
+                assert(next.first.second.second == 1 ||
+                       next.first.second.second == 2 ||
+                       next.first.second.second == 3);
+                if (next.first.second.first > max) {
                     src_max = next.second;
-                    max = next.first.second;
+                    max = next.first.second.first;
                 }
                 if (puller.HasNext()) {
                     next = puller.NextWithSource();
@@ -347,10 +372,12 @@ public:
                 }
             }
 
-            num_elements++;
-            location_bitset.golomb_in(next_hr - delta);
-            delta = next_hr;
-            location_bitset.stream_in(processor_bitsize, src_max);
+            if (idx == 3) {
+                num_elements++;
+                location_bitset.golomb_in(next_hr - delta);
+                delta = next_hr;
+                location_bitset.stream_in(processor_bitsize, src_max);
+            }
         }
 
         data::CatStreamPtr duplicates_stream = context_.GetNewCatStream(dia_id_);
@@ -369,6 +396,11 @@ public:
         }
 
         size_t uniques = context_.net.AllReduce(num_elements);
+
+
+        if (context_.my_rank() == 0) {
+            LOG1 << "uniques: " << uniques;
+        }
 
         auto duplicates_reader = duplicates_stream->GetCatReader(/* consume */ true);
 
@@ -405,7 +437,7 @@ public:
     }
 
     // Target vector for vector emitter
-    std::vector<HashCounterPair> data_;
+    std::vector<ResultTablePair> data_;
     // Emitter to vector
     Emitter emit_;
     // Thrill context
