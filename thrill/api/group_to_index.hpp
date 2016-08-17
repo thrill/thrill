@@ -124,11 +124,11 @@ public:
         }
         else {
             // otherwise sort all runs using multiway merge
-            std::vector<data::File::ConsumeReader> seq;
+            std::vector<data::File::Reader> seq;
             seq.reserve(num_runs);
 
             for (size_t t = 0; t < num_runs; ++t)
-                seq.emplace_back(files_[t].GetConsumeReader());
+                seq.emplace_back(files_[t].GetReader(consume));
 
             auto puller = core::make_multiway_merge_tree<ValueIn>(
                 seq.begin(), seq.end(), ValueComparator(*this));
@@ -251,10 +251,10 @@ template <typename ValueOut,
           typename KeyExtractor,
           typename GroupFunction>
 auto DIA<ValueType, Stack>::GroupToIndex(
-    const KeyExtractor &key_extractor,
-    const GroupFunction &groupby_function,
+    const KeyExtractor& key_extractor,
+    const GroupFunction& groupby_function,
     const size_t result_size,
-    const ValueOut &neutral_element) const {
+    const ValueOut& neutral_element) const {
 
     using DOpResult
               = ValueOut;

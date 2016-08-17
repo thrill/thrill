@@ -235,7 +235,7 @@ private:
 
     core::ReducePrePhase<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, VolatileKey,
-        ReduceConfig, core::ReduceByIndex<Key> > pre_phase_;
+        ReduceConfig, false, core::ReduceByIndex<Key> > pre_phase_;
 
     core::ReduceByIndexPostPhase<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, Emitter, SendPair,
@@ -247,11 +247,11 @@ private:
 template <typename ValueType, typename Stack>
 template <typename KeyExtractor, typename ReduceFunction, typename ReduceConfig>
 auto DIA<ValueType, Stack>::ReduceToIndex(
-    const KeyExtractor &key_extractor,
-    const ReduceFunction &reduce_function,
+    const KeyExtractor& key_extractor,
+    const ReduceFunction& reduce_function,
     size_t size,
-    const ValueType &neutral_element,
-    const ReduceConfig &reduce_config) const {
+    const ValueType& neutral_element,
+    const ReduceConfig& reduce_config) const {
     assert(IsValid());
 
     using DOpResult
@@ -308,8 +308,8 @@ auto DIA<ValueType, Stack>::ReduceToIndex(
     const KeyExtractor &key_extractor,
     const ReduceFunction &reduce_function,
     size_t size,
-    const ValueType &neutral_element,
-    const ReduceConfig &reduce_config) const {
+    const ValueType& neutral_element,
+    const ReduceConfig& reduce_config) const {
     assert(IsValid());
 
     using DOpResult

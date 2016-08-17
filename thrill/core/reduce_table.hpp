@@ -232,6 +232,15 @@ public:
         return false;
     }
 
+    bool has_spilled_data_on_partition(size_t partition_id) {
+        if (partition_files_[partition_id].num_items()) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
     //! \}
 
 protected:

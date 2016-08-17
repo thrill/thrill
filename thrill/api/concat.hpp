@@ -317,7 +317,7 @@ private:
  * \ingroup dia_dops
  */
 template <typename FirstDIA, typename ... DIAs>
-auto Concat(const FirstDIA &first_dia, const DIAs &... dias) {
+auto Concat(const FirstDIA& first_dia, const DIAs& ... dias) {
 
     using VarForeachExpander = int[];
 
@@ -345,7 +345,7 @@ auto Concat(const FirstDIA &first_dia, const DIAs &... dias) {
  * \ingroup dia_dops
  */
 template <typename ValueType>
-auto Concat(const std::initializer_list<DIA<ValueType> >&dias) {
+auto Concat(const std::initializer_list<DIA<ValueType> >& dias) {
 
     for (const DIA<ValueType>& d : dias)
         d.AssertValid();
@@ -367,7 +367,7 @@ auto Concat(const std::initializer_list<DIA<ValueType> >&dias) {
  * \ingroup dia_dops
  */
 template <typename ValueType>
-auto Concat(const std::vector<DIA<ValueType> >&dias) {
+auto Concat(const std::vector<DIA<ValueType> >& dias) {
 
     for (const DIA<ValueType>& d : dias)
         d.AssertValid();
@@ -380,7 +380,7 @@ auto Concat(const std::vector<DIA<ValueType> >&dias) {
 template <typename ValueType, typename Stack>
 template <typename SecondDIA>
 auto DIA<ValueType, Stack>::Concat(
-    const SecondDIA &second_dia) const {
+    const SecondDIA& second_dia) const {
     return api::Concat(*this, second_dia);
 }
 

@@ -8,6 +8,8 @@
 # All rights reserved. Published under the BSD-2 license in the LICENSE file.
 ################################################################################
 
+thrill_build_prog(duplicates/bench_golomb)
+
 thrill_build_prog(io/benchmark_files)
 thrill_build_prog(io/benchmark_disks)
 thrill_build_prog(io/benchmark_disks_random)

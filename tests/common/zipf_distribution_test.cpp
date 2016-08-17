@@ -30,7 +30,7 @@ TEST(ZipfDistribution, Simple) {
         countmap[zipf(rng)]++;
     }
 
-    for (const auto& e : countmap) {
+    for (const auto & e : countmap) {
         LOG << "freq[" << e.first << "] = " << e.second;
     }
 }

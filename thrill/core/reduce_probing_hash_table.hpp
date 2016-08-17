@@ -174,9 +174,11 @@ public:
     /*!
      * Inserts a value. Calls the key_extractor_, makes a key-value-pair and
      * inserts the pair via the Insert() function.
+         *
+         * \return true if a new key was inserted to the table
      */
-    void Insert(const Value& p) {
-        Insert(std::make_pair(key_extractor_(p), p));
+    bool Insert(const Value& p) {
+        return Insert(std::make_pair(key_extractor_(p), p));
     }
 
     /*!
@@ -192,8 +194,10 @@ public:
      * fill ratio per partition is reached.
      *
      * \param kv Value to be inserted into the table.
+         *
+         * \return true if a new key was inserted to the table
      */
-    void Insert(const KeyValuePair& kv) {
+    bool Insert(const KeyValuePair& kv) {
 
         while (THRILL_UNLIKELY(mem::memory_exceeded && num_items_ != 0))
             SpillAnyPartition();
@@ -205,6 +209,7 @@ public:
         assert(h.partition_id < num_partitions_);
 
         if (THRILL_UNLIKELY(kv.first == Key())) {
+            bool new_unique = false;
             // handle pairs with sentinel key specially by reducing into last
             // element of items.
             KeyValuePair& sentinel = items_[num_buckets_];
@@ -212,6 +217,7 @@ public:
                 // first occurrence of sentinel key
                 new (&sentinel)KeyValuePair(kv);
                 sentinel_partition_ = h.partition_id;
+                new_unique = true;
             }
             else {
                 sentinel.second = reduce_function_(sentinel.second, kv.second);
@@ -225,7 +231,7 @@ public:
                 SpillPartition(h.partition_id);
             }
 
-            return;
+            return new_unique;
         }
 
         // calculate local index depending on the current subtable's size
@@ -241,13 +247,13 @@ public:
         {
             if (equal_to_function_(iter->first, kv.first))
             {
-                LOGC(debug_items)
-                    << "match of key: " << kv.first
-                    << " and " << iter->first << " ... reducing...";
+                //  LOGC(debug_items)
+//                    << "match of key: " << kv.first
+                //                  << " and " << iter->first << " ... reducing...";
 
                 iter->second = reduce_function_(iter->second, kv.second);
 
-                return;
+                return false;
             }
 
             ++iter;
@@ -279,6 +285,8 @@ public:
                 << " among " << partition_size_[h.partition_id];
             SpillPartition(h.partition_id);
         }
+
+        return true;
     }
 
     //! Deallocate items and memory

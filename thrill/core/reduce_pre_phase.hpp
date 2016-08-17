@@ -17,11 +17,16 @@
 #define THRILL_CORE_REDUCE_PRE_PHASE_HEADER
 
 #include <thrill/common/logger.hpp>
+#include <thrill/common/math.hpp>
+#include <thrill/core/duplicate_detection.hpp>
+#include <thrill/core/golomb_reader.hpp>
 #include <thrill/core/reduce_bucket_hash_table.hpp>
 #include <thrill/core/reduce_functional.hpp>
 #include <thrill/core/reduce_old_probing_hash_table.hpp>
 #include <thrill/core/reduce_probing_hash_table.hpp>
+#include <thrill/data/block_reader.hpp>
 #include <thrill/data/block_writer.hpp>
+#include <thrill/data/file.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -105,6 +110,7 @@ template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool VolatileKey,
           typename ReduceConfig_ = DefaultReduceConfig,
+          bool UseDuplicateDetection = false,
           typename IndexFunction = ReduceByHash<Key>,
           typename EqualToFunction = std::equal_to<Key> >
 class ReducePrePhase
@@ -137,9 +143,10 @@ public:
                    const IndexFunction& index_function = IndexFunction(),
                    const EqualToFunction& equal_to_function = EqualToFunction())
         : emit_(emit),
+          key_extractor_(key_extractor),
           table_(ctx, dia_id,
                  key_extractor, reduce_function, emit_,
-                 num_partitions, config, /* immediate_flush */ true,
+                 num_partitions, config, /* immediate_flush */ !UseDuplicateDetection,
                  index_function, equal_to_function) {
         sLOG << "creating ReducePrePhase with" << emit.size() << "output emitters";
 
@@ -156,15 +163,27 @@ public:
     }
 
     void Insert(const Value& p) {
-        return table_.Insert(p);
+        if (table_.Insert(p) && UseDuplicateDetection) {
+            hashes_.push_back(std::hash<Key>()(key_extractor_(p)));
+        }
     }
 
     void Insert(const KeyValuePair& kv) {
-        return table_.Insert(kv);
+        if (table_.Insert(kv) && UseDuplicateDetection) {
+            hashes_.push_back(std::hash<Key>()(kv.first));
+        }
     }
 
     //! Flush all partitions
     void FlushAll() {
+        if (UseDuplicateDetection) {
+            DuplicateDetection dup_detect;
+            max_hash_ = dup_detect.FindNonDuplicates(non_duplicates_,
+                                                     hashes_,
+                                                     table_.ctx(),
+                                                     table_.dia_id());
+        }
+
         for (size_t id = 0; id < table_.num_partitions(); ++id) {
             FlushPartition(id, /* consume */ true, /* grow */ false);
         }
@@ -172,15 +191,61 @@ public:
 
     //! Flushes all items of a partition.
     void FlushPartition(size_t partition_id, bool consume, bool grow) {
+        if (UseDuplicateDetection) {
+            table_.FlushPartitionEmit(
+                partition_id, consume, grow,
+                [this](const size_t& partition_id, const KeyValuePair& p) {
+                    if (!std::binary_search(non_duplicates_.begin(),
+                                            non_duplicates_.end(),
+                                            (std::hash<Key>()(p.first) %
+                                             max_hash_))) {
 
-        table_.FlushPartition(partition_id, consume, grow);
+                        duplicated_elements_++;
+                        emit_.Emit(partition_id, p);
+                    }
+                    else {
+                        non_duplicate_elements_++;
+                        emit_.Emit(table_.ctx().my_rank(), p);
+                    }
+                });
 
-        // flush elements pushed into emitter
-        emit_.Flush(partition_id);
+            if (table_.has_spilled_data_on_partition(partition_id)) {
+                data::File::Reader reader =
+                    table_.partition_files()[partition_id].GetReader(true);
+                while (reader.HasNext()) {
+                    KeyValuePair kv = reader.Next<KeyValuePair>();
+                    if (!std::binary_search(non_duplicates_.begin(),
+                                            non_duplicates_.end(),
+                                            (std::hash<Key>()(kv.first) %
+                                             max_hash_))) {
+
+                        duplicated_elements_++;
+                        emit_.Emit(partition_id, kv);
+                    }
+                    else {
+                        non_duplicate_elements_++;
+                        emit_.Emit(table_.ctx().my_rank(), kv);
+                    }
+                }
+            }
+
+            // flush elements pushed into emitter
+            emit_.Flush(partition_id);
+            emit_.Flush(table_.ctx().my_rank());
+        }
+        else {
+            table_.FlushPartition(partition_id, consume, grow);
+            // data is flushed immediately, there is no spilled data
+        }
     }
 
     //! Closes all emitter
     void CloseAll() {
+        if (UseDuplicateDetection) {
+            LOG << "Reduce Pre-Stage completed."
+                << " #duplicates: " << duplicated_elements_
+                << " #non-duplicates: " << non_duplicate_elements_;
+        }
         emit_.CloseAll();
         table_.Dispose();
     }
@@ -201,8 +266,29 @@ private:
     //! Emitters used to parameterize hash table for output to network.
     Emitter emit_;
 
+    //! extractor function which maps a value to it's key
+    KeyExtractor key_extractor_;
+
     //! the first-level hash table implementation
     Table table_;
+
+    //! \name Duplicate Detection
+    //! \{
+
+    //! Hashes of all keys.
+    std::vector<size_t> hashes_;
+    //! All elements occuring on more than one worker. (Elements not appearing here
+    //! can be reduced locally)
+    std::vector<size_t> non_duplicates_;
+
+    //! Number of non-duplicates sent to a worker
+    size_t non_duplicate_elements_ = 0;
+    //! Number of duplicates reduced locally.
+    size_t duplicated_elements_ = 0;
+    //! Modulo for all hashes in duplicate detection to reduce hash space.
+    size_t max_hash_;
+
+    //! \}
 };
 
 } // namespace core

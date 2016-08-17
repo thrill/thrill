@@ -51,7 +51,7 @@ int main(int argc, char* argv[]) {
 
     std::cerr << "word_counting done: " << timer << " s" << std::endl;
 
-    for (auto& p : count_map) {
+    for (auto & p : count_map) {
         std::cout << p.first << ": " << p.second << std::endl;
     }
 

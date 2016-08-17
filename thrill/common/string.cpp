@@ -43,6 +43,22 @@ std::string Hexdump(const std::string& str) {
     return Hexdump(str.data(), str.size());
 }
 
+void SplitRef(const std::string& str, char sep, std::vector<std::string>& out) {
+    out.clear();
+    std::string::const_iterator it = str.begin(), last = it;
+
+    for ( ; it != str.end(); ++it)
+    {
+        if (*it == sep)
+        {
+            out.push_back(std::string(last, it));
+            last = it + 1;
+        }
+    }
+
+    out.push_back(std::string(last, it));
+}
+
 std::vector<std::string> Split(
     const std::string& str, char sep, std::string::size_type limit) {
 

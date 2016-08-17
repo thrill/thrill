@@ -6,6 +6,7 @@
  * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Huyen Chau Nguyen <hello@chau-nguyen.de>
+ * Copyright (C) 2016 Alexander Noe <aleexnoe@gmail.com>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
@@ -19,11 +20,15 @@
 #include <thrill/api/group_by_iterator.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/core/location_detection.hpp>
+#include <thrill/core/reduce_functional.hpp>
+#include <thrill/data/file.hpp>
 
 #include <algorithm>
 #include <functional>
 #include <type_traits>
 #include <typeinfo>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -34,7 +39,8 @@ namespace api {
  * \ingroup api_layer
  */
 template <typename ValueType,
-          typename KeyExtractor, typename GroupFunction, typename HashFunction>
+          typename KeyExtractor, typename GroupFunction, typename HashFunction,
+          bool UseLocationDetection = false>
 class GroupByNode final : public DOpNode<ValueType>
 {
     static constexpr bool debug = false;
@@ -46,6 +52,7 @@ class GroupByNode final : public DOpNode<ValueType>
     using ValueOut = ValueType;
     using ValueIn =
               typename common::FunctionTraits<KeyExtractor>::template arg_plain<0>;
+    using CounterType = size_t;
 
     struct ValueComparator {
     public:
@@ -70,9 +77,12 @@ public:
                 const GroupFunction& groupby_function,
                 const HashFunction& hash_function = HashFunction())
         : Super(parent.ctx(), "GroupByKey", { parent.id() }, { parent.node() }),
-          key_extractor_(key_extractor),
-          groupby_function_(groupby_function),
-          hash_function_(hash_function)
+        key_extractor_(key_extractor),
+        groupby_function_(groupby_function),
+        hash_function_(hash_function),
+        location_detection_(parent.ctx(), Super::id(),
+                            std::plus<CounterType>(), hash_function),
+        pre_file_(context_.GetFilePtr(this))
     {
         // Hook PreOp
         auto pre_op_fn = [=](const ValueIn& input) {
@@ -86,22 +96,65 @@ public:
 
     void StartPreOp(size_t /* id */) final {
         emitter_ = stream_->GetWriters();
+        pre_writer_ = pre_file_->GetWriter();
+        if (UseLocationDetection)
+            location_detection_.Initialize(DIABase::mem_limit_);
     }
 
     //! Send all elements to their designated PEs
     void PreOp(const ValueIn& v) {
-        const Key k = key_extractor_(v);
-        const size_t recipient = hash_function_(k) % emitter_.size();
-        emitter_[recipient].Put(v);
+        if (UseLocationDetection) {
+            pre_writer_.Put(v);
+            location_detection_.Insert(key_extractor_(v),(CounterType) 1);
+        }
+        else {
+            const Key k = key_extractor_(v);
+            const size_t recipient = hash_function_(k) % emitter_.size();
+            emitter_[recipient].Put(v);
+        }
     }
 
     void StopPreOp(size_t /* id */) final {
-        // data has been pushed during pre-op -> close emitters
-        for (size_t i = 0; i < emitter_.size(); i++)
-            emitter_[i].Close();
+        pre_writer_.Close();
+    }
+
+    DIAMemUse PreOpMemUse() final {
+        return DIAMemUse::Max();
+    }
+
+    DIAMemUse ExecuteMemUse() final {
+        return DIAMemUse::Max();
+    }
+
+    DIAMemUse PushDataMemUse() final {
+        if (files_.size() <= 1) {
+            // direct push, no merge necessary
+            return 0;
+        }
+        else {
+            // need to perform multiway merging
+            return DIAMemUse::Max();
+        }
     }
 
     void Execute() override {
+        if (UseLocationDetection) {
+            std::unordered_map<size_t, size_t> target_processors;
+            size_t max_hash = location_detection_.Flush(target_processors);
+            auto file_reader = pre_file_->GetConsumeReader();
+            while (file_reader.HasNext()) {
+                ValueIn in = file_reader.template Next<ValueIn>();
+                Key key = key_extractor_(in);
+
+                size_t hr = hash_function_(key) % max_hash;
+                auto target_processor = target_processors.find(hr);
+                emitter_[target_processor->second].Put(in);
+            }
+        }
+        // data has been pushed during pre-op -> close emitters
+        for (size_t i = 0; i < emitter_.size(); i++)
+            emitter_[i].Close();
+
         MainOp();
     }
 
@@ -117,13 +170,51 @@ public:
             RunUserFunc(files_[0], consume);
         }
         else {
+
             // otherwise sort all runs using multiway merge
-            LOG << "start multiwaymerge";
-            std::vector<data::File::ConsumeReader> seq;
+            size_t merge_degree, prefetch;
+
+            // merge batches of files if necessary
+            while (files_.size() > MaxMergeDegreePrefetch().first)
+            {
+                std::tie(merge_degree, prefetch) = MaxMergeDegreePrefetch();
+
+                sLOG1 << "Partial multi-way-merge of"
+                      << merge_degree << "files with prefetch" << prefetch;
+
+                // create merger for first merge_degree_ Files
+                std::vector<data::File::ConsumeReader> seq;
+                seq.reserve(merge_degree);
+
+                for (size_t t = 0; t < merge_degree; ++t)
+                    seq.emplace_back(files_[t].GetConsumeReader(0));
+
+                StartPrefetch(seq, prefetch);
+
+                auto puller = core::make_multiway_merge_tree<ValueIn>(
+                    seq.begin(), seq.end(), ValueComparator(*this));
+
+                // create new File for merged items
+                files_.emplace_back(context_.GetFile(this));
+                auto writer = files_.back().GetWriter();
+
+                while (puller.HasNext()) {
+                    writer.Put(puller.Next());
+                }
+                writer.Close();
+
+                // this clear is important to release references to the files.
+                seq.clear();
+
+                // remove merged files
+                files_.erase(files_.begin(), files_.begin() + merge_degree);
+            }
+
+            std::vector<data::File::Reader> seq;
             seq.reserve(num_runs);
 
             for (size_t t = 0; t < num_runs; ++t)
-                seq.emplace_back(files_[t].GetConsumeReader());
+                seq.emplace_back(files_[t].GetReader(consume));
 
             LOG << "start multiwaymerge for real";
             auto puller = core::make_multiway_merge_tree<ValueIn>(
@@ -159,11 +250,19 @@ private:
     GroupFunction groupby_function_;
     HashFunction hash_function_;
 
+    core::LocationDetection<ValueType, Key, UseLocationDetection, CounterType, uint8_t,
+                            HashFunction, core::ReduceByHash<Key>,
+                            std::plus<CounterType>, false> location_detection_;
+
     data::CatStreamPtr stream_ { context_.GetNewCatStream(this) };
     std::vector<data::Stream::Writer> emitter_;
-    std::vector<data::File> files_;
+    std::deque<data::File> files_;
     data::File sorted_elems_ { context_.GetFile(this) };
     size_t totalsize_ = 0;
+
+    //! location detection and associated files
+    data::FilePtr pre_file_;
+    data::File::Writer pre_writer_;
 
     void RunUserFunc(data::File& f, bool consume) {
         auto r = f.GetReader(consume);
@@ -190,14 +289,12 @@ private:
         std::sort(v.begin(), v.end(), ValueComparator(*this));
         totalsize_ += v.size();
 
-        data::File f = context_.GetFile(this);
-        data::File::Writer w = f.GetWriter();
+        files_.emplace_back(context_.GetFile(this));
+        data::File::Writer w = files_.back().GetWriter();
         for (const ValueIn& e : v) {
             w.Put(e);
         }
         w.Close();
-
-        files_.emplace_back(std::move(f));
     }
 
     //! Receive elements from other workers.
@@ -230,6 +327,24 @@ private:
             << " time=" << timer
             << " number_files=" << files_.size();
     }
+
+    //! calculate maximum merging degree from available memory and the number of
+    //! files. additionally calculate the prefetch size of each File.
+    std::pair<size_t, size_t> MaxMergeDegreePrefetch() {
+        size_t avail_blocks = DIABase::mem_limit_ / data::default_block_size;
+        if (files_.size() >= avail_blocks) {
+            // more files than blocks available -> partial merge of avail_blocks
+            // Files with prefetch = 0, which is one read Block per File.
+            return std::make_pair(avail_blocks, 0u);
+        }
+        else {
+            // less files than available Blocks -> split blocks equally among
+            // Files.
+            return std::make_pair(
+                files_.size(),
+                std::min<size_t>(16u, (avail_blocks / files_.size()) - 1));
+        }
+    }
 };
 
 /******************************************************************************/
@@ -238,8 +353,8 @@ template <typename ValueType, typename Stack>
 template <typename ValueOut, typename KeyExtractor,
           typename GroupFunction, typename HashFunction>
 auto DIA<ValueType, Stack>::GroupByKey(
-    const KeyExtractor &key_extractor,
-    const GroupFunction &groupby_function) const {
+    const KeyExtractor& key_extractor,
+    const GroupFunction& groupby_function) const {
 
     using DOpResult = ValueOut;
 

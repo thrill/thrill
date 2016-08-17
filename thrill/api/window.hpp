@@ -243,8 +243,8 @@ template <typename ValueType, typename Stack>
 template <typename ValueOut,
           typename WindowFunction, typename PartialWindowFunction>
 auto DIA<ValueType, Stack>::FlatWindow(
-    size_t window_size, const WindowFunction &window_function,
-    const PartialWindowFunction &partial_window_function) const {
+    size_t window_size, const WindowFunction& window_function,
+    const PartialWindowFunction& partial_window_function) const {
     assert(IsValid());
 
     using WindowNode = api::OverlapWindowNode<
@@ -263,7 +263,7 @@ auto DIA<ValueType, Stack>::FlatWindow(
 template <typename ValueType, typename Stack>
 template <typename ValueOut, typename WindowFunction>
 auto DIA<ValueType, Stack>::FlatWindow(
-    size_t window_size, const WindowFunction &window_function) const {
+    size_t window_size, const WindowFunction& window_function) const {
     assert(IsValid());
 
     auto no_operation_function =
@@ -278,7 +278,7 @@ auto DIA<ValueType, Stack>::FlatWindow(
 template <typename ValueType, typename Stack>
 template <typename WindowFunction>
 auto DIA<ValueType, Stack>::Window(
-    size_t window_size, const WindowFunction &window_function) const {
+    size_t window_size, const WindowFunction& window_function) const {
     assert(IsValid());
 
     using Result
@@ -325,8 +325,8 @@ auto DIA<ValueType, Stack>::Window(
 template <typename ValueType, typename Stack>
 template <typename WindowFunction, typename PartialWindowFunction>
 auto DIA<ValueType, Stack>::Window(
-    size_t window_size, const WindowFunction &window_function,
-    const PartialWindowFunction &partial_window_function) const {
+    size_t window_size, const WindowFunction& window_function,
+    const PartialWindowFunction& partial_window_function) const {
     assert(IsValid());
 
     using Result

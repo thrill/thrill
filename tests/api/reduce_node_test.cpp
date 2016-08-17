@@ -15,6 +15,8 @@
 #include <thrill/api/reduce_by_key.hpp>
 #include <thrill/api/reduce_to_index.hpp>
 
+#include <thrill/common/logger.hpp>
+
 #include <algorithm>
 #include <string>
 #include <utility>
@@ -93,8 +95,10 @@ TEST(ReduceNode, ReduceModuloPairsCorrectResults) {
                           return p1.first < p2.first;
                       });
 
+            assert(mod_size == out_vec.size());
+
             ASSERT_EQ(mod_size, out_vec.size());
-            for (const auto& element : out_vec) {
+            for (const auto & element : out_vec) {
                 ASSERT_EQ(element.second, (div_size * (div_size - 1)) / 2u);
             }
         };

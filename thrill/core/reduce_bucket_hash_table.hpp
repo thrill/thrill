@@ -243,9 +243,11 @@ public:
     /*!
      * Inserts a value. Calls the key_extractor_, makes a key-value-pair and
      * inserts the pair into the hashtable.
+         *
+         * \return true if a new key was inserted to the table
      */
-    void Insert(const Value& p) {
-        Insert(std::make_pair(key_extractor_(p), p));
+    bool Insert(const Value& p) {
+        return Insert(std::make_pair(key_extractor_(p), p));
     }
 
     /*!
@@ -261,8 +263,10 @@ public:
      * items per bucket is reached.
      *
      * \param kv Value to be inserted into the table.
+         *
+         * \return true if a new key was inserted to the table
      */
-    void Insert(const KeyValuePair& kv) {
+    bool Insert(const KeyValuePair& kv) {
 
         while (mem::memory_exceeded && num_items_ != 0)
             SpillAnyPartition();
@@ -292,12 +296,12 @@ public:
                 // if item and key equals, then reduce.
                 if (equal_to_function_(kv.first, bi->first))
                 {
-                    LOGC(debug_items)
-                        << "match of key: " << kv.first
-                        << " and " << bi->first << " ... reducing...";
+                    //    LOGC(debug_items)
+                    //    << "match of key: " << kv.first
+                    //    << " and " << bi->first << " ... reducing...";
 
                     bi->second = reduce_function_(bi->second, kv.second);
-                    return;
+                    return false;
                 }
             }
 
@@ -346,6 +350,8 @@ public:
         // flush current partition if max partition fill rate reached
         while (items_per_partition_[h.partition_id] > limit_items_per_partition_)
             SpillPartition(h.partition_id);
+
+        return true;
     }
 
     //! Deallocate memory

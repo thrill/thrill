@@ -122,7 +122,7 @@ static void RunKMeansGenerated(
     auto points = Generate(
         ctx, [&](const size_t& /* index */) {
             return Point::Random(dimensions, dist, rng);
-        }, num_points);
+        }, num_points).Keep();
 
     auto result = KMeans(points, dimensions, num_clusters, iterations);
 
