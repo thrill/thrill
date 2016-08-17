@@ -1,3 +1,4 @@
+
 /*******************************************************************************
  * examples/page_rank/page_rank.hpp
  *
@@ -167,7 +168,7 @@ auto PageRankJoin(const DIA<LinkedPage, InStack>& links, size_t num_pages,
             },
             [](const LinkedPage& lp, const RankedPage& r) {
                 return std::make_pair(lp.second, r.second);
-            });
+            }, thrill::hash());
 
         if (debug) {
             outs_rank
