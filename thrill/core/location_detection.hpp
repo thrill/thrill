@@ -140,6 +140,7 @@ class LocationDetection
     using HashResult = typename common::FunctionTraits<HashFunction>::result_type;
     using KeyCounterPair = std::pair<Key, CounterType>;
     using TableType = typename common::FunctionTraits<AddFunction>::result_type;
+    using KeyValuePair = std::pair<Key, TableType>;
     using CtrIdxType = std::pair<CounterType, DIAIdxType>;
     using ResultTablePair = std::pair<HashResult, CtrIdxType>;
     using HashCounterPair = std::pair<HashResult, CounterType>;
@@ -278,12 +279,26 @@ public:
         size_t upper_space_bound = upper_bound_uniques * (2 + std::log2(fpr_parameter));
         size_t max_hash = upper_bound_uniques * fpr_parameter;
 
+        if (table_.has_spilled_data_on_partition(0)) {
 
-        emit_.SetModulo(max_hash);
+            emit_.SetModulo(max_hash);
 
-        data_.reserve(table_.num_items());
+            data_.reserve(table_.num_items() + table_.partition_files()[0].num_items());
 
-        table_.FlushAll();
+            table_.FlushAll();
+
+            data::File::Reader reader = table_.partition_files()[0].GetReader(true);
+
+            while (reader.HasNext()) {
+                emit_.Emit(0, reader.Next<KeyValuePair>());
+            }
+        } else {
+            emit_.SetModulo(max_hash);
+
+            data_.reserve(table_.num_items());
+
+            table_.FlushAll();
+        }
 
         std::sort(data_.begin(), data_.end(), [](const ResultTablePair& hcp1,
                                                  const ResultTablePair& hcp2) {
