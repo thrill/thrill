@@ -42,21 +42,34 @@ using Joined = std::tuple<size_t, size_t, size_t, size_t, size_t, double,
                           char, double, time_t, std::string, std::string, bool,
                           std::string>;
 
-//from: https://gmbabar.wordpress.com/2010/12/01/mktime-slow-use-custom-function/, removed hours as we dont need that
-time_t time_to_epoch ( const struct tm *ltm) {
+//adapted from:
+//https://gmbabar.wordpress.com/2010/12/01/mktime-slow-use-custom-function/
+// removed time of day as we dont need that
+time_t time_to_epoch (const std::string& str) {
+
+    char* end;
+
+    struct tm ltm;
+    ltm.tm_year = std::strtoul(str.substr(0,4).c_str(),
+                                               &end, 10) - 1900;
+    ltm.tm_mon = std::strtoul(str.substr(5,2).c_str(),
+                                                &end, 10);
+    ltm.tm_mday = std::strtoul(str.substr(8).c_str(),
+                                              &end, 10);
+
    const int mon_days [] =
       {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
    long tyears, tdays, leaps;
    int i;
 
-   tyears = ltm->tm_year - 70; // tm->tm_year is from 1900.
+   tyears = ltm.tm_year - 70; // tm->tm_year is from 1900.
    leaps = (tyears + 2) / 4; // no of next two lines until year 2100.
    //i = (ltm->tm_year – 100) / 100;
    //leaps -= ( (i/4)*3 + i%4 );
    tdays = 0;
-   for (i=0; i < ltm->tm_mon; i++) tdays += mon_days[i];
+   for (i=0; i < ltm.tm_mon; i++) tdays += mon_days[i];
 
-   tdays += ltm->tm_mday-1; // days of month passed.
+   tdays += ltm.tm_mday-1; // days of month passed.
    tdays = tdays + (tyears * 365) + leaps;
 
    return (tdays * 86400);
@@ -85,32 +98,9 @@ static size_t JoinTPCH4(
             char returnflag = splitted[8][0];
             char linestatus = splitted[9][0];
 
-            //make dates
-            struct tm time_ship;
-            time_ship.tm_year = std::strtoul(splitted[10].substr(0,4).c_str(),
-                                               &end, 10) - 1900;
-            time_ship.tm_mon = std::strtoul(splitted[10].substr(5,2).c_str(),
-                                                &end, 10);
-            time_ship.tm_mday = std::strtoul(splitted[10].substr(8).c_str(),
-                                              &end, 10);
-            struct tm time_cmt;
-            time_cmt.tm_year = std::strtoul(splitted[11].substr(0,4).c_str(),
-                                               &end, 10) - 1900;
-            time_cmt.tm_mon = std::strtoul(splitted[11].substr(5,2).c_str(),
-                                                &end, 10);
-            time_cmt.tm_mday = std::strtoul(splitted[11].substr(8).c_str(),
-                                              &end, 10);
-            struct tm time_rcpt;
-            time_rcpt.tm_year = std::strtoul(splitted[12].substr(0,4).c_str(),
-                                               &end, 10) - 1900;
-            time_rcpt.tm_mon = std::strtoul(splitted[12].substr(5,2).c_str(),
-                                                &end, 10);
-            time_rcpt.tm_mday = std::strtoul(splitted[12].substr(8).c_str(),
-                                              &end, 10);
-
-            time_t ship = time_to_epoch(&time_ship);
-            time_t commit = time_to_epoch(&time_cmt);
-            time_t receipt = time_to_epoch(&time_rcpt);
+            time_t ship = time_to_epoch(splitted[10]);
+            time_t commit = time_to_epoch(splitted[11]);
+            time_t receipt = time_to_epoch(splitted[12]);
 
             return std::make_tuple(orderkey, partkey, suppkey, linenumber,
                                    quantity, extendedprice, discount, tax,
@@ -122,16 +112,8 @@ static size_t JoinTPCH4(
                 return std::get<11>(li) < std::get<12>(li);
                 });
 
-    struct tm starttimestr;
-    starttimestr.tm_year = 92;
-    starttimestr.tm_mon = 1;
-    starttimestr.tm_mday = 1;
-    struct tm stoptimestr;
-    stoptimestr.tm_year = 92;
-    stoptimestr.tm_mon = 4;
-    stoptimestr.tm_mday = 1;
-    time_t starttime = time_to_epoch(&starttimestr);
-    time_t stoptime = time_to_epoch(&stoptimestr);
+    time_t starttime = time_to_epoch("1992-01-01");
+    time_t stoptime = time_to_epoch("1992-04-01");
 
     common::StatsTimerStopped sts2;
     std::string s_orders = input_path[0] + std::string("orders.tbl*");
@@ -144,16 +126,7 @@ static size_t JoinTPCH4(
             size_t custkey = std::strtoul(splitted[1].c_str(), &end, 10);
             char orderstatus = splitted[2][0];
             double totalprice = std::strtod(splitted[3].c_str(), &end);
-
-
-            struct tm time_order;
-            time_order.tm_year = std::strtoul(splitted[4].substr(0,4).c_str(),
-                                              &end, 10) - 1900;
-            time_order.tm_mon = std::strtoul(splitted[4].substr(5,2).c_str(),
-                                             &end, 10);
-            time_order.tm_mday = std::strtoul(splitted[4].substr(8).c_str(),
-                                              &end, 10);
-            time_t order = time_to_epoch(&time_order);
+            time_t order = time_to_epoch(splitted[4]);
 
             bool priority = (splitted[7][0] != '0');
 
