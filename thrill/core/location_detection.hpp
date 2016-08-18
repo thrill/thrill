@@ -272,32 +272,30 @@ public:
      */
     size_t Flush(std::unordered_map<size_t, size_t>& target_processors) {
 
+        size_t num_items = table_.num_items();
+        if (table_.has_spilled_data_on_partition(0)) {
+            num_items += table_.partition_files()[0].num_items();
+        }
+
+
         // golomb code parameters
-        size_t upper_bound_uniques = context_.net.AllReduce(table_.num_items());
+        size_t upper_bound_uniques = context_.net.AllReduce(num_items);
         double fpr_parameter = 8;
         size_t b = (size_t)fpr_parameter;
         size_t upper_space_bound = upper_bound_uniques * (2 + std::log2(fpr_parameter));
-        size_t max_hash = upper_bound_uniques * fpr_parameter;
+        size_t max_hash = b * upper_bound_uniques;
+
+        emit_.SetModulo(max_hash);
+        data_.reserve(num_items);
+        table_.FlushAll();
 
         if (table_.has_spilled_data_on_partition(0)) {
-
-            emit_.SetModulo(max_hash);
-
-            data_.reserve(table_.num_items() + table_.partition_files()[0].num_items());
-
-            table_.FlushAll();
-
-            data::File::Reader reader = table_.partition_files()[0].GetReader(true);
+            data::File::Reader reader =
+                table_.partition_files()[0].GetReader(true);
 
             while (reader.HasNext()) {
                 emit_.Emit(0, reader.Next<KeyValuePair>());
             }
-        } else {
-            emit_.SetModulo(max_hash);
-
-            data_.reserve(table_.num_items());
-
-            table_.FlushAll();
         }
 
         std::sort(data_.begin(), data_.end(), [](const ResultTablePair& hcp1,
@@ -334,7 +332,7 @@ public:
             total_elements += num_elements;
 
             g_readers.push_back(
-                GolombPairReader<CounterType>(data_size + 1,
+                GolombPairReader<CounterType>(data_size,
                                               data_pointers.back().get(),
                                               num_elements, b, 8));
         }
@@ -350,10 +348,10 @@ public:
         size_t processor_bitsize = std::max(common::IntegerLog2Ceil(
                                                 context_.num_workers()),
                                             (unsigned int)1);
-        size_t space_bound_with_processors = upper_space_bound +
-                                             total_elements * processor_bitsize;
+        size_t space_bound_with_processors = upper_bound_uniques * processor_bitsize
+            + upper_space_bound;
         core::DynamicBitset<size_t> location_bitset(
-            space_bound_with_processors, false, b);
+            space_bound_with_processors * 3 / 2, false, b);
 
         std::pair<ResultTablePair, unsigned int> next;
 
@@ -389,6 +387,7 @@ public:
 
             if (idx == 3) {
                 num_elements++;
+                assert(next_hr > delta || next_hr == 0);
                 location_bitset.golomb_in(next_hr - delta);
                 delta = next_hr;
                 location_bitset.stream_in(processor_bitsize, src_max);
@@ -425,7 +424,7 @@ public:
 
             size_t data_size = duplicates_reader.template Next<size_t>();
             size_t num_elements = duplicates_reader.template Next<size_t>();
-            size_t* raw_data = new size_t[data_size + 1];
+            size_t* raw_data = new size_t[data_size * 2];
             duplicates_reader.Read(raw_data, data_size * sizeof(size_t));
 
             //! Builds golomb encoded bitset from data recieved by the stream.
