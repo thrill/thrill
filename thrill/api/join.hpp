@@ -134,7 +134,7 @@ public:
             size_t max_hash = location_detection_.Flush(target_processors);
             auto file1reader = pre_file1_->GetConsumeReader();
             while (file1reader.HasNext()) {
-                InputTypeFirst in1 = file1reader.template NextNoSelfVerify<InputTypeFirst>();
+                InputTypeFirst in1 = file1reader.template Next<InputTypeFirst>();
                 auto target_processor =
                     target_processors.find(hash_function_(key_extractor1_(in1))
                                            % max_hash);
@@ -145,7 +145,7 @@ public:
 
             auto file2reader = pre_file2_->GetConsumeReader();
             while (file2reader.HasNext()) {
-                InputTypeSecond in2 = file2reader.template NextNoSelfVerify<InputTypeSecond>();
+                InputTypeSecond in2 = file2reader.template Next<InputTypeSecond>();
                 auto target_processor =
                     target_processors.find(hash_function_(key_extractor2_(in2))
                                            % max_hash);
@@ -322,7 +322,7 @@ private:
 
     void PreOp1(const InputTypeFirst& input) {
         if (UseLocationDetection) {
-            pre_writer1_.PutNoSelfVerify(input);
+            pre_writer1_.Put(input);
             location_detection_.Insert(key_extractor1_(input),
                                        std::make_pair((CounterType) 1,
                                                       (DIAIdxType) 1));
@@ -331,13 +331,13 @@ private:
             hash_writers1_[
                 core::ReduceByHash < Key > ()(key_extractor1_(input),
                                               context_.num_workers(),
-                                              0, 0).partition_id].PutNoSelfVerify(input);
+                                              0, 0).partition_id].Put(input);
         }
     }
 
     void PreOp2(const InputTypeSecond& input) {
         if (UseLocationDetection) {
-            pre_writer2_.PutNoSelfVerify(input);
+            pre_writer2_.Put(input);
             location_detection_.Insert(key_extractor2_(input),
                                        std::make_pair((CounterType) 1,
                                                       (DIAIdxType) 2));
@@ -346,7 +346,7 @@ private:
             hash_writers2_[
                 core::ReduceByHash < Key > ()(key_extractor2_(input),
                                               context_.num_workers(),
-                                              0, 0).partition_id].PutNoSelfVerify(input);
+                                              0, 0).partition_id].Put(input);
         }
     }
 
@@ -388,7 +388,7 @@ private:
         }
 
         while (key_extractor(next_element) == key) {
-            writer.PutNoSelfVerify(next_element);
+            writer.Put(next_element);
             if (puller.HasNext()) {
                 next_element = puller.Next();
             }
@@ -447,9 +447,9 @@ private:
                 file_ptr = context_.GetFilePtr(this);
                 data::File::Writer writer = file_ptr->GetWriter();
                 for (const ItemType& item : vec) {
-                    writer.PutNoSelfVerify(item);
+                    writer.Put(item);
                 }
-                writer.PutNoSelfVerify(next_element);
+                writer.Put(next_element);
                 //! vec is very large when this happens, swap with empty vector to free the mem
                 std::vector<ItemType>().swap(vec);
 
@@ -583,7 +583,7 @@ private:
             auto writer = files.back().GetWriter();
 
             while (puller.HasNext()) {
-                writer.PutNoSelfVerify(puller.Next());
+                writer.Put(puller.Next());
             }
             writer.Close();
 
@@ -623,7 +623,7 @@ private:
             data::File::Reader reader = join_file1_->GetReader(/*consume*/ true);
 
             while (reader.HasNext()) {
-                InputTypeFirst join1 = reader.template NextNoSelfVerify<InputTypeFirst>();
+                InputTypeFirst join1 = reader.template Next<InputTypeFirst>();
                 for (auto const & join2 : vec2) {
                     assert(key_extractor1_(join1) == key_extractor2_(join2));
                     this->PushItem(join_function_(join1, join2));
@@ -640,7 +640,7 @@ private:
             data::File::Reader reader = join_file2_->GetReader(/*consume*/ true);
 
             while (reader.HasNext()) {
-                InputTypeSecond join2 = reader.template NextNoSelfVerify<InputTypeSecond>();
+                InputTypeSecond join2 = reader.template Next<InputTypeSecond>();
                 for (auto const & join1 : vec1) {
                     assert(key_extractor1_(join1) == key_extractor2_(join2));
                     this->PushItem(join_function_(join1, join2));
@@ -665,7 +665,7 @@ private:
             while (reader1.HasNext()) {
 
                 for (size_t i = 0; i < capacity && reader1.HasNext() && !mem::memory_exceeded; ++i) {
-                    temp_vec.push_back(reader1.template NextNoSelfVerify<InputTypeFirst>());
+                    temp_vec.push_back(reader1.template Next<InputTypeFirst>());
                 }
 
                 data::File::Reader reader2 = join_file2_->GetReader(/*consume*/ false);
@@ -673,7 +673,7 @@ private:
                 size_t test = 0;
                 while (reader2.HasNext()) {
                     ++test;
-                    InputTypeSecond join2 = reader2.template NextNoSelfVerify<InputTypeSecond>();
+                    InputTypeSecond join2 = reader2.template Next<InputTypeSecond>();
                     for (auto const & join1 : temp_vec) {
                         assert(key_extractor1_(join1) == key_extractor2_(join2));
                         this->PushItem(join_function_(join1, join2));
