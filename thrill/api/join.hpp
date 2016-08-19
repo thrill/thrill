@@ -24,8 +24,6 @@
 #include <thrill/core/location_detection.hpp>
 #include <thrill/data/file.hpp>
 
-// TODO: Move this outside of reduce:
-#include <thrill/core/reduce_functional.hpp>
 
 #include <algorithm>
 #include <array>
