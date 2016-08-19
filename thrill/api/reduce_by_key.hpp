@@ -213,9 +213,9 @@ private:
     //! handle to additional thread for post phase
     std::thread thread_;
 
-    core::ReducePrePhase<
+    core::ReducePrePhaseDuplicates<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, VolatileKey,
-        ReduceConfig, /*use duplicate detection */ false> pre_phase_;
+        ReduceConfig> pre_phase_;
 
     core::ReduceByHashPostPhase<
         ValueType, Key, Value, KeyExtractor, ReduceFunction, Emitter, SendPair,

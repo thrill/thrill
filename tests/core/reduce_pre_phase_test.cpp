@@ -159,7 +159,7 @@ static void TestAddMyStructByIndex(Context& ctx) {
         MyStruct, size_t, MyStruct,
         decltype(key_ex), decltype(red_fn),
         /* VolatileKey */ false,
-        MyReduceConfig<table_impl>, false,
+        MyReduceConfig<table_impl>,
         core::ReduceByIndex<size_t> >;
 
     Phase phase(ctx, 0,
