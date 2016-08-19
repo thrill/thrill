@@ -325,10 +325,8 @@ private:
                                                       (DIAIdxType) 1));
         }
         else {
-            hash_writers1_[
-                core::ReduceByHash < Key > ()(key_extractor1_(input),
-                                              context_.num_workers(),
-                                              0, 0).partition_id].Put(input);
+            hash_writers1_[hash_function_(key_extractor1_(input)) %
+                           context_.num_workers()].Put(input);
         }
     }
 
@@ -340,10 +338,8 @@ private:
                                                       (DIAIdxType) 2));
         }
         else {
-            hash_writers2_[
-                core::ReduceByHash < Key > ()(key_extractor2_(input),
-                                              context_.num_workers(),
-                                              0, 0).partition_id].Put(input);
+            hash_writers2_[hash_function_(key_extractor2_(input)) %
+                           context_.num_workers()].Put(input);
         }
     }
 
