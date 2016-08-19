@@ -1,4 +1,5 @@
 
+
 /*******************************************************************************
  * thrill/api/join.hpp
  *
@@ -19,8 +20,8 @@
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/stats_timer.hpp>
+#include <thrill/core/buffered_multiway_merge.hpp>
 #include <thrill/core/location_detection.hpp>
-#include <thrill/core/multiway_merge.hpp>
 #include <thrill/data/file.hpp>
 
 // TODO: Move this outside of reduce:
@@ -185,40 +186,22 @@ public:
         MergeFiles<InputTypeFirst>(files1_, compare_function_1);
         MergeFiles<InputTypeSecond>(files2_, compare_function_2);
 
-        size_t merge_degree1, prefetch1, merge_degree2, prefetch2;
-        std::tie(merge_degree1, prefetch1) = MaxMergeDegreePrefetch(files1_);
-        std::tie(merge_degree2, prefetch2) = MaxMergeDegreePrefetch(files2_);
+
+        std::vector<data::File::Reader> seq1;
+        std::vector<data::File::Reader> seq2;
 
         // construct output merger of remaining Files
-        std::vector<data::File::Reader> seq1;
-        seq1.reserve(files1_.size());
-        for (size_t t = 0; t < files1_.size(); ++t)
-            seq1.emplace_back(files1_[t].GetReader(consume, 0));
-        StartPrefetch(seq1, prefetch1);
+        auto puller1 = MakePuller<InputTypeFirst>
+            (files1_, seq1, compare_function_1, consume);
+        auto puller2 = MakePuller<InputTypeSecond>
+            (files2_, seq2, compare_function_2, consume);
 
-        auto puller1 = core::make_multiway_merge_tree<InputTypeFirst>(
-            seq1.begin(), seq1.end(), compare_function_1);
-        InputTypeFirst ele1;
         bool puller1_done = false;
-
-        if (puller1.HasNext())
-            ele1 = puller1.Next();
-        else
+        if (!puller1.HasNext())
             puller1_done = true;
 
-        std::vector<data::File::Reader> seq2;
-        seq2.reserve(files2_.size());
-        for (size_t t = 0; t < files2_.size(); ++t)
-            seq2.emplace_back(files2_[t].GetReader(consume, 0));
-        StartPrefetch(seq2, prefetch2);
-
-        auto puller2 = core::make_multiway_merge_tree<InputTypeSecond>(
-            seq2.begin(), seq2.end(), compare_function_2);
-        InputTypeSecond ele2;
         bool puller2_done = false;
-        if (puller2.HasNext())
-            ele2 = puller2.Next();
-        else
+        if (!puller2.HasNext())
             puller2_done = true;
 
         //! cache for elements with equal keys, cartesian product of both caches
@@ -228,20 +211,16 @@ public:
 
         while (!puller1_done && !puller2_done) {
             //! find elements with equal key
-            if (key_extractor1_(ele1) < key_extractor2_(ele2)) {
-                if (puller1.HasNext()) {
-                    ele1 = puller1.Next();
-                }
-                else {
+            if (key_extractor1_(puller1.Top()) <
+                key_extractor2_(puller2.Top())) {
+                if (!puller1.Update()) {
                     puller1_done = true;
                     break;
                 }
             }
-            else if (key_extractor2_(ele2) < key_extractor1_(ele1)) {
-                if (puller2.HasNext()) {
-                    ele2 = puller2.Next();
-                }
-                else {
+            else if (key_extractor2_(puller2.Top()) <
+                     key_extractor1_(puller1.Top())) {
+                if (!puller2.Update()) {
                     puller2_done = true;
                     break;
                 }
@@ -252,11 +231,11 @@ public:
                 equal_keys1.clear();
                 equal_keys2.clear();
                 std::tie(puller1_done, external1) =
-                    AddEqualKeysToVec(equal_keys1, puller1, ele1,
+                    AddEqualKeysToVec(equal_keys1, puller1,
                                       key_extractor1_, join_file1_);
 
                 std::tie(puller2_done, external2) =
-                    AddEqualKeysToVec(equal_keys2, puller2, ele2,
+                    AddEqualKeysToVec(equal_keys2, puller2,
                                       key_extractor2_, join_file2_);
 
                 JoinAllElements(equal_keys1, external1, equal_keys2, external2);
@@ -302,6 +281,24 @@ private:
                             true>
         location_detection_;
     bool location_detection_initialized_;
+
+    template <typename ElementType, typename CompareFunction>
+        auto MakePuller(std::deque<data::File>& files,
+                        std::vector<data::File::Reader>& seq,
+                       CompareFunction compare_function, bool consume) {
+
+        size_t merge_degree, prefetch;
+        std::tie(merge_degree, prefetch) = MaxMergeDegreePrefetch(files);
+        // construct output merger of remaining Files
+        seq.reserve(files.size());
+        for (size_t t = 0; t < files.size(); ++t)
+            seq.emplace_back(files[t].GetReader(consume, 0));
+        StartPrefetch(seq, prefetch);
+
+       return core::make_buffered_multiway_merge_tree<ElementType>
+           (seq.begin(), seq.end(), compare_function);
+
+    }
 
     //! Receive elements from other workers, create pre-sorted files
     void MainOp() {
@@ -356,52 +353,6 @@ private:
     }
 
     /*!
-* Adds all elements from merge tree to a data::File, potentially to external memory,
-    * afterwards sets the first_element pointer to the first element with a different key.
-*
-* \param puller Input merge tree
-*
-* \param first_element First element with target key
-*
-* \param key_extractor Key extractor function
-    *
-    * \param writer File writer
-*
-    * \param Key target key
-    *
-* \return Pair of bools, first bool indicates whether the merge tree is
-* emptied, second bool indicates whether external memory was needed (always true, when
-    * this method was called).
-*/
-    template <typename ItemType, typename KeyExtractor, typename MergeTree>
-    std::pair<bool, bool> AddEqualKeysToFile(MergeTree& puller,
-                                             ItemType& first_element,
-                                             const KeyExtractor& key_extractor,
-                                             data::File::Writer& writer,
-                                             Key key) {
-        ItemType next_element;
-        if (puller.HasNext()) {
-            next_element = puller.Next();
-        }
-        else {
-            return std::make_pair(true, true);
-        }
-
-        while (key_extractor(next_element) == key) {
-            writer.Put(next_element);
-            if (puller.HasNext()) {
-                next_element = puller.Next();
-            }
-            else {
-                return std::make_pair(true, true);
-            }
-        }
-
-        first_element = next_element;
-        return std::make_pair(false, true);
-    }
-
-    /*!
      * Adds all elements from merge tree to a vector, afterwards sets the first_element
      * pointer to the first element with a different key.
      *
@@ -412,8 +363,8 @@ private:
      * \param first_element First element with target key
      *
      * \param key_extractor Key extractor function
-         *
-         * \param file_ptr Pointer to a data::File
+     *
+     * \param file_ptr Pointer to a data::File
      *
      * \return Pair of bools, first bool indicates whether the merge tree is
      * emptied, second bool indicates whether external memory was needed.
@@ -421,27 +372,21 @@ private:
     template <typename ItemType, typename KeyExtractor, typename MergeTree>
     std::pair<bool, bool> AddEqualKeysToVec(std::vector<ItemType>& vec,
                                             MergeTree& puller,
-                                            ItemType& first_element,
                                             const KeyExtractor& key_extractor,
                                             data::FilePtr& file_ptr) {
 
-        vec.push_back(first_element);
-        ItemType next_element;
-        Key key = key_extractor(first_element);
+        vec.push_back(puller.Top());
+        Key key = key_extractor(puller.Top());
 
         size_t capacity = JoinCapacity<ItemType>();
 
-        if (puller.HasNext()) {
-            next_element = puller.Next();
-        }
-        else {
+        if (!puller.Update())
             return std::make_pair(true, false);
-        }
 
-        while (key_extractor(next_element) == key) {
+        while (key_extractor(puller.Top()) == key) {
 
             if (!mem::memory_exceeded && vec.size() < capacity) {
-                vec.push_back(next_element);
+                vec.push_back(puller.Top());
             }
             else {
                 file_ptr = context_.GetFilePtr(this);
@@ -449,22 +394,55 @@ private:
                 for (const ItemType& item : vec) {
                     writer.Put(item);
                 }
-                writer.Put(next_element);
-                //! vec is very large when this happens, swap with empty vector to free the mem
+                writer.Put(puller.Top());
+                //! vec is very large when this happens
+                //! swap with empty vector to free the memory
                 std::vector<ItemType>().swap(vec);
 
-                return AddEqualKeysToFile(puller, first_element, key_extractor, writer, key);
+                return AddEqualKeysToFile(puller, key_extractor, writer, key);
             }
-            if (puller.HasNext()) {
-                next_element = puller.Next();
-            }
-            else {
+
+            if (!puller.Update())
                 return std::make_pair(true, false);
-            }
         }
 
-        first_element = next_element;
         return std::make_pair(false, false);
+    }
+
+    /*!
+     * Adds all elements from merge tree to a data::File, potentially to external memory,
+     * afterwards sets the first_element pointer to the first element with a different key.
+     *
+     * \param puller Input merge tree
+     *
+     * \param first_element First element with target key
+     *
+     * \param key_extractor Key extractor function
+     *
+     * \param writer File writer
+     *
+     * \param Key target key
+     *
+     * \return Pair of bools, first bool indicates whether the merge tree is
+     * emptied, second bool indicates whether external memory was needed (always true, when
+     * this method was called).
+     */
+    template <typename KeyExtractor, typename MergeTree>
+    std::pair<bool, bool> AddEqualKeysToFile(MergeTree& puller,
+                                             const KeyExtractor& key_extractor,
+                                             data::File::Writer& writer,
+                                             Key key) {
+        if (!puller.Update()) {
+            return std::make_pair(true, true);
+        }
+
+        while (key_extractor(puller.Top()) == key) {
+            writer.Put(puller.Top());
+            if (!puller.Update())
+                return std::make_pair(true, true);
+        }
+
+        return std::make_pair(false, true);
     }
 
     DIAMemUse PreOpMemUse() final {
@@ -554,7 +532,8 @@ private:
      * Merge files when there are too many for the merge tree to handle
      */
     template <typename ItemType, typename CompareFunction>
-    void MergeFiles(std::deque<data::File>& files, CompareFunction compare_function) {
+    void MergeFiles(std::deque<data::File>& files,
+                    CompareFunction compare_function) {
 
         size_t merge_degree, prefetch;
 
@@ -664,7 +643,8 @@ private:
 
             while (reader1.HasNext()) {
 
-                for (size_t i = 0; i < capacity && reader1.HasNext() && !mem::memory_exceeded; ++i) {
+                for (size_t i = 0; i < capacity && reader1.HasNext() &&
+                         !mem::memory_exceeded; ++i) {
                     temp_vec.push_back(reader1.template Next<InputTypeFirst>());
                 }
 
