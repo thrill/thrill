@@ -411,11 +411,6 @@ public:
 
         size_t uniques = context_.net.AllReduce(num_elements);
 
-
-        if (context_.my_rank() == 0) {
-            LOG1 << "uniques: " << uniques;
-        }
-
         auto duplicates_reader = duplicates_stream->GetCatReader(/* consume */ true);
 
         target_processors.reserve(uniques);
