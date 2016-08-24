@@ -31,16 +31,100 @@
 
 
 using namespace thrill;              // NOLINT
-using LineItem = std::tuple<size_t, size_t, size_t, size_t, size_t, double,
-                            double, double, char, char, time_t, time_t, time_t,
-                            std::string, std::string, std::string>;
-using Order = std::tuple<size_t, size_t, char, double, time_t, std::string,
-                         std::string, bool, std::string>;
 using Joined = std::tuple<size_t, size_t, size_t, size_t, size_t, double,
                           double, double, char, char, time_t, time_t, time_t,
                           std::string, std::string, std::string, size_t, size_t,
                           char, double, time_t, std::string, std::string, bool,
                           std::string>;
+
+struct LineItem {
+    size_t orderkey;
+    size_t partkey;
+    size_t suppkey;
+    size_t linenumber;
+    size_t quantity;
+    double extendedprice;
+    double discount;
+    double tax;
+    char returnflag;
+    char linestatus;
+    time_t ship;
+    time_t commit;
+    time_t receipt;
+    char shipinstruct[25];
+    char shipmode[10];
+    char comment[44];
+} THRILL_ATTRIBUTE_PACKED;
+
+struct Order {
+    size_t orderkey;
+    size_t custkey;
+    char orderstatus;
+    double totalprice;
+    time_t ordertime;
+    char orderpriority[15];
+    char clerk[15];
+    bool priority;
+    char comment[79];
+} THRILL_ATTRIBUTE_PACKED;
+
+struct JoinedElement {
+    size_t orderkey;
+    size_t partkey;
+    size_t suppkey;
+    size_t linenumber;
+    size_t quantity;
+    double extendedprice;
+    double discount;
+    double tax;
+    char returnflag;
+    char linestatus;
+    time_t ship;
+    time_t commit;
+    time_t receipt;
+    char shipinstruct[25];
+    char shipmode[10];
+    char lineitem_comment[44];
+    size_t custkey;
+    char orderstatus;
+    double totalprice;
+    time_t ordertime;
+    char orderpriority[15];
+    char clerk[15];
+    bool priority;
+    char order_comment[79];
+} THRILL_ATTRIBUTE_PACKED;
+
+JoinedElement ConstructJoinedElement(const struct LineItem&li, const struct Order& o) {
+    JoinedElement je;
+    je.orderkey = li.orderkey;
+    je.partkey = li.partkey;
+    je.suppkey = li.suppkey;
+    je.linenumber = li.linenumber;
+    je.quantity = li.quantity;
+    je.extendedprice = li.extendedprice;
+    je.discount = li.discount;
+    je.tax = li.tax;
+    je.returnflag = li.returnflag;
+    je.linestatus = li.linestatus;
+    je.ship = li.ship;
+    je.commit = li.commit;
+    je.receipt = li.receipt;
+    std::strcpy(je.shipinstruct, li.shipinstruct);
+    std::strcpy(je.shipmode, li.shipmode);
+    std::strcpy(je.lineitem_comment, li.comment);
+    je.custkey = o.custkey;
+    je.orderstatus = o.orderstatus;
+    je.totalprice = o.totalprice;
+    je.ordertime = o.ordertime;
+    std::strcpy(je.orderpriority, o.orderpriority);
+    std::strcpy(je.clerk, o.clerk);
+    je.priority = o.priority;
+    std::strcpy(je.order_comment, o.comment);
+    return je;
+}
+
+
 
 //adapted from:
 //https://gmbabar.wordpress.com/2010/12/01/mktime-slow-use-custom-function/
@@ -83,34 +167,38 @@ static size_t JoinTPCH4(
     std::vector<std::string> splitted;
     common::StatsTimerStopped notime;
     std::string s_lineitems = input_path[0] + std::string("lineitem.tbl*");
+
+    LOG1 << sizeof(struct JoinedElement);
     auto lineitems = ReadLines(ctx, s_lineitems).Map(
         [&splitted](const std::string& input) {
+            LineItem li;
+
             char* end;
             common::SplitRef(input, '|', splitted);
-            size_t orderkey = std::strtoul(splitted[0].c_str(), &end, 10);
-            size_t partkey = std::strtoul(splitted[1].c_str(), &end, 10);
-            size_t suppkey = std::strtoul(splitted[2].c_str(), &end, 10);
-            size_t linenumber = std::strtoul(splitted[3].c_str(), &end, 10);
-            size_t quantity = std::strtoul(splitted[4].c_str(), &end, 10);
-            double extendedprice = std::strtod(splitted[5].c_str(), &end);
-            double discount = std::strtod(splitted[6].c_str(), &end);
-            double tax = std::strtod(splitted[7].c_str(), &end);
-            char returnflag = splitted[8][0];
-            char linestatus = splitted[9][0];
+            li.orderkey = std::strtoul(splitted[0].c_str(), &end, 10);
+            li.partkey = std::strtoul(splitted[1].c_str(), &end, 10);
+            li.suppkey = std::strtoul(splitted[2].c_str(), &end, 10);
+            li.linenumber = std::strtoul(splitted[3].c_str(), &end, 10);
+            li.quantity = std::strtoul(splitted[4].c_str(), &end, 10);
+            li.extendedprice = std::strtod(splitted[5].c_str(), &end);
+            li.discount = std::strtod(splitted[6].c_str(), &end);
+            li.tax = std::strtod(splitted[7].c_str(), &end);
+            li.returnflag = splitted[8][0];
+            li.linestatus = splitted[9][0];
 
-            time_t ship = time_to_epoch(splitted[10]);
-            time_t commit = time_to_epoch(splitted[11]);
-            time_t receipt = time_to_epoch(splitted[12]);
+            li.ship = time_to_epoch(splitted[10]);
+            li.commit = time_to_epoch(splitted[11]);
+            li.receipt = time_to_epoch(splitted[12]);
+            std::strcpy(li.shipinstruct, splitted[13].data());
+            std::strcpy(li.shipmode, splitted[14].data());
+            std::strcpy(li.comment, splitted[15].data());
 
-            return std::make_tuple(orderkey, partkey, suppkey, linenumber,
-                                   quantity, extendedprice, discount, tax,
-                                   returnflag, linestatus, ship, commit,
-                                   receipt, splitted[13], splitted[14],
-                                   splitted[15]);
+
+            return li;
 
         }).Filter([](const LineItem& li) {
-                return std::get<11>(li) < std::get<12>(li);
-                });
+                return li.commit < li.receipt;
+            });
 
     time_t starttime = time_to_epoch("1992-01-01");
     time_t stoptime = time_to_epoch("1992-04-01");
@@ -120,36 +208,38 @@ static size_t JoinTPCH4(
     auto orders = ReadLines(ctx, s_orders).Map(
         [&splitted](const std::string& input) {
 
+            Order o;
+
             char* end;
             common::SplitRef(input, '|', splitted);
-            size_t orderkey = std::strtoul(splitted[0].c_str(), &end, 10);
-            size_t custkey = std::strtoul(splitted[1].c_str(), &end, 10);
-            char orderstatus = splitted[2][0];
-            double totalprice = std::strtod(splitted[3].c_str(), &end);
-            time_t order = time_to_epoch(splitted[4]);
+            o.orderkey = std::strtoul(splitted[0].c_str(), &end, 10);
+            o.custkey = std::strtoul(splitted[1].c_str(), &end, 10);
+            o.orderstatus = splitted[2][0];
+            o.totalprice = std::strtod(splitted[3].c_str(), &end);
+            o.ordertime = time_to_epoch(splitted[4]);
+            std::strcpy(o.orderpriority, splitted[5].data());
+            std::strcpy(o.clerk, splitted[6].data());
+            o.priority = (splitted[7][0] != '0');
+            std::strcpy(o.comment, splitted[8].data());
 
-            bool priority = (splitted[7][0] != '0');
-
-            return std::make_tuple(orderkey, custkey, orderstatus, totalprice,
-                                   order, splitted[5], splitted[6],
-                                   priority, splitted[8]);
+            return o;
 
         }).Filter([&starttime](const Order& o) {
-                return (std::get<4>(o) >= starttime);
+                return o.ordertime >= starttime;
             }).Filter([&stoptime](const Order& o) {
-                    return (std::get<4>(o) < stoptime);
+                    return o.ordertime < stoptime;
                 });
 
 
     auto joined = lineitems.InnerJoinWith(orders,
                                           [](const LineItem& li) {
-                                              return std::get<0>(li);
+                                              return li.orderkey;
                                           },
                                           [](const Order& o) {
-                                              return std::get<0>(o);
+                                              return o.orderkey;
                                           },
                                           [](const LineItem& li, const Order& o) {
-                                              return std::tuple_cat(li, o);
+                                              return ConstructJoinedElement(li, o);
                                           }, thrill::hash()).Size();
 
     return joined;
