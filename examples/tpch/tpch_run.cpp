@@ -31,11 +31,6 @@
 
 
 using namespace thrill;              // NOLINT
-using Joined = std::tuple<size_t, size_t, size_t, size_t, size_t, double,
-                          double, double, char, char, time_t, time_t, time_t,
-                          std::string, std::string, std::string, size_t, size_t,
-                          char, double, time_t, std::string, std::string, bool,
-                          std::string>;
 
 struct LineItem {
     size_t orderkey;
@@ -124,13 +119,10 @@ JoinedElement ConstructJoinedElement(const struct LineItem&li, const struct Orde
     return je;
 }
 
-
-
 //adapted from:
 //https://gmbabar.wordpress.com/2010/12/01/mktime-slow-use-custom-function/
 // removed time of day as we dont need that
 time_t time_to_epoch (const std::string& str) {
-
     char* end;
 
     struct tm ltm;
@@ -163,72 +155,69 @@ static size_t JoinTPCH4(
     api::Context& ctx,
     const std::vector<std::string>& input_path) {
     ctx.enable_consume();
-    common::StatsTimerStopped sts;
     std::vector<std::string> splitted;
-    common::StatsTimerStopped notime;
+    splitted.resize(17);
     std::string s_lineitems = input_path[0] + std::string("lineitem.tbl*");
 
-    LOG1 << sizeof(struct JoinedElement);
-    auto lineitems = ReadLines(ctx, s_lineitems).Map(
-        [&splitted](const std::string& input) {
-            LineItem li;
+    auto lineitems = ReadLines(ctx, s_lineitems).FlatMap<struct LineItem>(
+        [&splitted](const std::string& input, auto emit) {
 
+            LineItem li;
             char* end;
             common::SplitRef(input, '|', splitted);
-            li.orderkey = std::strtoul(splitted[0].c_str(), &end, 10);
-            li.partkey = std::strtoul(splitted[1].c_str(), &end, 10);
-            li.suppkey = std::strtoul(splitted[2].c_str(), &end, 10);
-            li.linenumber = std::strtoul(splitted[3].c_str(), &end, 10);
-            li.quantity = std::strtoul(splitted[4].c_str(), &end, 10);
-            li.extendedprice = std::strtod(splitted[5].c_str(), &end);
-            li.discount = std::strtod(splitted[6].c_str(), &end);
-            li.tax = std::strtod(splitted[7].c_str(), &end);
-            li.returnflag = splitted[8][0];
-            li.linestatus = splitted[9][0];
 
-            li.ship = time_to_epoch(splitted[10]);
+
             li.commit = time_to_epoch(splitted[11]);
             li.receipt = time_to_epoch(splitted[12]);
-            std::strcpy(li.shipinstruct, splitted[13].data());
-            std::strcpy(li.shipmode, splitted[14].data());
-            std::strcpy(li.comment, splitted[15].data());
 
+            if (li.commit < li.receipt) {
 
-            return li;
+                li.orderkey = std::strtoul(splitted[0].c_str(), &end, 10);
+                li.partkey = std::strtoul(splitted[1].c_str(), &end, 10);
+                li.suppkey = std::strtoul(splitted[2].c_str(), &end, 10);
+                li.linenumber = std::strtoul(splitted[3].c_str(), &end, 10);
+                li.quantity = std::strtoul(splitted[4].c_str(), &end, 10);
+                li.extendedprice = std::strtod(splitted[5].c_str(), &end);
+                li.discount = std::strtod(splitted[6].c_str(), &end);
+                li.tax = std::strtod(splitted[7].c_str(), &end);
+                li.returnflag = splitted[8][0];
+                li.linestatus = splitted[9][0];
 
-        }).Filter([](const LineItem& li) {
-                return li.commit < li.receipt;
-            });
+                li.ship = time_to_epoch(splitted[10]);
+
+                std::strcpy(li.shipinstruct, splitted[13].data());
+                std::strcpy(li.shipmode, splitted[14].data());
+                std::strcpy(li.comment, splitted[15].data());
+
+                emit(li);
+            }
+        });
 
     time_t starttime = time_to_epoch("1992-01-01");
     time_t stoptime = time_to_epoch("1992-04-01");
 
-    common::StatsTimerStopped sts2;
     std::string s_orders = input_path[0] + std::string("orders.tbl*");
-    auto orders = ReadLines(ctx, s_orders).Map(
-        [&splitted](const std::string& input) {
-
+    auto orders = ReadLines(ctx, s_orders).FlatMap<struct Order>(
+        [&splitted, &starttime, &stoptime](const std::string& input, auto emit) {
             Order o;
 
             char* end;
             common::SplitRef(input, '|', splitted);
-            o.orderkey = std::strtoul(splitted[0].c_str(), &end, 10);
-            o.custkey = std::strtoul(splitted[1].c_str(), &end, 10);
-            o.orderstatus = splitted[2][0];
-            o.totalprice = std::strtod(splitted[3].c_str(), &end);
+
             o.ordertime = time_to_epoch(splitted[4]);
-            std::strcpy(o.orderpriority, splitted[5].data());
-            std::strcpy(o.clerk, splitted[6].data());
-            o.priority = (splitted[7][0] != '0');
-            std::strcpy(o.comment, splitted[8].data());
+            if (o.ordertime >= starttime && o.ordertime < stoptime) {
+                o.orderkey = std::strtoul(splitted[0].c_str(), &end, 10);
+                o.custkey = std::strtoul(splitted[1].c_str(), &end, 10);
+                o.orderstatus = splitted[2][0];
+                o.totalprice = std::strtod(splitted[3].c_str(), &end);
+                std::strcpy(o.orderpriority, splitted[5].data());
+                std::strcpy(o.clerk, splitted[6].data());
+                o.priority = (splitted[7][0] != '0');
+                std::strcpy(o.comment, splitted[8].data());
 
-            return o;
-
-        }).Filter([&starttime](const Order& o) {
-                return o.ordertime >= starttime;
-            }).Filter([&stoptime](const Order& o) {
-                    return o.ordertime < stoptime;
-                });
+                emit(o);
+            }
+        });
 
 
     auto joined = lineitems.InnerJoinWith(orders,
