@@ -19,8 +19,8 @@ TEST(DuplicateDetection, AllDuplicatedList) {
     auto start_func = [](Context& ctx) {
                           size_t elements = 10;
 
-                          std::vector<size_t> duplicates;
                           std::vector<size_t> hashes;
+                          std::vector<bool> non_duplicates;
 
                           for (size_t i = 0; i < elements; ++i) {
                               hashes.push_back(i);
@@ -28,17 +28,22 @@ TEST(DuplicateDetection, AllDuplicatedList) {
 
                           core::DuplicateDetection duplicate_detection;
 
-                          duplicate_detection.FindNonDuplicates(duplicates,
+                          size_t max_hash =
+                          duplicate_detection.FindNonDuplicates(non_duplicates,
                                                                 hashes,
                                                                 ctx,
                                                                 0);
 
-                          if (ctx.num_workers() > 1) {
-                              ASSERT_EQ(duplicates, std::vector<size_t>());
+                          std::vector<bool> comparison;
+                          comparison.resize(max_hash, false);
+
+                          if (ctx.num_workers() == 1) {
+                              for (size_t i = 0; i < elements; ++i) {
+                                  comparison[i] = true;
+                              }
                           }
-                          else {
-                              ASSERT_EQ(duplicates, hashes);
-                          }
+
+                          ASSERT_EQ(non_duplicates, comparison);
                       };
 
     api::RunLocalTests(start_func);
@@ -66,7 +71,7 @@ TEST(DuplicateDetection, SomeDuplicatedElements) {
                                   static_cast<size_t>(std::ceil(static_cast<double>(i + 1) * per_pe)));
                           }
 
-                          std::vector<size_t> non_duplicates;
+                          std::vector<bool> non_duplicates;
                           std::vector<size_t> hashes;
 
                           common::Range my_range = common::CalculateLocalRange(
@@ -78,49 +83,43 @@ TEST(DuplicateDetection, SomeDuplicatedElements) {
 
                           core::DuplicateDetection duplicate_detection;
 
+                          size_t max_hash =
                           duplicate_detection.FindNonDuplicates(non_duplicates,
                                                                 hashes,
                                                                 ctx,
                                                                 0);
 
+                          std::vector<bool> comparison(max_hash, false);
+
+
                           if (ctx.num_workers() > 1) {
-                              size_t my_range_size =
-                                  my_range.end - my_range.begin;
-                              if (ctx.my_rank() == 0 ||
-                                  ctx.my_rank() == ctx.num_workers() - 1) {
-                                  ASSERT_EQ(my_range_size,
-                                            non_duplicates.size());
+                              if (ctx.my_rank() == 0) {
+                                  for (size_t i = 0; i < my_range.end; i++) {
+                                          comparison[i] = true;
+                                      }
+                              } else {
+                                  if (ctx.my_rank() == ctx.num_workers() - 1) {
+                                      for (size_t i = my_range.begin + delta;
+                                           i < my_range.end + delta; i++) {
+                                          comparison[i] = true;
+                                      }
+                                  }
+                                  else {
+                                      for (size_t i = my_range.begin + delta;
+                                           i < my_range.end; i++) {
+                                          comparison[i] = true;
+                                      }
+                                  }
                               }
-                              else {
-                                  ASSERT_EQ(my_range_size - delta,
-                                            non_duplicates.size());
+                          }
+                          else {
+                              for (size_t i = 0; i < elements + delta; ++i) {
+                                  comparison[i] = true;
                               }
                           }
-                          else {
-                              ASSERT_EQ(elements + delta, non_duplicates.size());
-                          }
 
-                          size_t start_uniques, end_uniques;
+                          ASSERT_EQ(comparison, non_duplicates);
 
-                          if (ctx.my_rank() == 0) {
-                              start_uniques = 0;
-                          }
-                          else {
-                              start_uniques = my_range.begin + delta;
-                          }
-
-                          if (ctx.my_rank() == ctx.num_workers() - 1) {
-                              end_uniques = elements + delta;
-                          }
-                          else {
-                              end_uniques = my_range.end;
-                          }
-
-                          for (size_t j = 0;
-                               j < (end_uniques - start_uniques); ++j) {
-                              ASSERT_EQ(non_duplicates[j],
-                                        j + start_uniques);
-                          }
                       };
 
     api::RunLocalTests(start_func);
@@ -149,7 +148,7 @@ TEST(DuplicateDetection, SomeDuplicatedElementsNonConsec) {
                                   static_cast<size_t>(std::ceil(static_cast<double>((i + 1) * per_pe))));
                           }
 
-                          std::vector<size_t> non_duplicates;
+                          std::vector<bool> non_duplicates;
                           std::vector<size_t> hashes;
 
                           common::Range my_range = common::CalculateLocalRange(
@@ -161,49 +160,43 @@ TEST(DuplicateDetection, SomeDuplicatedElementsNonConsec) {
 
                           core::DuplicateDetection duplicate_detection;
 
+                          size_t max_hash =
                           duplicate_detection.FindNonDuplicates(non_duplicates,
                                                                 hashes,
                                                                 ctx,
                                                                 0);
 
+                          std::vector<bool> comparison(max_hash, false);
+
+
                           if (ctx.num_workers() > 1) {
-                              size_t my_range_size =
-                                  my_range.end - my_range.begin;
-                              if (ctx.my_rank() == 0 ||
-                                  ctx.my_rank() == ctx.num_workers() - 1) {
-                                  ASSERT_EQ(my_range_size,
-                                            non_duplicates.size());
+                              if (ctx.my_rank() == 0) {
+                                  for (size_t i = 0; i < my_range.end; i++) {
+                                          comparison[i * multiplier] = true;
+                                      }
+                              } else {
+                                  if (ctx.my_rank() == ctx.num_workers() - 1) {
+                                      for (size_t i = my_range.begin + delta;
+                                           i < my_range.end + delta; i++) {
+                                          comparison[i * multiplier] = true;
+                                      }
+                                  }
+                                  else {
+                                      for (size_t i = my_range.begin + delta;
+                                           i < my_range.end; i++) {
+                                          comparison[i * multiplier] = true;
+                                      }
+                                  }
                               }
-                              else {
-                                  ASSERT_EQ(my_range_size - delta,
-                                            non_duplicates.size());
+                          }
+                          else {
+                              for (size_t i = 0; i < elements + delta; ++i) {
+                                  comparison[i * multiplier] = true;
                               }
                           }
-                          else {
-                              ASSERT_EQ(elements + delta, non_duplicates.size());
-                          }
 
-                          size_t start_uniques, end_uniques;
+                          ASSERT_EQ(comparison, non_duplicates);
 
-                          if (ctx.my_rank() == 0) {
-                              start_uniques = 0;
-                          }
-                          else {
-                              start_uniques = my_range.begin + delta;
-                          }
-
-                          if (ctx.my_rank() == ctx.num_workers() - 1) {
-                              end_uniques = elements + delta;
-                          }
-                          else {
-                              end_uniques = my_range.end;
-                          }
-
-                          for (size_t j = 0;
-                               j < (end_uniques - start_uniques); ++j) {
-                              ASSERT_EQ(non_duplicates[j],
-                                        multiplier * (j + start_uniques));
-                          }
                       };
 
     api::RunLocalTests(start_func);
@@ -214,7 +207,7 @@ TEST(DuplicateDetection, AllDuplicatedHash) {
     auto start_func = [](Context& ctx) {
                           size_t elements = 2000;
 
-                          std::vector<size_t> duplicates;
+                          std::vector<bool> non_duplicates;
                           std::vector<size_t> hashes;
 
                           for (size_t i = 0; i < elements; ++i) {
@@ -223,17 +216,23 @@ TEST(DuplicateDetection, AllDuplicatedHash) {
 
                           core::DuplicateDetection duplicate_detection;
 
-                          duplicate_detection.FindNonDuplicates(duplicates,
+                          size_t max_hash =
+                          duplicate_detection.FindNonDuplicates(non_duplicates,
                                                                 hashes,
                                                                 ctx,
                                                                 0);
 
-                          if (ctx.num_workers() > 1) {
-                              ASSERT_EQ(duplicates, std::vector<size_t>());
+
+                          std::vector<bool> comparison;
+                          comparison.resize(max_hash, false);
+
+                          if (ctx.num_workers() == 1) {
+                              for (size_t i = 0; i < elements; ++i) {
+                                  comparison[(i * 317) % 9721] = true;
+                              }
                           }
-                          else {
-                              ASSERT_EQ(duplicates, hashes);
-                          }
+
+                          ASSERT_EQ(non_duplicates, comparison);
                       };
 
     api::RunLocalTests(start_func);

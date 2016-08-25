@@ -115,10 +115,8 @@ private:
      * \param b Golomb parameter
      */
     void ReadEncodedHashesToVector(data::CatStreamPtr stream_pointer,
-                                   std::vector<size_t>& target_vec,
+                                   std::vector<bool>& target_vec,
                                    size_t b) {
-
-        assert(!target_vec.size());
 
         auto reader = stream_pointer->GetCatReader(/* consume */ true);
 
@@ -140,7 +138,7 @@ private:
                 for (size_t i = 0; i < num_elements; ++i) {
                     //! Golomb code contains deltas, we want the actual values
                     size_t new_elem = golomb_code.golomb_out() + last;
-                    target_vec.push_back(new_elem);
+                    target_vec[new_elem] = true;
 
                     last = new_elem;
                 }
@@ -165,7 +163,7 @@ public:
      * \return Modulo used on all hashes. (Use this modulo on all hashes to
      *  identify possible non-duplicates)
      */
-    size_t FindNonDuplicates(std::vector<size_t>& non_duplicates,
+    size_t FindNonDuplicates(std::vector<bool>& non_duplicates,
                              std::vector<size_t>& hashes,
                              Context& context,
                              size_t dia_id) {
@@ -296,10 +294,10 @@ public:
             delete bitsets[i];
         }
 
+        assert(!non_duplicates.size());
+        non_duplicates.resize(max_hash);
         ReadEncodedHashesToVector(duplicates_stream,
                                   non_duplicates, b);
-
-        assert(std::is_sorted(non_duplicates.begin(), non_duplicates.end()));
 
         return max_hash;
     }
