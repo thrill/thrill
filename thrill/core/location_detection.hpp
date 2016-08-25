@@ -427,14 +427,25 @@ public:
                                                     b, num_elements);
             golomb_code.seek();
 
+            size_t data_iterator = 0;
             size_t last = 0;
             for (size_t i = 0; i < num_elements; ++i) {
                 //! Golomb code contains deltas, we want the actual values in target_vec
                 size_t new_elem = golomb_code.golomb_out() + last;
-
                 last = new_elem;
-
                 size_t processor = golomb_code.stream_out(processor_bitsize);
+
+
+                while (data_[data_iterator].first < new_elem) {
+                    data_iterator++;
+                    if (THRILL_UNLIKELY(data_iterator >= data_.size())) {
+                        break;
+                    }
+                }
+
+                if (data_[data_iterator].first > new_elem) continue;
+                assert (data_[data_iterator].first == new_elem);
+
                 target_processors[new_elem] = processor;
 
             }
