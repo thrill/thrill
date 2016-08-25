@@ -1,3 +1,4 @@
+
 /*******************************************************************************
  * tests/core/duplicates_speedup_test.cpp
  *
@@ -42,7 +43,7 @@ int main(int argc, char* argv[]) {
 
     clp.PrintResult();
 
-    static constexpr bool debug = true;
+    static constexpr bool debug = false;
 
     api::Run([&equal, &elements](api::Context& ctx) {
 
@@ -77,7 +78,10 @@ int main(int argc, char* argv[]) {
                          ASSERT_EQ(elements / equal, vec.size());
                          for (size_t i = 0; i < vec.size(); ++i) {
                              for (size_t j = 0; j < 128; ++j) {
-                                 ASSERT_EQ(vec[i].second[j], 10 + 5 * j + 25 * i);
+                                 ASSERT_EQ(vec[i].second[j],
+                                           equal * (equal - 1) / 2
+                                           + equal * j
+                                           + equal * equal * i);
                              }
                          }
                          LOG1 << "Result checking successful.";
