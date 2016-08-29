@@ -58,7 +58,7 @@ struct hash_crc32_intel {
         // CRC32 hash has - well - 32 bits. Whatever.
         uint64_t crc_carry = crc;
         for (size_t i = 0; i < length / sizeof(uint64_t); i++) {
-            crc_carry = _mm_crc32_u64(crc_carry, *(uint64_t*) p_buf);
+            crc_carry = _mm_crc32_u64(crc_carry, *(const uint64_t*) p_buf);
             p_buf += sizeof(uint64_t);
         }
         crc = (uint32_t) crc_carry; // discard the rest
@@ -69,19 +69,19 @@ struct hash_crc32_intel {
         case 7:
             crc = _mm_crc32_u8(crc, *p_buf++);
         case 6:
-            crc = _mm_crc32_u16(crc, *(uint16_t*) p_buf);
+            crc = _mm_crc32_u16(crc, *(const uint16_t*) p_buf);
             p_buf += 2;
             // case 5 is below: 4 + 1
         case 4:
-            crc = _mm_crc32_u32(crc, *(uint32_t*) p_buf);
+            crc = _mm_crc32_u32(crc, *(const uint32_t*) p_buf);
             break;
         case 3:
             crc = _mm_crc32_u8(crc, *p_buf++);
         case 2:
-            crc = _mm_crc32_u16(crc, *(uint16_t*) p_buf);
+            crc = _mm_crc32_u16(crc, *(const uint16_t*) p_buf);
             break;
         case 5:
-            crc = _mm_crc32_u32(crc, *(uint32_t*) p_buf);
+            crc = _mm_crc32_u32(crc, *(const uint32_t*) p_buf);
             p_buf += 4;
         case 1:
             crc = _mm_crc32_u8(crc, *p_buf);
@@ -100,7 +100,7 @@ struct hash_crc32_intel {
                         typename std::enable_if<
                         (sizeof(T) > 8) || (sizeof(T) > 4 && sizeof(T) < 8) || sizeof(T) == 3
                         >::type* = 0) {
-        return hash_bytes((void*)&val, sizeof(T), crc);
+        return hash_bytes((const void*)&val, sizeof(T), crc);
     }
 
     // Specializations for {8,4,2,1}-byte types avoiding unnecessary branches
@@ -141,7 +141,7 @@ uint32_t crc32_slicing_by_8(uint32_t crc, const void* data, size_t length);
 template <typename ValueType>
 struct hash_crc32_fallback {
     uint32_t operator()(const ValueType& val, const uint32_t crc = 0xffffffff) {
-        return crc32_slicing_by_8(crc, (void*)&val, sizeof(ValueType));
+        return crc32_slicing_by_8(crc, (const void*)&val, sizeof(ValueType));
     }
 };
 
