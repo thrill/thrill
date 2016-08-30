@@ -207,7 +207,7 @@ public:
 
         size_t total_elements = 0;
 
-        for (auto & reader : readers) {
+        for (auto& reader : readers) {
             assert(reader.HasNext());
             size_t data_size = reader.template Next<size_t>();
             size_t num_elements = reader.template Next<size_t>();

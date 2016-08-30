@@ -152,7 +152,7 @@ static void RunJoinPageRankEdgePerLine(
 
     auto links = input.GroupByKey<LinkedPage>(
         [](const PagePageLink& p) { return p.src; },
-        [all = std::vector<PageId>()](auto& r, const PageId& pid) mutable {
+        [all = std::vector < PageId > ()](auto& r, const PageId& pid) mutable {
             all.clear();
             while (r.HasNext()) {
                 all.push_back(r.Next().tgt);
@@ -168,8 +168,8 @@ static void RunJoinPageRankEdgePerLine(
 
     if (output_path.size()) {
         ranks.Map([](const RankedPage& rp) {
-                return common::str_sprintf("%zu: %g", rp.first, rp.second);
-            }).WriteLines(output_path);
+                      return common::str_sprintf("%zu: %g", rp.first, rp.second);
+                  }).WriteLines(output_path);
     }
     else {
         ranks.Execute();
@@ -267,8 +267,8 @@ static void RunPageRankJoinGenerated(
 
     if (output_path.size()) {
         ranks.Map([](const RankedPage& rp) {
-                return common::str_sprintf("%zu: %g", rp.first, rp.second);
-            }).WriteLines(output_path);
+                      return common::str_sprintf("%zu: %g", rp.first, rp.second);
+                  }).WriteLines(output_path);
     }
     else {
         ranks.Execute();

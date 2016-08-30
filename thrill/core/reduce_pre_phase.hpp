@@ -106,8 +106,6 @@ public:
     std::vector<size_t> stats_;
 };
 
-
-
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool VolatileKey,
@@ -125,10 +123,10 @@ public:
     using Emitter = ReducePrePhaseEmitter<KeyValuePair, VolatileKey>;
 
     using Table = typename ReduceTableSelect<
-        ReduceConfig::table_impl_,
-        ValueType, Key, Value,
-        KeyExtractor, ReduceFunction, Emitter,
-        VolatileKey, ReduceConfig, IndexFunction, EqualToFunction>::type;
+              ReduceConfig::table_impl_,
+              ValueType, Key, Value,
+              KeyExtractor, ReduceFunction, Emitter,
+              VolatileKey, ReduceConfig, IndexFunction, EqualToFunction>::type;
 
     /*!
      * A data structure which takes an arbitrary value and extracts a key using
@@ -179,8 +177,6 @@ public:
         }
     }
 
-
-
     //! Flushes a partition
     void FlushPartition(size_t partition_id, bool consume, bool grow) {
         table_.FlushPartition(partition_id, consume, grow);
@@ -222,7 +218,7 @@ template <typename ValueType, typename Key, typename Value,
           typename ReduceConfig = DefaultReduceConfig,
           typename IndexFunction = ReduceByHash<Key>,
           typename EqualToFunction = std::equal_to<Key>,
-          typename HashFunction = std::hash<Key>>
+          typename HashFunction = std::hash<Key> >
 class ReducePrePhaseDuplicates : public ReducePrePhase<ValueType, Key, Value,
                                                        KeyExtractor,
                                                        ReduceFunction,
@@ -245,13 +241,13 @@ public:
                              std::vector<data::DynBlockWriter>& emit,
                              const ReduceConfig& config = ReduceConfig(),
                              const IndexFunction& index_function =
-                             IndexFunction(),
+                                 IndexFunction(),
                              const EqualToFunction& equal_to_function =
-                             EqualToFunction(),
-                             const HashFunction hash_function = HashFunction()):
-        Super(ctx, dia_id, num_partitions, key_extractor, reduce_function, emit,
-              config, index_function, equal_to_function, /*duplicates*/ true),
-        hash_function_(hash_function) { };
+                                 EqualToFunction(),
+                             const HashFunction hash_function = HashFunction())
+        : Super(ctx, dia_id, num_partitions, key_extractor, reduce_function, emit,
+                config, index_function, equal_to_function, /*duplicates*/ true),
+          hash_function_(hash_function) { }
 
     void Insert(const Value& p) {
         if (Super::table_.Insert(p)) {
@@ -282,7 +278,7 @@ public:
         Super::table_.FlushPartitionEmit(
             partition_id, consume, grow,
             [this](const size_t& partition_id, const KeyValuePair& p) {
-                if (!non_duplicates_[std::hash<Key>()(p.first) %
+                if (!non_duplicates_[std::hash < Key > ()(p.first) %
                                      max_hash_]) {
 
                     duplicated_elements_++;
@@ -299,7 +295,7 @@ public:
                 Super::table_.partition_files()[partition_id].GetReader(true);
             while (reader.HasNext()) {
                 KeyValuePair kv = reader.Next<KeyValuePair>();
-                if (!non_duplicates_[std::hash<Key>()(kv.first) %
+                if (!non_duplicates_[std::hash < Key > ()(kv.first) %
                                      max_hash_]) {
 
                     duplicated_elements_++;
@@ -317,7 +313,7 @@ public:
         Super::emit_.Flush(Super::table_.ctx().my_rank());
     }
 
-      //! \name Duplicate Detection
+    //! \name Duplicate Detection
     //! \{
 
     HashFunction hash_function_;
@@ -333,7 +329,6 @@ public:
     size_t non_duplicate_elements_ = 0;
 
     //! \}
-
 };
 
 } // namespace core

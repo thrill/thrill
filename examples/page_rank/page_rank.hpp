@@ -1,4 +1,3 @@
-
 /*******************************************************************************
  * examples/page_rank/page_rank.hpp
  *
@@ -50,7 +49,6 @@ struct PagePageLink {
     }
 } THRILL_ATTRIBUTE_PACKED;
 
-
 using PageRankPair = std::pair<PageId, Rank>;
 using OutgoingLinks = std::vector<PageId>;
 using OutgoingLinksRank = std::pair<std::vector<PageId>, Rank>;
@@ -58,7 +56,7 @@ using LinkedPage = std::pair<PageId, OutgoingLinks>;
 using RankedPage = std::pair<PageId, Rank>;
 
 template <typename InStack>
-auto PageRank(const DIA<OutgoingLinks, InStack>& links,
+auto PageRank(const DIA<OutgoingLinks, InStack>&links,
               size_t num_pages, size_t iterations) {
 
     api::Context& ctx = links.context();
@@ -129,7 +127,7 @@ auto PageRank(const DIA<OutgoingLinks, InStack>& links,
 }
 
 template <typename InStack>
-auto PageRankJoin(const DIA<LinkedPage, InStack>& links, size_t num_pages,
+auto PageRankJoin(const DIA<LinkedPage, InStack>&links, size_t num_pages,
                   size_t iterations) {
 
     api::Context& ctx = links.context();
@@ -195,14 +193,13 @@ auto PageRankJoin(const DIA<LinkedPage, InStack>& links, size_t num_pages,
             contribs
             .ReducePair(
                 [](const Rank& p1, const Rank& p2) {
-                    return  p1 + p2 ;
+                    return p1 + p2;
                 })
             .Map([num_pages_d](const PageRankPair& p) {
-                    return std::make_pair(p.first,
-                                          dampening * p.second +
-                                          (1 - dampening) / num_pages_d);
+                     return std::make_pair(p.first,
+                                           dampening * p.second +
+                                           (1 - dampening) / num_pages_d);
                  }).Execute();
-
     }
 
     return ranks;

@@ -55,7 +55,7 @@ void FlowControlChannel::Barrier() {
         [&]() {
             RunTimer net_timer(timer_communication_);
 
-            // Global all reduce
+                // Global all reduce
             size_t i = 0;
             group_.AllReduce(i);
         });
@@ -94,7 +94,7 @@ template std::array<size_t, 4> FlowControlChannel::ExPrefixSumTotal(
     std::array<size_t, 4>&, const std::array<size_t, 4>&,
     const common::ComponentSum<std::array<size_t, 4> >&);
 
-template size_t FlowControlChannel::Broadcast(const size_t&, size_t);
+template size_t FlowControlChannel::Broadcast(const size_t &, size_t);
 
 template std::array<size_t, 2> FlowControlChannel::Broadcast(
     const std::array<size_t, 2>&, size_t);

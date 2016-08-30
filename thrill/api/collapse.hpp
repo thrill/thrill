@@ -68,7 +68,7 @@ public:
     size_t consume_counter() const final {
         // calculate consumption of parents
         size_t c = Super::kNeverConsume;
-        for (auto & p : Super::parents_) {
+        for (auto& p : Super::parents_) {
             c = std::min(c, p->consume_counter());
         }
         return c;
@@ -76,21 +76,21 @@ public:
 
     void IncConsumeCounter(size_t consume) final {
         // propagate consumption up to parents.
-        for (auto & p : Super::parents_) {
+        for (auto& p : Super::parents_) {
             p->IncConsumeCounter(consume);
         }
     }
 
     void DecConsumeCounter(size_t consume) final {
         // propagate consumption up to parents.
-        for (auto & p : Super::parents_) {
+        for (auto& p : Super::parents_) {
             p->DecConsumeCounter(consume);
         }
     }
 
     void SetConsumeCounter(size_t consume) final {
         // propagate consumption up to parents.
-        for (auto & p : Super::parents_) {
+        for (auto& p : Super::parents_) {
             p->SetConsumeCounter(consume);
         }
     }

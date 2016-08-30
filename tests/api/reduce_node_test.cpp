@@ -98,7 +98,7 @@ TEST(ReduceNode, ReduceModuloPairsCorrectResults) {
             assert(mod_size == out_vec.size());
 
             ASSERT_EQ(mod_size, out_vec.size());
-            for (const auto & element : out_vec) {
+            for (const auto& element : out_vec) {
                 ASSERT_EQ(element.second, (div_size * (div_size - 1)) / 2u);
             }
         };

@@ -74,8 +74,8 @@ private:
  * \ingroup dia_sources
  */
 template <typename ValueType>
-auto EqualToDIA(Context& ctx,
-                const std::vector<ValueType>& in_vector) {
+auto EqualToDIA(Context & ctx,
+                const std::vector<ValueType>&in_vector) {
 
     using EqualToDIANode = api::EqualToDIANode<ValueType>;
 
@@ -96,7 +96,7 @@ auto EqualToDIA(Context& ctx,
  * \ingroup dia_sources
  */
 template <typename ValueType>
-auto EqualToDIA(Context& ctx,
+auto EqualToDIA(Context & ctx,
                 std::vector<ValueType>&& in_vector) {
 
     using EqualToDIANode = api::EqualToDIANode<ValueType>;

@@ -129,7 +129,7 @@ Multiplexer::Multiplexer(mem::Manager& mem_manager,
 
 void Multiplexer::Close() {
     // close all still open Streams
-    for (auto & ch : d_->stream_sets_.map())
+    for (auto& ch : d_->stream_sets_.map())
         ch.second->Close();
 
     // terminate dispatcher, this waits for unfinished AsyncWrites.

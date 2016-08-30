@@ -19,7 +19,7 @@
 using namespace thrill;           // NOLINT
 using namespace examples::select; // NOLINT
 
-static auto RunSelect(api::Context& ctx, size_t num_elems, size_t rank, bool max) {
+static auto RunSelect(api::Context & ctx, size_t num_elems, size_t rank, bool max) {
     auto data = Generate(ctx, num_elems).Cache();
     if (max) {
         auto result = Select(data, rank,

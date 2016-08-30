@@ -105,7 +105,7 @@ void TestAddMyStructModulo(Context& ctx) {
         const auto& partition = collector[pi];
 
         sLOG << "partition" << pi << ":" << partition.size() << ":";
-        for (const auto & v : partition) {
+        for (const auto& v : partition) {
             result.emplace_back(v.second);
         }
     }

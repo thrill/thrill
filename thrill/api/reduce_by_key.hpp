@@ -227,9 +227,9 @@ private:
 template <typename ValueType, typename Stack>
 template <typename KeyExtractor, typename ReduceFunction, typename ReduceConfig>
 auto DIA<ValueType, Stack>::ReduceByKey(
-    const KeyExtractor& key_extractor,
-    const ReduceFunction& reduce_function,
-    const ReduceConfig& reduce_config) const {
+    const KeyExtractor &key_extractor,
+    const ReduceFunction &reduce_function,
+    const ReduceConfig &reduce_config) const {
     assert(IsValid());
 
     using DOpResult
@@ -323,8 +323,8 @@ auto DIA<ValueType, Stack>::ReduceByKey(
 template <typename ValueType, typename Stack>
 template <typename ReduceFunction, typename ReduceConfig>
 auto DIA<ValueType, Stack>::ReducePair(
-    const ReduceFunction& reduce_function,
-    const ReduceConfig& reduce_config) const {
+    const ReduceFunction &reduce_function,
+    const ReduceConfig &reduce_config) const {
     assert(IsValid());
 
     using DOpResult

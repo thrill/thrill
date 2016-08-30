@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/core/multiway_merge.hpp
+ * thrill/core/buffered_multiway_merge.hpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -31,7 +31,7 @@ public:
               /* stable */ false, ValueType, Comparator>::Type;
 
     BufferedMultiwayMergeTree(ReaderIterator readers_begin, ReaderIterator readers_end,
-                      const Comparator& comp)
+                              const Comparator& comp)
         : readers_(readers_begin),
           num_inputs_(static_cast<unsigned>(readers_end - readers_begin)),
           remaining_inputs_(num_inputs_),
@@ -107,7 +107,7 @@ private:
 template <typename ValueType, typename ReaderIterator, typename Comparator>
 auto make_buffered_multiway_merge_tree(
     ReaderIterator seqs_begin, ReaderIterator seqs_end,
-    const Comparator& comp) {
+    const Comparator &comp) {
 
     assert(seqs_end - seqs_begin >= 1);
     return BufferedMultiwayMergeTree<

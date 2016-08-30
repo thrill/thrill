@@ -252,7 +252,7 @@ TEST_F(Multiplexer, ReadCompleteCatStream) {
             writers[2].Put(msg1);
             // writers[2].Flush();
             writers[2].Put(msg2);
-            for (auto & w : writers) {
+            for (auto& w : writers) {
                 sLOG << "close worker";
                 w.Close();
             }
@@ -264,7 +264,7 @@ TEST_F(Multiplexer, ReadCompleteCatStream) {
             auto writers = c->GetWriters();
             std::string msg1 = "I came from worker 1";
             writers[2].Put(msg1);
-            for (auto & w : writers) {
+            for (auto& w : writers) {
                 sLOG << "close worker";
                 w.Close();
             }
@@ -299,7 +299,7 @@ TEST_F(Multiplexer, ReadCompleteCatStreamManyTimes) {
             writers[2].Put(msg1);
             // writers[2].Flush();
             writers[2].Put(msg2);
-            for (auto & w : writers) {
+            for (auto& w : writers) {
                 sLOG << "close worker";
                 w.Close();
             }
@@ -311,7 +311,7 @@ TEST_F(Multiplexer, ReadCompleteCatStreamManyTimes) {
             auto writers = c->GetWriters();
             std::string msg1 = "I came from worker 1";
             writers[2].Put(msg1);
-            for (auto & w : writers) {
+            for (auto& w : writers) {
                 sLOG << "close worker";
                 w.Close();
             }
@@ -321,7 +321,7 @@ TEST_F(Multiplexer, ReadCompleteCatStreamManyTimes) {
             auto id = multiplexer.AllocateCatStreamId(0);
             auto c = multiplexer.GetOrCreateCatStream(id, 0, /* dia_id */ 0);
             auto writers = c->GetWriters();
-            for (auto & w : writers) {
+            for (auto& w : writers) {
                 sLOG << "close worker";
                 w.Close();
             }
@@ -374,7 +374,7 @@ TEST_F(Multiplexer, ReadCompleteMixStreamManyTimes) {
             writers[2].Put(msg1);
             // writers[2].Flush();
             writers[2].Put(msg2);
-            for (auto & w : writers) {
+            for (auto& w : writers) {
                 sLOG << "close worker";
                 w.Close();
             }
@@ -386,7 +386,7 @@ TEST_F(Multiplexer, ReadCompleteMixStreamManyTimes) {
             auto writers = c->GetWriters();
             std::string msg1 = "I came from worker 1";
             writers[2].Put(msg1);
-            for (auto & w : writers) {
+            for (auto& w : writers) {
                 sLOG << "close worker";
                 w.Close();
             }

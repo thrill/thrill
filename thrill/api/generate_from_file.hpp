@@ -132,8 +132,8 @@ private:
  * \ingroup dia_sources
  */
 template <typename GeneratorFunction>
-auto GenerateFromFile(Context& ctx, const std::string& filepath,
-                      const GeneratorFunction& generator_function,
+auto GenerateFromFile(Context & ctx, const std::string & filepath,
+                      const GeneratorFunction &generator_function,
                       size_t size) {
 
     using GeneratorResult =

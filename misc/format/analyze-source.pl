@@ -717,8 +717,8 @@ foreach my $arg (@ARGV) {
 
 # check uncrustify's version:
 my ($uncrustver) = filter_program("", "uncrustify", "--version");
-($uncrustver eq "uncrustify 0.63\n")
-    or die("Requires uncrustify 0.63 to run correctly. Got: $uncrustver");
+($uncrustver eq "uncrustify 0.62\n")
+    or die("Requires uncrustify 0.62 to run correctly. Got: $uncrustver");
 
 $have_autopep8 = 0;
 my ($check_autopep8) = filter_program("", "autopep8", "--version");

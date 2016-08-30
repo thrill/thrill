@@ -82,8 +82,8 @@ private:
  * \ingroup dia_sources
  */
 template <typename GenerateFunction>
-auto Generate(Context& ctx,
-              const GenerateFunction& generate_function,
+auto Generate(Context & ctx,
+              const GenerateFunction &generate_function,
               size_t size) {
 
     using GenerateResult =
@@ -120,7 +120,7 @@ auto Generate(Context& ctx,
  * \ingroup dia_sources
  */
 static inline
-auto Generate(Context& ctx, size_t size) {
+auto Generate(Context & ctx, size_t size) {
     return Generate(ctx, [](const size_t& index) { return index; }, size);
 }
 

@@ -126,7 +126,7 @@ private:
 template <typename ValueType, typename ReaderIterator, typename Comparator>
 auto make_multiway_merge_tree(
     ReaderIterator seqs_begin, ReaderIterator seqs_end,
-    const Comparator& comp) {
+    const Comparator &comp) {
 
     assert(seqs_end - seqs_begin >= 1);
     return MultiwayMergeTree<

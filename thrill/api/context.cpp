@@ -301,7 +301,7 @@ int RunBackendLoopback(
 
     const char* env_local = getenv("THRILL_LOCAL");
     if (env_local && *env_local) {
-                // parse envvar only if it exists.
+        // parse envvar only if it exists.
         num_hosts = std::strtoul(env_local, &endptr, 10);
 
         if (!endptr || *endptr != 0 || num_hosts == 0) {
@@ -330,7 +330,7 @@ int RunBackendLoopback(
     }
     else {
         if (!env_local && !env_workers_per_host) {
-                    // distribute two threads per worker.
+            // distribute two threads per worker.
             workers_per_host = 2;
             num_hosts /= 2;
         }
@@ -390,7 +390,7 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
     std::vector<std::string> hostlist;
 
     if (env_hostlist && *env_hostlist) {
-                // first try to split by spaces, then by commas
+        // first try to split by spaces, then by commas
         std::vector<std::string> list = common::Split(env_hostlist, ' ');
 
         if (list.size() == 1) {
@@ -398,7 +398,7 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
         }
 
         for (const std::string& host : list) {
-                    // skip empty splits
+            // skip empty splits
             if (host.size() == 0) continue;
 
             if (host.find(':') == std::string::npos) {
@@ -765,13 +765,13 @@ int Run(const std::function<void(Context&)>& job_startpoint) {
 
     // run with selected backend
     if (strcmp(env_net, "mock") == 0) {
-                // mock network backend
+        // mock network backend
         return RunBackendLoopback<net::mock::Group>("mock", job_startpoint);
     }
 
     if (strcmp(env_net, "local") == 0) {
 #if THRILL_HAVE_NET_TCP
-                // tcp loopback network backend
+        // tcp loopback network backend
         return RunBackendLoopback<net::tcp::Group>("tcp", job_startpoint);
 #else
         return RunNotSupported(env_net);
@@ -780,7 +780,7 @@ int Run(const std::function<void(Context&)>& job_startpoint) {
 
     if (strcmp(env_net, "tcp") == 0) {
 #if THRILL_HAVE_NET_TCP
-                // real tcp network backend
+        // real tcp network backend
         return RunBackendTcp(job_startpoint);
 #else
         return RunNotSupported(env_net);
@@ -789,7 +789,7 @@ int Run(const std::function<void(Context&)>& job_startpoint) {
 
     if (strcmp(env_net, "mpi") == 0) {
 #if THRILL_HAVE_NET_MPI
-                // mpi network backend
+        // mpi network backend
         return RunBackendMpi(job_startpoint);
 #else
         return RunNotSupported(env_net);
@@ -798,7 +798,7 @@ int Run(const std::function<void(Context&)>& job_startpoint) {
 
     if (strcmp(env_net, "ib") == 0) {
 #if THRILL_HAVE_NET_IB
-                // ib/mpi network backend
+        // ib/mpi network backend
         return RunBackendIb(job_startpoint);
 #else
         return RunNotSupported(env_net);
@@ -836,7 +836,7 @@ int MemoryConfig::setup_detect() {
         ram_ = static_cast<size_t>(ram64);
     }
     else {
-                // detect amount of physical memory on system
+        // detect amount of physical memory on system
 #if defined(_MSC_VER)
         MEMORYSTATUSEX memstx;
         memstx.dwLength = sizeof(memstx);
@@ -848,7 +848,7 @@ int MemoryConfig::setup_detect() {
         int64_t physical_memory;
         size_t length;
 
-                // Get the physical memory size
+        // Get the physical memory size
         mib[0] = CTL_HW;
         mib[1] = HW_MEMSIZE;
         length = sizeof(physical_memory);
@@ -859,7 +859,7 @@ int MemoryConfig::setup_detect() {
 #endif
 
 #if __linux__
-                // use getrlimit() to check user limit on address space
+        // use getrlimit() to check user limit on address space
         struct rlimit rl;
         if (getrlimit(RLIMIT_AS, &rl) == 0) {
             if (rl.rlim_cur != 0 && rl.rlim_cur * 3 / 4 < ram_) {
@@ -906,13 +906,13 @@ void MemoryConfig::print(size_t workers_per_host) const {
     if (!verbose_) return;
 
     std::cerr
-    << "Thrill: using "
-    << common::FormatIecUnits(ram_) << "B RAM total,"
-    << " BlockPool=" << common::FormatIecUnits(ram_block_pool_hard_) << "B,"
-    << " workers="
-    << common::FormatIecUnits(ram_workers_ / workers_per_host) << "B,"
-    << " floating=" << common::FormatIecUnits(ram_floating_) << "B."
-    << std::endl;
+        << "Thrill: using "
+        << common::FormatIecUnits(ram_) << "B RAM total,"
+        << " BlockPool=" << common::FormatIecUnits(ram_block_pool_hard_) << "B,"
+        << " workers="
+        << common::FormatIecUnits(ram_workers_ / workers_per_host) << "B,"
+        << " floating=" << common::FormatIecUnits(ram_floating_) << "B."
+        << std::endl;
 }
 
 /******************************************************************************/
@@ -1119,13 +1119,13 @@ void Context::Launch(const std::function<void(Context&)>& job_startpoint) {
 
         if (mem_config().verbose_) {
             std::cerr
-            << "Thrill:"
-            << " ran " << stats.runtime << "s with max "
-            << FormatIecUnits(stats.max_block_bytes) << "B in DIA Blocks, "
-            << FormatIecUnits(stats.net_traffic_tx) << "B network traffic, "
-            << FormatIecUnits(stats.io_volume) << "B disk I/O, and "
-            << FormatIecUnits(stats.io_max_allocation) << "B max disk use."
-            << std::endl;
+                << "Thrill:"
+                << " ran " << stats.runtime << "s with max "
+                << FormatIecUnits(stats.max_block_bytes) << "B in DIA Blocks, "
+                << FormatIecUnits(stats.net_traffic_tx) << "B network traffic, "
+                << FormatIecUnits(stats.io_volume) << "B disk I/O, and "
+                << FormatIecUnits(stats.io_max_allocation) << "B max disk use."
+                << std::endl;
         }
 
         logger_ << "class" << "Context"

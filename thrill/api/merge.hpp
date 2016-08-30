@@ -683,8 +683,8 @@ private:
  * \ingroup dia_dops
  */
 template <typename Comparator, typename FirstDIA, typename ... DIAs>
-auto Merge(const Comparator& comparator,
-           const FirstDIA& first_dia, const DIAs& ... dias) {
+auto Merge(const Comparator &comparator,
+           const FirstDIA &first_dia, const DIAs &... dias) {
 
     using VarForeachExpander = int[];
 
@@ -733,7 +733,7 @@ auto Merge(const Comparator& comparator,
 template <typename ValueType, typename Stack>
 template <typename Comparator, typename SecondDIA>
 auto DIA<ValueType, Stack>::Merge(
-    const SecondDIA& second_dia, const Comparator& comparator) const {
+    const SecondDIA &second_dia, const Comparator &comparator) const {
     return api::Merge(comparator, *this, second_dia);
 }
 

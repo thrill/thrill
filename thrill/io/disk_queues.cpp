@@ -42,7 +42,7 @@ DiskQueues::DiskQueues()
 
 DiskQueues::~DiskQueues() {
     // deallocate all queues
-    for (auto & it : d_->queues)
+    for (auto& it : d_->queues)
         delete it.second;
 }
 
@@ -106,7 +106,7 @@ RequestQueue* DiskQueues::GetQueue(DiskId disk) {
 }
 
 void DiskQueues::SetPriorityOp(RequestQueue::PriorityOp op) {
-    for (auto & it : d_->queues)
+    for (auto& it : d_->queues)
         it.second->SetPriorityOp(op);
 }
 

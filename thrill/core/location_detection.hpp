@@ -36,7 +36,7 @@ namespace thrill {
 struct hash {
 
     inline size_t operator () (const size_t& n) const {
-         size_t hash = _mm_crc32_u32((size_t)28475421, n);
+        size_t hash = _mm_crc32_u32((size_t)28475421, n);
         hash = hash << 32;
         hash += _mm_crc32_u32((size_t)52150599, n);
         return hash;
@@ -47,14 +47,12 @@ struct hash {
 namespace thrill {
 namespace core {
 
-
 /*!
  * Emitter for a ReduceTable, which emits all of its data into a vector of hash-counter-pairs.
  *
  * \tparam KeyCounterPair Type of key in table and occurence counter type
  * \tparam HashFunction Hash function for golomb coder
  */
-
 
 template <bool Join, typename Key, typename CounterType,
           typename LocationType, typename HashFunction, typename DataType>
@@ -122,7 +120,7 @@ public:
     void Emit(const size_t& /*partition_id*/, const TableType& p) {
         assert(modulo_ > 1);
         vec_.emplace_back(hash_function_(p.first) % modulo_,
-                          std::make_pair(p.second, (uint8_t) 0));
+                          std::make_pair(p.second, (uint8_t)0));
     }
 
     std::vector<ResultTablePair>& vec_;
@@ -160,7 +158,7 @@ private:
         size_t bitsize = 8;
         // total space bound of golomb code
         size_t space_bound_with_counters = space_bound + occurences.size() *
-            (bitsize + 2);
+                                           (bitsize + 2);
 
         size_t j = 0;
         for (size_t i = 0; i < num_workers; ++i) {
@@ -184,7 +182,6 @@ private:
                     dia_indices |= occurences[j].second.second;
                 }
 
-
                 // accumulate counters hashing to same value
                 size_t acc_occurences = occurences[j].second.first;
                 size_t k = j + 1;
@@ -204,7 +201,8 @@ private:
                                                occurences[j].second.first));
                 if (Join) {
                     golomb_code.stream_in(2, dia_indices);
-                } else {
+                }
+                else {
                     golomb_code.stream_in(2, 3);
                 }
 
@@ -221,17 +219,16 @@ private:
     }
 
 public:
-
     using ReduceConfig = DefaultReduceConfig;
     using Emitter = ToVectorEmitter<Join, Key, CounterType,
                                     DIAIdxType, HashFunction, TableType>;
     using Table = typename ReduceTableSelect<
-        ReduceConfig::table_impl_, ValueType, Key, TableType,
-        std::function<void()>, AddFunction, Emitter,
-        false, ReduceConfig, IndexFunction>::type;
+              ReduceConfig::table_impl_, ValueType, Key, TableType,
+              std::function<void()>, AddFunction, Emitter,
+              false, ReduceConfig, IndexFunction>::type;
 
     // we don't need the key_extractor function here
-    std::function<void()> void_fn = []() {};
+    std::function<void()> void_fn = []() { };
 
     LocationDetection(Context& ctx, size_t dia_id, AddFunction add_function,
                       const HashFunction& hash_function = HashFunction(),
@@ -277,7 +274,6 @@ public:
             num_items += table_.partition_files()[0].num_items();
         }
 
-
         // golomb code parameters
         size_t upper_bound_uniques = context_.net.AllReduce(num_items);
         double fpr_parameter = 8;
@@ -322,7 +318,7 @@ public:
 
         size_t total_elements = 0;
 
-        for (auto & reader : readers) {
+        for (auto& reader : readers) {
             assert(reader.HasNext());
             size_t data_size = reader.template Next<size_t>();
             size_t num_elements = reader.template Next<size_t>();
@@ -337,7 +333,6 @@ public:
                                               num_elements, b, 8));
         }
 
-
         auto puller = make_multiway_merge_tree<ResultTablePair>
                           (g_readers.begin(), g_readers.end(),
                           [](const ResultTablePair& hcp1,
@@ -349,7 +344,7 @@ public:
                                                 context_.num_workers()),
                                             (unsigned int)1);
         size_t space_bound_with_processors = upper_bound_uniques * processor_bitsize
-            + upper_space_bound;
+                                             + upper_space_bound;
         core::DynamicBitset<size_t> location_bitset(
             space_bound_with_processors * 3 / 2, false, b);
 
@@ -435,7 +430,6 @@ public:
                 last = new_elem;
                 size_t processor = golomb_code.stream_out(processor_bitsize);
 
-
                 while (data_[data_iterator].first < new_elem) {
                     data_iterator++;
                     if (THRILL_UNLIKELY(data_iterator >= data_.size())) {
@@ -444,10 +438,9 @@ public:
                 }
 
                 if (data_[data_iterator].first > new_elem) continue;
-                assert (data_[data_iterator].first == new_elem);
+                assert(data_[data_iterator].first == new_elem);
 
                 target_processors[new_elem] = processor;
-
             }
 
             delete[] raw_data;

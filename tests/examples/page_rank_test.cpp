@@ -156,7 +156,7 @@ TEST(PageRank, RandomZipfGraphJoin) {
             auto page_rank = PageRankJoin(links, num_pages, iterations);
 
             // compare results
-            std::vector<std::pair<PageId, double>> result = page_rank.AllGather();
+            std::vector<std::pair<PageId, double> > result = page_rank.AllGather();
 
             //     ASSERT_EQ(correct_page_rank.size(), result.size());
             for (size_t i = 0; i < result.size(); ++i) {

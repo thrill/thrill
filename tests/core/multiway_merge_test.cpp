@@ -61,7 +61,7 @@ TEST_F(MultiwayMerge, Basic) {
         in.push_back(tmp);
     }
 
-    for (auto & vec : in) {
+    for (auto& vec : in) {
         seq.push_back(std::make_pair(vec.begin(), vec.end()));
     }
 
@@ -106,7 +106,7 @@ TEST_F(MultiwayMerge, GetMultiwayMergePuller) {
         data::File f(block_pool_, 0, /* dia_id */ 0);
         {
             auto w = f.GetWriter();
-            for (auto & t : tmp) {
+            for (auto& t : tmp) {
                 w.Put(t);
             }
         }

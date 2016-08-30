@@ -247,11 +247,11 @@ private:
 template <typename ValueType, typename Stack>
 template <typename KeyExtractor, typename ReduceFunction, typename ReduceConfig>
 auto DIA<ValueType, Stack>::ReduceToIndex(
-    const KeyExtractor& key_extractor,
-    const ReduceFunction& reduce_function,
+    const KeyExtractor &key_extractor,
+    const ReduceFunction &reduce_function,
     size_t size,
-    const ValueType& neutral_element,
-    const ReduceConfig& reduce_config) const {
+    const ValueType &neutral_element,
+    const ReduceConfig &reduce_config) const {
     assert(IsValid());
 
     using DOpResult
@@ -308,8 +308,8 @@ auto DIA<ValueType, Stack>::ReduceToIndex(
     const KeyExtractor &key_extractor,
     const ReduceFunction &reduce_function,
     size_t size,
-    const ValueType& neutral_element,
-    const ReduceConfig& reduce_config) const {
+    const ValueType &neutral_element,
+    const ReduceConfig &reduce_config) const {
     assert(IsValid());
 
     using DOpResult

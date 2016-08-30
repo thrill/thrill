@@ -61,14 +61,14 @@ namespace common {
 // to it. Hence, this expands the content of the tuple as the arguments.
 
 template <typename Functor, typename Tuple, std::size_t ... Is>
-auto ApplyTupleImpl(Functor&& f, Tuple&& t, common::index_sequence<Is ...>) {
+auto ApplyTupleImpl(Functor && f, Tuple && t, common::index_sequence<Is ...>) {
     return std::forward<Functor>(f)(
         std::get<Is>(std::forward<Tuple>(t)) ...);
 }
 
 //! Call the functor f with the contents of t as arguments.
 template <typename Functor, typename Tuple>
-auto ApplyTuple(Functor&& f, Tuple&& t) {
+auto ApplyTuple(Functor && f, Tuple && t) {
     using Indices = common::make_index_sequence<
               std::tuple_size<std::decay_t<Tuple> >::value>;
     return ApplyTupleImpl(std::forward<Functor>(f), std::forward<Tuple>(t),
@@ -224,14 +224,14 @@ void VariadicCallEnumerate(Functor&& f) {
 
 //! helper for VariadicMapIndex: base case
 template <size_t Index, typename Functor, typename Arg>
-auto VariadicMapIndexImpl(Functor&& f, Arg&& arg) {
+auto VariadicMapIndexImpl(Functor && f, Arg && arg) {
     return std::make_tuple(
         std::forward<Functor>(f)(IndexSaver<Index>(), std::forward<Arg>(arg)));
 }
 
 //! helper for VariadicMapIndex: general recursive case
 template <size_t Index, typename Functor, typename Arg, typename ... MoreArgs>
-auto VariadicMapIndexImpl(Functor&& f, Arg&& arg, MoreArgs&& ... rest) {
+auto VariadicMapIndexImpl(Functor && f, Arg && arg, MoreArgs && ... rest) {
     return std::tuple_cat(
         std::make_tuple(
             std::forward<Functor>(f)(IndexSaver<Index>(),
@@ -243,7 +243,7 @@ auto VariadicMapIndexImpl(Functor&& f, Arg&& arg, MoreArgs&& ... rest) {
 //! Collect a generic functor (like a generic lambda) for each variadic template
 //! argument together with its zero-based index.
 template <typename Functor, typename ... Args>
-auto VariadicMapIndex(Functor&& f, Args&& ... args) {
+auto VariadicMapIndex(Functor && f, Args && ... args) {
     return VariadicMapIndexImpl<0>(
         std::forward<Functor>(f), std::forward<Args>(args) ...);
 }
@@ -258,7 +258,7 @@ template <size_t Index, size_t Size, typename Functor>
 class VariadicMapEnumerateImpl
 {
 public:
-    static auto Map(Functor&& f) {
+    static auto Map(Functor && f) {
         return std::tuple_cat(
             std::make_tuple(std::forward<Functor>(f)(IndexSaver<Index>())),
             VariadicMapEnumerateImpl<Index + 1, Size - 1, Functor>::Map(
@@ -279,7 +279,7 @@ public:
 //! Call a generic functor (like a generic lambda) for the integers [0,Size),
 //! and collect the return values in a generic std::tuple.
 template <size_t Size, typename Functor>
-auto VariadicMapEnumerate(Functor&& f) {
+auto VariadicMapEnumerate(Functor && f) {
     return VariadicMapEnumerateImpl<0, Size, Functor>::Map(
         std::forward<Functor>(f));
 }
@@ -287,7 +287,7 @@ auto VariadicMapEnumerate(Functor&& f) {
 //! Call a generic functor (like a generic lambda) for the integers [Begin,End),
 //! and collect the return values in a generic std::tuple.
 template <size_t Begin, size_t End, typename Functor>
-auto VariadicMapEnumerate(Functor&& f) {
+auto VariadicMapEnumerate(Functor && f) {
     return VariadicMapEnumerateImpl<Begin, End - Begin, Functor>::Map(
         std::forward<Functor>(f));
 }

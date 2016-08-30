@@ -77,12 +77,12 @@ public:
                 const GroupFunction& groupby_function,
                 const HashFunction& hash_function = HashFunction())
         : Super(parent.ctx(), "GroupByKey", { parent.id() }, { parent.node() }),
-        key_extractor_(key_extractor),
-        groupby_function_(groupby_function),
-        hash_function_(hash_function),
-        location_detection_(parent.ctx(), Super::id(),
-                            std::plus<CounterType>(), hash_function),
-        pre_file_(context_.GetFilePtr(this))
+          key_extractor_(key_extractor),
+          groupby_function_(groupby_function),
+          hash_function_(hash_function),
+          location_detection_(parent.ctx(), Super::id(),
+                              std::plus<CounterType>(), hash_function),
+          pre_file_(context_.GetFilePtr(this))
     {
         // Hook PreOp
         auto pre_op_fn = [=](const ValueIn& input) {
@@ -105,7 +105,7 @@ public:
     void PreOp(const ValueIn& v) {
         if (UseLocationDetection) {
             pre_writer_.Put(v);
-            location_detection_.Insert(key_extractor_(v),(CounterType) 1);
+            location_detection_.Insert(key_extractor_(v), (CounterType)1);
         }
         else {
             const Key k = key_extractor_(v);
@@ -353,8 +353,8 @@ template <typename ValueType, typename Stack>
 template <typename ValueOut, typename KeyExtractor,
           typename GroupFunction, typename HashFunction>
 auto DIA<ValueType, Stack>::GroupByKey(
-    const KeyExtractor& key_extractor,
-    const GroupFunction& groupby_function) const {
+    const KeyExtractor &key_extractor,
+    const GroupFunction &groupby_function) const {
 
     using DOpResult = ValueOut;
 

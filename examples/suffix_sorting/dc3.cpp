@@ -211,14 +211,14 @@ struct StringFragment {
 static constexpr size_t fragment_comparator_params[3][3][3] =
 {
     {
-     { 1, 0, 0 }, { 1, 0, 1 }, { 2, 1, 1 }
-},
+        { 1, 0, 0 }, { 1, 0, 1 }, { 2, 1, 1 }
+    },
     {
-     { 1, 1, 0 }, { 0, 0, 0 }, { 0, 0, 0 }
-},
+        { 1, 1, 0 }, { 0, 0, 0 }, { 0, 0, 0 }
+    },
     {
-     { 2, 1, 1 }, { 0, 0, 0 }, { 0, 0, 0 }
-},
+        { 2, 1, 1 }, { 0, 0, 0 }, { 0, 0, 0 }
+    },
 };
 
 template <typename StringFragment>
@@ -271,7 +271,7 @@ public:
         if (K_ <= 4096) {
             thrill::common::radix_sort_CI<MaxDepth>(
                 begin, end, K_, cmp, [](auto begin, auto end, auto) {
-                    // sub sorter: sort StringFragments by rank
+                            // sub sorter: sort StringFragments by rank
                     std::sort(begin, end, [](const Type& a, const Type& b) {
                                   return a.sort_rank() < b.sort_rank();
                               });

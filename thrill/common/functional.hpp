@@ -123,7 +123,7 @@ public:
 //! apply the Functor to each item in a std::vector<T> and return a new
 //! std::vector<U> with different type.
 template <typename Type, typename Functor>
-inline auto MapVector(const std::vector<Type>& input, const Functor& f)
+inline auto MapVector(const std::vector<Type>&input, const Functor &f)
 ->std::vector<typename std::result_of<Functor(Type)>::type>{
     std::vector<typename std::result_of<Functor(Type)>::type> output;
     output.reserve(input.size());

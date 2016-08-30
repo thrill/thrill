@@ -1,6 +1,7 @@
-
 /*******************************************************************************
  * thrill/core/dynamic_bitset.hpp
+ *
+ * Golomb encoded dynamic bitset
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -65,8 +66,6 @@ private:
     const BaseType max_little_value_;
 
 public:
-
-
     DynamicBitset() = default;
 
     DynamicBitset(const DynamicBitset& other) = default;

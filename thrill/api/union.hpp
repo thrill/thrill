@@ -267,7 +267,7 @@ public:
     size_t consume_counter() const final {
         // calculate consumption of parents
         size_t c = Super::kNeverConsume;
-        for (auto & p : Super::parents_) {
+        for (auto& p : Super::parents_) {
             c = std::min(c, p->consume_counter());
         }
         return c;
@@ -275,21 +275,21 @@ public:
 
     void IncConsumeCounter(size_t consume) final {
         // propagate consumption up to parents.
-        for (auto & p : Super::parents_) {
+        for (auto& p : Super::parents_) {
             p->IncConsumeCounter(consume);
         }
     }
 
     void DecConsumeCounter(size_t consume) final {
         // propagate consumption up to parents.
-        for (auto & p : Super::parents_) {
+        for (auto& p : Super::parents_) {
             p->DecConsumeCounter(consume);
         }
     }
 
     void SetConsumeCounter(size_t consume) final {
         // propagate consumption up to parents.
-        for (auto & p : Super::parents_) {
+        for (auto& p : Super::parents_) {
             p->SetConsumeCounter(consume);
         }
     }
@@ -315,7 +315,7 @@ private:
  * \ingroup dia_lops
  */
 template <typename FirstDIA, typename ... DIAs>
-auto Union(const FirstDIA& first_dia, const DIAs& ... dias) {
+auto Union(const FirstDIA &first_dia, const DIAs &... dias) {
 
     using VarForeachExpander = int[];
 
@@ -344,7 +344,7 @@ auto Union(const FirstDIA& first_dia, const DIAs& ... dias) {
  * \ingroup dia_lops
  */
 template <typename ValueType>
-auto Union(const std::initializer_list<DIA<ValueType> >& dias) {
+auto Union(const std::initializer_list<DIA<ValueType> >&dias) {
 
     for (const DIA<ValueType>& d : dias)
         d.AssertValid();
@@ -367,7 +367,7 @@ auto Union(const std::initializer_list<DIA<ValueType> >& dias) {
  * \ingroup dia_lops
  */
 template <typename ValueType>
-auto Union(const std::vector<DIA<ValueType> >& dias) {
+auto Union(const std::vector<DIA<ValueType> >&dias) {
 
     for (const DIA<ValueType>& d : dias)
         d.AssertValid();
@@ -380,7 +380,7 @@ auto Union(const std::vector<DIA<ValueType> >& dias) {
 template <typename ValueType, typename Stack>
 template <typename SecondDIA>
 auto DIA<ValueType, Stack>::Union(
-    const SecondDIA& second_dia) const {
+    const SecondDIA &second_dia) const {
     return api::Union(*this, second_dia);
 }
 

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * examples/triangles/triangles_run.cpp
+ * examples/tpch/tpch_run.cpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -29,7 +29,6 @@
 #include <utility>
 #include <vector>
 
-
 using namespace thrill;              // NOLINT
 
 struct LineItem {
@@ -41,26 +40,26 @@ struct LineItem {
     double extendedprice;
     double discount;
     double tax;
-    char returnflag;
-    char linestatus;
+    char   returnflag;
+    char   linestatus;
     time_t ship;
     time_t commit;
     time_t receipt;
-    char shipinstruct[25];
-    char shipmode[10];
-    char comment[44];
+    char   shipinstruct[25];
+    char   shipmode[10];
+    char   comment[44];
 } THRILL_ATTRIBUTE_PACKED;
 
 struct Order {
     size_t orderkey;
     size_t custkey;
-    char orderstatus;
+    char   orderstatus;
     double totalprice;
     time_t ordertime;
-    char orderpriority[15];
-    char clerk[15];
-    bool priority;
-    char comment[79];
+    char   orderpriority[15];
+    char   clerk[15];
+    bool   priority;
+    char   comment[79];
 } THRILL_ATTRIBUTE_PACKED;
 
 struct JoinedElement {
@@ -72,25 +71,25 @@ struct JoinedElement {
     double extendedprice;
     double discount;
     double tax;
-    char returnflag;
-    char linestatus;
+    char   returnflag;
+    char   linestatus;
     time_t ship;
     time_t commit;
     time_t receipt;
-    char shipinstruct[25];
-    char shipmode[10];
-    char lineitem_comment[44];
+    char   shipinstruct[25];
+    char   shipmode[10];
+    char   lineitem_comment[44];
     size_t custkey;
-    char orderstatus;
+    char   orderstatus;
     double totalprice;
     time_t ordertime;
-    char orderpriority[15];
-    char clerk[15];
-    bool priority;
-    char order_comment[79];
+    char   orderpriority[15];
+    char   clerk[15];
+    bool   priority;
+    char   order_comment[79];
 } THRILL_ATTRIBUTE_PACKED;
 
-JoinedElement ConstructJoinedElement(const struct LineItem&li, const struct Order& o) {
+JoinedElement ConstructJoinedElement(const struct LineItem& li, const struct Order& o) {
     JoinedElement je;
     je.orderkey = li.orderkey;
     je.partkey = li.partkey;
@@ -119,36 +118,36 @@ JoinedElement ConstructJoinedElement(const struct LineItem&li, const struct Orde
     return je;
 }
 
-//adapted from:
-//https://gmbabar.wordpress.com/2010/12/01/mktime-slow-use-custom-function/
+// adapted from:
+// https://gmbabar.wordpress.com/2010/12/01/mktime-slow-use-custom-function/
 // removed time of day as we dont need that
-time_t time_to_epoch (const std::string& str) {
+time_t time_to_epoch(const std::string& str) {
     char* end;
 
     struct tm ltm;
-    ltm.tm_year = std::strtoul(str.substr(0,4).c_str(),
-                                               &end, 10) - 1900;
-    ltm.tm_mon = std::strtoul(str.substr(5,2).c_str(),
-                                                &end, 10);
+    ltm.tm_year = std::strtoul(str.substr(0, 4).c_str(),
+                               &end, 10) - 1900;
+    ltm.tm_mon = std::strtoul(str.substr(5, 2).c_str(),
+                              &end, 10);
     ltm.tm_mday = std::strtoul(str.substr(8).c_str(),
-                                              &end, 10);
+                               &end, 10);
 
-   const int mon_days [] =
-      {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-   long tyears, tdays, leaps;
-   int i;
+    const int mon_days[] =
+    { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+    long tyears, tdays, leaps;
+    int i;
 
-   tyears = ltm.tm_year - 70; // tm->tm_year is from 1900.
-   leaps = (tyears + 2) / 4; // no of next two lines until year 2100.
-   //i = (ltm->tm_year – 100) / 100;
-   //leaps -= ( (i/4)*3 + i%4 );
-   tdays = 0;
-   for (i=0; i < ltm.tm_mon; i++) tdays += mon_days[i];
+    tyears = ltm.tm_year - 70; // tm->tm_year is from 1900.
+    leaps = (tyears + 2) / 4;  // no of next two lines until year 2100.
+    // i = (ltm->tm_year – 100) / 100;
+    // leaps -= ( (i/4)*3 + i%4 );
+    tdays = 0;
+    for (i = 0; i < ltm.tm_mon; i++) tdays += mon_days[i];
 
-   tdays += ltm.tm_mday-1; // days of month passed.
-   tdays = tdays + (tyears * 365) + leaps;
+    tdays += ltm.tm_mday - 1; // days of month passed.
+    tdays = tdays + (tyears * 365) + leaps;
 
-   return (tdays * 86400);
+    return (tdays * 86400);
 }
 
 static size_t JoinTPCH4(
@@ -165,7 +164,6 @@ static size_t JoinTPCH4(
             LineItem li;
             char* end;
             common::SplitRef(input, '|', splitted);
-
 
             li.commit = time_to_epoch(splitted[11]);
             li.receipt = time_to_epoch(splitted[12]);
@@ -218,7 +216,6 @@ static size_t JoinTPCH4(
                 emit(o);
             }
         });
-
 
     auto joined = lineitems.InnerJoinWith(orders,
                                           [](const LineItem& li) {

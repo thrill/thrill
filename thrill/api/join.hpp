@@ -1,5 +1,3 @@
-
-
 /*******************************************************************************
  * thrill/api/join.hpp
  *
@@ -24,13 +22,11 @@
 #include <thrill/core/location_detection.hpp>
 #include <thrill/data/file.hpp>
 
-
 #include <algorithm>
 #include <array>
 #include <functional>
 #include <tuple>
 #include <vector>
-
 
 namespace thrill {
 namespace api {
@@ -78,7 +74,6 @@ class JoinNode final : public DOpNode<ValueType>
     using CounterType = uint16_t;
     using DIAIdxType = uint8_t;
     using CounterLocation = std::pair<CounterType, DIAIdxType>;
-
 
 public:
     /*!
@@ -184,15 +179,14 @@ public:
         MergeFiles<InputTypeFirst>(files1_, compare_function_1);
         MergeFiles<InputTypeSecond>(files2_, compare_function_2);
 
-
         std::vector<data::File::Reader> seq1;
         std::vector<data::File::Reader> seq2;
 
         // construct output merger of remaining Files
         auto puller1 = MakePuller<InputTypeFirst>
-            (files1_, seq1, compare_function_1, consume);
+                           (files1_, seq1, compare_function_1, consume);
         auto puller2 = MakePuller<InputTypeSecond>
-            (files2_, seq2, compare_function_2, consume);
+                           (files2_, seq2, compare_function_2, consume);
 
         bool puller1_done = false;
         if (!puller1.HasNext())
@@ -237,7 +231,6 @@ public:
                                       key_extractor2_, join_file2_);
 
                 JoinAllElements(equal_keys1, external1, equal_keys2, external2);
-
             }
         }
     }
@@ -270,20 +263,18 @@ private:
     data::FilePtr pre_file2_;
     data::File::Writer pre_writer2_;
 
-
-
     core::LocationDetection<ValueType, Key, UseLocationDetection, CounterType,
                             DIAIdxType, HashFunction, core::ReduceByHash<Key>,
                             std::function<CounterLocation(CounterLocation,
                                                           CounterLocation)>,
                             true>
-        location_detection_;
+    location_detection_;
     bool location_detection_initialized_;
 
     template <typename ElementType, typename CompareFunction>
-        auto MakePuller(std::deque<data::File>& files,
-                        std::vector<data::File::Reader>& seq,
-                       CompareFunction compare_function, bool consume) {
+    auto MakePuller(std::deque<data::File>&files,
+                    std::vector<data::File::Reader>&seq,
+                    CompareFunction compare_function, bool consume) {
 
         size_t merge_degree, prefetch;
         std::tie(merge_degree, prefetch) = MaxMergeDegreePrefetch(files);
@@ -293,9 +284,8 @@ private:
             seq.emplace_back(files[t].GetReader(consume, 0));
         StartPrefetch(seq, prefetch);
 
-       return core::make_buffered_multiway_merge_tree<ElementType>
-           (seq.begin(), seq.end(), compare_function);
-
+        return core::make_buffered_multiway_merge_tree<ElementType>
+                   (seq.begin(), seq.end(), compare_function);
     }
 
     //! Receive elements from other workers, create pre-sorted files
@@ -319,8 +309,8 @@ private:
         if (UseLocationDetection) {
             pre_writer1_.Put(input);
             location_detection_.Insert(key_extractor1_(input),
-                                       std::make_pair((CounterType) 1,
-                                                      (DIAIdxType) 1));
+                                       std::make_pair((CounterType)1,
+                                                      (DIAIdxType)1));
         }
         else {
             hash_writers1_[hash_function_(key_extractor1_(input)) %
@@ -332,8 +322,8 @@ private:
         if (UseLocationDetection) {
             pre_writer2_.Put(input);
             location_detection_.Insert(key_extractor2_(input),
-                                       std::make_pair((CounterType) 1,
-                                                      (DIAIdxType) 2));
+                                       std::make_pair((CounterType)1,
+                                                      (DIAIdxType)2));
         }
         else {
             hash_writers2_[hash_function_(key_extractor2_(input)) %
@@ -579,10 +569,9 @@ private:
     void JoinAllElements(const std::vector<InputTypeFirst>& vec1, bool external1,
                          const std::vector<InputTypeSecond>& vec2, bool external2) {
 
-
         if (!external1 && !external2) {
-            for (auto const & join1 : vec1) {
-                for (auto const & join2 : vec2) {
+            for (auto const& join1 : vec1) {
+                for (auto const& join2 : vec2) {
                     assert(key_extractor1_(join1) == key_extractor2_(join2));
                     this->PushItem(join_function_(join1, join2));
                 }
@@ -597,7 +586,7 @@ private:
 
             while (reader.HasNext()) {
                 InputTypeFirst join1 = reader.template Next<InputTypeFirst>();
-                for (auto const & join2 : vec2) {
+                for (auto const& join2 : vec2) {
                     assert(key_extractor1_(join1) == key_extractor2_(join2));
                     this->PushItem(join_function_(join1, join2));
                 }
@@ -614,7 +603,7 @@ private:
 
             while (reader.HasNext()) {
                 InputTypeSecond join2 = reader.template Next<InputTypeSecond>();
-                for (auto const & join1 : vec1) {
+                for (auto const& join1 : vec1) {
                     assert(key_extractor1_(join1) == key_extractor2_(join2));
                     this->PushItem(join_function_(join1, join2));
                 }
@@ -638,7 +627,7 @@ private:
             while (reader1.HasNext()) {
 
                 for (size_t i = 0; i < capacity && reader1.HasNext() &&
-                         !mem::memory_exceeded; ++i) {
+                     !mem::memory_exceeded; ++i) {
                     temp_vec.push_back(reader1.template Next<InputTypeFirst>());
                 }
 
@@ -648,7 +637,7 @@ private:
                 while (reader2.HasNext()) {
                     ++test;
                     InputTypeSecond join2 = reader2.template Next<InputTypeSecond>();
-                    for (auto const & join1 : temp_vec) {
+                    for (auto const& join1 : temp_vec) {
                         assert(key_extractor1_(join1) == key_extractor2_(join2));
                         this->PushItem(join_function_(join1, join2));
                     }
@@ -695,11 +684,11 @@ template <typename KeyExtractor1,
           typename JoinFunction,
           typename SecondDIA,
           typename HashFunction>
-auto DIA<ValueType, Stack>::InnerJoinWith(const SecondDIA& second_dia,
-                                          const KeyExtractor1& key_extractor1,
-                                          const KeyExtractor2& key_extractor2,
-                                          const JoinFunction& join_function,
-                                          const HashFunction& hash_function)
+auto DIA<ValueType, Stack>::InnerJoinWith(const SecondDIA &second_dia,
+                                          const KeyExtractor1 &key_extractor1,
+                                          const KeyExtractor2 &key_extractor2,
+                                          const JoinFunction &join_function,
+                                          const HashFunction &hash_function)
 const {
 
     assert(IsValid());

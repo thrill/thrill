@@ -262,9 +262,9 @@ public:
                  // lifetime of the capture object.
                  ref = PyObjectRef(director.swig_get_self())
                 ](const PyObjectRef& obj) {
-                    // increase reference count, since calling the map_function
-                    // implicitly passed ownership of the reference to the
-                    // caller.
+                 // increase reference count, since calling the map_function
+                 // implicitly passed ownership of the reference to the
+                 // caller.
                     return PyObjectRef(map_function(obj.get_incref()), true);
                 })
             .Collapse());
@@ -284,9 +284,9 @@ public:
                  // lifetime of the capture object.
                  ref = PyObjectRef(director.swig_get_self())
                 ](const PyObjectRef& obj) {
-                    // increase reference count, since calling the filter_function
-                    // implicitly passed ownership of the reference to the
-                    // caller.
+                 // increase reference count, since calling the filter_function
+                 // implicitly passed ownership of the reference to the
+                 // caller.
                     return filter_function(obj.get_incref());
                 })
             .Collapse());
@@ -308,9 +308,9 @@ public:
                  // lifetime of the capture object.
                  ref1 = PyObjectRef(director1.swig_get_self())
                 ](const PyObjectRef& obj) -> PyObjectRef {
-                    // increase reference count, since calling the map_function
-                    // implicitly passed ownership of the reference to the
-                    // caller.
+                 // increase reference count, since calling the map_function
+                 // implicitly passed ownership of the reference to the
+                 // caller.
                     return PyObjectRef(key_extractor(obj.get_incref()), true);
                 },
                 [&reduce_function,
@@ -318,9 +318,9 @@ public:
                  // lifetime of the capture object.
                  ref2 = PyObjectRef(director2.swig_get_self())
                 ](const PyObjectRef& obj1, const PyObjectRef& obj2) -> PyObjectRef {
-                    // increase reference count, since calling the map_function
-                    // implicitly passed ownership of the reference to the
-                    // caller.
+                 // increase reference count, since calling the map_function
+                 // implicitly passed ownership of the reference to the
+                 // caller.
                     return PyObjectRef(
                         reduce_function(obj1.get_incref(), obj2.get_incref()),
                         true);

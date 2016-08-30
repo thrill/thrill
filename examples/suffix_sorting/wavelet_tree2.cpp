@@ -35,7 +35,7 @@ static constexpr bool debug = true;
 using namespace thrill; // NOLINT
 
 template <typename InputDIA>
-auto ConstructWaveletTree(const InputDIA& input_dia) {
+auto ConstructWaveletTree(const InputDIA &input_dia) {
 
     uint64_t max_value = input_dia.Max();
     sLOG << "max_value" << max_value;
