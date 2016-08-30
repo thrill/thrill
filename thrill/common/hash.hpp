@@ -52,6 +52,38 @@ const To & alias_cast(const From & raw_data) {
 }
 
 
+//! This is the Hash128to64 function from Google's cityhash (available under the
+//! MIT License).
+static inline uint64_t Hash128to64(const uint64_t upper, const uint64_t lower) {
+    // Murmur-inspired hashing.
+    const uint64_t k = 0x9DDFEA08EB382D69ull;
+    uint64_t a = (lower ^ upper) * k;
+    a ^= (a >> 47);
+    uint64_t b = (upper ^ a) * k;
+    b ^= (b >> 47);
+    b *= k;
+    return b;
+}
+
+/*!
+ * Returns a uint32_t hash of a uint64_t.
+ *
+ * This comes from http://www.concentric.net/~ttwang/tech/inthash.htm
+ *
+ * This hash gives no guarantees on the cryptographic suitability nor the
+ * quality of randomness produced, and the mapping may change in the future.
+ */
+static inline uint32_t hash64To32(uint64_t key) {
+    key = (~key) + (key << 18);
+    key = key ^ (key >> 31);
+    key = key * 21;
+    key = key ^ (key >> 11);
+    key = key + (key << 6);
+    key = key ^ (key >> 22);
+    return (uint32_t) key;
+}
+
+
 /**
  * A CRC32C hasher using SSE4.2 intrinsics
  */

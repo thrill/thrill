@@ -17,23 +17,11 @@
 #define THRILL_CORE_REDUCE_FUNCTIONAL_HEADER
 
 #include <thrill/common/defines.hpp>
+#include <thrill/common/hash.hpp>
 #include <thrill/common/math.hpp>
 
 namespace thrill {
 namespace core {
-
-//! This is the Hash128to64 function from Google's cityhash (available under the
-//! MIT License).
-static inline uint64_t Hash128to64(const uint64_t upper, const uint64_t lower) {
-    // Murmur-inspired hashing.
-    const uint64_t k = 0x9DDFEA08EB382D69ull;
-    uint64_t a = (lower ^ upper) * k;
-    a ^= (a >> 47);
-    uint64_t b = (upper ^ a) * k;
-    b ^= (b >> 47);
-    b *= k;
-    return b;
-}
 
 /*!
  * A reduce index function which returns a hash index and partition. It is used
@@ -71,7 +59,7 @@ public:
         const size_t& /* num_buckets_per_partition */,
         const size_t& /* num_buckets_per_table */) const {
 
-        uint64_t hash = Hash128to64(salt_, hash_function_(k));
+        uint64_t hash = common::Hash128to64(salt_, hash_function_(k));
 
         size_t partition_id = hash % num_partitions;
         size_t remaining_hash = hash / num_partitions;
