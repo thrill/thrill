@@ -27,21 +27,28 @@ namespace common {
  * overhead with any reasonable compiler (g++ -O1 or higher, clang++ -O2 or
  * higher)
  */
-template<typename T, typename F>
+template<typename To, typename From>
 struct alias_cast_t {
-    static_assert(sizeof(T) == sizeof(F),
+    static_assert(sizeof(To) == sizeof(From),
                   "Cannot cast types of different sizes");
     union {
-        F raw;
-        T data;
+        From * in;
+        To * out;
     };
 };
 
-template<typename T, typename F>
-T alias_cast(F raw_data) {
-    alias_cast_t<T, F> ac;
-    ac.raw = raw_data;
-    return ac.data;
+template<typename To, typename From>
+To & alias_cast(From & raw_data) {
+    alias_cast_t<To, From> ac;
+    ac.in = &raw_data;
+    return *ac.out;
+}
+
+template<typename To, typename From>
+const To & alias_cast(const From & raw_data) {
+    alias_cast_t<const To, const From> ac;
+    ac.in = &raw_data;
+    return *ac.out;
 }
 
 
