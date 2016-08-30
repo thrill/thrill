@@ -42,9 +42,7 @@ struct hash {
         return hash;
     }
 };
-}
 
-namespace thrill {
 namespace core {
 
 /*!

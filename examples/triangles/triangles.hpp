@@ -35,7 +35,8 @@ struct hash<Edge>{
         return seed;
     }
 };
-}
+
+} // namespace std
 
 namespace examples {
 namespace triangles {

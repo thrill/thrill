@@ -565,8 +565,9 @@ public:
         }
     }
 };
-} //namespace core
-} //namespace thrill
+
+} // namespace core
+} // namespace thrill
 
 #endif // !THRILL_CORE_DYNAMIC_BITSET_HEADER
 
