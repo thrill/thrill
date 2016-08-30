@@ -14,10 +14,14 @@
 
 #include <cassert>
 #include <cstdint>
+#include <cstdlib>
 #include <type_traits>
-#include <immintrin.h>
 
 #include "config.hpp"
+
+#ifdef THRILL_HAVE_SSE4_2
+#include <smmintrin.h>
+#endif
 
 namespace thrill {
 namespace common {
@@ -84,6 +88,7 @@ static inline uint32_t hash64To32(uint64_t key) {
 }
 
 
+#ifdef THRILL_HAVE_SSE4_2
 /**
  * A CRC32C hasher using SSE4.2 intrinsics
  */
@@ -169,6 +174,7 @@ struct hash_crc32_intel {
         return _mm_crc32_u8(crc, *alias_cast<const uint8_t*>(&val));
     }
 };
+#endif
 
 // CRC32C, adapted from Evan Jones' BSD-licensed implementation at
 // http://www.evanjones.ca/crc32c.html
