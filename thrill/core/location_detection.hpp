@@ -436,7 +436,6 @@ public:
                 }
 
                 if (data_[data_iterator].first > new_elem) continue;
-                assert(data_[data_iterator].first == new_elem);
 
                 target_processors[new_elem] = processor;
             }
