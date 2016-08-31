@@ -7,3 +7,6 @@
 [submodule "extlib/googletest"]
 	path = extlib/googletest
 	url = https://github.com/google/googletest.git
+[submodule "extlib/highwayhash"]
+	path = extlib/highwayhash
+	url = https://github.com/google/highwayhash/

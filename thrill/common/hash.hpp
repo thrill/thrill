@@ -19,8 +19,16 @@
 
 #include "config.hpp"
 
+#if defined(THRILL_HAVE_AVX2)
+#include <highwayhash/highway_tree_hash.h>
+#elif defined(THRILL_HAVE_SSE4_1)
+#include <highwayhash/sse41_highway_tree_hash.h>
+#else
+#include <highwayhash/scalar_highway_tree_hash.h>
+#endif
+
 #ifdef THRILL_HAVE_SSE4_2
-#include <smmintrin.h>
+#include <smmintrin.h> // crc32 instructions
 #endif
 
 namespace thrill {
@@ -200,6 +208,47 @@ using hash_crc32 = hash_crc32_intel<T>;
 template <typename T>
 using hash_crc32 = hash_crc32_fallback<T>;
 #endif
+
+
+template <typename ValueType>
+struct hash_highway {
+#if defined(THRILL_HAVE_AVX2)
+    using state_t = highwayhash::HighwayTreeHashState;
+    using key_t = highwayhash::HighwayTreeHashState::Key;
+#elif defined(THRILL_HAVE_SSE4_1)
+    using state_t = highwayhash::SSE41HighwayTreeHashState;
+    using key_t = highwayhash::SSE41HighwayTreeHashState::Key;
+#else
+    using state_t = highwayhash::ScalarHighwayTreeHashState;
+    using key_t = highwayhash::ScalarHighwayTreeHashState::Key;
+#endif
+
+    // Default key from highwayhash's sip_hash_main.cc
+    hash_highway() {
+        key_[0] = 0x0706050403020100ULL;
+        key_[1] = 0x0F0E0D0C0B0A0908ULL;
+        key_[2] = 0x1716151413121110ULL;
+        key_[3] = 0x1F1E1D1C1B1A1918ULL;
+    }
+
+    hash_highway(uint64_t key[4]) {
+        key_[0] = key[0];
+        key_[1] = key[1];
+        key_[2] = key[2];
+        key_[3] = key[3];
+    }
+
+    uint64_t hash_bytes(const char* bytes, const size_t size) {
+        return highwayhash::ComputeHash<state_t>(key_, bytes, size);
+    }
+
+    uint64_t operator()(const ValueType& val) {
+        return hash_bytes((const char*)&val, sizeof(ValueType));
+    }
+
+private:
+    key_t key_;
+};
 
 
 } // namespace common

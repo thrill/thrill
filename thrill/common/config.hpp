@@ -54,9 +54,18 @@ static constexpr unsigned g_cache_line_size = 64;
 #define THRILL_HAVE_MMAP_FILE 1
 #endif
 
+// MSVC doesn't define __SSE4_1__, so also check for __AVX__
+#if defined(__SSE4_1__) || defined(__AVX__)
+#define THRILL_HAVE_SSE4_1
+#endif
+
 // MSVC doesn't define __SSE4_2__, so also check for __AVX__
 #if defined(__SSE4_2__) || defined(__AVX__)
 #define THRILL_HAVE_SSE4_2
+#endif
+
+#if defined(__AVX2__)
+#define THRILL_HAVE_AVX2
 #endif
 
 } // namespace common

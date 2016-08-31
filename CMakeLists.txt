@@ -332,6 +332,11 @@ endif()
 
 include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/extlib/cereal/include)
 
+###############################################################################
+# add highwayhash
+
+include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/extlib/highwayhash)
+
 ################################################################################
 ### Find Required Libraries
 
