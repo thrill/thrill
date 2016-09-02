@@ -359,6 +359,48 @@ TEST(IO, WriteAndReadBinaryEqualDIAs) {
     api::RunLocalTests(start_func);
 }
 
+TEST(IO, WriteAndReadBinaryEqualDIAsLocalStorage) {
+    core::TemporaryDirectory tmpdir;
+
+    auto start_func =
+        [&tmpdir](Context& ctx) {
+            if (ctx.my_rank() == 0) {
+                tmpdir.wipe();
+            }
+            ctx.net.Barrier();
+
+            auto integers = ReadLines(ctx, "inputs/test1")
+                            .Map([](const std::string& line) {
+                                     return std::stoi(line);
+                                 });
+
+            auto out_vec = integers.AllGather();
+
+            ASSERT_EQ(16u, integers.Size());
+
+            integers.WriteBinary(tmpdir.get() + "/output_");
+
+            std::string path = "outputs/testsf.out";
+
+            ctx.net.Barrier();
+
+            auto integers2 = api::ReadBinary<int>(
+                api::LocalStorageTag, ctx, tmpdir.get() + "/*");
+
+            auto out_vec2 = integers2.AllGather();
+
+            ASSERT_EQ(16u * ctx.num_hosts(), integers2.Size());
+
+            size_t i = 0;
+            for (int element : out_vec2) {
+                ASSERT_EQ(element, out_vec[i++ % 16]);
+            }
+
+        };
+
+    api::RunLocalTests(start_func);
+}
+
 TEST(IO, IntegerWriteReadBinaryLinesFutures) {
     core::TemporaryDirectory tmpdir;
 
