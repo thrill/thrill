@@ -22,7 +22,6 @@
 #include <vector>
 
 #include "logistic_regression.hpp"
-#include "strtonumber.hpp"
 
 using namespace thrill;                        // NOLINT
 using namespace examples::logistic_regression; // NOLINT
@@ -44,12 +43,12 @@ static auto ReadFile(api::Context & ctx, const Input &input_path) {
                     char* endptr;
                     DataObject obj;
                     // yikes C stuff, TODO template
-                    obj.first = from_str<T>(line.c_str(), &endptr);
+                    obj.first = common::from_cstr<T>(line.c_str(), &endptr);
                     die_unless(endptr && *endptr == ',' &&
                                "Could not parse input line");
 
                     for (size_t i = 0; i < dim; ++i) {
-                        T value = from_str<T>(endptr + 1, &endptr);
+                        T value = common::from_cstr<T>(endptr + 1, &endptr);
                         die_unless(endptr &&
                                    ((i + 1 <= dim && *endptr == ',') ||
                                     (i + 1 == dim && *endptr == 0)) &&
@@ -103,11 +102,11 @@ int main(int argc, char* argv[]) {
     clp.AddParamString("input", training_path, "training file pattern(s)");
     clp.AddParamStringlist("test", test_path, "test file pattern(s)");
 
-    size_t max_iterations(1000);
+    size_t max_iterations = 1000;
     clp.AddSizeT('n', "iterations", max_iterations,
                  "Maximum number of iterations, default: 1000");
 
-    double gamma(0.002), epsilon(0.0001);
+    double gamma = 0.002, epsilon = 0.0001;
     clp.AddDouble('g', "gamma", gamma, "Gamma, default: 0.002");
     clp.AddDouble('e', "epsilon", epsilon, "Epsilon, default: 0.0001");
 
@@ -119,6 +118,7 @@ int main(int argc, char* argv[]) {
 
     return api::Run(
         [&](api::Context& ctx) {
+            // ctx.enable_consume();
             RunLogReg(ctx, training_path, test_path,
                       max_iterations, gamma, epsilon);
         });
