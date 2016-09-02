@@ -74,7 +74,7 @@ public:
     using SysFileInfo = core::SysFileInfo;
 
     ReadBinaryNode(Context& ctx, const std::vector<std::string>& globlist,
-                   uint64_t size_limit)
+                   uint64_t size_limit, bool distributed_fs)
         : Super(ctx, "ReadBinary") {
 
         core::SysFileList files = core::GlobFileSizePrefixSum(
@@ -101,8 +101,16 @@ public:
                     " size is not a multiple of " << size_t(fixed_size_));
             }
 
-            common::Range my_range =
-                context_.CalculateLocalRange(files.total_size / fixed_size_);
+
+            common::Range my_range;
+
+            if (distributed_fs) {
+                my_range = context_.CalculateLocalRange(
+                    files.total_size / fixed_size_);
+            } else {
+                my_range = context_.CalculateLocalRangeOnHost(
+                    files.total_size / fixed_size_);
+            }
 
             my_range.begin *= fixed_size_;
             my_range.end *= fixed_size_;
@@ -196,8 +204,10 @@ public:
         }
     }
 
-    ReadBinaryNode(Context& ctx, const std::string& glob, uint64_t size_limit)
-        : ReadBinaryNode(ctx, std::vector<std::string>{ glob }, size_limit) { }
+    ReadBinaryNode(Context& ctx, const std::string& glob, uint64_t size_limit,
+                   bool distributed_fs)
+        : ReadBinaryNode(ctx, std::vector<std::string>{ glob }, size_limit,
+            distributed_fs) { }
 
     void PushData(bool consume) final {
         LOG << "ReadBinaryNode::PushData() start " << *this
@@ -327,7 +337,19 @@ DIA<ValueType> ReadBinary(
     uint64_t size_limit = ReadBinaryNode<ValueType>::no_size_limit_) {
 
     auto node = common::MakeCounting<ReadBinaryNode<ValueType> >(
-        ctx, filepath, size_limit);
+        ctx, filepath, size_limit, true);
+
+    return DIA<ValueType>(node);
+}
+
+template <typename ValueType>
+DIA<ValueType> ReadBinary(
+    struct LocalStorageTag, Context& ctx,
+    const std::vector<std::string>& filepath,
+    uint64_t size_limit = ReadBinaryNode<ValueType>::no_size_limit_) {
+
+    auto node = common::MakeCounting<ReadBinaryNode<ValueType> >(
+        ctx, filepath, size_limit, false);
 
     return DIA<ValueType>(node);
 }
@@ -349,7 +371,18 @@ DIA<ValueType> ReadBinary(
     uint64_t size_limit = ReadBinaryNode<ValueType>::no_size_limit_) {
 
     auto node = common::MakeCounting<ReadBinaryNode<ValueType> >(
-        ctx, filepath, size_limit);
+        ctx, filepath, size_limit, true);
+
+    return DIA<ValueType>(node);
+}
+
+template <typename ValueType>
+DIA<ValueType> ReadBinary(
+    struct LocalStorageTag, Context& ctx, const std::string& filepath,
+    uint64_t size_limit = ReadBinaryNode<ValueType>::no_size_limit_) {
+
+    auto node = common::MakeCounting<ReadBinaryNode<ValueType> >(
+        ctx, filepath, size_limit, false);
 
     return DIA<ValueType>(node);
 }
