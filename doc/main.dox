@@ -16,6 +16,7 @@ namespace thrill {
 
 ### Getting Started
 
+- First, read the Thrill [overview paper on arXiv](https://arxiv.org/abs/1608.05634).
 - \ref start_compile
 - \ref start_first
 - \ref start_run
