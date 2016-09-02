@@ -116,7 +116,7 @@ auto TrainLogit(api::Context & ctx,
     double norm;
     size_t iterations;
     std::tie(weights, norm, iterations) =
-        logit_train<T, dim>(input_dia, max_iterations, gamma, epsilon);
+        logit_train<T, dim>(input_dia.Keep(), max_iterations, gamma, epsilon);
 
     LOGM << "Iterations: " << iterations;
     LOGM << "Norm: " << norm;
@@ -170,7 +170,7 @@ int main(int argc, char* argv[]) {
 
     return api::Run(
         [&](api::Context& ctx) {
-            // ctx.enable_consume();
+            ctx.enable_consume();
 
             Element weights;
 

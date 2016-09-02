@@ -69,13 +69,14 @@ auto logit_train(const DIA<std::pair<bool, Element>, InStack>&data,
                  double epsilon = 0.0001)
 {
     // weights, initialized to zero
-    Element weights = Element({ 0.0 }), new_weights;
+    Element weights, new_weights;
+    weights[0] = weights[1] = weights[2] = 0;
     size_t iter = 0;
     T norm = 0.0;
 
     while (iter < max_iterations) {
         Element grad =
-            data
+            data.Keep()
             .Map([&weights](const std::pair<bool, Element>& elem) -> Element {
                      return gradient(elem.first, elem.second, weights);
                  })
@@ -107,17 +108,17 @@ auto logit_test(const DIA<std::pair<bool, Element>, InStack>&data,
                 const Element &weights)
 {
     size_t expected_true =
-        data
+        data.Keep()
         .Filter([](const std::pair<T, Element>& elem) -> bool {
                     return elem.first;
                 })
         .Size();
 
-    size_t expected_false = data.Size() - expected_true;
+    size_t expected_false = data.Keep().Size() - expected_true;
 
     using Prediction = std::pair<bool, bool>;
     auto classification =
-        data
+        data.Keep()
         .Map([&weights](const std::pair<T, Element>& elem) -> Prediction {
                  const Element& coords = elem.second;
                  T predicted_y = std::inner_product(
@@ -126,10 +127,10 @@ auto logit_test(const DIA<std::pair<bool, Element>, InStack>&data,
                  bool prediction = (sigmoid(predicted_y) > 0.5);
                  return Prediction { elem.first, prediction };
              })
-        .Cache();                   // don't evaluate this twice
+        .Collapse();                   // don't evaluate this twice
 
     size_t true_trues =
-        classification
+        classification.Keep()
         .Filter([](const Prediction& p) { return p.first && p.second; })
         .Size();
 
