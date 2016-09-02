@@ -18,7 +18,8 @@ OPTIND=1
 copy=0
 verbose=1
 dir=
-user=$(whoami)
+#user=$(whoami)
+user=ubuntu
 with_perf=0
 
 while getopts "u:h:H:cvCw:p" opt; do
@@ -142,19 +143,19 @@ for hostport in $THRILL_SSHLIST; do
       THRILL_EXPORTS="$THRILL_EXPORTS THRILL_UNLINK_BINARY=\"$REMOTENAME\""
       # copy the program to the remote, and execute it at the remote end.
       ( scp -o BatchMode=yes -o StrictHostKeyChecking=no -o TCPKeepAlive=yes -o Compression=yes \
-            "$cmd" "$host:$REMOTENAME" &&
+            "$cmd" "$user@$host:$REMOTENAME" &&
         ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o TCPKeepAlive=yes \
-            $host \
+            $user@$host \
             "export $THRILL_EXPORTS && chmod +x \"$REMOTENAME\" && cd $dir && $RUN_PREFIX \"$REMOTENAME\" $*" &&
         if [ -n "$THRILL_LOG" ]; then
             scp -o BatchMode=yes -o StrictHostKeyChecking=no -o TCPKeepAlive=yes -o Compression=yes \
-                "$host:/tmp/$THRILL_LOG-*" "."
+                "$user@$host:/tmp/$THRILL_LOG-*" "."
         fi
       ) &
   else
       ssh \
           -o BatchMode=yes -o StrictHostKeyChecking=no \
-          $host \
+          $user@$host \
           "export $THRILL_EXPORTS && cd $dir && $RUN_PREFIX $cmd $*" &
   fi
   # save PID of ssh child for later
