@@ -104,7 +104,8 @@ static inline uint32_t hash64To32(uint64_t key) {
  */
 template <typename T>
 struct hash_helper {
-    static const char* ptr(const T& x) { return static_cast<char*>(&x); };
+    static const char* ptr(const T& x)
+    { return reinterpret_cast<const char*>(&x); };
     static size_t size(const T&) { return sizeof(T); };
 };
 
