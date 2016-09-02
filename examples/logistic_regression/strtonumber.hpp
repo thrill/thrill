@@ -4,6 +4,7 @@
  * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2016 Lorenz Hübschle-Schneider <lorenz@4z2.de>
+ * Copyright (C) 2016 Timo Bingmann <tb@panthema.net>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
@@ -17,57 +18,58 @@
 namespace examples {
 namespace logistic_regression {
 
-/**
- * Number passing helpers, wrap strto{f,d,ld,l,ul,ll,ull}
+/*!
+ * Number parsing helpers, wraps strto{f,d,ld,l,ul,ll,ull}() via type switch.
  */
-
-// FLOATING POINT TYPES
-// float
 template <typename T>
-T strtonumber(const char* nptr, char** endptr,
-              typename std::enable_if<std::is_same<T, float>::value>::type* = 0) {
-    return strtof(nptr, endptr);
+T from_str(const char* nptr, char** endptr = nullptr, int base = 10);
+
+/******************************************************************************/
+// specializations for floating point types
+
+// float
+template <>
+float from_str<float>(const char* nptr, char** endptr, int) {
+    return std::strtof(nptr, endptr);
 }
 
 // double
-template <typename T>
-T strtonumber(const char* nptr, char** endptr,
-              typename std::enable_if<std::is_same<T, double>::value>::type* = 0) {
-    return strtod(nptr, endptr);
+template <>
+double from_str<double>(const char* nptr, char** endptr, int) {
+    return std::strtod(nptr, endptr);
 }
 
 // long double
-template <typename T>
-T strtonumber(const char* nptr, char** endptr,
-              typename std::enable_if<std::is_same<T, long double>::value>::type* = 0) {
-    return strtold(nptr, endptr);
+template <>
+long double from_str<long double>(const char* nptr, char** endptr, int) {
+    return std::strtold(nptr, endptr);
 }
 
-// INTEGRAL TYPES
+/******************************************************************************/
+// specializations for integral types
+
 // long
-template <typename T>
-T strtonumber(const char* nptr, char** endptr, int base = 10,
-              typename std::enable_if<std::is_same<T, long int>::value>::type* = 0) {
-    return strtol(nptr, endptr, base);
+template <>
+long from_str<long>(const char* nptr, char** endptr, int base) {
+    return std::strtol(nptr, endptr, base);
 }
 // unsigned long
-template <typename T>
-T strtonumber(const char* nptr, char** endptr, int base = 10,
-              typename std::enable_if<std::is_same<T, unsigned long int>::value>::type* = 0) {
-    return strtoul(nptr, endptr, base);
+template <>
+unsigned long from_str<unsigned long>(
+    const char* nptr, char** endptr, int base) {
+    return std::strtoul(nptr, endptr, base);
 }
 
 // long long
-template <typename T>
-T strtonumber(const char* nptr, char** endptr, int base = 10,
-              typename std::enable_if<std::is_same<T, long long int>::value>::type* = 0) {
-    return strtoll(nptr, endptr, base);
+template <>
+long long from_str<long long>(const char* nptr, char** endptr, int base) {
+    return std::strtoll(nptr, endptr, base);
 }
 // unsigned long long
-template <typename T>
-T strtonumber(const char* nptr, char** endptr, int base = 10,
-              typename std::enable_if<std::is_same<T, unsigned long long int>::value>::type* = 0) {
-    return strtoull(nptr, endptr, base);
+template <>
+unsigned long long from_str<unsigned long long>(
+    const char* nptr, char** endptr, int base) {
+    return std::strtoull(nptr, endptr, base);
 }
 
 } // namespace logistic_regression

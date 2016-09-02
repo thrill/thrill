@@ -44,12 +44,12 @@ static auto ReadFile(api::Context & ctx, const Input &input_path) {
                     char* endptr;
                     DataObject obj;
                     // yikes C stuff, TODO template
-                    obj.first = strtonumber<T>(line.c_str(), &endptr);
+                    obj.first = from_str<T>(line.c_str(), &endptr);
                     die_unless(endptr && *endptr == ',' &&
                                "Could not parse input line");
 
                     for (size_t i = 0; i < dim; ++i) {
-                        T value = strtonumber<T>(endptr + 1, &endptr);
+                        T value = from_str<T>(endptr + 1, &endptr);
                         die_unless(endptr &&
                                    ((i + 1 <= dim && *endptr == ',') ||
                                     (i + 1 == dim && *endptr == 0)) &&
