@@ -47,8 +47,10 @@ public:
     using FileSizePair = std::pair<std::string, size_t>;
 
     //! Constructor for a ReadLinesNode. Sets the Context and file path.
-    ReadLinesNode(Context& ctx, const std::vector<std::string>& globlist)
-        : Super(ctx, "ReadLines") {
+    ReadLinesNode(Context& ctx, const std::vector<std::string>& globlist,
+                  bool distributed_fs)
+        : Super(ctx, "ReadLines"),
+        distributed_fs_(distributed_fs) {
 
         LOG << "Opening ReadLinesNode for " << globlist.size() << " globs";
 
@@ -63,8 +65,9 @@ public:
     }
 
     //! Constructor for a ReadLinesNode. Sets the Context and file path.
-    ReadLinesNode(Context& ctx, const std::string& glob)
-        : ReadLinesNode(ctx, std::vector<std::string>{ glob }) { }
+    ReadLinesNode(Context& ctx, const std::string& glob, bool distributed_fs)
+        : ReadLinesNode(ctx, std::vector<std::string>{ glob }, distributed_fs)
+    { }
 
     DIAMemUse PushDataMemUse() final {
         // InputLineIterators read files block-wise
@@ -74,7 +77,7 @@ public:
     void PushData(bool /* consume */) final {
         if (filelist_.contains_compressed) {
             InputLineIteratorCompressed it = InputLineIteratorCompressed(
-                filelist_, *this);
+                filelist_, *this, distributed_fs_);
 
             // Hook Read
             while (it.HasNext()) {
@@ -83,7 +86,7 @@ public:
         }
         else {
             InputLineIteratorUncompressed it = InputLineIteratorUncompressed(
-                filelist_, *this);
+                filelist_, *this, distributed_fs_);
 
             // Hook Read
             while (it.HasNext()) {
@@ -94,6 +97,9 @@ public:
 
 private:
     core::SysFileList filelist_;
+
+    //! True, if files are on a distributed file system
+    bool distributed_fs_;
 
     class InputLineIterator
     {
@@ -168,11 +174,17 @@ private:
     public:
         //! Creates an instance of iterator that reads file line based
         InputLineIteratorUncompressed(const core::SysFileList& files,
-                                      ReadLinesNode& node)
+                                      ReadLinesNode& node, bool distributed_fs)
             : InputLineIterator(files, node) {
 
             // Go to start of 'local part'.
-            my_range_ = node_.context_.CalculateLocalRange(files.total_size);
+            if (distributed_fs) {
+                my_range_ = node_.context_.CalculateLocalRange(
+                    files.total_size);
+            } else {
+                my_range_ = node_.context_.CalculateLocalRangeOnHost(
+                    files.total_size);
+            }
 
             while (files_.list[current_file_].size_inc_psum() <= my_range_.begin) {
                 current_file_++;
@@ -282,11 +294,17 @@ private:
     public:
         //! Creates an instance of iterator that reads file line based
         InputLineIteratorCompressed(const core::SysFileList& files,
-                                    ReadLinesNode& node)
+                                    ReadLinesNode& node, bool distributed_fs)
             : InputLineIterator(files, node) {
 
             // Go to start of 'local part'.
-            my_range_ = node_.context_.CalculateLocalRange(files.total_size);
+            if (distributed_fs) {
+                my_range_ = node_.context_.CalculateLocalRange(
+                    files.total_size);
+            } else {
+                my_range_ = node_.context_.CalculateLocalRangeOnHost(
+                    files.total_size);
+            }
 
             while (files_.list[current_file_].size_inc_psum() <= my_range_.begin) {
                 current_file_++;
@@ -414,7 +432,9 @@ private:
  * \ingroup dia_sources
  */
 DIA<std::string> ReadLines(Context& ctx, const std::string& filepath) {
-    return DIA<std::string>(common::MakeCounting<ReadLinesNode>(ctx, filepath));
+    return DIA<std::string>(
+        common::MakeCounting<ReadLinesNode>(ctx, filepath,
+                                            /* distributed FS */ true));
 }
 
 /*!
@@ -429,7 +449,22 @@ DIA<std::string> ReadLines(Context& ctx, const std::string& filepath) {
 DIA<std::string> ReadLines(
     Context& ctx, const std::vector<std::string>& filepaths) {
     return DIA<std::string>(
-        common::MakeCounting<ReadLinesNode>(ctx, filepaths));
+        common::MakeCounting<ReadLinesNode>(ctx, filepaths,
+                                            /* distributed FS */ true));
+}
+
+DIA<std::string> ReadLines(struct LocalStorageTag, Context& ctx,
+                           const std::string& filepath) {
+    return DIA<std::string>(
+        common::MakeCounting<ReadLinesNode>(ctx, filepath,
+                                            /* distributed FS */ false));
+}
+
+DIA<std::string> ReadLines(struct LocalStorageTag, Context& ctx,
+                           const std::vector<std::string>& filepaths) {
+    return DIA<std::string>(
+        common::MakeCounting<ReadLinesNode>(ctx, filepaths,
+                                            /* distributed FS */ false));
 }
 
 } // namespace api

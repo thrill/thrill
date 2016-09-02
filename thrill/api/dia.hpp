@@ -82,8 +82,16 @@ struct NoRebalanceTag {
     NoRebalanceTag() { }
 };
 
-//! global const PadTag instance
+//! global const NoRebalanceTag instance
 const struct NoRebalanceTag NoRebalanceTag;
+
+//! tag structure for Read()
+struct LocalStorageTag {
+    LocalStorageTag() { }
+};
+
+//! global const LocalStorageTag instance
+const struct LocalStorageTag LocalStorageTag;
 
 /*!
  * DIA is the interface between the user and the Thrill framework. A DIA can be
