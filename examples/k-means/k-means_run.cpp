@@ -120,9 +120,10 @@ static void RunKMeansGenerated(
         die("For generated data, set input_path to the number of points.");
 
     auto points = Generate(
-        ctx, [&](const size_t& /* index */) {
+        ctx, num_points,
+        [&](const size_t& /* index */) {
             return Point::Random(dimensions, dist, rng);
-        }, num_points);
+        });
 
     auto result = KMeans(points, dimensions, num_clusters, iterations);
 

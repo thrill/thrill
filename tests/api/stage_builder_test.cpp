@@ -26,11 +26,10 @@ TEST(Stage, CountReferencesSimple) {
         [](Context& ctx) {
 
             auto integers = Generate(
-                ctx,
+                ctx, 16,
                 [](const size_t& index) {
                     return static_cast<int>(index) + 1;
-                },
-                16);
+                });
 
             auto duplicate_elements = [](int in, auto emit) {
                                           emit(in);
@@ -73,11 +72,10 @@ TEST(Stage, CountReferencesLOpNode) {
         [](Context& ctx) {
 
             auto integers = Generate(
-                ctx,
+                ctx, 16,
                 [](const size_t& index) {
                     return static_cast<int>(index) + 1;
-                },
-                16);
+                });
 
             auto duplicate_elements = [](int in, auto emit) {
                                           emit(in);
@@ -124,11 +122,10 @@ TEST(Stage, OverwriteReferenceLOpNode) {
         [](Context& ctx) {
 
             auto integers = Generate(
-                ctx,
+                ctx, 16,
                 [](const size_t& index) {
                     return static_cast<int>(index) + 1;
-                },
-                16);
+                });
 
             auto duplicate_elements = [](int in, auto emit) {
                                           emit(in);
@@ -173,11 +170,10 @@ TEST(Stage, AdditionalChildReferences) {
         [](Context& ctx) {
 
             auto integers = Generate(
-                ctx,
+                ctx, 16,
                 [](const size_t& index) {
                     return static_cast<int>(index) + 1;
-                },
-                16);
+                });
 
             auto duplicate_elements = [](int in, auto emit) {
                                           emit(in);

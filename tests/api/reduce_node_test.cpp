@@ -28,11 +28,10 @@ TEST(ReduceNode, ReduceModulo2CorrectResults) {
         [](Context& ctx) {
 
             auto integers = Generate(
-                ctx,
+                ctx, 16,
                 [](const size_t& index) {
                     return index + 1;
-                },
-                16);
+                });
 
             auto modulo_two = [](size_t in) {
                                   return (in % 2) + 1;
@@ -74,11 +73,10 @@ TEST(ReduceNode, ReduceModuloPairsCorrectResults) {
             using IntPair = std::pair<size_t, size_t>;
 
             auto integers = Generate(
-                ctx,
+                ctx, test_size,
                 [](const size_t& index) {
                     return IntPair(index % mod_size, index / mod_size);
-                },
-                test_size);
+                });
 
             auto add_function = [](const size_t& in1, const size_t& in2) {
                                     return in1 + in2;
@@ -108,11 +106,10 @@ TEST(ReduceNode, ReduceToIndexCorrectResults) {
         [](Context& ctx) {
 
             auto integers = Generate(
-                ctx,
+                ctx, 16,
                 [](const size_t& index) {
                     return index + 1;
-                },
-                16);
+                });
 
             auto key = [](size_t in) {
                            return in / 2;

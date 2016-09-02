@@ -84,11 +84,10 @@ static void RunWordCountGenerated(
     std::default_random_engine rng(std::random_device { } ());
 
     auto lines = Generate(
-        ctx,
+        ctx, num_words / 10,
         [&](size_t /* index */) {
             return RandomTextWriterGenerate(10, rng);
-        },
-        num_words / 10);
+        });
 
     auto word_pairs = WordCount(lines);
 
@@ -111,11 +110,10 @@ static void RunFastWordCountGenerated(
     std::default_random_engine rng(std::random_device { } ());
 
     auto lines = Generate(
-        ctx,
+        ctx, num_words / 10,
         [&](size_t /* index */) {
             return RandomTextWriterGenerate(10, rng);
-        },
-        num_words / 10);
+        });
 
     auto word_pairs = FastWordCount(lines);
 

@@ -124,13 +124,13 @@ static void RunPageRankGenerated(
         die("For generated graph data, set input_path to the number of pages.");
 
     auto links = Generate(
-        ctx,
+        ctx, num_pages,
         [graph_gen = ZipfGraphGen(base_graph_gen, num_pages),
          rng = std::default_random_engine(std::random_device { } ())](
             size_t /* index */) mutable {
             return graph_gen.GenerateOutgoing(rng);
-        },
-        num_pages).Cache();
+        })
+                 .Cache();
 
     auto number_edges =
         links.Keep().Map([](const OutgoingLinks& ol) { return ol.size(); }).Sum();

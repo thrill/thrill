@@ -70,7 +70,7 @@ static auto GenerateInput(api::Context & ctx, size_t size) {
     std::lognormal_distribution<double> lognorm_dist(0.0, 1.0);
 
     return Generate(
-        ctx,
+        ctx, size,
         [&](size_t index) {
             bool c = (2 * index < size);
 
@@ -81,7 +81,7 @@ static auto GenerateInput(api::Context & ctx, size_t size) {
             p[2] = size - index * 0.1 + size / 100.0 * norm_dist(rng);
 
             return DataObject(c, p);
-        }, size)
+        })
            // cache generated data, otherwise random generators are used again.
            .Cache();
 }
@@ -93,7 +93,7 @@ static auto GenerateTestData(api::Context & ctx, size_t size) {
     std::lognormal_distribution<double> lognorm_dist(0.0, 1.0);
 
     return Generate(
-        ctx,
+        ctx, size,
         [size](size_t index) {
             bool c = (2 * index < size);
 
@@ -104,7 +104,7 @@ static auto GenerateTestData(api::Context & ctx, size_t size) {
             p[2] = size - index * 0.1;
 
             return DataObject(c, p);
-        }, size);
+        });
 }
 
 template <typename InputDIA>

@@ -51,11 +51,11 @@ int main(int argc, char* argv[]) {
 
                 common::StatsTimerStart timer;
                 api::Generate(
-                    ctx,
+                    ctx, size / sizeof(size_t),
                     [&distribution, &generator](size_t) -> size_t {
                         return distribution(generator);
-                    },
-                    size / sizeof(size_t)).Sort().Size();
+                    })
+                .Sort().Size();
                 timer.Stop();
                 if (!ctx.my_rank()) {
                     LOG1 << "ITERATION " << i << " RESULT" << " time=" << timer.Milliseconds();

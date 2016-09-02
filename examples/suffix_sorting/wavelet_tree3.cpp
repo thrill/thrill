@@ -53,9 +53,8 @@ int main(int argc, char* argv[]) {
             else {
                 std::string bwt = "aaaaaaaaaaabbbbaaaaaaaccccdddaacacaffatttttttttttyyyyaaaaa";
                 auto input_dia =
-                    Generate(ctx,
-                             [&](size_t i) { return (uint8_t)bwt[i]; },
-                             bwt.size());
+                    Generate(ctx, bwt.size(),
+                             [&](size_t i) { return (uint8_t)bwt[i]; });
                 ConstructWaveletTree(input_dia, "wt-bin");
             }
         });

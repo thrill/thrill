@@ -48,10 +48,10 @@ int main(int argc, char* argv[]) {
                  std::uniform_int_distribution<size_t> distribution(0, std::numeric_limits<size_t>::max());
 
                  std::vector<FastString> copy_enforcer;
-                 Generate(ctx,
+                 Generate(ctx, elements,
                           [&distribution, &generator](size_t) {
                               return distribution(generator);
-                          }, (size_t)elements).WriteBinary(output, 16 * 1024 * 1024);
+                          }).WriteBinary(output, 16 * 1024 * 1024);
              });
 }
 
