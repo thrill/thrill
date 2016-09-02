@@ -51,7 +51,7 @@ T calc_norm(const std::array<T, dim>& weights,
 }
 
 template <typename T, size_t dim>
-auto gradient(const T &y, const std::array<T, dim>&x,
+auto gradient(const bool& y, const std::array<T, dim>&x,
               const std::array<T, dim>&w) {
     std::array<T, dim> grad;
     T dot_product = std::inner_product(w.begin(), w.end(), x.begin(), T { 0.0 });
@@ -64,9 +64,9 @@ auto gradient(const T &y, const std::array<T, dim>&x,
 
 template <typename T, size_t dim, typename InStack,
           typename Element = std::array<T, dim> >
-auto train_logreg(const DIA<std::pair<T, Element>, InStack>&data,
-                  size_t max_iterations, double gamma = 0.002,
-                  double epsilon = 0.0001)
+auto logit_train(const DIA<std::pair<bool, Element>, InStack>&data,
+                 size_t max_iterations, double gamma = 0.002,
+                 double epsilon = 0.0001)
 {
     // weights, initialized to zero
     Element weights = Element({ 0.0 }), new_weights;
@@ -76,7 +76,7 @@ auto train_logreg(const DIA<std::pair<T, Element>, InStack>&data,
     while (iter < max_iterations) {
         Element grad =
             data
-            .Map([&weights](const std::pair<T, Element>& elem) -> Element {
+            .Map([&weights](const std::pair<bool, Element>& elem) -> Element {
                      return gradient(elem.first, elem.second, weights);
                  })
             .Sum([](const Element& a, const Element& b) -> Element {
@@ -103,13 +103,13 @@ auto train_logreg(const DIA<std::pair<T, Element>, InStack>&data,
 
 template <typename T, size_t dim, typename InStack,
           typename Element = std::array<T, dim> >
-auto test_logreg(const DIA<std::pair<T, Element>, InStack>&data,
-                 const Element &weights)
+auto logit_test(const DIA<std::pair<bool, Element>, InStack>&data,
+                const Element &weights)
 {
     size_t expected_true =
         data
         .Filter([](const std::pair<T, Element>& elem) -> bool {
-                    return static_cast<bool>(elem.first);
+                    return elem.first;
                 })
         .Size();
 
