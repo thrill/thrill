@@ -580,8 +580,6 @@ public:
     /*!
      * Min is an Action, which computes the minimum of all elements globally.
      *
-     * \param min_function Min function.
-     *
      * \param initial_value Initial value of the min.
      *
      * \ingroup dia_actions
@@ -591,8 +589,6 @@ public:
     /*!
      * Min is an ActionFuture, which computes the minimum of all elements
      * globally.
-     *
-     * \param min_function Min function.
      *
      * \param initial_value Initial value of the min.
      *
@@ -605,8 +601,6 @@ public:
     /*!
      * Max is an Action, which computes the maximum of all elements globally.
      *
-     * \param max_function Max function.
-     *
      * \param initial_value Initial value of the max.
      *
      * \ingroup dia_actions
@@ -616,8 +610,6 @@ public:
     /*!
      * Max is an ActionFuture, which computes the maximum of all elements
      * globally.
-     *
-     * \param max_function Max function.
      *
      * \param initial_value Initial value of the max.
      *

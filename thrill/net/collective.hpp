@@ -39,7 +39,6 @@ namespace net {
  * index, including himself, according to a summation operator. The run-time is
  * in O(log n).
  *
- * \param net The current group onto which to apply the operation
  * \param value The value to be summed up
  * \param sum_op A custom summation operator
  * \param inclusive Inclusive prefix sum if true (default)
@@ -95,8 +94,6 @@ void Group::PrefixSumDoubling(T& value, BinarySumOp sum_op, bool inclusive) {
  * smaller index, including itself, according to an associative summation
  * operator. This function currently only supports worker numbers which are
  * powers of two.
- *
- * \param net The current group onto which to apply the operation
  *
  * \param value The value to be summed up
  *
@@ -165,8 +162,6 @@ void Group::ExPrefixSum(T& value, BinarySumOp sum_op) {
  * Broadcasts the value of the peer with index 0 to all the others. This is a
  * trivial broadcast from peer 0.
  *
- * \param net The current peer onto which to apply the operation
- *
  * \param value The value to be broadcast / receive into.
  *
  * \param origin The PE to broadcast value from.
@@ -190,8 +185,6 @@ void Group::BroadcastTrivial(T& value, size_t origin) {
 /*!
  * Broadcasts the value of the worker with index "origin" to all the
  * others. This is a binomial tree broadcast method.
- *
- * \param net The current group onto which to apply the operation
  *
  * \param value The value to be broadcast / receive into.
  *
@@ -240,8 +233,6 @@ void Group::BroadcastSelect(T& value, size_t origin) {
  * Broadcasts the value of the worker with index 0 to all the others. This is a
  * binomial tree broadcast method.
  *
- * \param net The current group onto which to apply the operation
- *
  * \param value The value to be broadcast / receive into.
  *
  * \param origin The PE to broadcast value from.
@@ -260,8 +251,6 @@ void Group::Broadcast(T& value, size_t origin) {
  * \details This function aggregates the values of all workers in the group
  * according with a specified reduction operator. The result will be returned in
  * the input variable at the root node.
- *
- * \param net The current group onto which to apply the operation
  *
  * \param value The input value to be used in the reduction. Will be overwritten
  * with the result (on the root) or arbitrary data (on other ranks).
@@ -304,9 +293,8 @@ void Group::Reduce(T& value, size_t root, BinarySumOp sum_op) {
  * Perform an All-Reduce on the workers. This is done by aggregating all values
  * according to a summation operator and sending them backto all workers.
  *
- * \param   net The current group onto which to apply the operation
- * \param   value The value to be added to the aggregation
- * \param   sum_op A custom summation operator
+ * \param value The value to be added to the aggregation
+ * \param sum_op A custom summation operator
  */
 template <typename T, typename BinarySumOp>
 void Group::AllReduceSimple(T& value, BinarySumOp sum_op) {
@@ -318,11 +306,9 @@ void Group::AllReduceSimple(T& value, BinarySumOp sum_op) {
  * Broadcasts the value of the peer with index 0 to all the others. This is a
  * trivial broadcast from peer 0.
  *
- * \param net The current peer onto which to apply the operation
- *
  * \param value The value to be broadcast / receive into.
  *
- * \param origin The PE to broadcast value from.
+ * \param sum_op A custom summation operator
  */
 template <typename T, typename BinarySumOp>
 void Group::AllReduceAtRoot(T& value, BinarySumOp sum_op) {
@@ -351,9 +337,8 @@ void Group::AllReduceAtRoot(T& value, BinarySumOp sum_op) {
  * Perform an All-Reduce for powers of two. This is done with the Hypercube
  * algorithm from the ParAlg script.
  *
- * \param   net The current group onto which to apply the operation
- * \param   value The value to be added to the aggregation
- * \param   sum_op A custom summation operator
+ * \param value The value to be added to the aggregation
+ * \param sum_op A custom summation operator
  */
 template <typename T, typename BinarySumOp>
 void Group::AllReduceHypercube(T& value, BinarySumOp sum_op) {
@@ -403,7 +388,6 @@ void Group::AllReduceSelect(T& value, BinarySumOp sum_op) {
  * Perform an All-Reduce on the workers.  This is done by aggregating all values
  * according to a summation operator and sending them backto all workers.
  *
- * \param   net The current group onto which to apply the operation
  * \param   value The value to be added to the aggregation
  * \param   sum_op A custom summation operator
  */
