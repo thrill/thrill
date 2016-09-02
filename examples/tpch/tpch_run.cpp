@@ -56,10 +56,15 @@ struct Order {
     char   orderstatus;
     double totalprice;
     time_t ordertime;
-    char   orderpriority[15];
-    char   clerk[15];
+    char   orderpriority[16];
+    char   clerk[16];
     bool   priority;
     char   comment[79];
+
+    friend std::ostream& operator << (std::ostream& os, const Order& o) {
+        os << '(' << o.orderpriority << "|" << o.clerk << "|" << o.comment;
+        return os << ')';
+    }
 } THRILL_ATTRIBUTE_PACKED;
 
 struct JoinedElement {
@@ -83,8 +88,8 @@ struct JoinedElement {
     char   orderstatus;
     double totalprice;
     time_t ordertime;
-    char   orderpriority[15];
-    char   clerk[15];
+    char   orderpriority[16];
+    char   clerk[16];
     bool   priority;
     char   order_comment[79];
 } THRILL_ATTRIBUTE_PACKED;
@@ -191,8 +196,8 @@ static size_t JoinTPCH4(
             }
         });
 
-    time_t starttime = time_to_epoch("1992-01-01");
-    time_t stoptime = time_to_epoch("1992-04-01");
+    time_t starttime = time_to_epoch("1993-07-01");
+    time_t stoptime = time_to_epoch("1993-10-01");
 
     std::string s_orders = input_path[0] + std::string("orders.tbl*");
     auto orders = ReadLines(ctx, s_orders).FlatMap<struct Order>(
