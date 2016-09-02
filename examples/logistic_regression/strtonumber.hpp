@@ -20,56 +20,53 @@ namespace examples {
 namespace logistic_regression {
 
 /**
- * Number passing helpers, wrap strto{f,d,ld,l,ul,ll,ull}
+ * Number parsing helpers, wrap strto{f,d,ld,l,ul,ll,ull}
  */
+template<typename T>
+T strtonumber(const char* nptr, char **endptr, int base = 10);
 
 // FLOATING POINT TYPES
 // float
-template<typename T>
-T strtonumber(const char *nptr, char **endptr,
-              typename std::enable_if<std::is_same<T, float>::value>::type* = 0) {
+template<>
+float strtonumber<float>(const char* nptr, char **endptr, int) {
     return strtof(nptr, endptr);
 }
 
 // double
-template<typename T>
-T strtonumber(const char *nptr, char **endptr,
-              typename std::enable_if<std::is_same<T, double>::value>::type* = 0) {
+template<>
+double strtonumber<double>(const char* nptr, char **endptr, int) {
     return strtod(nptr, endptr);
 }
 
 // long double
-template<typename T>
-T strtonumber(const char *nptr, char **endptr,
-              typename std::enable_if<std::is_same<T, long double>::value>::type* = 0) {
+template<>
+long double strtonumber<long double>(const char* nptr, char **endptr, int) {
     return strtold(nptr, endptr);
 }
 
 
 // INTEGRAL TYPES
 // long
-template<typename T>
-T strtonumber(const char *nptr, char **endptr, int base = 10,
-              typename std::enable_if<std::is_same<T, long int>::value>::type* = 0) {
+template<>
+long strtonumber<long>(const char *nptr, char **endptr, int base) {
     return strtol(nptr, endptr, base);
 }
 // unsigned long
-template<typename T>
-T strtonumber(const char *nptr, char **endptr, int base = 10,
-              typename std::enable_if<std::is_same<T, unsigned long int>::value>::type* = 0) {
+template<>
+unsigned long strtonumber<unsigned long>(const char *nptr, char **endptr,
+                                         int base) {
     return strtoul(nptr, endptr, base);
 }
 
 // long long
-template<typename T>
-T strtonumber(const char *nptr, char **endptr, int base = 10,
-              typename std::enable_if<std::is_same<T, long long int>::value>::type* = 0) {
+template<>
+long long strtonumber<long long>(const char *nptr, char **endptr, int base) {
     return strtoll(nptr, endptr, base);
 }
 // unsigned long long
-template<typename T>
-T strtonumber(const char *nptr, char **endptr, int base = 10,
-              typename std::enable_if<std::is_same<T, unsigned long long int>::value>::type* = 0) {
+template<>
+unsigned long long strtonumber<unsigned long long>(const char *nptr,
+                                                   char **endptr, int base) {
     return strtoull(nptr, endptr, base);
 }
 
