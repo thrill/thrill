@@ -13,7 +13,7 @@ add_subdirectory(k-means)
 add_subdirectory(logistic_regression)
 add_subdirectory(page_rank)
 add_subdirectory(select)
-add_subdirectory(suffix_sorting)
+#add_subdirectory(suffix_sorting)
 add_subdirectory(terasort)
 add_subdirectory(word_count)
 

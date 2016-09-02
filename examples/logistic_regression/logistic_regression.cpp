@@ -21,7 +21,7 @@
 #include <utility>
 #include <vector>
 
-#include "logreg.hpp"
+#include "logistic_regression.hpp"
 #include "strtonumber.hpp"
 
 using namespace thrill;               // NOLINT

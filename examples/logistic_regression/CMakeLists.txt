@@ -8,6 +8,6 @@
 # All rights reserved. Published under the BSD-2 license in the LICENSE file.
 ################################################################################
 
-thrill_build_prog(logreg)
+thrill_build_prog(logistic_regression)
 
 ################################################################################

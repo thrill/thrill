@@ -4,7 +4,7 @@
  * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2016 Lorenz Hübschle-Schneider <lorenz@4z2.de>
- * Copyright (C) 2015-16 Utkarsh Bhardwaj <haptork@gmail.com>
+ * Copyright (C) 2015-2016 Utkarsh Bhardwaj <haptork@gmail.com>
  *
  * Based on examples/logreg.cpp of https://github.com/haptork/easyLambda
  *
