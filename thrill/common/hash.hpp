@@ -17,6 +17,7 @@
 #include <cstdlib>
 #include <type_traits>
 
+#include <thrill/common/fast_string.hpp>
 #include "config.hpp"
 
 #if defined(THRILL_HAVE_AVX2)
@@ -95,10 +96,37 @@ static inline uint32_t hash64To32(uint64_t key) {
     return (uint32_t) key;
 }
 
+/*!
+ * Hashing helper that decides what is hashed
+ *
+ * Defaults to pointer to the object and sizeof(its type). Override these values
+ * for heap-allocated types. Some default overrides are provided.
+ */
+template <typename T>
+struct hash_helper {
+    static const char* ptr(const T& x) { return static_cast<char*>(&x); };
+    static size_t size(const T&) { return sizeof(T); };
+};
+
+
+template <>
+struct hash_helper<common::FastString> {
+    static const char* ptr(const common::FastString& s) { return s.Data(); };
+    static size_t size(const common::FastString& s) { return s.Size(); };
+};
+
+template <>
+struct hash_helper<std::string> {
+    static const char* ptr(const std::string& s) { return s.c_str(); };
+    static size_t size(const std::string& s) { return s.length(); };
+};
 
 #ifdef THRILL_HAVE_SSE4_2
 /**
- * A CRC32C hasher using SSE4.2 intrinsics
+ * A CRC32C hasher using SSE4.2 intrinsics.
+ *
+ * Note that you need to provide specializations of hash_helper if you want to
+ * hash types with heap storage.
  */
 template <typename ValueType>
 struct hash_crc32_intel {
@@ -146,6 +174,13 @@ struct hash_crc32_intel {
         return crc;
     }
 
+    uint32_t operator()(const ValueType& val, uint32_t crc = 0xffffffff) {
+        const char *ptr = hash_helper<ValueType>::ptr(val);
+        size_t size = hash_helper<ValueType>::size(val);
+        return hash_bytes(ptr, size, crc);
+    }
+
+    /*
     // Hash large or oddly-sized types
     template <typename T = ValueType>
     uint32_t operator()(const T& val, uint32_t crc = 0xffffffff,
@@ -181,6 +216,7 @@ struct hash_crc32_intel {
                         typename std::enable_if<sizeof(T) == 1>::type* = 0) {
         return _mm_crc32_u8(crc, *alias_cast<const uint8_t*>(&val));
     }
+*/
 };
 #endif
 
@@ -190,11 +226,16 @@ uint32_t crc32_slicing_by_8(uint32_t crc, const void* data, size_t length);
 
 /**
  * Fallback CRC32C implementation in software.
+ *
+ * Note that you need to provide specializations of hash_helper if you want to
+ * hash types with heap storage.
  */
 template <typename ValueType>
 struct hash_crc32_fallback {
-    uint32_t operator()(const ValueType& val, const uint32_t crc = 0xffffffff) {
-        return crc32_slicing_by_8(crc, (const void*)&val, sizeof(ValueType));
+    uint32_t operator()(const ValueType& val, uint32_t crc = 0xffffffff) {
+        const char *ptr = hash_helper<ValueType>::ptr(val);
+        size_t size = hash_helper<ValueType>::size(val);
+        return crc32_slicing_by_8(crc, ptr, size);
     }
 };
 
@@ -210,6 +251,14 @@ using hash_crc32 = hash_crc32_fallback<T>;
 #endif
 
 
+/**
+ * HighwayHash, a fast strong hash function by Google
+ *
+ * See https://github.com/google/highwayhash
+ *
+ * Note that you need to provide specializations of hash_helper if you want to
+ * hash types with heap storage.
+ */
 template <typename ValueType>
 struct hash_highway {
 #if defined(THRILL_HAVE_AVX2)
@@ -243,7 +292,9 @@ struct hash_highway {
     }
 
     uint64_t operator()(const ValueType& val) {
-        return hash_bytes((const char*)&val, sizeof(ValueType));
+        const char *ptr = hash_helper<ValueType>::ptr(val);
+        size_t size = hash_helper<ValueType>::size(val);
+        return hash_bytes(ptr, size);
     }
 
 private:
