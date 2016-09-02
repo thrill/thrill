@@ -18,6 +18,7 @@
 
 #include <array>
 #include <cstdarg>
+#include <cstdlib>
 #include <limits>
 #include <random>
 #include <sstream>
@@ -149,6 +150,70 @@ bool from_str(const std::string& str, Type& outval) {
     is >> outval;
     return is.eof();
 }
+
+/******************************************************************************/
+//! Number parsing helpers, wraps strto{f,d,ld,l,ul,ll,ull}() via type switch.
+
+template <typename T>
+T from_cstr(const char* nptr, char** endptr = nullptr, int base = 10);
+
+/*----------------------------------------------------------------------------*/
+// specializations for floating point types
+
+// float
+template <>
+inline
+float from_cstr<float>(const char* nptr, char** endptr, int) {
+    return std::strtof(nptr, endptr);
+}
+
+// double
+template <>
+inline
+double from_cstr<double>(const char* nptr, char** endptr, int) {
+    return std::strtod(nptr, endptr);
+}
+
+// long double
+template <>
+inline
+long double from_cstr<long double>(const char* nptr, char** endptr, int) {
+    return std::strtold(nptr, endptr);
+}
+
+/*----------------------------------------------------------------------------*/
+// specializations for integral types
+
+// long
+template <>
+inline
+long from_cstr<long>(const char* nptr, char** endptr, int base) {
+    return std::strtol(nptr, endptr, base);
+}
+// unsigned long
+template <>
+inline
+unsigned long from_cstr<unsigned long>(
+    const char* nptr, char** endptr, int base) {
+    return std::strtoul(nptr, endptr, base);
+}
+
+// long long
+template <>
+inline
+long long from_cstr<long long>(const char* nptr, char** endptr, int base) {
+    return std::strtoll(nptr, endptr, base);
+}
+// unsigned long long
+template <>
+inline
+unsigned long long from_cstr<unsigned long long>(
+    const char* nptr, char** endptr, int base) {
+    return std::strtoull(nptr, endptr, base);
+}
+
+/******************************************************************************/
+// Split and Join
 
 /*!
  * Split the given string at each separator character into distinct
