@@ -1,0 +1,76 @@
+// -*- mode: c++; mode: visual-line; mode: flyspell; fill-column: 100000 -*-
+/*******************************************************************************
+ * doc/start1.dox
+ *
+ * Part of Project Thrill - http://project-thrill.org
+ *
+ * Copyright (C) 2016 Timo Bingmann <tb@panthema.net>
+ *
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
+ ******************************************************************************/
+
+namespace thrill {
+namespace mem {
+
+/******************************************************************************/
+/** \page start Getting Started
+
+- \subpage start_compile
+- \subpage start_first
+- \subpage start_run
+
+*/
+
+/******************************************************************************/
+/** \page start_compile Fetching and compiling Thrill, and running an example
+
+### Fetching and Compiling Thrill
+
+Thrill is written in C++14 and requires an appropriate compiler. Gcc >= 4.9, Clang, and Microsoft Visual C++ 2015 with newest updates are supported.
+
+Under Linux Thrill can be cloned using git, and compiled by calling the `compile.sh` script in the source root. This script clones additional git submodules, creates directory `build`, runs cmake to create Makefiles, and compiles in Debug mode with a detected compiler. And then even runs the test suite. In total this takes about 10 minutes on our workstations.
+
+\code
+$ git clone https://github.com/thrill/thrill.git
+$ cd thrill
+$ ./compile.sh
+\endcode
+
+Under Windows, use cmake's GUI to create project files and open them. Real TCP Networking is currently not available on Windows, but an internal mock network is available for testing applications.
+
+### Running the WordCount example
+
+Thrill's example directory contains quite a few working programs. To run the WordCount example locally with internally generated random input run:
+
+\code
+$ cd build/examples/page_rank/
+$ ./word_count_run --generate 1000 --output result-
+\endcode
+
+This will run the WordCount program locally using all cores of the machines and simulating two hosts in a loopback network. Random lines with 10 words per line are generated and the resulting counts are written to the files `result-*`.
+
+### Next Steps
+
+- \ref start_first
+- \ref start_run
+
+*/
+
+/******************************************************************************/
+/** \page start_first Write your first Thrill program
+
+### What shall we do in the first Thrill program?
+
+*/
+
+/******************************************************************************/
+/** \page start_run Running Thrill programs on a cluster
+
+### Execution Model
+
+*/
+
+} // namespace mem
+} // namespace thrill
+
+/******************************************************************************/
