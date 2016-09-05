@@ -14,6 +14,7 @@
 #ifndef THRILL_COMMON_FAST_STRING_HEADER
 #define THRILL_COMMON_FAST_STRING_HEADER
 
+#include <thrill/common/hash.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/data/serialization.hpp>
 
@@ -261,6 +262,13 @@ private:
     size_t size_ = 0;
     //! True, if this FastString has ownership of data
     bool owns_data_ = false;
+};
+
+// What to hash
+template <>
+struct hash_helper<FastString> {
+    static const char* ptr(const FastString& s) { return s.Data(); };
+    static size_t size(const FastString& s) { return s.Size(); };
 };
 
 } // namespace common

@@ -18,7 +18,6 @@
 #include <string>
 #include <type_traits>
 
-#include <thrill/common/fast_string.hpp>
 #include "config.hpp"
 
 #ifdef THRILL_HAVE_SSE4_2
@@ -102,12 +101,6 @@ struct hash_helper {
     static size_t size(const T&) { return sizeof(T); };
 };
 
-
-template <>
-struct hash_helper<common::FastString> {
-    static const char* ptr(const common::FastString& s) { return s.Data(); };
-    static size_t size(const common::FastString& s) { return s.Size(); };
-};
 
 template <>
 struct hash_helper<std::string> {
