@@ -44,6 +44,7 @@ TEST(Aggregate, Double) {
     ASSERT_EQ(0.001, agg.Min());
     ASSERT_EQ(1.0, agg.Max());
     ASSERT_DOUBLE_EQ(0.039868430925506362, agg.StandardDeviation());
+    ASSERT_DOUBLE_EQ(0.039848491723996423, agg.StandardDeviation(0));
 
 }
 

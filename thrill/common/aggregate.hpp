@@ -83,13 +83,16 @@ public:
     const Type& Max() const noexcept { return max_; }
 
     //! return the standard deviation of all values aggregated
-    double StandardDeviation() const {
+    double StandardDeviation(size_t ddof = 1) const {
         assert(count_ > 1);
-        return std::sqrt(nvar_ / static_cast<double>(count_ - 1));
+        // ddof = delta degrees of freedom
+        // Set to 0 if you have the entire distribution
+        // Set to 1 if you have a sample (to correct for bias)
+        return std::sqrt(nvar_ / static_cast<double>(count_ - ddof));
     }
 
     //! return the standard deviation of all values aggregated
-    double StDev() const { return StandardDeviation(); }
+    double StDev(size_t ddof = 1) const { return StandardDeviation(ddof); }
 
     //! operator +
     Aggregate operator + (const Aggregate& a) const noexcept {
