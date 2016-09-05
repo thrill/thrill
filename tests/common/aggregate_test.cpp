@@ -14,7 +14,7 @@
 
 using namespace thrill;
 
-TEST(Aggregate, Test1) {
+TEST(Aggregate, Integer) {
 
     common::Aggregate<int> agg;
 
@@ -28,6 +28,23 @@ TEST(Aggregate, Test1) {
     ASSERT_EQ(0, agg.Min());
     ASSERT_EQ(29, agg.Max());
     ASSERT_DOUBLE_EQ(8.8034084308295046, agg.StandardDeviation());
+
+}
+
+TEST(Aggregate, Double) {
+    common::Aggregate<double> agg;
+
+    for (size_t i = 1; i <= 1000; ++i) {
+        agg.Add(1.0/static_cast<double>(i));
+    }
+
+    ASSERT_EQ(1000, agg.Count());
+    ASSERT_DOUBLE_EQ(7.4854708605503451, agg.Total());
+    ASSERT_DOUBLE_EQ(0.0074854708605503447, agg.Average());
+    ASSERT_EQ(0.001, agg.Min());
+    ASSERT_EQ(1.0, agg.Max());
+    ASSERT_DOUBLE_EQ(0.039868430925506362, agg.StandardDeviation());
+
 }
 
 /******************************************************************************/
