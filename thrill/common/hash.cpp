@@ -28,8 +28,37 @@
 
 #include "hash.hpp"
 
+#if defined(THRILL_HAVE_AVX2)
+#include <highwayhash/highway_tree_hash.h>
+#elif defined(THRILL_HAVE_SSE4_1)
+#include <highwayhash/sse41_highway_tree_hash.h>
+#else
+#include <highwayhash/scalar_highway_tree_hash.h>
+#endif
+
 namespace thrill {
 namespace common {
+
+// Implementation switch for HighwayHash
+namespace _detail {
+using namespace highwayhash;
+#if defined(THRILL_HAVE_AVX2)
+uint64_t Highway_AVX2::hash_bytes(const uint64 (&key)[4], const char* bytes,
+                                  const size_t size) {
+    return ComputeHash<HighwayTreeHashState>(key, bytes, size);
+}
+#elif defined(THRILL_HAVE_SSE4_1)
+uint64_t Highway_SSE41::hash_bytes(const uint64 (&key)[4], const char* bytes,
+                                   const size_t size) {
+    return ComputeHash<SSE41HighwayTreeHashState>(key, bytes, size);
+}
+#else
+uint64_t Highway_Scalar::hash_bytes(const uint64 (&key)[4], const char* bytes,
+                                    const size_t size) {
+    return ComputeHash<ScalarHighwayTreeHashState>(key, bytes, size);
+}
+#endif
+} // namespace _detail
 
 /* Tables generated with code like the following:
 

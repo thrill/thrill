@@ -15,18 +15,11 @@
 #include <cassert>
 #include <cstdint>
 #include <cstdlib>
+#include <string>
 #include <type_traits>
 
 #include <thrill/common/fast_string.hpp>
 #include "config.hpp"
-
-#if defined(THRILL_HAVE_AVX2)
-#include <highwayhash/highway_tree_hash.h>
-#elif defined(THRILL_HAVE_SSE4_1)
-#include <highwayhash/sse41_highway_tree_hash.h>
-#else
-#include <highwayhash/scalar_highway_tree_hash.h>
-#endif
 
 #ifdef THRILL_HAVE_SSE4_2
 #include <smmintrin.h> // crc32 instructions
@@ -252,6 +245,20 @@ using hash_crc32 = hash_crc32_fallback<T>;
 #endif
 
 
+namespace _detail {
+// HighwayHash needs unsigned long long for compatibility, not uint64_t...
+using u64 = unsigned long long;
+struct Highway_AVX2 {
+    static uint64_t hash_bytes(const u64(&)[4], const char*, const size_t);
+};
+struct Highway_SSE41 {
+    static uint64_t hash_bytes(const u64(&)[4], const char*, const size_t);
+};
+struct Highway_Scalar {
+    static uint64_t hash_bytes(const u64(&)[4], const char*, const size_t);
+};
+} // namespace _detail
+
 /**
  * HighwayHash, a fast strong hash function by Google
  *
@@ -263,14 +270,11 @@ using hash_crc32 = hash_crc32_fallback<T>;
 template <typename ValueType>
 struct hash_highway {
 #if defined(THRILL_HAVE_AVX2)
-    using state_t = highwayhash::HighwayTreeHashState;
-    using key_t = highwayhash::HighwayTreeHashState::Key;
+    using hasher = _detail::Highway_AVX2;
 #elif defined(THRILL_HAVE_SSE4_1)
-    using state_t = highwayhash::SSE41HighwayTreeHashState;
-    using key_t = highwayhash::SSE41HighwayTreeHashState::Key;
+    using hasher = _detail::Highway_SSE41;
 #else
-    using state_t = highwayhash::ScalarHighwayTreeHashState;
-    using key_t = highwayhash::ScalarHighwayTreeHashState::Key;
+    using hasher = _detail::Highway_Scalar;
 #endif
 
     // Default key from highwayhash's sip_hash_main.cc
@@ -288,18 +292,14 @@ struct hash_highway {
         key_[3] = key[3];
     }
 
-    uint64_t hash_bytes(const char* bytes, const size_t size) {
-        return highwayhash::ComputeHash<state_t>(key_, bytes, size);
-    }
-
     uint64_t operator()(const ValueType& val) {
         const char *ptr = hash_helper<ValueType>::ptr(val);
         size_t size = hash_helper<ValueType>::size(val);
-        return hash_bytes(ptr, size);
+        return hasher::hash_bytes(key_, ptr, size);
     }
 
 private:
-    key_t key_;
+    unsigned long long key_[4];
 };
 
 
