@@ -96,21 +96,20 @@ namespace common {
 template <typename U>
 void UNUSED(U&&) { }
 
-} // namespace common
-} // namespace thrill
-
 /******************************************************************************/
 // std::is_trivially_copyable<T> work-around for libstdc++ < 5.0
 
-#if defined(__GLIBCXX__) && __GLIBCXX__ < 20150801 // NOLINT
-namespace std {
-
+#if defined(__GLIBCXX__)
 template <typename T>
 struct is_trivially_copyable
-    : integral_constant<bool, __has_trivial_copy(T)>{ };  // NOLINT
+    : std::integral_constant<bool, __has_trivial_copy(T)>{ };  // NOLINT
+#else // GLIBCXX work-around
+template <typename T>
+using is_trivially_copyable = std::is_trivially_copyable<T>;
+#endif
 
-} // namespace std
-#endif  // GLIBCXX work-around
+} // namespace common
+} // namespace thrill
 
 #endif // !THRILL_COMMON_DEFINES_HEADER
 
