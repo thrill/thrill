@@ -987,13 +987,13 @@ TEST(Operations, ActionFutures) {
                     return long(input + 1);
                 }).Cache();
 
-            Future<long> minf = integers.Min(FutureTag, 16);
-            Future<long> maxf = integers.Max(FutureTag);
-            Future<long> sumf = integers.Sum(FutureTag);
+            Future<long> minf = integers.MinFuture(16);
+            Future<long> maxf = integers.MaxFuture();
+            Future<long> sumf = integers.SumFuture();
 
-            Future<size_t> sizef = integers.Size(FutureTag);
+            Future<size_t> sizef = integers.SizeFuture();
 
-            Future<std::vector<long> > vecf = integers.AllGather(FutureTag);
+            Future<std::vector<long> > vecf = integers.AllGatherFuture();
 
             ASSERT_FALSE(minf.valid());
             ASSERT_FALSE(maxf.valid());

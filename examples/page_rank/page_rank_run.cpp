@@ -63,7 +63,7 @@ static void RunPageRankEdgePerLine(
         .Map([](const PagePageLink& ppl) { return std::max(ppl.src, ppl.tgt); })
         .Max() + 1;
 
-    auto number_edges = input.Keep().Size(FutureTag);
+    auto number_edges = input.Keep().SizeFuture();
 
     // aggregate all outgoing links of a page in this format: by index
     // ([linked_url, linked_url, ...])

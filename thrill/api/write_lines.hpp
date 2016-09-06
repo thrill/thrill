@@ -190,8 +190,7 @@ void DIA<ValueType, Stack>::WriteLines(
 }
 
 template <typename ValueType, typename Stack>
-Future<void> DIA<ValueType, Stack>::WriteLines(
-    const struct FutureTag&,
+Future<void> DIA<ValueType, Stack>::WriteLinesFuture(
     const std::string& filepath, size_t target_file_size) const {
     assert(IsValid());
 

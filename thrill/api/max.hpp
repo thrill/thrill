@@ -29,8 +29,8 @@ ValueType DIA<ValueType, Stack>::Max(const ValueType& initial_value) const {
 }
 
 template <typename ValueType, typename Stack>
-Future<ValueType> DIA<ValueType, Stack>::Max(
-    const struct FutureTag&, const ValueType& initial_value) const {
+Future<ValueType> DIA<ValueType, Stack>::MaxFuture(
+    const ValueType& initial_value) const {
     assert(IsValid());
 
     using MaxNode = api::AllReduceNode<ValueType, common::maximum<ValueType> >;

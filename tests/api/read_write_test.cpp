@@ -354,14 +354,13 @@ TEST(IO, IntegerWriteReadBinaryLinesFutures) {
                     generate_size,
                     [](const size_t index) { return index + 42; });
 
-                Future<> fa = dia
-                              .WriteBinary(
-                    FutureTag, tmpdir.get() + "/IO.IntegerBinary", 16 * 1024);
+                Future<> fa = dia.WriteBinaryFuture(
+                    tmpdir.get() + "/IO.IntegerBinary", 16 * 1024);
 
                 Future<> fb =
                     dia
                     .Map([](const size_t& i) { return std::to_string(i); })
-                    .WriteLinesOne(FutureTag, tmpdir.get() + "/IO.IntegerLines");
+                    .WriteLinesOneFuture(tmpdir.get() + "/IO.IntegerLines");
 
                 fa.wait();
                 fb.wait();

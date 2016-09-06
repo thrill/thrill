@@ -85,7 +85,7 @@ size_t DIA<ValueType, Stack>::Size() const {
 }
 
 template <typename ValueType, typename Stack>
-Future<size_t> DIA<ValueType, Stack>::Size(const struct FutureTag&) const {
+Future<size_t> DIA<ValueType, Stack>::SizeFuture() const {
     assert(IsValid());
 
     using SizeNode = api::SizeNode<ValueType>;
