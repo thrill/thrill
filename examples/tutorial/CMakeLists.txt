@@ -13,6 +13,8 @@ thrill_build_prog(k-means_step2)
 thrill_build_prog(k-means_step3)
 thrill_build_prog(k-means_step4)
 thrill_build_prog(k-means_step5)
-thrill_build_prog(k-means_step6)
+if(Boost_FOUND)
+  thrill_build_prog(k-means_step6)
+endif()
 
 ################################################################################

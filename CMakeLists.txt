@@ -399,12 +399,14 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/thrill/net/ib/CMakeLists.txt")
   include("${CMAKE_CURRENT_SOURCE_DIR}/thrill/net/ib/CMakeLists.txt")
 endif()
 
-# example: use Boost libraries:
+# detect Boost libraries (optional). Currently no components linked.
+# uses: Spirit.Qi in tutorial
 
-#find_package(Boost 1.42.0 REQUIRED COMPONENTS regex locale serialization)
-#include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
-#set(THRILL_DEP_LIBRARIES ${Boost_LIBRARIES} ${THRILL_DEP_LIBRARIES})
-#message("Final Boost include dir: ${Boost_INCLUDE_DIRS}")
+find_package(Boost 1.42.0 COMPONENTS)
+if(Boost_FOUND)
+  include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
+  set(THRILL_DEP_LIBRARIES ${Boost_LIBRARIES} ${THRILL_DEP_LIBRARIES})
+endif()
 
 ################################################################################
 ### Build Macros

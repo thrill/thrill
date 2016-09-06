@@ -80,6 +80,7 @@ namespace thrill {
 - \subpage layer_common
 - \subpage layer_mem
 
+*/
 /******************************************************************************/
 
 } // namespace thrill
