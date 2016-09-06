@@ -13,7 +13,7 @@ namespace thrill {
 namespace mem {
 
 /******************************************************************************/
-/** \page mem Memory Management Layer
+/** \page layer_mem Memory Management Layer
 
 The Thrill framework needs to actively count the amount of memory used by different subsystems.  During execution, the memory allocation then determines how much data can be cached in memory, how large the data structures in the set of DIANodes contained in one execution stage are, and tracks the memory used by user functions.
 

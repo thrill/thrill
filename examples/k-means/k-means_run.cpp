@@ -119,11 +119,13 @@ static void RunKMeansGenerated(
         !thrill::common::from_str<size_t>(input_paths[0], num_points))
         die("For generated data, set input_path to the number of points.");
 
-    auto points = Generate(
-        ctx, num_points,
-        [&](const size_t& /* index */) {
-            return Point::Random(dimensions, dist, rng);
-        });
+    auto points =
+        Generate(
+            ctx, num_points,
+            [&](const size_t& /* index */) {
+                return Point::Random(dimensions, dist, rng);
+            })
+        .Cache().KeepForever();
 
     auto result = KMeans(points, dimensions, num_clusters, iterations);
 

@@ -15,12 +15,12 @@ namespace thrill {
 namespace common {
 
 /******************************************************************************/
-/** \page common Common Tools and Helpers
+/** \page layer_common Common Tools and Helpers
 
 The namespace common contains many common tools and helpers shared by higher layers. Each file or component in common must be usable independently of all others.
 
 - \ref Logger "LOG and sLOG for development and debugging"
-- \subpage common_stats
+- \subpage layer_common_stats
 - \ref CmdlineParser "Command Line Parser"
 - \ref ThreadPool "A ThreadPool to run many queued jobs concurrently which queue new jobs."
 - \ref Delegate "A fast delegate replacement for std::function which supports non-copyable objects in a lambda capture."
@@ -30,7 +30,7 @@ See the \ref thrill::common "namespace common" for a full list of utilities.
 */
 
 /******************************************************************************/
-/** \page common_stats StatsCounter and StatsTimer for Compile-Out Statistics
+/** \page layer_common_stats StatsCounter and StatsTimer for Compile-Out Statistics
 
 When developing time critical algorithms, one often needs timers and counters that should later disabled during production. This usually means that the corresponding timer/counter lines are just removed. If later a bug is found, the timer lines have to be readded.
 

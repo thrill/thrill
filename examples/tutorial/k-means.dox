@@ -1,0 +1,405 @@
+/*******************************************************************************
+ * examples/tutorial/k-means.dox
+ *
+ * Part of Project Thrill - http://project-thrill.org
+ *
+ * Copyright (C) 2016 Timo Bingmann <tb@panthema.net>
+ *
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
+ ******************************************************************************/
+
+namespace thrill {
+
+/******************************************************************************/
+/** \page kmeans_tutorial K-Means Tutorial
+
+- \subpage kmeans_tutorial_step1
+- \subpage kmeans_tutorial_step2
+- \subpage kmeans_tutorial_step3
+- \subpage kmeans_tutorial_step4
+- \subpage kmeans_tutorial_step5
+- \subpage kmeans_tutorial_step6
+
+\author Timo Bingmann (2016)
+
+ */
+/******************************************************************************/
+
+/******************************************************************************/
+/** \page kmeans_tutorial_step1 Step 1: Generate Random Points
+
+Welcome to the first step in the Thrill k-means tutorial. This tutorial will show how to implement the k-means clustering algorithm (Lloyd's algorithm) in Thrill.
+
+The algorithm works as follows: Given a set of d-dimensional points, select k initial cluster center points at random. Then attempt to improve the centers by iteratively calculating new centers. This is done by classifying all points and associating them with their nearest center, and then taking the mean of all points associated to one cluster as the new center. This will be repeated a constant number of iterations.
+
+\image html k-means.png
+
+We will implement this algorithm in Thrill, and only work with two-dimensional points for simplicity. Furthermore, we will hard-code many constants to make the code easier to understand.
+
+In this step 1, let us start with generating random 2-dimensional points and outputting them for debugging.
+
+We first need a Point class to represent the points. We may add some calculation functions to it later on.
+
+\snippet k-means_step1.cpp Point class
+
+For outputting the Point class, we need to add an `operator <<` for `std::ostream`, which is the standard way for enabling a struct to be written to a C++ stream. A Point will be nicely formatted as "(x,y)".
+
+\snippet k-means_step1.cpp Point ostream
+
+Thrill programs run collectively on \a p worker threads across \a h hosts. The whole distributed communication context is created by calling the `thrill::Run()` method. This method inspects how to communicate with its peers, creates sockets, etc etc, and ultimately runs the given function *in parallel* with <i>l</i> local worker threads.
+
+\snippet k-means_step1.cpp Thrill Run launcher
+
+The caller of the Run() lambda function delivers a \ref api::Context "thrill::Context" object, which is needed to create DIAs and also provides some useful synchronous MPI-like communication collectives via its \ref api::Context::net "net reference". Since our main program will be a bit larger, we decide put it into a `Process()` function and call this function from `Run()`.
+
+\snippet k-means_step1.cpp our main processing method
+
+In `Process()` we do the first actual Thrill computation: generating random points. For this we need a random generator and a random distribution from C++11's STL.
+
+And then we use Thrill's Generate() DIA operation to create a DIA with 100 items. Each item of the DIA is generated using the provided lambda. For our random point, we are not interested in the generated index, and instead return a Point with uniformly random coordinates.
+
+Notice that the random generator and distribution are automatically captured by the lambda via `[&]`. It is generally hazardous to capture local variable in \ref api::DIA::Map "Map()" lambda functions, since they are processed distributed in parallel. But with random generators this is somewhat okay, **if** one caches the result using \ref api::DIA::Cache "Cache()". This is a common pitfall when using randomly generated DIAs: the result must be cached, otherwise it will be regenerated on-the-fly ... returning new random numbers.
+
+We save the generated DIA in the variable `points` and use Thrill's \ref api::DIA::Print "Print()" operation to output it for debugging. The \ref api::DIA::Print "Print()" method uses the `operator <<` which we defined earlier.
+
+Notice that we do not have to deal with serialization of struct `Point`. This is because `Point` is a "POD" (plain old datatype), which means it contains only primitive types and has only the default constructor. Thrill automatically supports all POD structs (actually: trivially copyable ones). If you add e.g. a `std::string`, things get more complicated. Read \ref TODO on serializing complex structs.
+
+See the complete example code \ref examples/tutorial/k-means_step1.cpp
+
+The output of our program so far is something like the following:
+\verbatim
+Thrill: using 7.718 GiB RAM total, BlockPool=2.573 GiB, workers=1.286 GiB, floating=2.573 GiB.
+Thrill: running locally with 2 test hosts and 2 workers per host in a local tcp network.
+Thrill: using 7.718 GiB RAM total, BlockPool=2.573 GiB, workers=1.286 GiB, floating=2.573 GiB.
+Thrill: no THRILL_LOG was found, so no json log is written.
+Thrill: no config file ~/.thrill found, using default disk configuration.
+Thrill: disk '/tmp/thrill.tmp' is allocated, space: 1000 MiB, I/O implementation: syscall queue=0 devid=0 unlink_on_open
+[host 0 worker 0 000000] Execute()  stage Generate.1
+[host 0 worker 0 000001] PushData() stage Generate.1 with targets [Cache.2]
+[host 0 worker 0 000002] Execute()  stage Cache.2
+[host 0 worker 0 000003] PushData() stage Cache.2 with targets [Print.3]
+[host 0 worker 0 000004] Execute()  stage Print.3
+points --- Begin DIA.Print() --- size=100
+points[0]: (176.178,141.586)
+points[1]: (24.0951,894.39)
+points[2]: (215.228,483.075)
+points[3]: (868.574,350.557)
+[... more points ...]
+points[97]: (91.8578,569.384)
+points[98]: (943.67,74.128)
+points[99]: (761.59,315.613)
+points --- End DIA.Print() --- size=100
+Thrill: ran 0.001916s with max 8.008 MiB in DIA Blocks, 1.461 KiB network traffic, 0.000 B disk I/O, and 0.000 B max disk use.
+malloc_tracker ### exiting, total: 9922202, peak: 9772884, current: 74256 / 0, allocs: 670, unfreed: 8
+\endverbatim
+
+### Next Steps
+
+- \ref kmeans_tutorial_step2
+- \ref kmeans_tutorial_step3
+- \ref kmeans_tutorial_step4
+- \ref kmeans_tutorial_step5
+- \ref kmeans_tutorial_step6
+
+\author Timo Bingmann (2016)
+
+ */
+/******************************************************************************/
+
+/******************************************************************************/
+/** \page kmeans_tutorial_step2 Step 2: Pick Random Centers and Classify
+
+From step 1 of this tutorial we have a `DIA<Point> point` containing random points. In this step, we will pick 10 random point as initial centers. Then we will iterate over all points to determine the closest cluster centers.
+
+Selecting 10 random cluster centers is easy, since Thrill provides a \ref api::DIA::Sample "Sample()" DIA operation, which selects a fixed number of items uniformly at random.
+
+\snippet k-means_step2.cpp step2 sample
+
+Next we want to classify all points using the centers. This can be done in Thrill using a \ref api::DIA::Map "Map()", which takes a point and outputs its associated cluster id.
+
+For the classification, this \ref api::DIA::Map "Map()" operation requires the cluster centers. The easiest way to accomplish this is to use C++ lambda captures to copy them into the lambda context.
+
+However, first we have to collect the center points on all workers, since they are currently stored in a DIA, which cannot be accessed directly. This broadcast of the centers is called \ref api::DIA::AllGather "AllGather()" in Thrill (after the corresponding MPI collective), which delivers the *same* `std::vector<Point>` on each worker thread.
+
+The final classification \ref api::DIA::Map "Map()" reads as follows:
+
+\snippet k-means_step2.cpp step2 classify
+
+To perform the actual classification loop over all centers, we need to calculate the distance of the point to each center. With high-flying object-oriented spirits, we decided to add a `.DistanceSquare()` method to our Point. For the classification the squared distance is sufficient, since square root is a monotone increasing function.
+
+\snippet k-means_step2.cpp Point class
+
+The question of what kind of items the classification \ref api::DIA::Map "Map()" shall return is still open. For step 2 in the tutorial, we decided it is best to just output the result of the classification to check that it is working correctly.
+
+So we have to create a struct which contains the point and its resulting cluster id. This struct should have an `operator <<` such that it can be printed easily.
+
+\snippet k-means_step2.cpp ClosestCenter class
+
+The actual calculation loop is already shown above. It simply iterates over all centers and picks the closest.
+
+See the complete example code \ref examples/tutorial/k-means_step2.cpp
+
+The output of our program so far is something like the following:
+\verbatim
+[... as before ...]
+points[99]: (721.08,599.95)
+points --- End DIA.Print() --- size=100
+[host 0 worker 0 000005] PushData() stage Cache.2 with targets [Sample.4]
+[host 0 worker 0 000006] Execute()  stage Sample.4
+[host 0 worker 0 000007] PushData() stage Sample.4 with targets [AllGather.5]
+[host 0 worker 0 000008] Execute()  stage AllGather.5
+[host 0 worker 0 000009] PushData() stage Cache.2 with targets [Print.7]
+[host 0 worker 0 000010] Execute()  stage Print.7
+closest --- Begin DIA.Print() --- size=100
+closest[0]: (2:(173.567,374.421))
+closest[1]: (6:(827.163,471.481))
+closest[2]: (3:(796.444,955.701))
+[... more closest ...]
+closest[97]: (7:(532.274,41.1314))
+closest[98]: (5:(474.302,201.813))
+closest[99]: (3:(619.357,889.185))
+closest --- End DIA.Print() --- size=100
+[...]
+\endverbatim
+
+### Next Steps
+
+- \ref kmeans_tutorial_step3
+- \ref kmeans_tutorial_step4
+- \ref kmeans_tutorial_step5
+- \ref kmeans_tutorial_step6
+
+\author Timo Bingmann (2016)
+
+ */
+/******************************************************************************/
+
+/******************************************************************************/
+/** \page kmeans_tutorial_step3 Step 3: ReduceByKey to Calculate New Cluster Centers
+
+In step 2 of this tutorial we constructed a DIA containing each point and its closest center id. The next step of Lloyd's algorithm is to calculate the mean (average) over all points associated with the current cluster center. The mean points will be the new centers in the next iteration.
+
+How to calculate the mean point? In Thrill this can be done using a \ref api::DIA::ReduceByKey "ReduceByKey()" reduction, which is similar to MapReduce's reduce method. The idea is to sum all points associated with a center, and then divide by their number, which results in the average point value.
+
+To accomplish this in the code, we extend the `ClosestCenter` class with another field: `count`. The reduction will add the field `point` and the `count` field, which together represent an average point.
+
+\snippet k-means_step3.cpp ClosestCenter class
+
+The count field is initialized with `1` in the result of \ref api::DIA::Map "Map()" calculation of the closest center.
+
+\snippet k-means_step3.cpp step3 count 1
+
+And then we use \ref api::DIA::ReduceByKey "ReduceByKey()" for the reduction. The \ref api::DIA::ReduceByKey "ReduceByKey()" DIA operation requires two lambda methods: a key extractor and a reduction function. The key extractor is simply the `cluster_id` field, since this is by which we want the set of point associations to be grouped.
+
+\snippet k-means_step3.cpp step3 ReduceByKey
+
+The reduction function "adds" two `ClosestCenter` structs by adding the `point` and `count` fields, but keeping the `cluster_id` constant.
+
+In step 3's code we added a .Print() for debugging the reduction.
+
+\snippet k-means_step3.cpp step3 ReduceByKey divide by count
+
+After the reduction, we must divide by the total points aggregated to deliver the new average centers. This is a simple application of \ref api::DIA::Map "Map()" which takes a `ClosestCenter` and returns a `Point`.
+
+The resulting `new_centers` is a `DIA<Point>` containing the next iteration's cluster centers.
+
+We implicitly used some vector operators on `Point` inside the reduction: plus and scalar division. Again, with high-flying object-oriented spirits, we extended the `Point` class with the appropriate operators, which make the functions above very readable.
+
+\snippet k-means_step3.cpp Point class
+
+See the complete example code \ref examples/tutorial/k-means_step3.cpp
+
+The output of our program so far is something like the following:
+\verbatim
+[... as before ...]
+[host 0 worker 0 000011] PushData() stage Cache.2 with targets [ReduceByKey.8]
+[host 0 worker 0 000012] Execute()  stage ReduceByKey.8
+[host 0 worker 0 000013] PushData() stage ReduceByKey.8 with targets [Print.9]
+[host 0 worker 0 000014] Execute()  stage Print.9
+reduced_centers --- Begin DIA.Print() --- size=10
+reduced_centers[0]: (0:(63.1991,406.621):2)
+reduced_centers[1]: (1:(4152.89,999.313):5)
+reduced_centers[2]: (7:(6394.55,2896.39):7)
+reduced_centers[3]: (5:(17904.5,18761.1):24)
+reduced_centers[4]: (4:(5667.67,3197.76):9)
+reduced_centers[5]: (9:(1842.71,6814.27):8)
+reduced_centers[6]: (2:(3620.52,9055.77):16)
+reduced_centers[7]: (8:(1473.69,2804.14):11)
+reduced_centers[8]: (3:(7621.35,1216.32):13)
+reduced_centers[9]: (6:(903.419,125.585):5)
+reduced_centers --- End DIA.Print() --- size=10
+[host 0 worker 0 000015] PushData() stage ReduceByKey.8 with targets [Print.11]
+[host 0 worker 0 000016] Execute()  stage Print.11
+new_centers --- Begin DIA.Print() --- size=10
+new_centers[0]: (31.5996,203.311)
+new_centers[1]: (830.578,199.863)
+new_centers[2]: (913.507,413.77)
+new_centers[3]: (746.021,781.712)
+new_centers[4]: (629.741,355.307)
+new_centers[5]: (230.339,851.784)
+new_centers[6]: (226.283,565.986)
+new_centers[7]: (133.972,254.921)
+new_centers[8]: (586.258,93.5627)
+new_centers[9]: (180.684,25.1171)
+new_centers --- End DIA.Print() --- size=10
+[...]
+\endverbatim
+
+### Next Steps
+
+- \ref kmeans_tutorial_step4
+- \ref kmeans_tutorial_step5
+- \ref kmeans_tutorial_step6
+
+\author Timo Bingmann (2016)
+
+ */
+/******************************************************************************/
+
+/******************************************************************************/
+/** \page kmeans_tutorial_step4 Step 4: Iteration!
+
+In step 3 we managed to calculate new cluster centers using a reduction. The natural next step is to iterate this process a fixed number of items.
+
+This is straight-forward in Thrill, since it allows you to use C++ loops as usual. We can just use a for-loop that runs 10 times:
+
+\snippet k-means_step4.cpp step4 iteration loop
+
+Besides the for-loop we pulled all operations into a long chain composed using `operator (dot)`. This is identical to the previous version, except for the .Print() calls we no longer need.
+
+The most interesting part of the iteration loop is the required \ref api::DIA::Collapse ".Collapse()" operation. Without this call the code will not compile. Why? The \ref api::DIA::Collapse ".Collapse()" operation folds the chains of lambda functions hidden inside the `auto` type of `new_centers`. In this case, the division \ref api::DIA::Map ".Map()" operation has to be folded.
+
+This complication only occurs in loops, and when assigning DIA variables with new ones in the iteration. All DIA variables except these should be declared using `auto`.
+
+
+See the complete example code \ref tutorial/k-means_step4.cpp
+
+The output of our program so far is something like the following:
+\verbatim
+[... as before ...]
+[host 0 worker 0 000005] PushData() stage Cache.2 with targets [Sample.4]
+[host 0 worker 0 000006] Execute()  stage Sample.4
+[host 0 worker 0 000007] PushData() stage Sample.4 with targets [AllGather.5]
+[host 0 worker 0 000008] Execute()  stage AllGather.5
+[host 0 worker 0 000009] PushData() stage Cache.2 with targets [ReduceByKey.7]
+[host 0 worker 0 000010] Execute()  stage ReduceByKey.7
+[host 0 worker 0 000011] PushData() stage ReduceByKey.7 with targets [Print.9]
+[host 0 worker 0 000012] Execute()  stage Print.9
+new_centers --- Begin DIA.Print() --- size=10
+new_centers[0]: (764.343,852.686)
+new_centers[1]: (681.82,965.352)
+new_centers[2]: (310.153,959.519)
+new_centers[3]: (325.327,371.88)
+new_centers[4]: (405.167,127.242)
+new_centers[5]: (918.4,601.902)
+new_centers[6]: (832.401,331.061)
+new_centers[7]: (234.231,721.164)
+new_centers[8]: (776.408,79.0238)
+new_centers[9]: (708.703,677.69)
+new_centers --- End DIA.Print() --- size=10
+[host 0 worker 0 000013] PushData() stage ReduceByKey.7 with targets [Collapse.10 [AllGather.11]]
+[host 0 worker 0 000014] Execute()  stage AllGather.11
+[host 0 worker 0 000015] PushData() stage Cache.2 with targets [ReduceByKey.13]
+[host 0 worker 0 000016] Execute()  stage ReduceByKey.13
+[host 0 worker 0 000017] PushData() stage ReduceByKey.13 with targets [Print.15]
+[host 0 worker 0 000018] Execute()  stage Print.15
+new_centers --- Begin DIA.Print() --- size=10
+new_centers[0]: (842.671,842.851)
+new_centers[1]: (630.191,901.574)
+new_centers[2]: (160.131,666.648)
+new_centers[3]: (919.674,618.683)
+new_centers[4]: (368.526,133.928)
+new_centers[5]: (623.79,686.699)
+new_centers[6]: (319.875,929.566)
+new_centers[7]: (715.076,102.113)
+new_centers[8]: (296.944,368.415)
+new_centers[9]: (841.718,346.038)
+[... repeats 8 more times ...]
+final centers --- Begin DIA.Print() --- size=10
+final centers[0]: (855.61,815.513)
+final centers[1]: (581.785,843.037)
+final centers[2]: (596.504,123.161)
+final centers[3]: (455.245,501.34)
+final centers[4]: (196.218,125.501)
+final centers[5]: (828.393,291.954)
+final centers[6]: (121.893,677.166)
+final centers[7]: (223.355,341.488)
+final centers[8]: (874.505,578.813)
+final centers[9]: (289.547,941.065)
+final centers --- End DIA.Print() --- size=10
+[host 0 worker 0 000069] PushData() stage ReduceByKey.61 with targets [Collapse.64 [AllGather.66]]
+[host 0 worker 0 000070] Execute()  stage AllGather.66
+\endverbatim
+
+### Next Steps
+
+- \ref kmeans_tutorial_step5
+- \ref kmeans_tutorial_step6
+
+\author Timo Bingmann (2016)
+
+ */
+/******************************************************************************/
+
+/******************************************************************************/
+/** \page kmeans_tutorial_step5 Step 5: Input and Output
+
+The final step in this tutorial is to enable reading and writing of files instead of generating random point.
+
+In Thrill line-based text files are easily read using ReadLines(). This DIA operation creates a `DIA<std::string>` which can be parsed further. The following function performs such an operation and parses the lines as "<x> <y>" using `std::istringstream` into our `Point` struct.
+
+\snippet k-means_step5.cpp step5 LoadPoints
+
+LoadPoints returns a `DIA<Point>`, so we need to refactor the random point generator into a similar function.
+
+\snippet k-means_step5.cpp step5 GeneratePoints
+
+Interestingly, we have to add an \ref api::DIA::Execute "Execute()" to explicitly generate the cached DIA prior to returning from the function, because otherwise the random generator objects are destructed while still be used by the lambda function. This is one of the pitfalls due to lazy DIA operation evaluation.
+
+With LoadPoints() and GeneratePoints(), we only have to add a `DIA<Point>` parameter to Process().
+
+\snippet k-means_step5.cpp step5 new Process signature
+
+To make the output configurable we also add an `output` parameter. Line-based text files can be written in Thrill using \ref api::DIA::WriteLines "WriteLines()", which requires a `DIA<std::string>`. So we have to map `Points` to `std::string` objects prior to calling the write operation.
+
+\snippet k-means_step5.cpp step5 WriteLines output
+
+The only remaining thing to do it to pass the command line parameters to Process(). This is a very simplistic method to process the command line, see other examples in Thrill's source for a more elaborate command line parser.
+
+\snippet k-means_step5.cpp step5 Run launcher
+
+See the complete example code \ref examples/tutorial/k-means_step5.cpp
+
+The source package contains a file `k-means_points.txt` as an example input.
+
+### Next Steps
+
+- \ref kmeans_tutorial_step5
+- \ref kmeans_tutorial_step6
+
+\author Timo Bingmann (2016)
+
+ */
+/******************************************************************************/
+
+/******************************************************************************/
+/** \page kmeans_tutorial_step6 Bonus Step 6: Boost Qi
+
+As Thrill is written in C++, one can draw from the vast universe of libraries available to C/C++ programs. Inside \ref api::DIA::Map "Map()" lambda methods one can do just about *anything*.
+
+As a simple example, we will show how to improve the parser using Boost.Spirit's Qi. Qi is a parser generator using C++ meta-template programming to generate highly optimized parsers. The problem with `std::istringstream` is that it uses way to many allocations and internal facet function calls to just parse two doubles.
+
+\snippet k-means_step6.cpp step6 LoadPoints
+
+The example above will generate a parser inline in the \ref api::DIA::Map ".Map()" lambda which parses the input string directly into the `Point` struct.
+
+See the complete example code \ref examples/tutorial/k-means_step6.cpp
+
+\author Timo Bingmann (2016)
+
+ */
+/******************************************************************************/
+
+} // namespace thrill
+
+/******************************************************************************/

@@ -60,7 +60,11 @@ This will run the WordCount program locally using all cores of the machines and 
 /******************************************************************************/
 /** \page start_first Write your first Thrill program
 
-### What shall we do in the first Thrill program?
+### K-Means Tutorial
+
+This documentation contains a step-by-step tutorial on how to implement k-means clustering in Thrill.
+
+See \ref kmeans_tutorial_step1
 
 */
 

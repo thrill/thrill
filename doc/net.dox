@@ -13,7 +13,7 @@ namespace thrill {
 namespace net {
 
 /******************************************************************************/
-/** \page net Network Layer
+/** \page layer_net Network Layer
 
 The Thrill Network Layer consists of sublayers:
 
