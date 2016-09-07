@@ -474,7 +474,6 @@ endmacro(thrill_test_multiple)
 
 #add aws sdk
 if (THRILL_USE_AWS)
-  message (STATUS "AWS USED")
 
   set(CPP_STANDARD "14")
   set(PLATFORM_LINUX "1")
