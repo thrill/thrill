@@ -56,6 +56,9 @@ option(THRILL_FULL_BUILD
 option(THRILL_TRY_COMPILE_HEADERS
   "Test header files for self-sufficiency: try to compile them." OFF)
 
+option(THRILL_USE_AWS
+  "Use AWS SDK for S3 as a backend to read data from." ON)
+
 # BUILD_SHARED_LIBS is a standard CMake variable, but we declare it here to
 # make it prominent in the GUI.
 option(BUILD_SHARED_LIBS "Build shared libraries (DLLs)." OFF)
@@ -323,6 +326,9 @@ endif()
 
 include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/extlib/cereal/include)
 
+
+
+
 ################################################################################
 ### Find Required Libraries
 
@@ -349,6 +355,8 @@ if(THRILL_USE_JEMALLOC)
     add_definitions(-DTHRILL_HAVE_JEMALLOC=1)
   endif()
 endif()
+
+
 
 # try to find Intel TBB (optional)
 
@@ -452,6 +460,34 @@ macro(thrill_test_multiple TESTNAME)
   thrill_test_single("${TESTNAME}4" "THRILL_LOCAL=4" ${ARGN})
 
 endmacro(thrill_test_multiple)
+
+#add aws sdk
+if (THRILL_USE_AWS)
+  message (STATUS "AWS USED")
+
+  set(CPP_STANDARD "14")
+  set(PLATFORM_LINUX "1")
+
+  set(ENABLE_OPENSSL_ENCRYPTION "1")
+  add_definitions(-DENABLE_OPENSSL_ENCRYPTION=true)
+  set(ENABLE_CURL_CLIENT "1")
+  add_definitions(-DENABLE_CURL_CLIENT=true)
+
+  add_subdirectory(extlib/aws-sdk-cpp/aws-cpp-sdk-core)
+  include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/extlib/aws-sdk-cpp/aws-cpp-sdk-core/include)
+  link_directories(${CMAKE_CURRENT_BINARY_DIR}/extlib/aws-sdk-cpp/aws-cpp-sdk-core)
+  set(THRILL_DEP_LIBRARIES aws-cpp-sdk-core ${THRILL_DEP_LIBRARIES})
+
+  add_subdirectory(extlib/aws-sdk-cpp/aws-cpp-sdk-s3)
+  include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/extlib/aws-sdk-cpp/aws-cpp-sdk-s3/include)
+  link_directories(${CMAKE_CURRENT_BINARY_DIR}/extlib/aws-sdk-cpp/aws-cpp-sdk-s3)
+  set(THRILL_DEP_LIBRARIES aws-cpp-sdk-s3 ${THRILL_DEP_LIBRARIES})
+
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lssl -lcrypto -lcurl")
+
+else()
+  message(STATUS "AWS NOT USED")
+endif()
 
 ################################################################################
 ### Descend into Subdirectories
