@@ -176,7 +176,8 @@ SysFileList GlobFileSizePrefixSum(const std::vector<std::string>& files,
             for (const auto& object : loo.GetResult().GetContents()) {
                 if (object.GetSize() > 0) {
                     //folders are also in this list but have size of 0
-                    file_info.emplace_back(SysFileInfo {object.GetKey(),
+                    file_info.emplace_back(SysFileInfo {
+                            std::string("s3://").append(object.GetKey()),
                                 object.GetSize(),total_size });
 
                     LOG1 << "emplacing back: " << object.GetKey()
@@ -263,7 +264,8 @@ void SysFile::close() {
 #endif
 }
 
-SysFile SysFile::OpenForRead(const std::string& path) {
+
+std::shared_ptr<SysFile> SysFile::OpenForRead(const std::string& path) {
 
     // first open the file and see if it exists at all.
 
@@ -297,7 +299,7 @@ SysFile SysFile::OpenForRead(const std::string& path) {
 
         sLOG << "SysFile::OpenForRead(): filefd" << fd;
 
-        return SysFile(fd);
+        return std::make_shared<core::SysFile>(SysFile(fd));
     }
 
 #if defined(_MSC_VER)
@@ -343,11 +345,11 @@ SysFile SysFile::OpenForRead(const std::string& path) {
     // close the file descriptor
     ::close(fd);
 
-    return SysFile(pipefd[0], pid);
+    return std::make_shared<core::SysFile>(SysFile(pipefd[0], pid));
 #endif
 }
 
-SysFile SysFile::OpenForWrite(const std::string& path) {
+std::shared_ptr<SysFile> SysFile::OpenForWrite(const std::string& path) {
 
     // first create the file and see if we can write it at all.
 
@@ -381,7 +383,7 @@ SysFile SysFile::OpenForWrite(const std::string& path) {
 
         sLOG << "SysFile::OpenForWrite(): filefd" << fd;
 
-        return SysFile(fd);
+        return std::make_shared<core::SysFile>(SysFile(fd));
     }
 
 #if defined(_MSC_VER)
@@ -427,8 +429,24 @@ SysFile SysFile::OpenForWrite(const std::string& path) {
     // close file descriptor (it is used by the fork)
     ::close(fd);
 
-    return SysFile(pipefd[1], pid);
+    return std::make_shared<core::SysFile>(SysFile(pipefd[1], pid));
 #endif
+}
+
+std::shared_ptr<AbstractFile> AbstractFile::OpenForRead(const std::string& path) {
+    if (common::StartsWith(path, "s3://")) {
+        return S3File::OpenForRead(path);
+    } else {
+        return SysFile::OpenForRead(path);
+    }
+}
+
+std::shared_ptr<AbstractFile> AbstractFile::OpenForWrite(const std::string& path) {
+    if (common::StartsWith(path, "s3://")) {
+        return S3File::OpenForWrite(path);
+    } else {
+        return SysFile::OpenForWrite(path);
+    }
 }
 
 /******************************************************************************/

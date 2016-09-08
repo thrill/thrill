@@ -100,10 +100,51 @@ std::vector<std::string> GlobFilePattern(const std::string& path);
 std::vector<std::string> GlobFilePatterns(
     const std::vector<std::string>& globlist);
 
+class AbstractFile
+{
+public:
+    static std::shared_ptr<AbstractFile> OpenForRead(const std::string& path);
+
+    static std::shared_ptr<AbstractFile> OpenForWrite(const std::string& path);
+
+    virtual ssize_t write(const void*, size_t) {assert(0); return 0;};
+
+    virtual ssize_t read(void*, size_t) {assert(0); return 0;};
+
+    virtual ssize_t lseek(off_t) {assert(0); return 0;};
+
+    //! close the file descriptor
+    virtual void close() {};
+
+};
+
+class S3File : public AbstractFile
+{
+    static constexpr bool debug = true;
+
+public:
+
+    S3File() : init_(false) {}
+
+    static std::shared_ptr<S3File> OpenForRead(const std::string& path) {
+        Aws::S3::Model::GetObjectRequest getObjectRequest;
+        LOG << path;
+
+        //getObjectRequest.SetBucket(
+    }
+
+private:
+
+    Aws::S3::Model::GetObjectOutcome goo;
+
+    bool init_;
+
+};
+
 /*!
  * Represents a POSIX system file via its file descriptor.
  */
-class SysFile
+class SysFile : public AbstractFile
 {
     static constexpr bool debug = false;
 
@@ -118,7 +159,7 @@ public:
      *
      * \param path Path to open
      */
-    static SysFile OpenForRead(const std::string& path);
+    static std::shared_ptr<SysFile> OpenForRead(const std::string& path);
 
     /*!
      * Open file for writing and return file descriptor. Handles compressed
@@ -126,7 +167,7 @@ public:
      *
      * \param path Path to open
      */
-    static SysFile OpenForWrite(const std::string& path);
+    static std::shared_ptr<SysFile> OpenForWrite(const std::string& path);
 
     //! non-copyable: delete copy-constructor
     SysFile(const SysFile&) = delete;

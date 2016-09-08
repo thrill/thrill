@@ -18,6 +18,8 @@
 #include <aws/s3/model/ListObjectsRequest.h>
 #include <aws/s3/S3Client.h>
 
+#include <thrill/common/logger.hpp>
+
 #include <iostream>
 
 int main()
@@ -48,37 +50,29 @@ int main()
     Aws::S3::Model::ListObjectsRequest listObjectsRequest;
     listObjectsRequest.SetBucket("thrill-data");
     listObjectsRequest.SetPrefix("tbl");
-    /*listObjectsRequest.SetResponseStreamFactory(
-        [=](){
-            return Aws::New<Aws::IOStream>(ALLOCATION_TAG, std::cout.rdbuf());
-            });*/
-
-
 
     Aws::S3::Model::GetObjectRequest getObjectRequest;
     getObjectRequest.SetBucket("thrill-data/tbl/");
     getObjectRequest.SetKey("part.tbl");
-    /*getObjectRequest.SetResponseStreamFactory(
-        [=](){
-            //return Aws::New<Aws::FStream>(ALLOCATION_TAG, TestFileName.c_str(), std::ios_base::out | std::ios_base::in | std::ios_base::trunc);
-            return Aws::New<Aws::IOStream>(ALLOCATION_TAG, std::cout.rdbuf());
-            });*/
 
     auto listObjectsOutcome = s3Client->ListObjects(listObjectsRequest);
 
-    if (!listObjectsOutcome.IsSuccess())
+    if (!listObjectsOutcome.IsSuccess()) {
+        LOG1 << "listObjects.IsNoSuccess()";
         return -1;
+    }
 
     for (const auto& object : listObjectsOutcome.GetResult().GetContents()) {
         std::cout << object.GetKey() << "," << object.GetSize() << ","
                   << object.GetOwner().GetDisplayName() << std::endl;
     }
 
-
     auto getObjectOutcome = s3Client->GetObject(getObjectRequest);
 
-    if (!getObjectOutcome.IsSuccess())
+    if (!getObjectOutcome.IsSuccess()) {
+        LOG1 << "getObject.IsNoSuccess()";
         return -1;
+    }
 
     std::cout << getObjectOutcome.GetResult().GetBody().rdbuf();
 

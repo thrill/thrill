@@ -142,9 +142,10 @@ private:
         size_t total_reads_ = 0;
         size_t total_elements_ = 0;
 
-        bool ReadBlock(core::SysFile& file, net::BufferBuilder& buffer) {
+
+        bool ReadBlock(std::shared_ptr<core::AbstractFile>& file, net::BufferBuilder& buffer) {
             read_timer.Start();
-            ssize_t bytes = file.read(buffer.data(), read_size);
+            ssize_t bytes = file->read(buffer.data(), read_size);
             read_timer.Stop();
             if (bytes < 0) {
                 throw common::ErrnoException("Read error");
@@ -191,7 +192,8 @@ private:
             }
             if (my_range_.begin < my_range_.end) {
                 LOG << "Opening file " << current_file_;
-                file_ = core::SysFile::OpenForRead(files_.list[current_file_].path);
+                file_ = core::AbstractFile::OpenForRead(
+                             files_.list[current_file_].path);
             }
             else {
                 LOG << "my_range : " << my_range_;
@@ -200,7 +202,7 @@ private:
 
             // find offset in current file:
             // offset = start - sum of previous file sizes
-            offset_ = file_.lseek(
+            offset_ = file_->lseek(
                 static_cast<off_t>(my_range_.begin - files_.list[current_file_].size_ex_psum));
             buffer_.Reserve(read_size);
             ReadBlock(file_, buffer_);
@@ -250,12 +252,13 @@ private:
                 if (!ReadBlock(file_, buffer_)) {
                     LOG << "opening next file";
 
-                    file_.close();
+                    file_->close();
                     current_file_++;
                     offset_ = 0;
 
                     if (current_file_ < files_.count()) {
-                        file_ = core::SysFile::OpenForRead(files_.list[current_file_].path);
+                        file_ = core::AbstractFile::OpenForRead(
+                                     files_.list[current_file_].path);
                         offset_ += buffer_.size();
                         ReadBlock(file_, buffer_);
                     }
@@ -285,7 +288,7 @@ private:
         //! Offset of current block in file_.
         size_t offset_ = 0;
         //! File handle to files_[current_file_]
-        core::SysFile file_;
+        std::shared_ptr<core::AbstractFile> file_;
     };
 
     //! InputLineIterator gives you access to lines of a file
@@ -323,7 +326,8 @@ private:
             if (my_range_.begin < my_range_.end) {
                 LOG << "Opening file " << current_file_;
                 LOG << "my_range : " << my_range_;
-                file_ = core::SysFile::OpenForRead(files_.list[current_file_].path);
+                file_ = core::AbstractFile::OpenForRead(
+                    files_.list[current_file_].path);
             }
             else {
                 // No local files, set buffer size to 2, so HasNext() does not try to read
@@ -357,11 +361,12 @@ private:
 
                 if (!ReadBlock(file_, buffer_)) {
                     LOG << "Opening new file!";
-                    file_.close();
+                    file_->close();
                     current_file_++;
 
                     if (current_file_ < files_.count()) {
-                        file_ = core::SysFile::OpenForRead(files_.list[current_file_].path);
+                        file_ = core::AbstractFile::OpenForRead(
+                                files_.list[current_file_].path);
                         ReadBlock(file_, buffer_);
                     }
                     else {
@@ -398,11 +403,12 @@ private:
                     if (current_file_ >= files_.count() - 1) {
                         return false;
                     }
-                    file_.close();
+                    file_->close();
                     // if (this worker reads at least one more file)
                     if (my_range_.end > files_.list[current_file_].size_inc_psum()) {
                         current_file_++;
-                        file_ = core::SysFile::OpenForRead(files_.list[current_file_].path);
+                        file_ =  core::AbstractFile::OpenForRead(
+                                files_.list[current_file_].path);
                         ReadBlock(file_, buffer_);
                         return true;
                     }
@@ -418,7 +424,7 @@ private:
 
     private:
         //! File handle to files_[current_file_]
-        core::SysFile file_;
+        std::shared_ptr<core::AbstractFile> file_;
     };
 };
 
