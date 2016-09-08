@@ -85,14 +85,14 @@ public:
             stats_total_writes_++;
             stats_total_bytes_ += current_buffer_size_;
             timer.Start();
-            file_.write(write_buffer_.data(), current_buffer_size_);
+            file_->write(write_buffer_.data(), current_buffer_size_);
             timer.Stop();
             write_buffer_.set_size(0);
             current_file_size_ += current_buffer_size_;
             current_buffer_size_ = 0;
             if (THRILL_UNLIKELY(current_file_size_ >= target_file_size_)) {
                 LOG << "Closing file" << out_serial_;
-                file_.close();
+                file_->close();
                 std::string new_path = core::FillFilePattern(
                     out_pathbase_, context_.my_rank(), out_serial_++);
                 file_ = core::SysFile::OpenForWrite(new_path);
@@ -106,7 +106,7 @@ public:
                 stats_total_bytes_ += input.size();
                 current_file_size_ += input.size() + 1;
                 timer.Start();
-                file_.write(input.data(), input.size());
+                file_->write(input.data(), input.size());
                 timer.Stop();
                 current_buffer_size_ = 1;
                 write_buffer_.PutByte('\n');
@@ -125,9 +125,9 @@ public:
         stats_total_writes_++;
         stats_total_bytes_ += current_buffer_size_;
         timer.Start();
-        file_.write(write_buffer_.data(), current_buffer_size_);
+        file_->write(write_buffer_.data(), current_buffer_size_);
         timer.Stop();
-        file_.close();
+        file_->close();
 
         Super::logger_
             << "class" << "WriteLinesNode"
@@ -152,7 +152,7 @@ private:
     size_t out_serial_ = 1;
 
     //! File to wrtie to
-    core::SysFile file_;
+    std::shared_ptr<core::SysFile> file_;
 
     //! Write buffer
     net::BufferBuilder write_buffer_;

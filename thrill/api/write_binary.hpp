@@ -127,7 +127,7 @@ private:
             const data::PinnedBlock& b, bool /* is_last_block */) final {
             sLOG << "SysFileSink::AppendBlock()" << b;
             stats_total_writes_++;
-            file_.write(b.data_begin(), b.size());
+            file_->write(b.data_begin(), b.size());
         }
 
         void AppendPinnedBlock(data::PinnedBlock&& b, bool is_last_block) final {
@@ -145,11 +145,11 @@ private:
         }
 
         void Close() final {
-            file_.close();
+            file_->close();
         }
 
     private:
-        core::SysFile file_;
+        std::shared_ptr<core::SysFile> file_;
         size_t& stats_total_elements_;
         size_t& stats_total_writes_;
     };

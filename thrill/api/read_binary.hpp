@@ -78,7 +78,7 @@ public:
         : Super(ctx, "ReadBinary") {
 
         core::SysFileList files = core::GlobFileSizePrefixSum(
-            core::GlobFilePatterns(globlist));
+            core::GlobFilePatterns(globlist), context_);
 
         if (files.count() == 0) {
             throw std::runtime_error(
@@ -271,7 +271,7 @@ private:
               stats_total_reads_(stats_total_reads) {
             if (fileinfo.begin != 0 && !is_compressed_) {
                 // seek to beginning
-                size_t p = sysfile_.lseek(static_cast<off_t>(fileinfo.begin));
+                size_t p = sysfile_->lseek(static_cast<off_t>(fileinfo.begin));
                 die_unequal(fileinfo.begin, p);
             }
         }
@@ -286,7 +286,7 @@ private:
             size_t rb = is_compressed_
                         ? block_size : std::min(block_size, remain_size_);
 
-            ssize_t size = sysfile_.read(bytes->data(), rb);
+            ssize_t size = sysfile_->read(bytes->data(), rb);
             stats_total_bytes_ += size;
             stats_total_reads_++;
 
@@ -303,7 +303,7 @@ private:
             }
             else {
                 // size == 0 -> read finished
-                sysfile_.close();
+                sysfile_->close();
                 done_ = true;
                 return data::PinnedBlock();
             }
@@ -311,7 +311,7 @@ private:
 
     private:
         Context& context_;
-        core::SysFile sysfile_;
+        std::shared_ptr<core::SysFile> sysfile_;
         size_t remain_size_;
         bool is_compressed_;
         size_t& stats_total_bytes_;
