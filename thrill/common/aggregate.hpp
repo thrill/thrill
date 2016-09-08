@@ -71,10 +71,10 @@ public:
     double Average() const noexcept { return mean_; }
 
     //! return the average over all values aggregated
-    double Avg() const { return Average(); }
+    double Avg() const noexcept { return Average(); }
 
     //! return the average over all values aggregated
-    double Mean() const { return Average(); }
+    double Mean() const noexcept { return Average(); }
 
     //! return minimum over all values aggregated
     const Type& Min() const noexcept { return min_; }
