@@ -464,13 +464,14 @@ endmacro(thrill_test_multiple)
 #add aws sdk
 if (THRILL_USE_AWS)
 
+  add_definitions(-DTHRILL_USE_AWS=1)
   set(CPP_STANDARD "14")
   set(PLATFORM_LINUX "1")
 
   set(ENABLE_OPENSSL_ENCRYPTION "1")
-  add_definitions(-DENABLE_OPENSSL_ENCRYPTION=true)
+  add_definitions(-DENABLE_OPENSSL_ENCRYPTION=1)
   set(ENABLE_CURL_CLIENT "1")
-  add_definitions(-DENABLE_CURL_CLIENT=true)
+  add_definitions(-DENABLE_CURL_CLIENT=1)
 
   add_subdirectory(extlib/aws-sdk-cpp/aws-cpp-sdk-core)
   include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/extlib/aws-sdk-cpp/aws-cpp-sdk-core/include)
@@ -482,7 +483,9 @@ if (THRILL_USE_AWS)
   link_directories(${CMAKE_CURRENT_BINARY_DIR}/extlib/aws-sdk-cpp/aws-cpp-sdk-s3)
   set(THRILL_DEP_LIBRARIES aws-cpp-sdk-s3 ${THRILL_DEP_LIBRARIES})
 
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lssl -lcrypto -lcurl")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lssl")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lcrypto")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lcurl")
 
 else()
   message(STATUS "AWS NOT USED")

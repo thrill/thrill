@@ -14,6 +14,13 @@
 #ifndef THRILL_API_CONTEXT_HEADER
 #define THRILL_API_CONTEXT_HEADER
 
+
+#if THRILL_USE_AWS
+#include <aws/core/auth/AWSCredentialsProvider.h>
+#include <aws/core/Aws.h>
+#include <aws/s3/S3Client.h>
+#endif
+
 #include <thrill/common/config.hpp>
 #include <thrill/common/defines.hpp>
 #include <thrill/common/json_logger.hpp>
@@ -133,6 +140,9 @@ public:
     //! data multiplexer transmits large amounts of data asynchronously.
     data::Multiplexer& data_multiplexer() { return data_multiplexer_; }
 
+#if THRILL_USE_AWS
+    std::shared_ptr<Aws::S3::S3Client> s3_client() { return s3_client_; }
+#endif
 private:
     //! memory configuration
     MemoryConfig mem_config_;
@@ -167,6 +177,7 @@ private:
     //! net manager constructs communication groups to other hosts.
     net::Manager net_manager_;
 
+
 #if !THRILL_HAVE_THREAD_SANITIZER
     //! register net_manager_'s profiling method
     common::ProfileTaskRegistration net_manager_profiler_ {
@@ -197,6 +208,10 @@ private:
         mem_manager_, block_pool_, workers_per_host_,
         net_manager_.GetDataGroup()
     };
+
+#if THRILL_USE_AWS
+    std::shared_ptr<Aws::S3::S3Client> s3_client_;
+#endif
 };
 
 /*!
@@ -222,6 +237,9 @@ public:
           block_pool_(host_context.block_pool()),
           multiplexer_(host_context.data_multiplexer()),
           base_logger_(&host_context.base_logger_) {
+#if THRILL_USE_AWS
+        s3_client_ = host_context.s3_client();
+#endif
         assert(local_worker_id < workers_per_host());
     }
 
@@ -274,6 +292,10 @@ public:
     friend std::ostream& operator << (std::ostream& os, const Context& ctx) {
         return os << ctx.host_rank() << ":" << ctx.local_worker_id();
     }
+#endif
+
+#if THRILL_USE_AWS
+    std::shared_ptr<Aws::S3::S3Client> s3_client() { return s3_client_; }
 #endif
     //! \}
 
@@ -425,6 +447,10 @@ private:
 
     //! the number of valid DIA ids. 0 is reserved for invalid.
     size_t last_dia_id_ = 0;
+
+#if THRILL_USE_AWS
+    std::shared_ptr<Aws::S3::S3Client> s3_client_;
+#endif
 
 public:
     //! \name Network Subsystem
