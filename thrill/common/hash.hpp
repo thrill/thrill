@@ -97,15 +97,15 @@ static inline uint32_t hash64To32(uint64_t key) {
 template <typename T>
 struct hash_helper {
     static const char* ptr(const T& x)
-    { return reinterpret_cast<const char*>(&x); };
-    static size_t size(const T&) { return sizeof(T); };
+    { return reinterpret_cast<const char*>(&x); }
+    static size_t size(const T&) { return sizeof(T); }
 };
 
 
 template <>
 struct hash_helper<std::string> {
-    static const char* ptr(const std::string& s) { return s.c_str(); };
-    static size_t size(const std::string& s) { return s.length(); };
+    static const char* ptr(const std::string& s) { return s.c_str(); }
+    static size_t size(const std::string& s) { return s.length(); }
 };
 
 #ifdef THRILL_HAVE_SSE4_2
@@ -119,6 +119,8 @@ template <typename ValueType>
 struct hash_crc32_intel {
     // Hash data with Intel's CRC32C instructions
     // Copyright 2008,2009,2010 Massachusetts Institute of Technology.
+    // For constant sizes, this is neatly optimized away at higher optimization
+    // levels - only a mov (for initialization) and crc32 instructions remain
     uint32_t hash_bytes(const void* data, size_t length, uint32_t crc = 0xffffffff) {
         const char* p_buf = (const char*) data;
         // The 64-bit crc32 instruction returns a 64-bit value (even though a
@@ -166,44 +168,6 @@ struct hash_crc32_intel {
         size_t size = hash_helper<ValueType>::size(val);
         return hash_bytes(ptr, size, crc);
     }
-
-    /*
-    // Hash large or oddly-sized types
-    template <typename T = ValueType>
-    uint32_t operator()(const T& val, uint32_t crc = 0xffffffff,
-                        typename std::enable_if<
-                        (sizeof(T) > 8) || (sizeof(T) > 4 && sizeof(T) < 8) || sizeof(T) == 3
-                        >::type* = 0) {
-        return hash_bytes((const void*)&val, sizeof(T), crc);
-    }
-
-    // Specializations for {8,4,2,1}-byte types avoiding unnecessary branches
-    template <typename T = ValueType>
-    uint32_t operator()(const T& val, uint32_t crc = 0xffffffff,
-                        typename std::enable_if<sizeof(T) == 8>::type* = 0) {
-        // For Intel reasons, the 64-bit version returns a 64-bit int
-        uint64_t res = _mm_crc32_u64(crc, *alias_cast<const uint64_t*>(&val));
-        return static_cast<uint32_t>(res);
-    }
-
-    template <typename T = ValueType>
-    uint32_t operator()(const T& val, uint32_t crc = 0xffffffff,
-                        typename std::enable_if<sizeof(T) == 4>::type* = 0) {
-        return _mm_crc32_u32(crc, *alias_cast<const uint32_t*>(&val));
-    }
-
-    template <typename T = ValueType>
-    uint32_t operator()(const T& val, uint32_t crc = 0xffffffff,
-                        typename std::enable_if<sizeof(T) == 2>::type* = 0) {
-        return _mm_crc32_u16(crc, *alias_cast<const uint16_t*>(&val));
-    }
-
-    template <typename T = ValueType>
-    uint32_t operator()(const T& val, const uint64_t crc = 0xffffffff,
-                        typename std::enable_if<sizeof(T) == 1>::type* = 0) {
-        return _mm_crc32_u8(crc, *alias_cast<const uint8_t*>(&val));
-    }
-*/
 };
 #endif
 

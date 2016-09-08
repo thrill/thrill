@@ -267,8 +267,8 @@ private:
 // What to hash
 template <>
 struct hash_helper<FastString> {
-    static const char* ptr(const FastString& s) { return s.Data(); };
-    static size_t size(const FastString& s) { return s.Size(); };
+    static const char* ptr(const FastString& s) { return s.Data(); }
+    static size_t size(const FastString& s) { return s.Size(); }
 };
 
 } // namespace common
