@@ -22,6 +22,12 @@
 #include <thrill/common/system_exception.hpp>
 #include <thrill/io/iostats.hpp>
 
+#if THRILL_USE_AWS
+#include <aws/core/auth/AWSCredentialsProvider.h>
+#include <aws/core/Aws.h>
+#include <aws/s3/S3Client.h>
+#endif
+
 // mock net backend is always available -tb :)
 #include <thrill/net/mock/group.hpp>
 
@@ -929,6 +935,27 @@ HostContext::HostContext(
       local_host_id_(local_host_id),
       workers_per_host_(workers_per_host),
       net_manager_(std::move(groups), logger_) {
+
+ #if THRILL_USE_AWS
+    Aws::SDKOptions options;
+    Aws::InitAPI(options);
+    const char* ALLOCATION_TAG = "reading_from_s3";
+    // Create client configuration file
+    Aws::Client::ClientConfiguration config;
+    config.region = Aws::Region::EU_WEST_1;
+    config.scheme = Aws::Http::Scheme::HTTPS;
+    config.connectTimeoutMs = 3000;
+    config.requestTimeoutMs = 3000;
+
+    // create S3 client
+    Aws::String access_key_id("no");
+    Aws::String secret_key("no");
+    Aws::Auth::AWSCredentials creds(access_key_id, secret_key);
+    s3_client_ = Aws::MakeShared<Aws::S3::S3Client>(ALLOCATION_TAG,
+                                                    creds, config);
+
+
+#endif
 
     // write command line parameters to json log
     common::LogCmdlineParams(logger_);

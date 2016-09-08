@@ -17,6 +17,10 @@
 #include <thrill/common/porting.hpp>
 #include <thrill/common/system_exception.hpp>
 
+#if THRILL_USE_AWS
+#include <aws/s3/model/GetObjectRequest.h>
+#endif
+
 #if defined(_MSC_VER)
 
 #include <io.h>
@@ -86,7 +90,8 @@ struct SysFileList {
  * Reads a path as a file list contains, sizes and prefixsums (in bytes) for all
  * files in the input path.
  */
-SysFileList GlobFileSizePrefixSum(const std::vector<std::string>& files);
+SysFileList GlobFileSizePrefixSum(const std::vector<std::string>& files,
+                                  api::Context& ctx);
 
 //! Returns a vector of all files found by glob in the input path.
 std::vector<std::string> GlobFilePattern(const std::string& path);

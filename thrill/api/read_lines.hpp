@@ -55,7 +55,7 @@ public:
         LOG << "Opening ReadLinesNode for " << globlist.size() << " globs";
 
         filelist_ = core::GlobFileSizePrefixSum(
-            core::GlobFilePatterns(globlist));
+            core::GlobFilePatterns(globlist), context_);
 
         if (filelist_.count() == 0) {
             throw std::runtime_error(

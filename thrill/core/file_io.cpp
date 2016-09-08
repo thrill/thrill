@@ -9,6 +9,15 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
+#if THRILL_USE_AWS
+#include <aws/core/auth/AWSCredentialsProvider.h>
+#include <aws/core/Aws.h>
+#include <aws/s3/S3Client.h>
+#include <aws/s3/model/GetObjectRequest.h>
+#include <aws/s3/model/ListObjectsRequest.h>
+#endif
+
+#include <thrill/api/context.hpp>
 #include <thrill/common/porting.hpp>
 #include <thrill/common/string.hpp>
 #include <thrill/common/system_exception.hpp>
@@ -90,21 +99,27 @@ std::vector<std::string> GlobFilePattern(const std::string& path) {
 
     std::vector<std::string> files;
 
-#if defined(_MSC_VER)
-    glob_local::CSimpleGlob sglob;
-    sglob.Add(path.c_str());
-    for (int n = 0; n < sglob.FileCount(); ++n) {
-        files.emplace_back(sglob.File(n));
-    }
-#else
-    glob_t glob_result;
-    glob(path.c_str(), GLOB_TILDE, nullptr, &glob_result);
+    if (common::StartsWith(path, "s3://")) {
+        files.push_back(path);
+    } else {
 
-    for (unsigned int i = 0; i < glob_result.gl_pathc; ++i) {
-        files.push_back(glob_result.gl_pathv[i]);
-    }
-    globfree(&glob_result);
+#if defined(_MSC_VER)
+        glob_local::CSimpleGlob sglob;
+        sglob.Add(path.c_str());
+        for (int n = 0; n < sglob.FileCount(); ++n) {
+            files.emplace_back(sglob.File(n));
+        }
+#else
+        glob_t glob_result;
+        glob(path.c_str(), GLOB_TILDE, nullptr, &glob_result);
+
+        for (unsigned int i = 0; i < glob_result.gl_pathc; ++i) {
+            files.push_back(glob_result.gl_pathv[i]);
+        }
+        globfree(&glob_result);
 #endif
+
+    }
 
     std::sort(files.begin(), files.end());
 
@@ -124,7 +139,8 @@ std::vector<std::string> GlobFilePatterns(
     return filelist;
 }
 
-SysFileList GlobFileSizePrefixSum(const std::vector<std::string>& files) {
+SysFileList GlobFileSizePrefixSum(const std::vector<std::string>& files,
+                                  api::Context& ctx) {
 
     std::vector<SysFileInfo> file_info;
     struct stat filestat;
@@ -133,19 +149,60 @@ SysFileList GlobFileSizePrefixSum(const std::vector<std::string>& files) {
 
     for (const std::string& file : files) {
 
-        if (stat(file.c_str(), &filestat)) {
-            throw std::runtime_error(
-                      "ERROR: Invalid file " + std::string(file));
+
+        if (common::StartsWith(file, "s3://")) {
+
+#if !THRILL_USE_AWS
+            throw std::runtime_error("THRILL_USE_AWS is not set to true");
+#endif
+            auto s3_client = ctx.s3_client();
+
+            std::string path_without_s3 = file.substr(5);
+
+            std::vector<std::string> splitted = common::Split(
+                path_without_s3, '/', (std::string::size_type) 2);
+            Aws::S3::Model::ListObjectsRequest lor;
+            lor.SetBucket(splitted[0]);
+
+            if (splitted.size() == 2) {
+                lor.SetPrefix(splitted[1]);
+            }
+
+            auto loo = s3_client->ListObjects(lor);
+            if (!loo.IsSuccess()) {
+                throw std::runtime_error("No file found in bucket " + file);
+            }
+
+            for (const auto& object : loo.GetResult().GetContents()) {
+                if (object.GetSize() > 0) {
+                    //folders are also in this list but have size of 0
+                    file_info.emplace_back(SysFileInfo {object.GetKey(),
+                                object.GetSize(),total_size });
+
+                    LOG1 << "emplacing back: " << object.GetKey()
+                         << " with size" << object.GetSize() << ", total: "
+                         << total_size;
+                    total_size += object.GetSize();
+                    LOG1 << object.GetKey() << "," << object.GetSize() << ","
+                         << object.GetOwner().GetDisplayName();
+                }
+            }
+        } else {
+
+            if (stat(file.c_str(), &filestat)) {
+                throw std::runtime_error(
+                    "ERROR: Invalid file " + std::string(file));
+            }
+            if (!S_ISREG(filestat.st_mode)) continue;
+
+            contains_compressed = contains_compressed || IsCompressed(file);
+
+            file_info.emplace_back(
+                SysFileInfo { std::move(file),
+                        static_cast<uint64_t>(filestat.st_size), total_size });
+
+            total_size += filestat.st_size;
         }
-        if (!S_ISREG(filestat.st_mode)) continue;
-
-        contains_compressed = contains_compressed || IsCompressed(file);
-
-        file_info.emplace_back(
-            SysFileInfo { std::move(file),
-                          static_cast<uint64_t>(filestat.st_size), total_size });
-
-        total_size += filestat.st_size;
     }
 
     // sentinel entry
