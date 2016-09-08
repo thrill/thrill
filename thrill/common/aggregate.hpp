@@ -84,7 +84,7 @@ public:
 
     //! return the standard deviation of all values aggregated
     double StandardDeviation(size_t ddof = 1) const {
-        assert(count_ > 1);
+        if (count_ <= 1) return 0.0;
         // ddof = delta degrees of freedom
         // Set to 0 if you have the entire distribution
         // Set to 1 if you have a sample (to correct for bias)
