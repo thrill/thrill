@@ -77,7 +77,7 @@ public:
     void PushData(bool /* consume */) final {
         if (filelist_.contains_compressed) {
             InputLineIteratorCompressed it = InputLineIteratorCompressed(
-                filelist_, *this, distributed_fs_);
+                filelist_, context_, *this, distributed_fs_);
 
             // Hook Read
             while (it.HasNext()) {
@@ -86,11 +86,11 @@ public:
         }
         else {
             InputLineIteratorUncompressed it = InputLineIteratorUncompressed(
-                filelist_, *this, distributed_fs_);
+                filelist_, context_,  *this, distributed_fs_);
 
             // Hook Read
             while (it.HasNext()) {
-                this->PushItem(it.Next());
+                this->PushItem(it.Next());//it.Next());
             }
         }
     }
@@ -104,8 +104,10 @@ private:
     class InputLineIterator
     {
     public:
-        InputLineIterator(const core::SysFileList& files, ReadLinesNode& node)
-            : files_(files), node_(node) { }
+        InputLineIterator(const core::SysFileList& files,
+                          const Context& context,
+                          ReadLinesNode& node)
+            : files_(files), context_(context), node_(node) { }
 
         static constexpr bool debug = false;
 
@@ -125,6 +127,8 @@ private:
         std::string data_;
         //! Input files with size prefixsum.
         const core::SysFileList& files_;
+
+        const Context& context_;
         //! Index of current file in files_
         size_t current_file_ = 0;
         //! Byte buffer to create line std::string values.
@@ -175,8 +179,9 @@ private:
     public:
         //! Creates an instance of iterator that reads file line based
         InputLineIteratorUncompressed(const core::SysFileList& files,
+                                      const api::Context& ctx,
                                       ReadLinesNode& node, bool distributed_fs)
-            : InputLineIterator(files, node) {
+            : InputLineIterator(files, ctx, node) {
 
             // Go to start of 'local part'.
             if (distributed_fs) {
@@ -192,8 +197,9 @@ private:
             }
             if (my_range_.begin < my_range_.end) {
                 LOG << "Opening file " << current_file_;
+
                 file_ = core::AbstractFile::OpenForRead(
-                             files_.list[current_file_].path);
+                    files_.list[current_file_].path, context_);
             }
             else {
                 LOG << "my_range : " << my_range_;
@@ -258,7 +264,7 @@ private:
 
                     if (current_file_ < files_.count()) {
                         file_ = core::AbstractFile::OpenForRead(
-                                     files_.list[current_file_].path);
+                            files_.list[current_file_].path, context_);
                         offset_ += buffer_.size();
                         ReadBlock(file_, buffer_);
                     }
@@ -297,8 +303,9 @@ private:
     public:
         //! Creates an instance of iterator that reads file line based
         InputLineIteratorCompressed(const core::SysFileList& files,
+                                    const api::Context& ctx,
                                     ReadLinesNode& node, bool distributed_fs)
-            : InputLineIterator(files, node) {
+            : InputLineIterator(files, ctx, node) {
 
             // Go to start of 'local part'.
             if (distributed_fs) {
@@ -327,7 +334,7 @@ private:
                 LOG << "Opening file " << current_file_;
                 LOG << "my_range : " << my_range_;
                 file_ = core::AbstractFile::OpenForRead(
-                    files_.list[current_file_].path);
+                    files_.list[current_file_].path, context_);
             }
             else {
                 // No local files, set buffer size to 2, so HasNext() does not try to read
@@ -366,7 +373,7 @@ private:
 
                     if (current_file_ < files_.count()) {
                         file_ = core::AbstractFile::OpenForRead(
-                                files_.list[current_file_].path);
+                            files_.list[current_file_].path, context_);
                         ReadBlock(file_, buffer_);
                     }
                     else {
@@ -408,7 +415,7 @@ private:
                     if (my_range_.end > files_.list[current_file_].size_inc_psum()) {
                         current_file_++;
                         file_ =  core::AbstractFile::OpenForRead(
-                                files_.list[current_file_].path);
+                            files_.list[current_file_].path, context_);
                         ReadBlock(file_, buffer_);
                         return true;
                     }

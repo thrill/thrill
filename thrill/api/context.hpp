@@ -141,7 +141,7 @@ public:
     data::Multiplexer& data_multiplexer() { return data_multiplexer_; }
 
 #if THRILL_USE_AWS
-    std::shared_ptr<Aws::S3::S3Client> s3_client() { return s3_client_; }
+    std::shared_ptr<Aws::S3::S3Client> s3_client() const { return s3_client_; }
 #endif
 private:
     //! memory configuration
@@ -295,7 +295,7 @@ public:
 #endif
 
 #if THRILL_USE_AWS
-    std::shared_ptr<Aws::S3::S3Client> s3_client() { return s3_client_; }
+    std::shared_ptr<Aws::S3::S3Client> s3_client() const { return s3_client_; }
 #endif
     //! \}
 

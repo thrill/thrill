@@ -177,15 +177,12 @@ SysFileList GlobFileSizePrefixSum(const std::vector<std::string>& files,
                 if (object.GetSize() > 0) {
                     //folders are also in this list but have size of 0
                     file_info.emplace_back(SysFileInfo {
-                            std::string("s3://").append(object.GetKey()),
-                                object.GetSize(),total_size });
+                            std::string("s3://").append(splitted[0]).append("/")
+                                .append(object.GetKey()),
+                                static_cast<uint64_t>(object.GetSize()),
+                                total_size});
 
-                    LOG1 << "emplacing back: " << object.GetKey()
-                         << " with size" << object.GetSize() << ", total: "
-                         << total_size;
                     total_size += object.GetSize();
-                    LOG1 << object.GetKey() << "," << object.GetSize() << ","
-                         << object.GetOwner().GetDisplayName();
                 }
             }
         } else {
@@ -265,7 +262,8 @@ void SysFile::close() {
 }
 
 
-std::shared_ptr<SysFile> SysFile::OpenForRead(const std::string& path) {
+std::shared_ptr<SysFile> SysFile::OpenForRead(const std::string& path,
+                                              const api::Context&) {
 
     // first open the file and see if it exists at all.
 
@@ -433,11 +431,40 @@ std::shared_ptr<SysFile> SysFile::OpenForWrite(const std::string& path) {
 #endif
 }
 
-std::shared_ptr<AbstractFile> AbstractFile::OpenForRead(const std::string& path) {
+std::shared_ptr<S3File> S3File::OpenForRead(const std::string& path,
+                                            const api::Context& ctx) {
+    Aws::S3::Model::GetObjectRequest getObjectRequest;
+
+    std::string path_without_s3 = path.substr(5);
+
+    std::vector<std::string> splitted = common::Split(
+        path_without_s3, '/', (std::string::size_type) 2);
+
+    assert(splitted.size() == 2);
+
+    getObjectRequest.SetBucket(splitted[0]);
+    getObjectRequest.SetKey(splitted[1]);
+
+    LOG << "Attempting to read from bucket " << splitted[0] << " with key "
+        << splitted[1] << "!";
+
+    auto outcome = ctx.s3_client()->GetObject(getObjectRequest);
+
+    if (!outcome.IsSuccess())
+        throw common::ErrnoException(
+            "Download from S3 Errored: " + outcome.GetError().GetMessage());
+
+    return std::make_shared<S3File>(
+        S3File(outcome.GetResultWithOwnership()));
+
+}
+
+std::shared_ptr<AbstractFile> AbstractFile::OpenForRead(const std::string& path,
+                                                        const api::Context& ctx) {
     if (common::StartsWith(path, "s3://")) {
-        return S3File::OpenForRead(path);
+        return S3File::OpenForRead(path, ctx);
     } else {
-        return SysFile::OpenForRead(path);
+        return SysFile::OpenForRead(path, ctx);
     }
 }
 

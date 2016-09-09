@@ -13,6 +13,7 @@
 #ifndef THRILL_CORE_FILE_IO_HEADER
 #define THRILL_CORE_FILE_IO_HEADER
 
+#include <thrill/api/context.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/porting.hpp>
 #include <thrill/common/system_exception.hpp>
@@ -103,41 +104,74 @@ std::vector<std::string> GlobFilePatterns(
 class AbstractFile
 {
 public:
-    static std::shared_ptr<AbstractFile> OpenForRead(const std::string& path);
+    static std::shared_ptr<AbstractFile> OpenForRead(const std::string& path,
+                                                     const api::Context& ctx);
 
     static std::shared_ptr<AbstractFile> OpenForWrite(const std::string& path);
 
-    virtual ssize_t write(const void*, size_t) {assert(0); return 0;};
+    virtual ssize_t write(const void*, size_t) = 0;
 
-    virtual ssize_t read(void*, size_t) {assert(0); return 0;};
+    virtual ssize_t read(void*, size_t) = 0;
 
-    virtual ssize_t lseek(off_t) {assert(0); return 0;};
+    virtual ssize_t lseek(off_t) = 0;
 
-    //! close the file descriptor
-    virtual void close() {};
+    virtual void close() = 0;
 
 };
 
 class S3File : public AbstractFile
 {
+
     static constexpr bool debug = true;
 
 public:
+    S3File() : is_valid_(false) { }
 
-    S3File() : init_(false) {}
+    S3File(Aws::S3::Model::GetObjectResult&& gor) :
+        gor_(std::move(gor)), is_valid_(true) { }
 
-    static std::shared_ptr<S3File> OpenForRead(const std::string& path) {
-        Aws::S3::Model::GetObjectRequest getObjectRequest;
-        LOG << path;
+    //! non-copyable: delete copy-constructor
+    S3File(const S3File&) = delete;
+    //! non-copyable: delete assignment operator
+    S3File& operator = (const S3File&) = delete;
+    //! move-constructor
 
-        //getObjectRequest.SetBucket(
+    S3File(S3File&& f) noexcept
+        : gor_(std::move(f.gor_)), is_valid_(true) {
+        f.is_valid_ = false;
+    }
+
+    static std::shared_ptr<S3File> OpenForRead(const std::string& path,
+                                               const api::Context& ctx);
+
+    ssize_t write(const void* data, size_t count) {
+        assert(is_valid_);
+        ssize_t before = gor_.GetBody().tellp();
+        gor_.GetBody().write((const char*)data, count);
+        return gor_.GetBody().tellp() - before;
+    }
+
+     //! POSIX read function.
+    ssize_t read(void* data, size_t count) {
+        assert(is_valid_);
+        return gor_.GetBody().readsome((char*)data, count);
+    }
+
+    //! POSIX lseek function from current position.
+    ssize_t lseek(off_t offset) {
+        assert(is_valid_);
+        gor_.GetBody().seekg(offset, std::ios_base::cur);
+        return gor_.GetBody().tellg();
+    }
+
+    void close() {
+        is_valid_ = false;
     }
 
 private:
+    Aws::S3::Model::GetObjectResult gor_;
 
-    Aws::S3::Model::GetObjectOutcome goo;
-
-    bool init_;
+    bool is_valid_;
 
 };
 
@@ -159,7 +193,8 @@ public:
      *
      * \param path Path to open
      */
-    static std::shared_ptr<SysFile> OpenForRead(const std::string& path);
+    static std::shared_ptr<SysFile> OpenForRead(const std::string& path,
+                                                const api::Context& ctx);
 
     /*!
      * Open file for writing and return file descriptor. Handles compressed
