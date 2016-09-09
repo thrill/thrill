@@ -52,8 +52,8 @@ int main()
     listObjectsRequest.SetPrefix("tbl");
 
     Aws::S3::Model::GetObjectRequest getObjectRequest;
-    getObjectRequest.SetBucket("thrill-data/tbl/");
-    getObjectRequest.SetKey("part.tbl");
+    getObjectRequest.SetBucket("thrill-data");
+    getObjectRequest.SetKey("tbl/part.tbl");
 
     auto listObjectsOutcome = s3Client->ListObjects(listObjectsRequest);
 
