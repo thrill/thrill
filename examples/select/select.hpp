@@ -158,12 +158,10 @@ ValueType Select(const DIA<ValueType, InStack>& data, size_t rank,
         LOGM << "Recursing left, " << left_size
              << " elements remaining (rank = " << rank << ")\n";
 
-        auto left = data.Keep().Filter(
+        auto left = data.Filter(
             [&](const ValueType& elem) -> bool {
                 return compare(elem, left_pivot);
             }).Collapse();
-        assert(left.Size() == left_size);
-
         return Select(left, rank, compare);
     }
     else if (left_size + middle_size <= rank) {
@@ -172,12 +170,10 @@ ValueType Select(const DIA<ValueType, InStack>& data, size_t rank,
              << " elements remaining (rank = " << rank - left_size - middle_size
              << ")\n";
 
-        auto right = data.Keep().Filter(
+        auto right = data.Filter(
             [&](const ValueType& elem) -> bool {
                 return compare(right_pivot, elem);
             }).Collapse();
-        assert(right.Size() == right_size);
-
         return Select(right, rank - left_size - middle_size, compare);
     }
     else {
@@ -185,13 +181,11 @@ ValueType Select(const DIA<ValueType, InStack>& data, size_t rank,
         LOGM << "Recursing middle, " << middle_size
              << " elements remaining (rank = " << rank - left_size << ")\n";
 
-        auto middle = data.Keep().Filter(
+        auto middle = data.Filter(
             [&](const ValueType& elem) -> bool {
                 return !compare(elem, left_pivot) &&
                 !compare(right_pivot, elem);
             }).Collapse();
-        assert(middle.Size() == middle_size);
-
         return Select(middle, rank - left_size, compare);
     }
 }
