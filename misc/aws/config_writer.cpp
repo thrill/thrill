@@ -1,6 +1,6 @@
 
 /*******************************************************************************
- * examples/tpch/tpch_run.cpp
+ * misc/aws/config_writer.cpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -14,9 +14,6 @@
 #include <aws/core/platform/Environment.h>
 #include <aws/core/platform/Platform.h>
 #include <aws/core/platform/Time.h>
-#include <aws/core/utils/crypto/CryptoStream.h>
-#include <aws/s3/model/GetObjectRequest.h>
-#include <aws/s3/model/ListObjectsRequest.h>
 #include <aws/s3/S3Client.h>
 #include <aws/core/config/AWSProfileConfigLoader.h>
 
