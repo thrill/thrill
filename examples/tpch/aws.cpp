@@ -10,6 +10,7 @@
 
 #include <aws/core/Aws.h>
 #include <aws/core/auth/AWSCredentialsProvider.h>
+#include <aws/core/config/AWSProfileConfigLoader.h>
 #include <aws/core/platform/Environment.h>
 #include <aws/core/platform/Platform.h>
 #include <aws/core/platform/Time.h>
@@ -24,6 +25,9 @@
 
 int main()
 {
+    std::string home = getenv("HOME");
+    std::string profilepath = home + "/awsprofile";
+
     Aws::SDKOptions options;
     Aws::InitAPI(options);
     static const char* ALLOCATION_TAG = "Minimal_AWS_S3_Example";
@@ -31,17 +35,21 @@ int main()
 
     // Create client configuration file
     Aws::Client::ClientConfiguration config;
-    config.region = Aws::Region::EU_WEST_1;
     config.scheme = Aws::Http::Scheme::HTTPS;
     config.connectTimeoutMs = 30000;
     config.requestTimeoutMs = 30000;
 
+
+    Aws::Config::AWSConfigFileProfileConfigLoader writer(profilepath, false);
+    writer.Load();
+    auto profile = writer.GetProfiles().at("default");
+
+    config.region = profile.GetRegion();
+
     // create S3 client
     static std::shared_ptr<Aws::S3::S3Client> s3Client;
-    Aws::String access_key_id("HAHA_NO");
-    Aws::String secret_key("VERY_SECRET_MUCH_WOW");
 
-    Aws::Auth::AWSCredentials creds(access_key_id, secret_key);
+    Aws::Auth::AWSCredentials creds = profile.GetCredentials();
 
     s3Client = Aws::MakeShared<Aws::S3::S3Client>(ALLOCATION_TAG,
                                                   creds,
