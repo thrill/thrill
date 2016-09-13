@@ -112,14 +112,14 @@ private:
     class SysFileSink final : public data::BoundedBlockSink
     {
     public:
-        SysFileSink(data::BlockPool& block_pool,
+        SysFileSink(api::Context& context,
                     size_t local_worker_id,
                     const std::string& path, size_t max_file_size,
                     size_t& stats_total_elements,
                     size_t& stats_total_writes)
-            : BlockSink(block_pool, local_worker_id),
-              BoundedBlockSink(block_pool, local_worker_id, max_file_size),
-              file_(core::SysFile::OpenForWrite(path)),
+            : BlockSink(context.block_pool(), local_worker_id),
+            BoundedBlockSink(context.block_pool(), local_worker_id, max_file_size),
+            file_(core::SysFile::OpenForWrite(path)),
               stats_total_elements_(stats_total_elements),
               stats_total_writes_(stats_total_writes) { }
 
@@ -189,7 +189,7 @@ private:
         sLOG << "OpenNextFile() out_path" << out_path;
 
         sink_ = std::make_unique<SysFileSink>(
-            context_.block_pool(), context_.local_worker_id(),
+            context_, context_.local_worker_id(),
             out_path, max_file_size_,
             stats_total_elements_, stats_total_writes_);
 

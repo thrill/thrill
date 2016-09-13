@@ -19,7 +19,9 @@
 #include <thrill/common/system_exception.hpp>
 
 #if THRILL_USE_AWS
+#include <aws/s3/model/CreateBucketRequest.h>
 #include <aws/s3/model/GetObjectRequest.h>
+#include <aws/s3/model/PutObjectRequest.h>
 #endif
 
 #if defined(_MSC_VER)
@@ -104,10 +106,12 @@ std::vector<std::string> GlobFilePatterns(
 class AbstractFile
 {
 public:
-    static std::shared_ptr<AbstractFile> OpenForRead(const std::string& path,
-                                                     const api::Context& ctx);
+    static std::shared_ptr<AbstractFile> OpenForRead(const SysFileInfo& file,
+                                                     const api::Context& ctx,
+                                                     const common::Range& my_range);
 
-    static std::shared_ptr<AbstractFile> OpenForWrite(const std::string& path);
+    static std::shared_ptr<AbstractFile> OpenForWrite(const std::string& path,
+                                                      const api::Context& ctx);
 
     virtual ssize_t write(const void*, size_t) = 0;
 
@@ -122,13 +126,17 @@ public:
 class S3File : public AbstractFile
 {
 
-    static constexpr bool debug = true;
+    static constexpr bool debug = false;
 
 public:
-    S3File() : is_valid_(false) { }
+    S3File() : is_valid_(false), is_read_(false) { }
 
-    S3File(Aws::S3::Model::GetObjectResult&& gor) :
-        gor_(std::move(gor)), is_valid_(true) { }
+    S3File(Aws::S3::Model::GetObjectResult&& gor, size_t range_start) :
+        gor_(std::move(gor)), range_start_(range_start),
+        is_valid_(true), is_read_(true) { }
+
+    S3File(std::shared_ptr<Aws::S3::S3Client> client, const std::string& path) :
+        client_(client), path_(path), is_valid_(true), is_read_(false) { }
 
     //! non-copyable: delete copy-constructor
     S3File(const S3File&) = delete;
@@ -137,41 +145,86 @@ public:
     //! move-constructor
 
     S3File(S3File&& f) noexcept
-        : gor_(std::move(f.gor_)), is_valid_(true) {
+        : gor_(std::move(f.gor_)), write_stream_(std::move(f.write_stream_)),
+          client_((f.client_)), path_(f.path_), is_valid_(f.is_valid_),
+          is_read_(f.is_read_) {
+        assert(0);
         f.is_valid_ = false;
     }
 
-    static std::shared_ptr<S3File> OpenForRead(const std::string& path,
-                                               const api::Context& ctx);
+    static std::shared_ptr<S3File> OpenForRead(const SysFileInfo& file,
+                                               const api::Context& ctx,
+                                               const common::Range& my_range);
+
+    static std::shared_ptr<S3File> OpenForWrite(const std::string& path,
+                                                const api::Context& ctx);
 
     ssize_t write(const void* data, size_t count) {
         assert(is_valid_);
-        ssize_t before = gor_.GetBody().tellp();
-        gor_.GetBody().write((const char*)data, count);
-        return gor_.GetBody().tellp() - before;
+        assert(!is_read_);
+        ssize_t before = write_stream_.tellp();
+        write_stream_.write((const char*)data, count);
+        return write_stream_.tellp() - before;
     }
 
      //! POSIX read function.
     ssize_t read(void* data, size_t count) {
         assert(is_valid_);
+        assert(is_read_);
         return gor_.GetBody().readsome((char*)data, count);
     }
 
-    //! POSIX lseek function from current position.
+    //! Emulates a seek. Due to HTTP Range requests we only load the file from
+    //! first byte in local range. Therefore we don't need to actually seek and
+    //! only have to emulate it by returning the 'seeked' offset.
     ssize_t lseek(off_t offset) {
         assert(is_valid_);
-        gor_.GetBody().seekg(offset, std::ios_base::cur);
-        return gor_.GetBody().tellg();
+        assert(is_read_);
+        assert(offset == (off_t) range_start_);
+        return range_start_;
     }
 
     void close() {
+        if (!is_read_ && is_valid_) {
+            LOG << "Closing write file, uploading";
+            Aws::S3::Model::PutObjectRequest por;
+
+            std::string path_without_s3 = path_.substr(5);
+            std::vector<std::string> splitted = common::Split(
+                path_without_s3, '/', (std::string::size_type) 2);
+
+            Aws::S3::Model::CreateBucketRequest createBucketRequest;
+            createBucketRequest.SetBucket(splitted[0]);
+
+            client_->CreateBucket(createBucketRequest);
+
+            por.SetBucket(splitted[0]);
+            por.SetKey(splitted[1]);
+            std::shared_ptr<Aws::IOStream> stream = std::make_shared<Aws::IOStream>(
+                                                      write_stream_.rdbuf());
+            por.SetBody(stream);
+            por.SetContentLength(write_stream_.tellp());
+            auto outcome = client_->PutObject(por);
+            if(!outcome.IsSuccess()) {
+                throw common::ErrnoException(
+                    "Download from S3 Errored: " + outcome.GetError().GetMessage());
+            }
+        }
+
         is_valid_ = false;
     }
 
 private:
     Aws::S3::Model::GetObjectResult gor_;
+    Aws::StringStream write_stream_;
+    std::shared_ptr<Aws::S3::S3Client> client_;
+    std::string path_;
+
+    size_t range_start_;
 
     bool is_valid_;
+
+    bool is_read_;
 
 };
 
@@ -193,8 +246,7 @@ public:
      *
      * \param path Path to open
      */
-    static std::shared_ptr<SysFile> OpenForRead(const std::string& path,
-                                                const api::Context& ctx);
+    static std::shared_ptr<SysFile> OpenForRead(const std::string& path);
 
     /*!
      * Open file for writing and return file descriptor. Handles compressed

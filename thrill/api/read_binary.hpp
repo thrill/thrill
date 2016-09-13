@@ -264,7 +264,7 @@ private:
                            size_t& stats_total_bytes,
                            size_t& stats_total_reads)
             : context_(ctx),
-              sysfile_(core::SysFile::OpenForRead(fileinfo.path, ctx)),
+              sysfile_(core::SysFile::OpenForRead(fileinfo.path)),
               remain_size_(fileinfo.size()),
               is_compressed_(fileinfo.is_compressed),
               stats_total_bytes_(stats_total_bytes),
