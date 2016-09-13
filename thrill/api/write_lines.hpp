@@ -48,9 +48,9 @@ public:
         : Super(parent.ctx(), "WriteLines",
                 { parent.id() }, { parent.node() }),
           out_pathbase_(path_out),
-          file_(core::SysFile::OpenForWrite(
+          file_(core::AbstractFile::OpenForWrite(
                     core::FillFilePattern(
-                        out_pathbase_, context_.my_rank(), 0))),
+                        out_pathbase_, context_.my_rank(), 0), parent.ctx())),
           target_file_size_(target_file_size)
     {
         sLOG << "Creating write node.";
@@ -95,7 +95,7 @@ public:
                 file_->close();
                 std::string new_path = core::FillFilePattern(
                     out_pathbase_, context_.my_rank(), out_serial_++);
-                file_ = core::SysFile::OpenForWrite(new_path);
+                file_ = core::AbstractFile::OpenForWrite(new_path, context_);
                 LOG << "Opening file: " << new_path;
                 current_file_size_ = 0;
             }
@@ -152,7 +152,7 @@ private:
     size_t out_serial_ = 1;
 
     //! File to wrtie to
-    std::shared_ptr<core::SysFile> file_;
+    std::shared_ptr<core::AbstractFile> file_;
 
     //! Write buffer
     net::BufferBuilder write_buffer_;

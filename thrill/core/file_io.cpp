@@ -262,8 +262,7 @@ void SysFile::close() {
 }
 
 
-std::shared_ptr<SysFile> SysFile::OpenForRead(const std::string& path,
-                                              const api::Context&) {
+std::shared_ptr<SysFile> SysFile::OpenForRead(const std::string& path) {
 
     // first open the file and see if it exists at all.
 
@@ -431,11 +430,16 @@ std::shared_ptr<SysFile> SysFile::OpenForWrite(const std::string& path) {
 #endif
 }
 
-std::shared_ptr<S3File> S3File::OpenForRead(const std::string& path,
-                                            const api::Context& ctx) {
+std::shared_ptr<S3File> S3File::OpenForRead(const SysFileInfo& file,
+                                            const api::Context& ctx,
+                                            const common::Range& my_range) {
+
+    //Amount of additional bytes read after end of range
+    size_t maximum_line_length = 64 * 1024;
+
     Aws::S3::Model::GetObjectRequest getObjectRequest;
 
-    std::string path_without_s3 = path.substr(5);
+    std::string path_without_s3 = file.path.substr(5);
 
     std::vector<std::string> splitted = common::Split(
         path_without_s3, '/', (std::string::size_type) 2);
@@ -448,29 +452,58 @@ std::shared_ptr<S3File> S3File::OpenForRead(const std::string& path,
     LOG << "Attempting to read from bucket " << splitted[0] << " with key "
         << splitted[1] << "!";
 
+    std::string range = "bytes=";
+    bool use_range_ = false;
+    size_t range_start = 0;
+    if (my_range.begin > file.size_ex_psum) {
+        range += std::to_string(my_range.begin - file.size_ex_psum);
+        range_start = my_range.begin - file.size_ex_psum;
+        use_range_ = true;
+    } else {
+        range += "0";
+    }
+
+    range += "-";
+    if (my_range.end + maximum_line_length < file.size_inc_psum()) {
+        range += std::to_string(file.size - (file.size_inc_psum() -
+                                             my_range.end -
+                                             maximum_line_length));
+        use_range_ = true;
+    }
+
+    if (use_range_)
+        getObjectRequest.SetRange(range);
+
     auto outcome = ctx.s3_client()->GetObject(getObjectRequest);
 
     if (!outcome.IsSuccess())
         throw common::ErrnoException(
             "Download from S3 Errored: " + outcome.GetError().GetMessage());
 
-    return std::make_shared<S3File>(
-        S3File(outcome.GetResultWithOwnership()));
+    return std::make_shared<S3File>(outcome.GetResultWithOwnership(), range_start);
 
 }
 
-std::shared_ptr<AbstractFile> AbstractFile::OpenForRead(const std::string& path,
-                                                        const api::Context& ctx) {
-    if (common::StartsWith(path, "s3://")) {
-        return S3File::OpenForRead(path, ctx);
+std::shared_ptr<S3File> S3File::OpenForWrite(const std::string& path,
+                                             const api::Context& ctx) {
+        return std::make_shared<S3File>(ctx.s3_client(), path);
+}
+
+std::shared_ptr<AbstractFile> AbstractFile::OpenForRead(const SysFileInfo& file,
+                                                        const api::Context& ctx,
+                                                        const common::Range&
+                                                        my_range) {
+    if (common::StartsWith(file.path, "s3://")) {
+        return S3File::OpenForRead(file, ctx, my_range);
     } else {
-        return SysFile::OpenForRead(path, ctx);
+        return SysFile::OpenForRead(file.path);
     }
 }
 
-std::shared_ptr<AbstractFile> AbstractFile::OpenForWrite(const std::string& path) {
+std::shared_ptr<AbstractFile> AbstractFile::OpenForWrite(
+    const std::string& path, const api::Context& ctx) {
     if (common::StartsWith(path, "s3://")) {
-        return S3File::OpenForWrite(path);
+        return S3File::OpenForWrite(path, ctx);
     } else {
         return SysFile::OpenForWrite(path);
     }

@@ -57,6 +57,33 @@ TEST(IO, ReadSingleFile) {
     api::RunLocalTests(start_func);
 }
 
+//!S3 Tests disabled by default as they cost money :-)
+
+TEST(IO, DISABLED_WriteToS3) {
+    auto start_func =
+        [](Context& ctx) {
+        auto integers = Generate(ctx,
+                                 [](const size_t& ele) {
+                                     return std::to_string(ele);
+                                 }, 240);
+
+        integers.WriteLines("s3://thrill-test/some_integers");
+
+    };
+
+    api::RunLocalTests(start_func);
+}
+
+TEST(IO, DISABLED_ReadFilesFromS3) {
+    auto start_func =
+        [](Context& ctx) {
+        size_t size = ReadLines(ctx, "s3://thrill-data/tbl/customer").Size();
+        ASSERT_EQ(size, (size_t) 150000);
+        };
+
+    api::RunLocalTests(start_func);
+}
+
 TEST(IO, ReadSingleFileLocalStorageTag) {
     auto start_func =
         [](Context& ctx) {
