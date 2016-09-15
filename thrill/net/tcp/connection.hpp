@@ -169,6 +169,10 @@ public:
     }
 
     ssize_t SendOne(const void* data, size_t size, Flags flags) final {
+#if __APPLE__
+        // MacOSX has no MSG_DONTWAIT
+        SetNonBlocking(true);
+#endif
         int f = MSG_DONTWAIT;
         if (flags & MsgMore) f |= MSG_MORE;
         ssize_t wb = socket_.send_one(data, size, f);
@@ -184,6 +188,10 @@ public:
     }
 
     ssize_t RecvOne(void* out_data, size_t size) final {
+#if __APPLE__
+        // MacOSX has no MSG_DONTWAIT
+        SetNonBlocking(true);
+#endif
         ssize_t rb = socket_.recv_one(out_data, size, MSG_DONTWAIT);
         if (rb > 0) rx_bytes_ += rb;
         return rb;
