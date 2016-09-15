@@ -81,7 +81,7 @@ std::vector<MixStream::Writer> MixStream::GetWriters() {
         multiplexer_.active_streams_++;
         multiplexer_.max_active_streams_ =
             std::max(multiplexer_.max_active_streams_,
-                     multiplexer_.active_streams_);
+                     multiplexer_.active_streams_.load());
     }
 
     LOG << "MixStream::GetWriters()"
