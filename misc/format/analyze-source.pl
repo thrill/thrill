@@ -357,10 +357,10 @@ sub process_cpp {
         my @namespace;
         for(my $i = 0; $i < @data-1; ++$i)
         {
-            if ($data[$i] =~ m!^namespace (\S+) {!) {
+            if ($data[$i] =~ m!^namespace (\S+) \{!) {
                 push(@namespace, $1);
             }
-            elsif ($data[$i] =~ m!^namespace {!) {
+            elsif ($data[$i] =~ m!^namespace \{!) {
                 push(@namespace, "");
             }
             elsif ($data[$i] =~ m!^}\s+//\s+namespace\s+(\S+)\s*$!) {
@@ -763,7 +763,7 @@ foreach my $file (@filelist)
         # use pdf2svg to convert pdfs to svgs for doxygen.
         process_doc_images_pdf($file);
     }
-    elsif ($file =~ /^doc\/images\/.*\.svg$/) {
+    elsif ($file =~ /^doc\/images\/.*\.(svg|png|jpg)$/) {
     }
     # recognize further files
     elsif ($file =~ m!(^|/)\.git/!) {
@@ -775,6 +775,8 @@ foreach my $file (@filelist)
     elsif ($file =~ m!^tests/inputs/!) {
     }
     elsif ($file =~ m!CPPLINT\.cfg$!) {
+    }
+    elsif ($file =~ m!UNFINISHED$!) {
     }
     elsif ($file =~ m!^doxygen-html/!) {
     }
