@@ -497,10 +497,13 @@ if (THRILL_USE_AWS)
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lssl")
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lcrypto")
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lcurl")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lz")
 
 else()
   message(STATUS "AWS NOT USED")
 endif()
+
+message(STATUS "Linker Flags: ${CMAKE_EXE_LINKER_FLAGS}")
 
 ################################################################################
 ### Descend into Subdirectories

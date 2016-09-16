@@ -9,6 +9,7 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
+
 #if THRILL_USE_AWS
 #include <aws/core/auth/AWSCredentialsProvider.h>
 #include <aws/core/Aws.h>
@@ -170,10 +171,12 @@ SysFileList GlobFileSizePrefixSum(const std::vector<std::string>& files,
 
             auto loo = s3_client->ListObjects(lor);
             if (!loo.IsSuccess()) {
-                throw std::runtime_error("No file found in bucket " + file);
+                LOG1 << "Error message: " << loo.GetError().GetMessage();
+                throw std::runtime_error("No file found in bucket \"" + splitted[0] + "\" with correct key");
             }
 
             for (const auto& object : loo.GetResult().GetContents()) {
+                LOG1 << "file:" << object.GetKey();
                 if (object.GetSize() > 0) {
                     //folders are also in this list but have size of 0
                     file_info.emplace_back(SysFileInfo {
@@ -181,6 +184,9 @@ SysFileList GlobFileSizePrefixSum(const std::vector<std::string>& files,
                                 .append(object.GetKey()),
                                 static_cast<uint64_t>(object.GetSize()),
                                 total_size});
+
+                    contains_compressed = contains_compressed ||
+                        common::EndsWith(object.GetKey(), ".gz");
 
                     total_size += object.GetSize();
                 }
@@ -432,7 +438,10 @@ std::shared_ptr<SysFile> SysFile::OpenForWrite(const std::string& path) {
 
 std::shared_ptr<S3File> S3File::OpenForRead(const SysFileInfo& file,
                                             const api::Context& ctx,
-                                            const common::Range& my_range) {
+                                            const common::Range& my_range,
+                                            bool compressed) {
+
+    LOG1 << "Öpening fîle";
 
     //Amount of additional bytes read after end of range
     size_t maximum_line_length = 64 * 1024;
@@ -452,35 +461,45 @@ std::shared_ptr<S3File> S3File::OpenForRead(const SysFileInfo& file,
     LOG << "Attempting to read from bucket " << splitted[0] << " with key "
         << splitted[1] << "!";
 
-    std::string range = "bytes=";
-    bool use_range_ = false;
     size_t range_start = 0;
-    if (my_range.begin > file.size_ex_psum) {
-        range += std::to_string(my_range.begin - file.size_ex_psum);
-        range_start = my_range.begin - file.size_ex_psum;
-        use_range_ = true;
-    } else {
-        range += "0";
+    if (!compressed) {
+        std::string range = "bytes=";
+        bool use_range_ = false;
+        if (my_range.begin > file.size_ex_psum) {
+            range += std::to_string(my_range.begin - file.size_ex_psum);
+            range_start = my_range.begin - file.size_ex_psum;
+            use_range_ = true;
+        } else {
+            range += "0";
+        }
+
+        range += "-";
+        if (my_range.end + maximum_line_length < file.size_inc_psum()) {
+            range += std::to_string(file.size - (file.size_inc_psum() -
+                                                 my_range.end -
+                                                 maximum_line_length));
+            use_range_ = true;
+        }
+
+        if (use_range_)
+            getObjectRequest.SetRange(range);
     }
 
-    range += "-";
-    if (my_range.end + maximum_line_length < file.size_inc_psum()) {
-        range += std::to_string(file.size - (file.size_inc_psum() -
-                                             my_range.end -
-                                             maximum_line_length));
-        use_range_ = true;
-    }
-
-    if (use_range_)
-        getObjectRequest.SetRange(range);
-
+    LOG1 << "Get...";
     auto outcome = ctx.s3_client()->GetObject(getObjectRequest);
+    LOG1 << "...Got";
 
     if (!outcome.IsSuccess())
         throw common::ErrnoException(
             "Download from S3 Errored: " + outcome.GetError().GetMessage());
 
-    return std::make_shared<S3File>(outcome.GetResultWithOwnership(), range_start);
+    if (!compressed) {
+        return std::make_shared<S3File>(outcome.GetResultWithOwnership(),
+                                    range_start);
+    } else {
+        //this constructor opens a zip_stream
+        return std::make_shared<S3File>(outcome.GetResultWithOwnership());
+    }
 
 }
 
@@ -492,9 +511,10 @@ std::shared_ptr<S3File> S3File::OpenForWrite(const std::string& path,
 std::shared_ptr<AbstractFile> AbstractFile::OpenForRead(const SysFileInfo& file,
                                                         const api::Context& ctx,
                                                         const common::Range&
-                                                        my_range) {
+                                                        my_range,
+                                                        bool compressed) {
     if (common::StartsWith(file.path, "s3://")) {
-        return S3File::OpenForRead(file, ctx, my_range);
+        return S3File::OpenForRead(file, ctx, my_range, compressed);
     } else {
         return SysFile::OpenForRead(file.path);
     }

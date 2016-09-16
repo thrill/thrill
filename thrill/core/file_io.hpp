@@ -17,6 +17,7 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/common/porting.hpp>
 #include <thrill/common/system_exception.hpp>
+#include <thrill/common/zip_stream.hpp>
 
 #if THRILL_USE_AWS
 #include <aws/s3/model/CreateBucketRequest.h>
@@ -108,7 +109,8 @@ class AbstractFile
 public:
     static std::shared_ptr<AbstractFile> OpenForRead(const SysFileInfo& file,
                                                      const api::Context& ctx,
-                                                     const common::Range& my_range);
+                                                     const common::Range& my_range,
+                                                     bool compressed);
 
     static std::shared_ptr<AbstractFile> OpenForWrite(const std::string& path,
                                                       const api::Context& ctx);
@@ -133,7 +135,17 @@ public:
 
     S3File(Aws::S3::Model::GetObjectResult&& gor, size_t range_start) :
         gor_(std::move(gor)), range_start_(range_start),
-        is_valid_(true), is_read_(true) { }
+        is_valid_(true), is_read_(true), decompression_(false) { }
+
+    S3File(Aws::S3::Model::GetObjectResult&& gor) :
+        gor_(std::move(gor)), is_valid_(true), is_read_(true),
+        decompression_(true) {
+
+        unzip_ = std::make_unique<common::zip_istream>(gor_.GetBody());
+
+        LOG1 << "gzipdatasize: " << unzip_->get_gzip_data_size();
+
+    }
 
     S3File(std::shared_ptr<Aws::S3::S3Client> client, const std::string& path) :
         client_(client), path_(path), is_valid_(true), is_read_(false) { }
@@ -154,7 +166,8 @@ public:
 
     static std::shared_ptr<S3File> OpenForRead(const SysFileInfo& file,
                                                const api::Context& ctx,
-                                               const common::Range& my_range);
+                                               const common::Range& my_range,
+                                               bool compressed);
 
     static std::shared_ptr<S3File> OpenForWrite(const std::string& path,
                                                 const api::Context& ctx);
@@ -169,9 +182,16 @@ public:
 
      //! POSIX read function.
     ssize_t read(void* data, size_t count) {
+        LOG1 << "readcount " << count;
         assert(is_valid_);
         assert(is_read_);
-        return gor_.GetBody().readsome((char*)data, count);
+        if (decompression_) {
+            size_t sizet = unzip_->readsome((char*)data, count);
+            LOG1 << "YOOO " << sizet;
+            return sizet;
+        } else {
+            return gor_.GetBody().readsome((char*)data, count);
+        }
     }
 
     //! Emulates a seek. Due to HTTP Range requests we only load the file from
@@ -181,7 +201,7 @@ public:
         assert(is_valid_);
         assert(is_read_);
         assert(offset == (off_t) range_start_);
-        return range_start_;
+        return offset;
     }
 
     void close() {
@@ -216,6 +236,8 @@ public:
 
 private:
     Aws::S3::Model::GetObjectResult gor_;
+    std::unique_ptr<common::zip_istream> unzip_;
+
     Aws::StringStream write_stream_;
     std::shared_ptr<Aws::S3::S3Client> client_;
     std::string path_;
@@ -223,8 +245,8 @@ private:
     size_t range_start_;
 
     bool is_valid_;
-
     bool is_read_;
+    bool decompression_;
 
 };
 
