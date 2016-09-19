@@ -8,9 +8,10 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <gtest/gtest.h>
 #include <thrill/common/aggregate.hpp>
 #include <thrill/common/logger.hpp>
+
+#include <gtest/gtest.h>
 
 using namespace thrill;
 
@@ -28,14 +29,13 @@ TEST(Aggregate, Integer) {
     ASSERT_EQ(0, agg.Min());
     ASSERT_EQ(29, agg.Max());
     ASSERT_DOUBLE_EQ(8.8034084308295046, agg.StandardDeviation());
-
 }
 
 TEST(Aggregate, Double) {
     common::Aggregate<double> agg;
 
     for (size_t i = 1; i <= 1000; ++i) {
-        agg.Add(1.0/static_cast<double>(i));
+        agg.Add(1.0 / static_cast<double>(i));
     }
 
     ASSERT_EQ(1000, agg.Count());
@@ -45,7 +45,6 @@ TEST(Aggregate, Double) {
     ASSERT_EQ(1.0, agg.Max());
     ASSERT_DOUBLE_EQ(0.039868430925506362, agg.StandardDeviation());
     ASSERT_DOUBLE_EQ(0.039848491723996423, agg.StandardDeviation(0));
-
 }
 
 /******************************************************************************/

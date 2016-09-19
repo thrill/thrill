@@ -12,12 +12,12 @@
 #ifndef THRILL_COMMON_AGGREGATE_HEADER
 #define THRILL_COMMON_AGGREGATE_HEADER
 
+#include <thrill/common/defines.hpp>
+
 #include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <limits>
-
-#include "defines.hpp"
 
 namespace thrill {
 namespace common {
@@ -49,7 +49,8 @@ public:
         max_ = std::max(max_, value);
         if (THRILL_UNLIKELY(count_ == 1)) {
             mean_ = value;
-        } else {
+        }
+        else {
             // Single-pass numerically stable mean and standard deviation
             // calculation as described in Donald Knuth: The Art of Computer
             // Programming, Volume 2, Chapter 4.2.2, Equations 15 & 16
@@ -97,9 +98,12 @@ public:
     //! operator +
     Aggregate operator + (const Aggregate& a) const noexcept {
         return Aggregate(
-            count_ + a.count_, // ← count | mean ↓
+            // count
+            count_ + a.count_,
+            // mean
             (mean_ * count_ + a.mean_ * a.count_) / (count_ + a.count_),
-            merged_variance(a), // merging variance is a bit complicated
+            // merging variance is a bit complicated
+            merged_variance(a),
             std::min(min_, a.min_), std::max(max_, a.max_)); // min, max
     }
 
@@ -143,10 +147,10 @@ public:
 private:
     // T. Chan et al 1979, "Updating Formulae and a Pairwise Algorithm for
     // Computing Sample Variances"
-    double merged_variance(const Aggregate &other) const noexcept {
+    double merged_variance(const Aggregate& other) const noexcept {
         double delta = mean_ - other.mean_;
         return nvar_ + other.nvar_ + (delta * delta) *
-            (count_ * other.count_) / (count_ + other.count_);
+               (count_ * other.count_) / (count_ + other.count_);
     }
 
     //! number of values aggregated
