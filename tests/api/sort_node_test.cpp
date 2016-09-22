@@ -222,7 +222,7 @@ TEST(Sort, SortWithEmptyWorkers) {
             std::vector<size_t> out_vec = sorted.AllGather();
 
             size_t prev = 0;
-            for (size_t i = 0; i < out_vec.size() - 1; i++) {
+            for (size_t i = 0; i < out_vec.size(); i++) {
                 ASSERT_TRUE(out_vec[i] >= prev);
                 prev = out_vec[i];
             }
@@ -247,7 +247,7 @@ TEST(Sort, SortOneInteger) {
             std::vector<size_t> out_vec;
             sorted.AllGather(&out_vec);
 
-            for (size_t i = 0; i < out_vec.size() - 1; i++) {
+            for (size_t i = 0; i < out_vec.size(); i++) {
                 ASSERT_EQ(i, out_vec[i]);
             }
 
