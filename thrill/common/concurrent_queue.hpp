@@ -14,7 +14,19 @@
 
 #if THRILL_HAVE_INTELTBB
 
+#if __clang__ && !defined(_LIBCPP_VERSION)
+// tbb feature detection is broken for clang + libstdc++
+#define _LIBCPP_VERSION 4000
+#define FAKE_LIBCPP_VERSION
+#endif
+
 #include <tbb/concurrent_queue.h>
+
+#if defined(FAKE_LIBCPP_VERSION)
+// undo libc++ version faking
+#undef _LIBCPP_VERSION
+#undef FAKE_LIBCPP_VERSION
+#endif
 
 #endif // THRILL_HAVE_INTELTBB
 
