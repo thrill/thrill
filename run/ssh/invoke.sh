@@ -19,10 +19,10 @@ copy=0
 verbose=1
 dir=
 #user=$(whoami)
-user=ubuntu
+user=
 with_perf=0
 
-while getopts "u:h:H:cvCw:p" opt; do
+while getopts "u:h:H:cvCw:p:Q" opt; do
     case "$opt" in
     h)  # this overrides the user environment variable
         THRILL_SSHLIST=$OPTARG
@@ -39,6 +39,8 @@ while getopts "u:h:H:cvCw:p" opt; do
         dir=/tmp/
         ;;
     C)  dir=$OPTARG
+        ;;
+    Q)  dir=/home/$user/
         ;;
     p)  with_perf=1
         ;;
@@ -71,10 +73,10 @@ if [ -z "$cmd" ]; then
     exit 1
 fi
 
-if [ ! -e "$cmd" ]; then
-  echo "Thrill executable \"$cmd\" does not exist?" >&2
-  exit 1
-fi
+#if [ ! -e "$cmd" ]; then
+ # echo "Thrill executable \"$cmd\" does not exist?" >&2
+  #exit 1
+#fi
 
 # get absolute path
 if [[ "$(uname)" == "Darwin" ]]; then
@@ -132,17 +134,21 @@ for hostport in $THRILL_SSHLIST; do
   fi
   THRILL_EXPORTS=$(env | awk -F= '/^THRILL_/ { printf("%s", $1 "=\"" $2 "\" ") }')
   THRILL_EXPORTS="${THRILL_EXPORTS}THRILL_RANK=\"$rank\" THRILL_DIE_WITH_PARENT=1"
-  REMOTEPID="/tmp/$cmdbase.$hostport.$$.pid"
+  #REMOTEPID="/tmp/$cmdbase.$hostport.$$.pid"
   RUN_PREFIX="exec"
   if [ "$with_perf" == "1" ]; then
       # run with perf
       RUN_PREFIX="exec perf record -g -o perf-$rank.data"
   fi
+
   if [ "$copy" == "1" ]; then
-      REMOTENAME="/tmp/$cmdbase.$hostport.$$"
+      REMOTENAME="/tmp/$cmdbase.$hostport"
+      echo "HOSTPORT: $hostport"
+      echo "REMOTENAME: $REMOTENAME"
       THRILL_EXPORTS="$THRILL_EXPORTS THRILL_UNLINK_BINARY=\"$REMOTENAME\""
       # copy the program to the remote, and execute it at the remote end.
-      ( scp -o BatchMode=yes -o StrictHostKeyChecking=no -o TCPKeepAlive=yes -o Compression=yes \
+      (
+        scp -o BatchMode=yes -o StrictHostKeyChecking=no -o TCPKeepAlive=yes -o Compression=yes \
             "$cmd" "$user@$host:$REMOTENAME" &&
         ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o TCPKeepAlive=yes \
             $user@$host \
@@ -153,10 +159,11 @@ for hostport in $THRILL_SSHLIST; do
         fi
       ) &
   else
+      command="$dir$cmdbase"
       ssh \
           -o BatchMode=yes -o StrictHostKeyChecking=no \
           $user@$host \
-          "export $THRILL_EXPORTS && cd $dir && $RUN_PREFIX $cmd $*" &
+          "export $THRILL_EXPORTS && cd $dir && $RUN_PREFIX $command $*" &
   fi
   # save PID of ssh child for later
   SSHPIDS[$rank]=$!
