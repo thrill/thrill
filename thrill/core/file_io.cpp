@@ -172,11 +172,17 @@ SysFileList GlobFileSizePrefixSum(const std::vector<std::string>& files,
             auto loo = s3_client->ListObjects(lor);
             if (!loo.IsSuccess()) {
                 LOG1 << "Error message: " << loo.GetError().GetMessage();
-                throw std::runtime_error("No file found in bucket \"" + splitted[0] + "\" with correct key");
+                if (splitted.size() == 2) {
+                throw std::runtime_error(
+                    "No file found in bucket \"" + splitted[0] +
+                    "\" with correct key, which is \"" + splitted[1] + "\"");
+                } else {
+                    throw std::runtime_error(
+                        "No file found in bucket \"" + splitted[0] + "\"");
+                }
             }
 
             for (const auto& object : loo.GetResult().GetContents()) {
-                LOG1 << "file:" << object.GetKey();
                 if (object.GetSize() > 0) {
                     //folders are also in this list but have size of 0
                     file_info.emplace_back(SysFileInfo {
@@ -441,8 +447,6 @@ std::shared_ptr<S3File> S3File::OpenForRead(const SysFileInfo& file,
                                             const common::Range& my_range,
                                             bool compressed) {
 
-    LOG1 << "Öpening fîle";
-
     //Amount of additional bytes read after end of range
     size_t maximum_line_length = 64 * 1024;
 
@@ -485,9 +489,7 @@ std::shared_ptr<S3File> S3File::OpenForRead(const SysFileInfo& file,
             getObjectRequest.SetRange(range);
     }
 
-    LOG1 << "Get...";
     auto outcome = ctx.s3_client()->GetObject(getObjectRequest);
-    LOG1 << "...Got";
 
     if (!outcome.IsSuccess())
         throw common::ErrnoException(
