@@ -58,7 +58,7 @@ namespace api {
 template <typename ValueType, typename FirstDIA, typename SecondDIA,
           typename KeyExtractor1, typename KeyExtractor2,
           typename JoinFunction, typename HashFunction,
-          bool UseLocationDetection = true>
+          const bool UseLocationDetection>
 class JoinNode final : public DOpNode<ValueType>
 {
     static constexpr bool debug = false;
@@ -679,7 +679,8 @@ private:
 };
 
 template <typename ValueType, typename Stack>
-template <typename KeyExtractor1,
+template <const bool UseLocationDetection,
+          typename KeyExtractor1,
           typename KeyExtractor2,
           typename JoinFunction,
           typename SecondDIA,
@@ -734,7 +735,8 @@ const {
 
     using JoinNode = api::JoinNode<JoinResult, DIA, SecondDIA,
                                    KeyExtractor1, KeyExtractor2,
-                                   JoinFunction, HashFunction>;
+                                   JoinFunction,
+                                   HashFunction, UseLocationDetection>;
 
     auto node = common::MakeCounting<JoinNode>(
         *this, second_dia, key_extractor1, key_extractor2, join_function,

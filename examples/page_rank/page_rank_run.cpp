@@ -121,6 +121,8 @@ static void RunJoinPageRankEdgePerLine(
 
     common::StatsTimerStart timer;
 
+    const bool UseLocationDetection = true;
+
     // read input file and create links in this format:
     //
     // url linked_url
@@ -162,7 +164,8 @@ static void RunJoinPageRankEdgePerLine(
 
     // perform actual page rank calculation iterations
 
-    auto ranks = PageRankJoin(links, num_pages, iterations);
+    auto ranks = PageRankJoin<UseLocationDetection>
+        (links, num_pages, iterations);
 
     // construct output as "pageid: rank"
 
@@ -177,11 +180,24 @@ static void RunJoinPageRankEdgePerLine(
 
     timer.Stop();
 
-    if (ctx.my_rank() == 0) {
+    /*if (ctx.my_rank() == 0) {
         LOG1 << "FINISHED PAGERANK COMPUTATION";
         LOG1 << "#pages: " << num_pages;
         LOG1 << "#iterations: " << iterations;
         LOG1 << "time: " << timer << "s";
+        }*/
+
+    if (ctx.my_rank() == 0) {
+        if (UseLocationDetection) {
+            LOG1 << "RESULT benchmark=pagerank_gen detection=on "
+                 << "time=" << timer.Milliseconds()
+                 << " machines=" << ctx.num_hosts();
+        } else {
+            LOG1 << "RESULT benchmark=pagerank_gen detection=off "
+                 << "time=" << timer.Milliseconds()
+                 << " machines=" << ctx.num_hosts();
+        }
+
     }
 }
 
@@ -229,12 +245,18 @@ static void RunPageRankGenerated(
 
     timer.Stop();
 
-    if (ctx.my_rank() == 0) {
+    /*if (ctx.my_rank() == 0) {
         LOG1 << "FINISHED PAGERANK COMPUTATION";
         LOG1 << "#pages: " << num_pages;
         LOG1 << "#edges: " << number_edges;
         LOG1 << "#iterations: " << iterations;
         LOG1 << "time: " << timer << "s";
+    }*/
+
+    if (ctx.my_rank() == 0) {
+        LOG1 << "RESULT " << "benchmark=pagerank_gen " << "detection=OFF "
+             << "time=" << timer.Milliseconds()
+             << " machines=" << ctx.num_hosts();
     }
 }
 

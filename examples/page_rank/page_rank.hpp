@@ -126,7 +126,7 @@ auto PageRank(const DIA<OutgoingLinks, InStack>&links,
     return ranks;
 }
 
-template <typename InStack>
+template <const bool UseLocationDetection = false, typename InStack>
 auto PageRankJoin(const DIA<LinkedPage, InStack>&links, size_t num_pages,
                   size_t iterations) {
 
@@ -156,7 +156,7 @@ auto PageRankJoin(const DIA<LinkedPage, InStack>&links, size_t num_pages,
         // 2) compute rank contribution for each linked_url: (FlatMap)
         // (linked_url, rank / outgoing.size)
 
-        auto outs_rank = links.InnerJoinWith(
+        auto outs_rank = links.template InnerJoinWith<UseLocationDetection>(
             ranks,
             [](const LinkedPage& lp) {
                 return lp.first;

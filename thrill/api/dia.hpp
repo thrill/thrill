@@ -1141,7 +1141,8 @@ public:
      *
      * \ingroup dia_dops
      */
-    template <typename KeyExtractor1, typename KeyExtractor2,
+    template <const bool UseLocationDetection = false,
+              typename KeyExtractor1, typename KeyExtractor2,
               typename JoinFunction, typename SecondDIA, typename HashFunction =
                   std::hash<typename common::FunctionTraits<KeyExtractor1>::result_type> >
     auto InnerJoinWith(const SecondDIA &second_dia,
