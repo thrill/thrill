@@ -53,8 +53,10 @@ int main(int argc, char* argv[]) {
                                                  value[i] = i + n;
                                              }
                                              return std::make_pair(n / equal, value);
-                                         }, elements).Keep();
+                                         }, elements).Keep().Execute();
 
+
+                 ctx.net.Barrier();
                  common::StatsTimerStart timer;
                  auto out = in.ReducePair(
                      [](const std::array<size_t, 128>& in1, const std::array<size_t, 128>& in2) {
@@ -65,6 +67,7 @@ int main(int argc, char* argv[]) {
                          return value_out;
                      });
                  out.Size();
+                 ctx.net.Barrier();
                  timer.Stop();
 
                  if (debug) {
@@ -86,8 +89,14 @@ int main(int argc, char* argv[]) {
                          LOG1 << "Result checking successful.";
                      }
                  }
+
                  else {
-                     LOG1 << "RESULT" << " benchmark=duplicates time=" << timer.Milliseconds();
+                     auto traffic = ctx.net_manager().Traffic();
+                     LOG1 << "RESULT" << " benchmark=duplicates detection=ON"
+                          << " elements=" << elements
+                          << " time=" << timer.Milliseconds()
+                          << " traffic=" << traffic.first + traffic.second
+                          << " machines=" << ctx.num_hosts();
                  }
              });
 }

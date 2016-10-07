@@ -161,7 +161,8 @@ static size_t JoinTPCH4(
     ctx.enable_consume();
     std::vector<std::string> splitted;
     splitted.resize(17);
-    std::string s_lineitems = input_path[0] + std::string("lineitem");
+    std::string s_lineitems = input_path[0] + std::string("lineitem*");
+
 
     auto lineitems = ReadLines(ctx, s_lineitems).FlatMap<struct LineItem>(
         [&splitted](const std::string& input, auto emit) {
@@ -196,10 +197,12 @@ static size_t JoinTPCH4(
             }
         }).Cache().Execute();
 
+    size_t num_items = lineitems.Size();
+
     time_t starttime = time_to_epoch("1993-07-01");
     time_t stoptime = time_to_epoch("1993-10-01");
 
-    std::string s_orders = input_path[0] + std::string("orders");
+    std::string s_orders = input_path[0] + std::string("orders*");
     auto orders = ReadLines(ctx, s_orders).FlatMap<struct Order>(
         [&splitted, &starttime, &stoptime](const std::string& input, auto emit) {
             Order o;
@@ -226,24 +229,41 @@ static size_t JoinTPCH4(
 
     common::StatsTimerStart timer;
 
-    auto joined = lineitems.InnerJoinWith(orders,
-                                          [](const LineItem& li) {
-                                              return li.orderkey;
-                                          },
-                                          [](const Order& o) {
-                                              return o.orderkey;
-                                          },
-                                          [](const LineItem& li, const Order& o) {
-                                              return ConstructJoinedElement(li, o);
-                                          }, thrill::hash()).Size();
+    const bool use_detection = false;
+    auto joined = lineitems.
+        template InnerJoinWith<use_detection>(orders,
+                                              [](const LineItem& li) {
+                                                  return li.orderkey;
+                                              },
+                                              [](const Order& o) {
+                                                  return o.orderkey;
+                                              },
+                                              [](const LineItem& li,
+                                                 const Order& o) {
+                                                  return ConstructJoinedElement(
+                                                      li, o);
+                                              }, thrill::hash()).Size();
 
 
     ctx.net.Barrier();
 
     if (ctx.my_rank() == 0) {
-        LOG1 << "RESULT " << "detection=OFF " << "time=" << timer.Milliseconds()
-             << " machines=" << ctx.num_hosts();
-}
+        auto traffic = ctx.net_manager().Traffic();
+        if (use_detection) {
+            LOG1 << "RESULT " << "benchmark=tpch " << "detection=ON"
+                 << " items=" << num_items
+                 << " time=" << timer.Milliseconds()
+                 << " traffic=" << traffic.first + traffic.second
+                 << " machines=" << ctx.num_hosts();
+        } else {
+            LOG1 << "RESULT " << "benchmark=tpch " << "detection=OFF"
+                 << " items=" << num_items
+                 << " time=" << timer.Milliseconds()
+                 << " traffic=" << traffic.first + traffic.second
+                 << " machines=" << ctx.num_hosts();
+        }
+
+    }
 
     return joined;
 }

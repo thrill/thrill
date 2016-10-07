@@ -85,9 +85,36 @@ static size_t CountTrianglesGenerated(
                     // self-loop: do not emit
                 }
             }
-        }).Keep();
+        }).Keep().Cache().Execute();
 
-    return examples::triangles::CountTriangles(edges);
+    ctx.net.Barrier();
+    common::StatsTimerStart timer;
+
+    const bool use_detection = true;
+
+    size_t triangles = examples::triangles::CountTriangles<use_detection>(edges);
+
+    ctx.net.Barrier();
+
+
+    if (ctx.my_rank() == 0) {
+        auto traffic = ctx.net_manager().Traffic();
+        if (use_detection) {
+            LOG1 << "RESULT " << "benchmark=triangles " << "detection=ON"
+                 << " vertices=" << num_vertices
+                 << " time=" << timer.Milliseconds()
+                 << " traffic=" << traffic.first + traffic.second
+                 << " machines=" << ctx.num_hosts();
+        } else {
+            LOG1 << "RESULT " << "benchmark=triangles " << "detection=OFF"
+                 << " vertices=" << num_vertices
+                 << " time=" << timer.Milliseconds()
+                 << " traffic=" << traffic.first + traffic.second
+                 << " machines=" << ctx.num_hosts();
+        }
+    }
+
+    return triangles;
 }
 
 int main(int argc, char* argv[]) {
@@ -147,7 +174,6 @@ int main(int argc, char* argv[]) {
                     ctx, input_path);
             }
 
-            LOG1 << "#triangles=" << triangles;
             return triangles;
         });
 }
