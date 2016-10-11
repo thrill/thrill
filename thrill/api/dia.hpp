@@ -954,7 +954,8 @@ public:
      *
      * \ingroup dia_dops
      */
-    template <typename ValueOut, typename KeyExtractor,
+    template <typename ValueOut, const bool UseLocationDetection = false,
+              typename KeyExtractor,
               typename GroupByFunction, typename HashFunction =
                   std::hash<typename FunctionTraits<KeyExtractor>::result_type> >
     auto GroupByKey(const KeyExtractor &key_extractor,

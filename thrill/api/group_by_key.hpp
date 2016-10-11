@@ -40,7 +40,7 @@ namespace api {
  */
 template <typename ValueType,
           typename KeyExtractor, typename GroupFunction, typename HashFunction,
-          bool UseLocationDetection = false>
+          bool UseLocationDetection>
 class GroupByNode final : public DOpNode<ValueType>
 {
     static constexpr bool debug = false;
@@ -350,7 +350,8 @@ private:
 /******************************************************************************/
 
 template <typename ValueType, typename Stack>
-template <typename ValueOut, typename KeyExtractor,
+template <typename ValueOut,
+          const bool UseLocationDetection, typename KeyExtractor,
           typename GroupFunction, typename HashFunction>
 auto DIA<ValueType, Stack>::GroupByKey(
     const KeyExtractor &key_extractor,
@@ -366,7 +367,8 @@ auto DIA<ValueType, Stack>::GroupByKey(
         "KeyExtractor has the wrong input type");
 
     using GroupByNode = api::GroupByNode<
-              DOpResult, KeyExtractor, GroupFunction, HashFunction>;
+        DOpResult, KeyExtractor, GroupFunction, HashFunction,
+        UseLocationDetection>;
 
     auto node = common::MakeCounting<GroupByNode>(
         *this, key_extractor, groupby_function);

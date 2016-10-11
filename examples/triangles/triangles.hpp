@@ -64,7 +64,7 @@ size_t CountTriangles(const DIA<Edge, Stack>& edges) {
             return (size_t)1;
         }, std::hash<Edge>());
 
-    return triangles.Size);
+    return triangles.Size();
 }
 
 } // namespace triangles

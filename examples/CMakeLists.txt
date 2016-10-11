@@ -11,6 +11,7 @@
 
 add_subdirectory(k-means)
 add_subdirectory(page_rank)
+add_subdirectory(percentiles)
 add_subdirectory(select)
 add_subdirectory(sleep)
 add_subdirectory(suffix_sorting)
