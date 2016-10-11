@@ -44,7 +44,7 @@ Under Windows, use cmake's GUI to create project files and open them. Real TCP N
 Thrill's example directory contains quite a few working programs. To run the WordCount example locally with internally generated random input run:
 
 \code
-$ cd build/examples/page_rank/
+$ cd build/examples/word_count/
 $ ./word_count_run --generate 1000 --output result-
 \endcode
 
