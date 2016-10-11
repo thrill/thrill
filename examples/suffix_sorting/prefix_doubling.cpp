@@ -762,6 +762,7 @@ DIA<Index> PrefixDoubling(const InputDIA& input_dia, size_t input_size, bool pac
                 });
     }
     else {
+        // Create initial tuples (i,T[i],T[i+1]), sort by (T[i],T[i+1])
         auto chars_sorted =
             input_dia
             .template FlatWindow<CharCharIndex>(
@@ -785,6 +786,8 @@ DIA<Index> PrefixDoubling(const InputDIA& input_dia, size_t input_size, bool pac
         if (debug_print)
             chars_sorted.Keep().Print("chars_sorted");
 
+        // calculate updated names by labeling first unequal pair (T[i],T[i+1])
+        // with a new name, and later will perform a prefix sum.
         rebucket =
             chars_sorted.Keep()
             .template FlatWindow<IndexRank>(
