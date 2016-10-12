@@ -55,11 +55,14 @@ public:
     //! \{
 
     //! construct new Socket object from existing file descriptor.
-    explicit Socket(int fd)
+    explicit Socket(int fd, bool loopback_socket = false)
         : fd_(fd) {
         SetNoDelay(true);
-        SetSndBuf(4 * 1024 * 1024);
-        SetRcvBuf(4 * 1024 * 1024);
+        if (!loopback_socket) {
+            // enable large send and receive kernel buffers
+            SetSndBuf(4 * 1024 * 1024);
+            SetRcvBuf(4 * 1024 * 1024);
+        }
     }
 
     //! default constructor: invalid socket.
@@ -132,7 +135,8 @@ public:
                       "Error setting FD_CLOEXEC on network socket");
         }
 #endif
-        return std::make_pair(Socket(fds[0]), Socket(fds[1]));
+        return std::make_pair(Socket(fds[0], /* loopback_socket */ true),
+                              Socket(fds[1], /* loopback_socket */ true));
     }
 
     //! \}
