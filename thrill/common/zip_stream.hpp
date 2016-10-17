@@ -73,13 +73,14 @@ zran.c
 #include <istream>
 #include <ostream>
 #include <streambuf>
+#include <string>
 #include <vector>
 
 namespace thrill {
 namespace common {
 
 //! default gzip buffer size, change this to suite your needs
-static const size_t zstream_default_buffer_size = 4096;
+static const size_t zstream_default_buffer_size = 1024 * 1024;
 
 //! Compression strategy, see zlib doc.
 enum class ZipStrategy {
@@ -227,7 +228,6 @@ private:
     int err_;
     byte_vector_type input_buffer_;
     char_vector_type buffer_;
-    uint32_t crc_;
 };
 
 /******************************************************************************/
@@ -286,46 +286,13 @@ public:
 
     explicit basic_zip_istream(
         istream_reference istream,
-        /* windowBits is passed < 0 to suppress zlib header */
-        int window_size = -15,
+        /* windowBits = 15 (largest allocation) + 32 (autodetect headers) */
+        int window_size = 15 + 32,
         size_t read_buffer_size = zstream_default_buffer_size,
         size_t input_buffer_size = zstream_default_buffer_size);
-
-    //! returns true if it is a gzip file
-    bool is_gzip() const;
-
-    /*! return crc check result
-     *
-     * This must be called after the reading of compressed data is finished!
-     * This method compares it to the crc of the uncompressed data.
-     *
-     *    \return true if crc check is succesful
-     */
-    bool check_crc();
-
-    //! return data size check
-    bool check_data_size() const;
-
-    //! return the crc value in the file
-    long get_gzip_crc() const;
-
-    //! return the data size in the file
-    long get_gzip_data_size() const;
-
-    void read_footer();
-
-protected:
-    int check_header();
-
-    bool is_gzip_;
-    uint32_t gzip_crc_;
-    uint32_t gzip_data_size_;
 };
 
 /******************************************************************************/
-
-//! Helper function to check whether stream is compressed or not.
-bool isGZip(std::istream& is);
 
 } // namespace common
 } // namespace thrill
