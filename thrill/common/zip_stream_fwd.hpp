@@ -1,11 +1,18 @@
 /*******************************************************************************
- * tbt/tools/zip_stream_fwd.hpp
+ * thrill/common/zip_stream_fwd.hpp
  *
- * Forward declarations for zip_stream.hpp
+ * An on-the-fly gzip and zlib ostream-compatible stream decompressor.
+ *
+ * Part of Project Thrill - http://project-thrill.org
+ *
+ * Copyright (C) 2016 Timo Bingmann <tb@panthema.net>
+ *
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#ifndef TBT_TOOLS_ZIP_STREAM_FWD_HEADER
-#define TBT_TOOLS_ZIP_STREAM_FWD_HEADER
+#pragma once
+#ifndef THRILL_COMMON_ZIP_STREAM_FWD_HEADER
+#define THRILL_COMMON_ZIP_STREAM_FWD_HEADER
 
 #include <string>
 
@@ -28,6 +35,6 @@ using zip_istream = basic_zip_istream<char>;
 } // namespace common
 } // namespace thrill
 
-#endif // !TBT_TOOLS_ZIP_STREAM_FWD_HEADER
+#endif // !THRILL_COMMON_ZIP_STREAM_FWD_HEADER
 
 /******************************************************************************/

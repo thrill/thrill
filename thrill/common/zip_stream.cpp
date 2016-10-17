@@ -1,7 +1,13 @@
 /*******************************************************************************
- * tbt/tools/zip_stream.cpp
+ * thrill/common/zip_stream.cpp
  *
+ * An on-the-fly gzip and zlib ostream-compatible stream decompressor.
  *
+ * Part of Project Thrill - http://project-thrill.org
+ *
+ * Copyright (C) 2016 Timo Bingmann <tb@panthema.net>
+ *
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 /*
@@ -85,14 +91,13 @@ basic_zip_streambuf<CharT, Traits>::basic_zip_streambuf(
     : ostream_(ostream),
       output_buffer_(buffer_size, 0),
       buffer_(buffer_size, 0),
-      crc_(0)
-{
+      crc_(0) {
     zip_stream_.zalloc = (alloc_func)0;
     zip_stream_.zfree = (free_func)0;
 
-    zip_stream_.next_in = NULL;
+    zip_stream_.next_in = nullptr;
     zip_stream_.avail_in = 0;
-    zip_stream_.next_out = NULL;
+    zip_stream_.next_out = nullptr;
     zip_stream_.avail_out = 0;
 
     if (level > 9) level = 9;
@@ -107,8 +112,7 @@ basic_zip_streambuf<CharT, Traits>::basic_zip_streambuf(
 }
 
 template <typename CharT, typename Traits>
-basic_zip_streambuf<CharT, Traits>::~basic_zip_streambuf()
-{
+basic_zip_streambuf<CharT, Traits>::~basic_zip_streambuf() {
     flush();
     err_ = deflateEnd(&zip_stream_);
 
@@ -117,8 +121,7 @@ basic_zip_streambuf<CharT, Traits>::~basic_zip_streambuf()
 
 template <typename CharT, typename Traits>
 int
-basic_zip_streambuf<CharT, Traits>::sync()
-{
+basic_zip_streambuf<CharT, Traits>::sync() {
     size_t size = static_cast<size_t>(this->pptr() - this->pbase());
 
     LOG << "basic_zip_streambuf::sync()"
@@ -132,8 +135,7 @@ basic_zip_streambuf<CharT, Traits>::sync()
 
 template <typename CharT, typename Traits>
 typename basic_zip_streambuf<CharT, Traits>::int_type
-basic_zip_streambuf<CharT, Traits>::overflow(int_type c)
-{
+basic_zip_streambuf<CharT, Traits>::overflow(int_type c) {
     LOG << "basic_zip_streambuf::overflow() c=" << c;
 
     size_t size = static_cast<size_t>(this->pptr() - this->pbase());
@@ -155,8 +157,7 @@ basic_zip_streambuf<CharT, Traits>::overflow(int_type c)
 
 template <typename CharT, typename Traits>
 std::streamsize
-basic_zip_streambuf<CharT, Traits>::flush()
-{
+basic_zip_streambuf<CharT, Traits>::flush() {
     LOG << "basic_zip_streambuf::flush()";
 
     std::streamsize written_byte_size = 0, total_written_byte_size = 0;
@@ -192,43 +193,37 @@ basic_zip_streambuf<CharT, Traits>::flush()
 
 template <typename CharT, typename Traits>
 typename basic_zip_streambuf<CharT, Traits>::ostream_reference
-basic_zip_streambuf<CharT, Traits>::get_ostream() const
-{
+basic_zip_streambuf<CharT, Traits>::get_ostream() const {
     return ostream_;
 }
 
 template <typename CharT, typename Traits>
-int basic_zip_streambuf<CharT, Traits>::get_zerr() const
-{
+int basic_zip_streambuf<CharT, Traits>::get_zerr() const {
     return err_;
 }
 
 template <typename CharT, typename Traits>
 uint32_t
-basic_zip_streambuf<CharT, Traits>::get_crc() const
-{
+basic_zip_streambuf<CharT, Traits>::get_crc() const {
     return crc_;
 }
 
 template <typename CharT, typename Traits>
 uint32_t
-basic_zip_streambuf<CharT, Traits>::get_in_size() const
-{
+basic_zip_streambuf<CharT, Traits>::get_in_size() const {
     return static_cast<uint32_t>(zip_stream_.total_in);
 }
 
 template <typename CharT, typename Traits>
 unsigned long
-basic_zip_streambuf<CharT, Traits>::get_out_size() const
-{
+basic_zip_streambuf<CharT, Traits>::get_out_size() const {
     return zip_stream_.total_out;
 }
 
 template <typename CharT, typename Traits>
 bool
 basic_zip_streambuf<CharT, Traits>::zip_to_stream(
-    char* buffer, std::streamsize buffer_size)
-{
+    char* buffer, std::streamsize buffer_size) {
     LOG << "basic_zip_streambuf::zip_to_stream()"
         << " buffer_size=" << buffer_size;
 
@@ -278,16 +273,15 @@ basic_unzip_streambuf<CharT, Traits>::basic_unzip_streambuf(
     : istream_(istream),
       input_buffer_(input_buffer_size),
       buffer_(read_buffer_size),
-      crc_(0)
-{
+      crc_(0) {
     // setting zalloc, zfree and opaque
     zip_stream_.zalloc = (alloc_func)nullptr;
     zip_stream_.zfree = (free_func)nullptr;
 
-    zip_stream_.next_in = NULL;
+    zip_stream_.next_in = nullptr;
     zip_stream_.avail_in = 0;
     zip_stream_.avail_out = 0;
-    zip_stream_.next_out = NULL;
+    zip_stream_.next_out = nullptr;
 
     err_ = inflateInit2(&zip_stream_, window_size);
 
@@ -297,15 +291,13 @@ basic_unzip_streambuf<CharT, Traits>::basic_unzip_streambuf(
 }
 
 template <typename CharT, typename Traits>
-basic_unzip_streambuf<CharT, Traits>::~basic_unzip_streambuf()
-{
+basic_unzip_streambuf<CharT, Traits>::~basic_unzip_streambuf() {
     inflateEnd(&zip_stream_);
 }
 
 template <typename CharT, typename Traits>
 typename basic_unzip_streambuf<CharT, Traits>::int_type
-basic_unzip_streambuf<CharT, Traits>::underflow()
-{
+basic_unzip_streambuf<CharT, Traits>::underflow() {
     if (this->gptr() && (this->gptr() < this->egptr()))
         return *reinterpret_cast<unsigned char*>(this->gptr());
 
@@ -335,50 +327,43 @@ basic_unzip_streambuf<CharT, Traits>::underflow()
 
 template <typename CharT, typename Traits>
 typename basic_unzip_streambuf<CharT, Traits>::istream_reference
-basic_unzip_streambuf<CharT, Traits>::get_istream()
-{
+basic_unzip_streambuf<CharT, Traits>::get_istream() {
     return istream_;
 }
 
 template <typename CharT, typename Traits>
 z_stream&
-basic_unzip_streambuf<CharT, Traits>::get_zip_stream()
-{
+basic_unzip_streambuf<CharT, Traits>::get_zip_stream() {
     return zip_stream_;
 }
 
 template <typename CharT, typename Traits>
 int
-basic_unzip_streambuf<CharT, Traits>::get_zerr() const
-{
+basic_unzip_streambuf<CharT, Traits>::get_zerr() const {
     return err_;
 }
 
 template <typename CharT, typename Traits>
 uint32_t
-basic_unzip_streambuf<CharT, Traits>::get_crc() const
-{
+basic_unzip_streambuf<CharT, Traits>::get_crc() const {
     return crc_;
 }
 
 template <typename CharT, typename Traits>
 unsigned long
-basic_unzip_streambuf<CharT, Traits>::get_out_size() const
-{
+basic_unzip_streambuf<CharT, Traits>::get_out_size() const {
     return zip_stream_.total_out;
 }
 
 template <typename CharT, typename Traits>
 uint32_t
-basic_unzip_streambuf<CharT, Traits>::get_in_size() const
-{
+basic_unzip_streambuf<CharT, Traits>::get_in_size() const {
     return static_cast<uint32_t>(zip_stream_.total_in);
 }
 
 template <typename CharT, typename Traits>
 void
-basic_unzip_streambuf<CharT, Traits>::put_back_from_zip_stream()
-{
+basic_unzip_streambuf<CharT, Traits>::put_back_from_zip_stream() {
     if (zip_stream_.avail_in == 0)
         return;
 
@@ -394,8 +379,7 @@ basic_unzip_streambuf<CharT, Traits>::put_back_from_zip_stream()
 template <typename CharT, typename Traits>
 std::streamsize
 basic_unzip_streambuf<CharT, Traits>::unzip_from_stream(
-    char_type* buffer, std::streamsize buffer_size)
-{
+    char_type* buffer, std::streamsize buffer_size) {
     zip_stream_.next_out = reinterpret_cast<byte_type*>(buffer);
     zip_stream_.avail_out = static_cast<uInt>(buffer_size * sizeof(char_type));
     size_t count = zip_stream_.avail_in;
@@ -430,8 +414,7 @@ basic_unzip_streambuf<CharT, Traits>::unzip_from_stream(
 
 template <typename CharT, typename Traits>
 size_t
-basic_unzip_streambuf<CharT, Traits>::fill_input_buffer()
-{
+basic_unzip_streambuf<CharT, Traits>::fill_input_buffer() {
     zip_stream_.next_in = input_buffer_.data();
     istream_.read(reinterpret_cast<char_type*>(input_buffer_.data()),
                   static_cast<std::streamsize>(input_buffer_.size() /
@@ -456,35 +439,30 @@ basic_zip_ostream<CharT, Traits>::basic_zip_ostream(
                                          memory_level, buffer_size),
       std::basic_ostream<CharT, Traits>(this),
       format_(format),
-      added_footer_(false)
-{
+      added_footer_(false) {
     if (format == ZipFormat::GZip)
         add_header();
 }
 
 template <typename CharT, typename Traits>
-basic_zip_ostream<CharT, Traits>::~basic_zip_ostream()
-{
+basic_zip_ostream<CharT, Traits>::~basic_zip_ostream() {
     finished();
 }
 
 template <typename CharT, typename Traits>
-ZipFormat basic_zip_ostream<CharT, Traits>::format() const
-{
+ZipFormat basic_zip_ostream<CharT, Traits>::format() const {
     return format_;
 }
 
 template <typename CharT, typename Traits>
-basic_zip_ostream<CharT, Traits>& basic_zip_ostream<CharT, Traits>::zflush()
-{
+basic_zip_ostream<CharT, Traits>& basic_zip_ostream<CharT, Traits>::zflush() {
     static_cast<std::basic_ostream<CharT, Traits>*>(this)->flush();
     static_cast<basic_zip_streambuf<CharT, Traits>*>(this)->flush();
     return *this;
 }
 
 template <typename CharT, typename Traits>
-void basic_zip_ostream<CharT, Traits>::finished()
-{
+void basic_zip_ostream<CharT, Traits>::finished() {
     if (format_ == ZipFormat::CrcFooter || format_ == ZipFormat::GZip)
         add_footer();
     else
@@ -492,8 +470,7 @@ void basic_zip_ostream<CharT, Traits>::finished()
 }
 
 template <typename CharT, typename Traits>
-basic_zip_ostream<CharT, Traits>& basic_zip_ostream<CharT, Traits>::add_header()
-{
+basic_zip_ostream<CharT, Traits>& basic_zip_ostream<CharT, Traits>::add_header() {
     char_type zero = 0;
 
     this->get_ostream()
@@ -509,8 +486,7 @@ basic_zip_ostream<CharT, Traits>& basic_zip_ostream<CharT, Traits>::add_header()
 }
 
 template <typename CharT, typename Traits>
-basic_zip_ostream<CharT, Traits>& basic_zip_ostream<CharT, Traits>::add_footer()
-{
+basic_zip_ostream<CharT, Traits>& basic_zip_ostream<CharT, Traits>::add_footer() {
     if (added_footer_)
         return *this;
 
@@ -549,56 +525,49 @@ basic_zip_istream<CharT, Traits>::basic_zip_istream(
       std::basic_istream<CharT, Traits>(this),
       is_gzip_(false),
       gzip_crc_(0),
-      gzip_data_size_(0)
-{
+      gzip_data_size_(0) {
     if (this->get_zerr() == Z_OK)
     {
         int check = check_header();
         (void)check;
-        //LOG << "check_header:" << check << std::endl;
+        // LOG << "check_header:" << check << std::endl;
     }
 }
 
 template <typename CharT, typename Traits>
 bool
-basic_zip_istream<CharT, Traits>::is_gzip() const
-{
+basic_zip_istream<CharT, Traits>::is_gzip() const {
     return is_gzip_;
 }
 
 template <typename CharT, typename Traits>
 bool
-basic_zip_istream<CharT, Traits>::check_crc()
-{
+basic_zip_istream<CharT, Traits>::check_crc() {
     read_footer();
     return this->get_crc() == gzip_crc_;
 }
 
 template <typename CharT, typename Traits>
 bool
-basic_zip_istream<CharT, Traits>::check_data_size() const
-{
+basic_zip_istream<CharT, Traits>::check_data_size() const {
     return this->get_out_size() == gzip_data_size_;
 }
 
 template <typename CharT, typename Traits>
 long
-basic_zip_istream<CharT, Traits>::get_gzip_crc() const
-{
+basic_zip_istream<CharT, Traits>::get_gzip_crc() const {
     return gzip_crc_;
 }
 
 template <typename CharT, typename Traits>
 long
-basic_zip_istream<CharT, Traits>::get_gzip_data_size() const
-{
+basic_zip_istream<CharT, Traits>::get_gzip_data_size() const {
     return gzip_data_size_;
 }
 
 template <typename CharT, typename Traits>
 int
-basic_zip_istream<CharT, Traits>::check_header()
-{
+basic_zip_istream<CharT, Traits>::check_header() {
     int method;    /* method byte */
     int flagsbyte; /* flags byte */
     uInt len;
@@ -668,8 +637,7 @@ basic_zip_istream<CharT, Traits>::check_header()
 
 template <typename CharT, typename Traits>
 void
-basic_zip_istream<CharT, Traits>::read_footer()
-{
+basic_zip_istream<CharT, Traits>::read_footer() {
     if (is_gzip_ || /* compressor always adds footer? -tb */ 1)
     {
         gzip_crc_ = 0;
@@ -679,15 +647,14 @@ basic_zip_istream<CharT, Traits>::read_footer()
         gzip_data_size_ = 0;
         for (int n = 0; n < 4; ++n)
             gzip_data_size_ +=
-                 (static_cast<uint32_t>(this->get_istream().get()) & 0xff) << (8 * n);
+                (static_cast<uint32_t>(this->get_istream().get()) & 0xff) << (8 * n);
     }
 }
 
 /******************************************************************************/
 
 //! Helper function to check whether stream is compressed or not.
-bool isGZip(std::istream& is)
-{
+bool isGZip(std::istream& is) {
     const int gz_magic[2] = { 0x1f, 0x8b };
 
     int c1 = is.get();
@@ -724,7 +691,7 @@ template class basic_zip_istream<char>;
 // template class basic_zip_ostream<wchar_t>;
 // template class basic_zip_istream<wchar_t>;
 
-} // namespace tools
-} // namespace tbt
+} // namespace common
+} // namespace thrill
 
 /******************************************************************************/
