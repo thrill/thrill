@@ -158,30 +158,90 @@ private:
 
 /******************************************************************************/
 
-//! template specialization switch class to output key+value if EmitPair and
-//! only value if not EmitPair.
-template <
-    typename KeyValuePair, typename ValueType, typename Emitter, bool EmitPair>
-class ReducePostPhaseEmitterSwitch;
+//! template specialization switch class to convert a Value either to Value
+//! (identity) or to a std::pair<Key, Value> with Key generated from Value using
+//! a key extractor for VolatileKey implementations.
+template <typename Value, typename TableItem, bool VolatileKey>
+class ReduceMakeTableItem;
 
-template <typename KeyValuePair, typename ValueType, typename Emitter>
-class ReducePostPhaseEmitterSwitch<
-        KeyValuePair, ValueType, Emitter, /* EmitPair */ false>
+template <typename Value, typename TableItem>
+class ReduceMakeTableItem<Value, TableItem, /* VolatileKey */ false>
 {
 public:
-    static void Put(const KeyValuePair& p, Emitter& emit) {
+    template <typename KeyExtractor>
+    static TableItem Make(const Value& v, KeyExtractor& /* key_extractor */) {
+        return v;
+    }
+
+    template <typename KeyExtractor>
+    static auto GetKey(const TableItem &t, KeyExtractor & key_extractor) {
+        return key_extractor(t);
+    }
+
+    template <typename ReduceFunction>
+    static auto Reduce(const TableItem &a, const TableItem &b,
+                       ReduceFunction & reduce_function) {
+        return reduce_function(a, b);
+    }
+
+    template <typename Emitter>
+    static void Put(const TableItem& p, Emitter& emit) {
+        emit(p);
+    }
+};
+
+template <typename Value, typename TableItem>
+class ReduceMakeTableItem<Value, TableItem, /* VolatileKey */ true>
+{
+public:
+    template <typename KeyExtractor>
+    static TableItem Make(const Value& v, KeyExtractor& key_extractor) {
+        return TableItem(key_extractor(v), v);
+    }
+
+    template <typename KeyExtractor>
+    static auto GetKey(const TableItem &t, KeyExtractor & /* key_extractor */) {
+        return t.first;
+    }
+
+    template <typename ReduceFunction>
+    static auto Reduce(const TableItem &a, const TableItem &b,
+                       ReduceFunction & reduce_function) {
+        return TableItem(a.first, reduce_function(a.second, b.second));
+    }
+
+    template <typename Emitter>
+    static void Put(const TableItem& p, Emitter& emit) {
         emit(p.second);
     }
 };
 
-template <typename KeyValuePair, typename ValueType, typename Emitter>
-class ReducePostPhaseEmitterSwitch<
-        KeyValuePair, ValueType, Emitter, /* EmitPair */ true>
+//! Emitter implementation to plug into a reduce hash table for
+//! collecting/flushing items while reducing. Items flushed in the post-phase
+//! are passed to the next DIA node for processing.
+template <
+    typename TableItem, typename Value, typename Emitter, bool VolatileKey>
+class ReducePostPhaseEmitter
 {
 public:
-    static void Put(const KeyValuePair& p, Emitter& emit) {
-        emit(p);
+    explicit ReducePostPhaseEmitter(const Emitter& emit)
+        : emit_(emit) { }
+
+    //! output an element into a partition, template specialized for VolatileKey
+    //! and non-VolatileKey types
+    void Emit(const TableItem& p) {
+        ReduceMakeTableItem<Value, TableItem, VolatileKey>::Put(p, emit_);
     }
+
+    //! output an element into a partition, template specialized for VolatileKey
+    //! and non-VolatileKey types
+    void Emit(const size_t& /* partition_id */, const TableItem& p) {
+        Emit(p);
+    }
+
+public:
+    //! Set of emitters, one per partition.
+    Emitter emit_;
 };
 
 } // namespace core

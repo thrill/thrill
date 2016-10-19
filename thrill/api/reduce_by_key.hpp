@@ -67,11 +67,10 @@ class ReduceNode final : public DOpNode<ValueType>
     using Super::context_;
 
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
-    using Value = typename common::FunctionTraits<ReduceFunction>::result_type;
-    using KeyValuePair = std::pair<Key, Value>;
 
-    using PrePhaseOutput =
-              typename common::If<VolatileKey, KeyValuePair, Value>::type;
+    using TableItem =
+              typename common::If<
+                  VolatileKey, std::pair<Key, ValueType>, ValueType>::type;
 
     static constexpr bool use_mix_stream_ = ReduceConfig::use_mix_stream_;
     static constexpr bool use_post_thread_ = ReduceConfig::use_post_thread_;
@@ -183,7 +182,7 @@ public:
             sLOG << "reading data from" << mix_stream_->id()
                  << "to push into post phase which flushes to" << this->id();
             while (reader.HasNext()) {
-                post_phase_.Insert(reader.template Next<PrePhaseOutput>());
+                post_phase_.Insert(reader.template Next<TableItem>());
             }
         }
         else
@@ -192,7 +191,7 @@ public:
             sLOG << "reading data from" << cat_stream_->id()
                  << "to push into post phase which flushes to" << this->id();
             while (reader.HasNext()) {
-                post_phase_.Insert(reader.template Next<PrePhaseOutput>());
+                post_phase_.Insert(reader.template Next<TableItem>());
             }
         }
     }
@@ -213,11 +212,11 @@ private:
     std::thread thread_;
 
     core::ReducePrePhase<
-        ValueType, Key, Value, KeyExtractor, ReduceFunction, VolatileKey,
+        TableItem, Key, ValueType, KeyExtractor, ReduceFunction, VolatileKey,
         ReduceConfig> pre_phase_;
 
     core::ReduceByHashPostPhase<
-        ValueType, Key, Value, KeyExtractor, ReduceFunction, Emitter,
+        TableItem, Key, ValueType, KeyExtractor, ReduceFunction, Emitter,
         VolatileKey, ReduceConfig> post_phase_;
 
     bool reduced_ = false;

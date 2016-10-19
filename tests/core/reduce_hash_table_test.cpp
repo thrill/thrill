@@ -77,7 +77,7 @@ void TestAddMyStructModulo(Context& ctx) {
                       return MyStruct(in1.key, in1.value + in2.value);
                   };
 
-    using Collector = TableCollector<std::pair<size_t, MyStruct> >;
+    using Collector = TableCollector<MyStruct>;
 
     Collector collector(13);
 
@@ -106,7 +106,7 @@ void TestAddMyStructModulo(Context& ctx) {
 
         sLOG << "partition" << pi << ":" << partition.size() << ":";
         for (const auto& v : partition) {
-            result.emplace_back(v.second);
+            result.emplace_back(v);
         }
     }
 
@@ -133,6 +133,13 @@ TEST(ReduceHashTable, ProbingAddIntegers) {
     api::RunLocalSameThread(
         [](Context& ctx) {
             TestAddMyStructModulo<core::ReduceProbingHashTable>(ctx);
+        });
+}
+
+TEST(ReduceHashTable, OldProbingAddIntegers) {
+    api::RunLocalSameThread(
+        [](Context& ctx) {
+            TestAddMyStructModulo<core::ReduceOldProbingHashTable>(ctx);
         });
 }
 

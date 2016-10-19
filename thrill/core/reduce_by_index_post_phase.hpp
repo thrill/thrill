@@ -32,34 +32,7 @@
 namespace thrill {
 namespace core {
 
-//! Emitter implementation to plug into a reduce hash table for
-//! collecting/flushing items while reducing. Items flushed in the post-phase
-//! are passed to the next DIA node for processing.
-template <typename KeyValuePair, typename ValueType,
-          typename Emitter, bool EmitPair>
-class ReduceByIndexPostPhaseEmitter
-{
-public:
-    explicit ReduceByIndexPostPhaseEmitter(const Emitter& emit)
-        : emit_(emit) { }
-
-    //! output an element into a partition, template specialized for EmitPair
-    //! and non-EmitPair types
-    void Emit(const KeyValuePair& p) {
-        ReducePostPhaseEmitterSwitch<
-            KeyValuePair, ValueType, Emitter, EmitPair>::Put(p, emit_);
-    }
-
-    void Emit(size_t /* partition_id */, const KeyValuePair& p) {
-        Emit(p);
-    }
-
-public:
-    //! Set of emitters, one per partition.
-    Emitter emit_;
-};
-
-template <typename ValueType, typename Key, typename Value,
+template <typename TableItem, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction, typename Emitter,
           const bool VolatileKey,
           typename ReduceConfig_ = DefaultReduceConfig,
@@ -70,15 +43,14 @@ class ReduceByIndexPostPhase
     static constexpr bool debug = false;
 
 public:
-    using KeyValuePair = std::pair<Key, Value>;
     using ReduceConfig = ReduceConfig_;
-
-    using PhaseEmitter = ReduceByIndexPostPhaseEmitter<
-              KeyValuePair, ValueType, Emitter, /* EmitPair */ false>;
+    using MakeTableItem = ReduceMakeTableItem<Value, TableItem, VolatileKey>;
+    using PhaseEmitter = ReducePostPhaseEmitter<
+              TableItem, Value, Emitter, VolatileKey>;
 
     using Table = typename ReduceTableSelect<
               ReduceConfig::table_impl_,
-              ValueType, Key, Value,
+              TableItem, Key, Value,
               KeyExtractor, ReduceFunction, PhaseEmitter,
               VolatileKey, ReduceConfig,
               IndexFunction, EqualToFunction>::type;
@@ -116,14 +88,12 @@ public:
         table_.Initialize(limit_memory_bytes);
     }
 
-    void Insert(const Value& p) {
-        return table_.Insert(p);
+    void Insert(const TableItem& kv) {
+        return table_.Insert(kv);
     }
 
-    //! Insert items into underlying hash table -- variant for VolatileKey where
-    //! pairs are inserted.
-    void Insert(const KeyValuePair& kv) {
-        return table_.Insert(kv);
+    Key key(const TableItem& t) {
+        return MakeTableItem::GetKey(t, table_.key_extractor());
     }
 
     using RangeFilePair = std::pair<common::Range, data::File>;
@@ -160,9 +130,10 @@ public:
                 table.FlushPartitionEmit(
                     id, consume, /* grow */ false,
                     [this, &table, &file_range, &index, writer](
-                        const size_t& /* partition_id */, const KeyValuePair& p) {
-                        for ( ; index < p.first; ++index) {
-                            KeyValuePair kv = std::make_pair(index, neutral_element_);
+                        const size_t& /* partition_id */, const TableItem& p) {
+                        for ( ; index < key(p); ++index) {
+                            TableItem kv = MakeTableItem::Make(
+                                neutral_element_, table_.key_extractor());
                             emitter_.Emit(kv);
                             if (DoCache) writer->Put(kv);
 
@@ -176,7 +147,8 @@ public:
                     });
 
                 for ( ; index < file_range.end; ++index) {
-                    KeyValuePair kv = std::make_pair(index, neutral_element_);
+                    TableItem kv = MakeTableItem::Make(
+                        neutral_element_, table_.key_extractor());
                     emitter_.Emit(kv);
                     if (DoCache) writer->Put(kv);
                 }
@@ -299,10 +271,11 @@ public:
                 size_t index = range.begin;
 
                 while (reader.HasNext()) {
-                    KeyValuePair p = reader.Next<KeyValuePair>();
+                    TableItem p = reader.Next<TableItem>();
 
-                    for ( ; index < p.first; ++index) {
-                        KeyValuePair kv = std::make_pair(index, neutral_element_);
+                    for ( ; index < key(p); ++index) {
+                        TableItem kv = MakeTableItem::Make(
+                            neutral_element_, table_.key_extractor());
                         emitter_.Emit(kv);
                         if (DoCache) writer->Put(kv);
 
@@ -316,7 +289,8 @@ public:
                 }
 
                 for ( ; index < range.end; ++index) {
-                    KeyValuePair kv = std::make_pair(index, neutral_element_);
+                    TableItem kv = MakeTableItem::Make(
+                        neutral_element_, table_.key_extractor());
                     emitter_.Emit(kv);
                     if (DoCache) writer->Put(kv);
                 }
@@ -333,7 +307,7 @@ public:
                 data::File::ConsumeReader reader = file.GetConsumeReader();
 
                 while (reader.HasNext()) {
-                    subtable.Insert(reader.Next<KeyValuePair>());
+                    subtable.Insert(reader.Next<TableItem>());
                 }
 
                 // after insertion, flush fully reduced partitions and save
@@ -376,7 +350,7 @@ public:
             // previous PushData() has stored data in cache_
             data::File::Reader reader = cache_->GetReader(consume);
             while (reader.HasNext())
-                emitter_.Emit(reader.Next<KeyValuePair>());
+                emitter_.Emit(reader.Next<TableItem>());
         }
     }
 

@@ -79,18 +79,18 @@ namespace core {
  *    +---+       +---+
  *
  */
-template <typename ValueType, typename Key, typename Value,
+template <typename TableItem, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction, typename Emitter,
           const bool VolatileKey,
           typename ReduceConfig, typename IndexFunction,
           typename EqualToFunction = std::equal_to<Key> >
 class ReduceBucketHashTable
-    : public ReduceTable<ValueType, Key, Value,
+    : public ReduceTable<TableItem, Key, Value,
                          KeyExtractor, ReduceFunction, Emitter,
                          VolatileKey, ReduceConfig, IndexFunction,
                          EqualToFunction>
 {
-    using Super = ReduceTable<ValueType, Key, Value,
+    using Super = ReduceTable<TableItem, Key, Value,
                               KeyExtractor, ReduceFunction, Emitter,
                               VolatileKey, ReduceConfig, IndexFunction,
                               EqualToFunction>;
@@ -103,29 +103,27 @@ class ReduceBucketHashTable
         = ReduceConfig::bucket_block_size_;
 
 public:
-    using KeyValuePair = std::pair<Key, Value>;
-
     //! calculate number of items such that each BucketBlock has about 1 MiB of
     //! size, or at least 8 items.
     static constexpr size_t block_size_ =
-        common::max<size_t>(1, bucket_block_size / sizeof(KeyValuePair));
+        common::max<size_t>(1, bucket_block_size / sizeof(TableItem));
 
     //! Block holding reduce key/value pairs.
     struct BucketBlock {
         //! number of _used_/constructed items in this block. next is unused if
         //! size != block_size.
-        size_t       size;
+        size_t     size;
 
         //! link of linked list to next block
-        BucketBlock  * next;
+        BucketBlock* next;
 
         //! memory area of items
-        KeyValuePair items[block_size_]; // NOLINT
+        TableItem  items[block_size_]; // NOLINT
 
         //! helper to destroy all allocated items
-        void         destroy_items() {
-            for (KeyValuePair* i = items; i != items + size; ++i) {
-                i->~KeyValuePair();
+        void       destroy_items() {
+            for (TableItem* i = items; i != items + size; ++i) {
+                i->~TableItem();
             }
         }
     };
@@ -241,14 +239,6 @@ public:
     }
 
     /*!
-     * Inserts a value. Calls the key_extractor_, makes a key-value-pair and
-     * inserts the pair into the hashtable.
-     */
-    void Insert(const Value& p) {
-        Insert(std::make_pair(key_extractor_(p), p));
-    }
-
-    /*!
      * Inserts a value into the table, potentially reducing it in case both the
      * key of the value already in the table and the key of the value to be
      * inserted are the same.
@@ -262,16 +252,16 @@ public:
      *
      * \param kv Value to be inserted into the table.
      */
-    void Insert(const KeyValuePair& kv) {
+    void Insert(const TableItem& kv) {
 
         while (mem::memory_exceeded && num_items_ != 0)
             SpillAnyPartition();
 
         typename IndexFunction::Result h = index_function_(
-            kv.first, num_partitions_,
+            key(kv), num_partitions_,
             num_buckets_per_partition_, num_buckets_);
 
-        // sLOG << "kv" << kv.first << "-" << kv.second
+        // sLOG << "kv" << key(kv) << "-" << kv.second
         //      << "to partition" << h.partition_id << "bucket" << h.global_index;
 
         size_t local_index = h.local_index(num_buckets_per_partition_);
@@ -286,17 +276,17 @@ public:
         while (current != nullptr)
         {
             // iterate over valid items in a block
-            for (KeyValuePair* bi = current->items;
+            for (TableItem* bi = current->items;
                  bi != current->items + current->size; ++bi)
             {
                 // if item and key equals, then reduce.
-                if (equal_to_function_(kv.first, bi->first))
+                if (equal_to_function_(key(kv), key(*bi)))
                 {
                     LOGC(debug_items)
-                        << "match of key: " << kv.first
-                        << " and " << bi->first << " ... reducing...";
+                        << "match of key: " << key(kv)
+                        << " and " << key(*bi) << " ... reducing...";
 
-                    bi->second = reduce_function_(bi->second, kv.second);
+                    *bi = reduce(*bi, kv);
                     return;
                 }
             }
@@ -330,7 +320,7 @@ public:
         }
 
         // in-place construct/insert new item in current bucket block
-        new (current->items + current->size++)KeyValuePair(kv);
+        new (current->items + current->size++)TableItem(kv);
 
         LOGC(debug_items)
             << "h.partition_id" << h.partition_id;
@@ -409,7 +399,7 @@ public:
 
             while (current != nullptr)
             {
-                for (KeyValuePair* bi = current->items;
+                for (TableItem* bi = current->items;
                      bi != current->items + current->size; ++bi)
                 {
                     writer.Put(*bi);
@@ -502,7 +492,7 @@ public:
 
             while (current != nullptr)
             {
-                for (KeyValuePair* bi = current->items;
+                for (TableItem* bi = current->items;
                      bi != current->items + current->size; ++bi)
                 {
                     emit(partition_id, *bi);
@@ -538,7 +528,7 @@ public:
     void FlushPartition(size_t partition_id, bool consume, bool grow) {
         FlushPartitionEmit(
             partition_id, consume, grow,
-            [this](const size_t& partition_id, const KeyValuePair& p) {
+            [this](const size_t& partition_id, const TableItem& p) {
                 this->emitter_.Emit(partition_id, p);
             });
     }
@@ -627,7 +617,7 @@ private:
     using Super::immediate_flush_;
     using Super::index_function_;
     using Super::items_per_partition_;
-    using Super::key_extractor_;
+    using Super::key;
     using Super::limit_items_per_partition_;
     using Super::limit_memory_bytes_;
     using Super::num_buckets_;
@@ -635,7 +625,7 @@ private:
     using Super::num_items_;
     using Super::num_partitions_;
     using Super::partition_files_;
-    using Super::reduce_function_;
+    using Super::reduce;
 
     //! Storing the items.
     std::vector<BucketBlock*> buckets_;
@@ -666,19 +656,19 @@ private:
     //! \}
 };
 
-template <typename ValueType, typename Key, typename Value,
+template <typename TableItem, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           typename Emitter, const bool VolatileKey,
           typename ReduceConfig, typename IndexFunction,
           typename EqualToFunction>
 class ReduceTableSelect<
         ReduceTableImpl::BUCKET,
-        ValueType, Key, Value, KeyExtractor, ReduceFunction,
+        TableItem, Key, Value, KeyExtractor, ReduceFunction,
         Emitter, VolatileKey, ReduceConfig, IndexFunction, EqualToFunction>
 {
 public:
     using type = ReduceBucketHashTable<
-              ValueType, Key, Value, KeyExtractor, ReduceFunction,
+              TableItem, Key, Value, KeyExtractor, ReduceFunction,
               Emitter, VolatileKey, ReduceConfig,
               IndexFunction, EqualToFunction>;
 };
