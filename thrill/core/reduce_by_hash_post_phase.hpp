@@ -66,7 +66,7 @@ public:
 
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction, typename Emitter,
-          const bool EmitPair = false,
+          const bool VolatileKey,
           typename ReduceConfig_ = DefaultReduceConfig,
           typename IndexFunction = ReduceByHash<Key>,
           typename EqualToFunction = std::equal_to<Key> >
@@ -79,13 +79,13 @@ public:
     using ReduceConfig = ReduceConfig_;
 
     using PhaseEmitter = ReduceByHashPostPhaseEmitter<
-              KeyValuePair, ValueType, Emitter, EmitPair>;
+              KeyValuePair, ValueType, Emitter, /* EmitPair */ false>;
 
     using Table = typename ReduceTableSelect<
               ReduceConfig::table_impl_,
               ValueType, Key, Value,
               KeyExtractor, ReduceFunction, PhaseEmitter,
-              /* VolatileKey */ !EmitPair, ReduceConfig,
+              VolatileKey, ReduceConfig,
               IndexFunction, EqualToFunction>::type;
 
     /*!
@@ -122,6 +122,8 @@ public:
         return table_.Insert(p);
     }
 
+    //! Insert items into underlying hash table -- variant for VolatileKey where
+    //! pairs are inserted.
     void Insert(const KeyValuePair& kv) {
         return table_.Insert(kv);
     }

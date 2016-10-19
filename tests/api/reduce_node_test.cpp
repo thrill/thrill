@@ -34,7 +34,7 @@ TEST(ReduceNode, ReduceModulo2CorrectResults) {
                 });
 
             auto modulo_two = [](size_t in) {
-                                  return (in % 2) + 1;
+                                  return (in % 4);
                               };
 
             auto add_function = [](const size_t& in1, const size_t& in2) {
@@ -45,16 +45,14 @@ TEST(ReduceNode, ReduceModulo2CorrectResults) {
                 VolatileKeyTag, modulo_two, add_function);
 
             std::vector<size_t> out_vec = reduced.AllGather();
+            ASSERT_EQ(4u, out_vec.size());
 
             std::sort(out_vec.begin(), out_vec.end());
 
             size_t i = 1;
-
             for (const size_t& element : out_vec) {
-                ASSERT_EQ(element, 56 + (8 * i++));
+                ASSERT_EQ(element, 24 + (4 * i++));
             }
-
-            ASSERT_EQ((size_t)2, out_vec.size());
         };
 
     api::RunLocalTests(start_func);

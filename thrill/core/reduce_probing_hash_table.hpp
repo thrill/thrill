@@ -204,7 +204,7 @@ public:
 
         assert(h.partition_id < num_partitions_);
 
-        if (THRILL_UNLIKELY(kv.first == Key())) {
+        if (THRILL_UNLIKELY(equal_to_function_(kv.first, Key()))) {
             // handle pairs with sentinel key specially by reducing into last
             // element of items.
             KeyValuePair& sentinel = items_[num_buckets_];

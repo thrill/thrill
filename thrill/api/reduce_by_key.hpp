@@ -58,8 +58,7 @@ class DefaultReduceConfig : public core::DefaultReduceConfig
  */
 template <typename ValueType,
           typename KeyExtractor, typename ReduceFunction,
-          typename ReduceConfig,
-          const bool VolatileKey, const bool EmitPair>
+          typename ReduceConfig, const bool VolatileKey>
 class ReduceNode final : public DOpNode<ValueType>
 {
     static constexpr bool debug = false;
@@ -218,8 +217,8 @@ private:
         ReduceConfig> pre_phase_;
 
     core::ReduceByHashPostPhase<
-        ValueType, Key, Value, KeyExtractor, ReduceFunction, Emitter, EmitPair,
-        ReduceConfig> post_phase_;
+        ValueType, Key, Value, KeyExtractor, ReduceFunction, Emitter,
+        VolatileKey, ReduceConfig> post_phase_;
 
     bool reduced_ = false;
 };
@@ -264,7 +263,7 @@ auto DIA<ValueType, Stack>::ReduceByKey(
 
     using ReduceNode = api::ReduceNode<
               DOpResult, KeyExtractor, ReduceFunction, ReduceConfig,
-              /* VolatileKey */ false, /* EmitPair */ false>;
+              /* VolatileKey */ false>;
     auto node = common::MakeCounting<ReduceNode>(
         *this, "ReduceByKey", key_extractor, reduce_function, reduce_config);
 
@@ -312,7 +311,7 @@ auto DIA<ValueType, Stack>::ReduceByKey(
 
     using ReduceNode = api::ReduceNode<
               DOpResult, KeyExtractor, ReduceFunction, ReduceConfig,
-              /* VolatileKey */ true, /* EmitPair */ false>;
+              /* VolatileKey */ true>;
 
     auto node = common::MakeCounting<ReduceNode>(
         *this, "ReduceByKey", key_extractor, reduce_function, reduce_config);
@@ -353,22 +352,20 @@ auto DIA<ValueType, Stack>::ReducePair(
             typename ValueType::second_type>::value,
         "ReduceFunction has the wrong output type");
 
-    using Key = typename ValueType::first_type;
-    using Value = typename ValueType::second_type;
+    auto key_extractor = [](const ValueType& value) { return value.first; };
+
+    auto reduce_pair_function =
+        [reduce_function](const ValueType& a, const ValueType& b) {
+            return ValueType(a.first, reduce_function(a.second, b.second));
+        };
 
     using ReduceNode = api::ReduceNode<
-              ValueType, std::function<Key(Value)>, ReduceFunction,
-              ReduceConfig, /* VolatileKey */ true, /* EmitPair */ true>;
+              ValueType, decltype(key_extractor), decltype(reduce_pair_function),
+              ReduceConfig, /* VolatileKey */ false>;
 
     auto node = common::MakeCounting<ReduceNode>(
-        *this, "ReducePair", [](Value value) {
-            // This function should not be called, it is only here to give the
-            // key type to the hashtables.
-            assert(1 == 0);
-            value = value;
-            return Key();
-        },
-        reduce_function, reduce_config);
+        *this, "ReducePair",
+        key_extractor, reduce_pair_function, reduce_config);
 
     return DIA<ValueType>(node);
 }
