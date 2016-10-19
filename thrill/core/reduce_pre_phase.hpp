@@ -40,7 +40,7 @@ template <typename KeyValuePair, bool VolatileKey>
 class ReducePrePhaseEmitterSwitch;
 
 template <typename KeyValuePair>
-class ReducePrePhaseEmitterSwitch<KeyValuePair, false>
+class ReducePrePhaseEmitterSwitch<KeyValuePair, /* VolatileKey */ false>
 {
 public:
     static void Put(const KeyValuePair& p, data::DynBlockWriter& writer) {
@@ -49,7 +49,7 @@ public:
 };
 
 template <typename KeyValuePair>
-class ReducePrePhaseEmitterSwitch<KeyValuePair, true>
+class ReducePrePhaseEmitterSwitch<KeyValuePair, /* VolatileKey */ true>
 {
 public:
     static void Put(const KeyValuePair& p, data::DynBlockWriter& writer) {

@@ -36,18 +36,18 @@ namespace core {
 //! collecting/flushing items while reducing. Items flushed in the post-phase
 //! are passed to the next DIA node for processing.
 template <typename KeyValuePair, typename ValueType,
-          typename Emitter, bool SendPair>
+          typename Emitter, bool EmitPair>
 class ReduceByIndexPostPhaseEmitter
 {
 public:
     explicit ReduceByIndexPostPhaseEmitter(const Emitter& emit)
         : emit_(emit) { }
 
-    //! output an element into a partition, template specialized for SendPair
-    //! and non-SendPair types
+    //! output an element into a partition, template specialized for EmitPair
+    //! and non-EmitPair types
     void Emit(const KeyValuePair& p) {
         ReducePostPhaseEmitterSwitch<
-            KeyValuePair, ValueType, Emitter, SendPair>::Put(p, emit_);
+            KeyValuePair, ValueType, Emitter, EmitPair>::Put(p, emit_);
     }
 
     void Emit(size_t /* partition_id */, const KeyValuePair& p) {
@@ -61,7 +61,7 @@ public:
 
 template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction, typename Emitter,
-          const bool SendPair = false,
+          const bool EmitPair = false,
           typename ReduceConfig_ = DefaultReduceConfig,
           typename IndexFunction = ReduceByIndex<Key>,
           typename EqualToFunction = std::equal_to<Key> >
@@ -74,13 +74,14 @@ public:
     using ReduceConfig = ReduceConfig_;
 
     using PhaseEmitter = ReduceByIndexPostPhaseEmitter<
-              KeyValuePair, ValueType, Emitter, SendPair>;
+              KeyValuePair, ValueType, Emitter, EmitPair>;
 
     using Table = typename ReduceTableSelect<
               ReduceConfig::table_impl_,
               ValueType, Key, Value,
               KeyExtractor, ReduceFunction, PhaseEmitter,
-              !SendPair, ReduceConfig, IndexFunction, EqualToFunction>::type;
+              /* VolatileKey */ !EmitPair, ReduceConfig,
+              IndexFunction, EqualToFunction>::type;
 
     /*!
      * A data structure which takes an arbitrary value and extracts a key using

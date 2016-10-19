@@ -57,7 +57,7 @@ class DefaultReduceToIndexConfig : public core::DefaultReduceConfig
 template <typename ValueType,
           typename KeyExtractor, typename ReduceFunction,
           typename ReduceConfig,
-          bool VolatileKey, bool SendPair>
+          bool VolatileKey, bool EmitPair>
 class ReduceToIndexNode final : public DOpNode<ValueType>
 {
     static constexpr bool debug = false;
@@ -238,7 +238,7 @@ private:
         ReduceConfig, core::ReduceByIndex<Key> > pre_phase_;
 
     core::ReduceByIndexPostPhase<
-        ValueType, Key, Value, KeyExtractor, ReduceFunction, Emitter, SendPair,
+        ValueType, Key, Value, KeyExtractor, ReduceFunction, Emitter, EmitPair,
         ReduceConfig> post_phase_;
 
     bool reduced_ = false;
@@ -292,7 +292,7 @@ auto DIA<ValueType, Stack>::ReduceToIndex(
 
     using ReduceNode = ReduceToIndexNode<
               DOpResult, KeyExtractor, ReduceFunction,
-              ReduceConfig, /* VolatileKey */ false, false>;
+              ReduceConfig, /* VolatileKey */ false, /* EmitPair */ false>;
 
     auto node = common::MakeCounting<ReduceNode>(
         *this, "ReduceToIndex", key_extractor, reduce_function,
@@ -350,7 +350,7 @@ auto DIA<ValueType, Stack>::ReduceToIndex(
 
     using ReduceNode = ReduceToIndexNode<
               DOpResult, KeyExtractor, ReduceFunction,
-              ReduceConfig, /* VolatileKey */ true, false>;
+              ReduceConfig, /* VolatileKey */ true, /* EmitPair */ false>;
 
     auto node = common::MakeCounting<ReduceNode>(
         *this, "ReduceToIndex", key_extractor, reduce_function,

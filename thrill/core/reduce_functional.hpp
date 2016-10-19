@@ -158,15 +158,15 @@ private:
 
 /******************************************************************************/
 
-//! template specialization switch class to output key+value if SendPair and
-//! only value if not SendPair.
+//! template specialization switch class to output key+value if EmitPair and
+//! only value if not EmitPair.
 template <
-    typename KeyValuePair, typename ValueType, typename Emitter, bool SendPair>
+    typename KeyValuePair, typename ValueType, typename Emitter, bool EmitPair>
 class ReducePostPhaseEmitterSwitch;
 
 template <typename KeyValuePair, typename ValueType, typename Emitter>
 class ReducePostPhaseEmitterSwitch<
-        KeyValuePair, ValueType, Emitter, false>
+        KeyValuePair, ValueType, Emitter, /* EmitPair */ false>
 {
 public:
     static void Put(const KeyValuePair& p, Emitter& emit) {
@@ -176,7 +176,7 @@ public:
 
 template <typename KeyValuePair, typename ValueType, typename Emitter>
 class ReducePostPhaseEmitterSwitch<
-        KeyValuePair, ValueType, Emitter, true>
+        KeyValuePair, ValueType, Emitter, /* EmitPair */ true>
 {
 public:
     static void Put(const KeyValuePair& p, Emitter& emit) {
