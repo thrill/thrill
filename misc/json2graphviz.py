@@ -83,13 +83,13 @@ for ni, n in nodes.items():
 
     sys.stdout.write("];\n")
 
-print()
+sys.stdout.write("\n")
 
 # print edges
 for ni, n in nodes.items():
     for e in n["parents"]:
-        print(" ", e, "->", ni, ";")
+        sys.stdout.write(" " + str(e) + "->" + str(ni) + ";\n")
 
-print("}")
+sys.stdout.write("}\n")
 
 ##########################################################################
