@@ -1,9 +1,16 @@
 /*******************************************************************************
- * tbt/tools/zip_stream.hpp
+ * thrill/common/zip_stream.hpp
  *
+ * An on-the-fly gzip and zlib ostream-compatible stream decompressor.
  *
+ * Part of Project Thrill - http://project-thrill.org
+ *
+ * Copyright (C) 2016 Timo Bingmann <tb@panthema.net>
+ *
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
+#pragma once
 #ifndef THRILL_COMMON_ZIP_STREAM_HEADER
 #define THRILL_COMMON_ZIP_STREAM_HEADER
 
@@ -66,25 +73,24 @@ zran.c
 #include <istream>
 #include <ostream>
 #include <streambuf>
+#include <string>
 #include <vector>
 
 namespace thrill {
 namespace common {
 
 //! default gzip buffer size, change this to suite your needs
-static const size_t zstream_default_buffer_size = 4096;
+static const size_t zstream_default_buffer_size = 1024 * 1024;
 
 //! Compression strategy, see zlib doc.
-enum class ZipStrategy
-{
+enum class ZipStrategy {
     Filtered = 1,
     HuffmanOnly = 2,
     Default = 0
 };
 
 //! Header/Footer Formats
-enum class ZipFormat
-{
+enum class ZipFormat {
     None, CrcFooter, GZip,
     Default = CrcFooter
 };
@@ -103,11 +109,11 @@ template <typename CharT,
 class basic_zip_streambuf : public std::basic_streambuf<CharT, Traits>
 {
 public:
-    typedef std::basic_ostream<CharT, Traits>& ostream_reference;
-    typedef unsigned char byte_type;
-    typedef std::vector<byte_type> byte_vector_type;
-    typedef std::vector<CharT> char_vector_type;
-    typedef typename std::basic_streambuf<CharT, Traits>::int_type int_type;
+    using ostream_reference = std::basic_ostream<CharT, Traits>&;
+    using byte_type = unsigned char;
+    using byte_vector_type = std::vector<byte_type>;
+    using char_vector_type = std::vector<CharT>;
+    using int_type = typename std::basic_streambuf<CharT, Traits>::int_type;
 
     /**
      * Construct a zip stream More info on the following parameters can be found
@@ -172,12 +178,12 @@ class basic_unzip_streambuf
     : public std::basic_streambuf<CharT, Traits>
 {
 public:
-    typedef std::basic_istream<CharT, Traits>& istream_reference;
-    typedef unsigned char byte_type;
-    typedef CharT char_type;
-    typedef std::vector<byte_type> byte_vector_type;
-    typedef std::vector<char_type> char_vector_type;
-    typedef typename basic_unzip_streambuf<CharT, Traits>::int_type int_type;
+    using istream_reference = std::basic_istream<CharT, Traits>&;
+    using byte_type = unsigned char;
+    using char_type = CharT;
+    using byte_vector_type = std::vector<byte_type>;
+    using char_vector_type = std::vector<char_type>;
+    using int_type = typename basic_unzip_streambuf<CharT, Traits>::int_type;
 
     /** Construct a unzip stream. More info on the following parameters can be
      * found in the zlib documentation.
@@ -195,7 +201,7 @@ public:
     istream_reference get_istream();
 
     //! returns the zlib stream structure
-    z_stream & get_zip_stream();
+    z_stream& get_zip_stream();
 
     //! returns the latest zlib error state
     int get_zerr() const;
@@ -222,7 +228,6 @@ private:
     int err_;
     byte_vector_type input_buffer_;
     char_vector_type buffer_;
-    uint32_t crc_;
 };
 
 /******************************************************************************/
@@ -234,9 +239,9 @@ class basic_zip_ostream final
       public std::basic_ostream<CharT, Traits>
 {
 public:
-    typedef char char_type;
-    typedef std::basic_ostream<CharT, Traits>& ostream_reference;
-    typedef std::basic_ostream<CharT, Traits> ostream_type;
+    using char_type = char;
+    using ostream_reference = std::basic_ostream<CharT, Traits>&;
+    using ostream_type = std::basic_ostream<CharT, Traits>;
 
     explicit basic_zip_ostream(
         ostream_reference ostream,
@@ -254,14 +259,14 @@ public:
     ZipFormat format() const;
 
     //! flush inner buffer and zipper buffer
-    basic_zip_ostream<CharT, Traits> & zflush();
+    basic_zip_ostream<CharT, Traits>& zflush();
 
     //! flush buffer and write footer
     void finished();
 
 private:
-    basic_zip_ostream<CharT, Traits> & add_header();
-    basic_zip_ostream<CharT, Traits> & add_footer();
+    basic_zip_ostream<CharT, Traits>& add_header();
+    basic_zip_ostream<CharT, Traits>& add_footer();
 
     ZipFormat format_;
     bool added_footer_;
@@ -276,55 +281,22 @@ class basic_zip_istream final
       public std::basic_istream<CharT, Traits>
 {
 public:
-    typedef std::basic_istream<CharT, Traits>& istream_reference;
-    typedef std::basic_istream<CharT, Traits> istream_type;
+    using istream_reference = std::basic_istream<CharT, Traits>&;
+    using istream_type = std::basic_istream<CharT, Traits>;
 
     explicit basic_zip_istream(
         istream_reference istream,
-        /* windowBits is passed < 0 to suppress zlib header */
-        int window_size = -15,
+        /* windowBits = 15 (largest allocation) + 32 (autodetect headers) */
+        int window_size = 15 + 32,
         size_t read_buffer_size = zstream_default_buffer_size,
         size_t input_buffer_size = zstream_default_buffer_size);
-
-    //! returns true if it is a gzip file
-    bool is_gzip() const;
-
-    /*! return crc check result
-     *
-     * This must be called after the reading of compressed data is finished!
-     * This method compares it to the crc of the uncompressed data.
-     *
-     *    \return true if crc check is succesful
-     */
-    bool check_crc();
-
-    //! return data size check
-    bool check_data_size() const;
-
-    //! return the crc value in the file
-    long get_gzip_crc() const;
-
-    //! return the data size in the file
-    long get_gzip_data_size() const;
-
-    void read_footer();
-
-protected:
-    int check_header();
-
-    bool is_gzip_;
-    uint32_t gzip_crc_;
-    uint32_t gzip_data_size_;
 };
 
 /******************************************************************************/
 
-//! Helper function to check whether stream is compressed or not.
-bool isGZip(std::istream& is);
+} // namespace common
+} // namespace thrill
 
-} // namespace tools
-} // namespace tbt
-
-#endif // !TBT_TOOLS_ZIP_STREAM_HEADER
+#endif // !THRILL_COMMON_ZIP_STREAM_HEADER
 
 /******************************************************************************/
