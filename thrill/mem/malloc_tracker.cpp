@@ -160,6 +160,16 @@ size_t memory_limit_indication = std::numeric_limits<size_t>::max();
 ATTRIBUTE_NO_SANITIZE
 static void update_memprofile(size_t float_current, size_t base_current);
 
+struct LocalStats {
+    size_t  total_allocs;
+    ssize_t current_allocs;
+    ssize_t bytes;
+};
+
+static thread_local LocalStats tl_stats = { 0, 0, 0 };
+
+static const ssize_t tl_delay_threshold = 2 * 1024 * 1024;
+
 ATTRIBUTE_NO_SANITIZE
 void update_peak(size_t float_curr, size_t base_curr) {
     if (float_curr + base_curr > peak_bytes)
@@ -169,27 +179,48 @@ void update_peak(size_t float_curr, size_t base_curr) {
 //! add allocation to statistics
 ATTRIBUTE_NO_SANITIZE
 static void inc_count(size_t inc) {
-    size_t mycurr = sync_add_and_fetch(float_curr, inc);
+    tl_stats.total_allocs++;
+    tl_stats.current_allocs++;
+    tl_stats.bytes += inc;
 
-    total_bytes += inc;
-    update_peak(mycurr, base_curr);
+    if (tl_stats.bytes > tl_delay_threshold) {
+        size_t mycurr = sync_add_and_fetch(
+            float_curr, tl_stats.bytes);
 
-    sync_add_and_fetch(total_allocs, 1);
-    sync_add_and_fetch(current_allocs, 1);
+        total_bytes += tl_stats.bytes;
+        update_peak(mycurr, base_curr);
 
-    memory_exceeded = (mycurr >= memory_limit_indication);
-    update_memprofile(mycurr, get(base_curr));
+        sync_add_and_fetch(total_allocs, tl_stats.total_allocs);
+        sync_add_and_fetch(current_allocs, tl_stats.current_allocs);
+
+        memory_exceeded = (mycurr >= memory_limit_indication);
+        update_memprofile(mycurr, get(base_curr));
+
+        tl_stats.total_allocs = 0;
+        tl_stats.current_allocs = 0;
+        tl_stats.bytes = 0;
+    }
 }
 
 //! decrement allocation to statistics
 ATTRIBUTE_NO_SANITIZE
 static void dec_count(size_t dec) {
-    size_t mycurr = sync_sub_and_fetch(float_curr, dec);
+    tl_stats.current_allocs--;
+    tl_stats.bytes -= dec;
 
-    sync_sub_and_fetch(current_allocs, 1);
+    if (tl_stats.bytes < tl_delay_threshold) {
+        size_t mycurr = sync_add_and_fetch(
+            float_curr, tl_stats.bytes);
 
-    memory_exceeded = (mycurr >= memory_limit_indication);
-    update_memprofile(mycurr, get(base_curr));
+        sync_add_and_fetch(current_allocs, tl_stats.current_allocs);
+
+        memory_exceeded = (mycurr >= memory_limit_indication);
+        update_memprofile(mycurr, get(base_curr));
+
+        tl_stats.total_allocs = 0;
+        tl_stats.current_allocs = 0;
+        tl_stats.bytes = 0;
+    }
 }
 
 //! user function to return the currently allocated amount of memory
@@ -593,11 +624,6 @@ static void preinit_free(void* ptr) {
  * than the allocated size). On Linux's glibc there is malloc_usable_size().
  */
 
-static thread_local size_t tl_inc_malloc = 0;
-static thread_local size_t tl_dec_free = 0;
-
-static const size_t tl_delay_threshold = 2 * 1024 * 1024;
-
 //! exported malloc symbol that overrides loading from libc
 ATTRIBUTE_NO_SANITIZE
 void * malloc(size_t size) NOEXCEPT {
@@ -614,11 +640,7 @@ void * malloc(size_t size) NOEXCEPT {
     }
 
     size_t size_used = MALLOC_USABLE_SIZE(ret);
-    tl_inc_malloc += size_used;
-    if (tl_inc_malloc > tl_delay_threshold) {
-        inc_count(tl_inc_malloc);
-        tl_inc_malloc = 0;
-    }
+    inc_count(size_used);
 
     if (log_operations && size_used >= log_operations_threshold) {
         fprintf(stderr, PPREFIX "malloc(%zu size / %zu used) = %p   (current %zu / %zu)\n",
@@ -673,11 +695,7 @@ void free(void* ptr) NOEXCEPT {
     }
 
     size_t size_used = MALLOC_USABLE_SIZE(ptr);
-    tl_dec_free += size_used;
-    if (tl_dec_free > tl_delay_threshold) {
-        dec_count(tl_dec_free);
-        tl_dec_free = 0;
-    }
+    dec_count(size_used);
 
     if (log_operations && size_used >= log_operations_threshold) {
         fprintf(stderr, PPREFIX "free(%p) -> %zu   (current %zu / %zu)\n",
@@ -718,21 +736,13 @@ void * realloc(void* ptr, size_t size) NOEXCEPT {
     }
 
     size_t oldsize_used = MALLOC_USABLE_SIZE(ptr);
-    tl_dec_free += oldsize_used;
-    if (tl_dec_free > tl_delay_threshold) {
-        dec_count(tl_dec_free);
-        tl_dec_free = 0;
-    }
+    dec_count(oldsize_used);
 
     void* newptr = (*real_realloc)(ptr, size);
     if (!newptr) return nullptr;
 
     size_t newsize_used = MALLOC_USABLE_SIZE(newptr);
-    tl_inc_malloc += newsize_used;
-    if (tl_inc_malloc > tl_delay_threshold) {
-        inc_count(tl_inc_malloc);
-        tl_inc_malloc = 0;
-    }
+    inc_count(newsize_used);
 
     if (log_operations && newsize_used >= log_operations_threshold)
     {
