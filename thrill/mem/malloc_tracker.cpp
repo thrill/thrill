@@ -593,6 +593,11 @@ static void preinit_free(void* ptr) {
  * than the allocated size). On Linux's glibc there is malloc_usable_size().
  */
 
+static thread_local size_t tl_inc_malloc = 0;
+static thread_local size_t tl_dec_free = 0;
+
+static const size_t tl_delay_threshold = 2 * 1024 * 1024;
+
 //! exported malloc symbol that overrides loading from libc
 ATTRIBUTE_NO_SANITIZE
 void * malloc(size_t size) NOEXCEPT {
@@ -609,7 +614,11 @@ void * malloc(size_t size) NOEXCEPT {
     }
 
     size_t size_used = MALLOC_USABLE_SIZE(ret);
-    inc_count(size_used);
+    tl_inc_malloc += size_used;
+    if (tl_inc_malloc > tl_delay_threshold) {
+        inc_count(tl_inc_malloc);
+        tl_inc_malloc = 0;
+    }
 
     if (log_operations && size_used >= log_operations_threshold) {
         fprintf(stderr, PPREFIX "malloc(%zu size / %zu used) = %p   (current %zu / %zu)\n",
@@ -705,7 +714,11 @@ void free(void* ptr) NOEXCEPT {
     }
 
     size_t size_used = MALLOC_USABLE_SIZE(ptr);
-    dec_count(size_used);
+    tl_dec_free += size_used;
+    if (tl_dec_free > tl_delay_threshold) {
+        dec_count(tl_dec_free);
+        tl_dec_free = 0;
+    }
 
     if (log_operations && size_used >= log_operations_threshold) {
         fprintf(stderr, PPREFIX "free(%p) -> %zu   (current %zu / %zu)\n",
@@ -746,13 +759,21 @@ void * realloc(void* ptr, size_t size) NOEXCEPT {
     }
 
     size_t oldsize_used = MALLOC_USABLE_SIZE(ptr);
-    dec_count(oldsize_used);
+    tl_dec_free += oldsize_used;
+    if (tl_dec_free > tl_delay_threshold) {
+        dec_count(tl_dec_free);
+        tl_dec_free = 0;
+    }
 
     void* newptr = (*real_realloc)(ptr, size);
     if (!newptr) return nullptr;
 
     size_t newsize_used = MALLOC_USABLE_SIZE(newptr);
-    inc_count(newsize_used);
+    tl_inc_malloc += newsize_used;
+    if (tl_inc_malloc > tl_delay_threshold) {
+        inc_count(tl_inc_malloc);
+        tl_inc_malloc = 0;
+    }
 
     if (log_operations && newsize_used >= log_operations_threshold)
     {
