@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 ##########################################################################
 # misc/json2graphviz.py
 #
@@ -36,7 +36,7 @@ with open(sys.argv[1], 'r') as json_file:
             nodes[id] = { "label": data["label"],
                           "parents": data["parents"] }
 
-print("digraph {")
+sys.stdout.write("digraph {\n")
 
 # print nodes with nice labels
 for ni, n in nodes.items():
@@ -83,13 +83,13 @@ for ni, n in nodes.items():
 
     sys.stdout.write("];\n")
 
-print()
+sys.stdout.write("\n")
 
 # print edges
 for ni, n in nodes.items():
     for e in n["parents"]:
-        print(" ", e, "->", ni, ";")
+        sys.stdout.write(" " + str(e) + "->" + str(ni) + ";\n")
 
-print("}")
+sys.stdout.write("}\n")
 
 ##########################################################################
