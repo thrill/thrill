@@ -35,38 +35,9 @@
 namespace thrill {
 namespace core {
 
-//! Emitter implementation to plug into a reduce hash table for
-//! collecting/flushing items while reducing. Items flushed in the post-phase
-//! are passed to the next DIA node for processing.
-template <
-    typename KeyValuePair, typename ValueType, typename Emitter, bool SendPair>
-class ReduceByHashPostPhaseEmitter
-{
-public:
-    explicit ReduceByHashPostPhaseEmitter(const Emitter& emit)
-        : emit_(emit) { }
-
-    //! output an element into a partition, template specialized for SendPair
-    //! and non-SendPair types
-    void Emit(const KeyValuePair& p) {
-        ReducePostPhaseEmitterSwitch<
-            KeyValuePair, ValueType, Emitter, SendPair>::Put(p, emit_);
-    }
-
-    //! output an element into a partition, template specialized for SendPair
-    //! and non-SendPair types
-    void Emit(const size_t& /* partition_id */, const KeyValuePair& p) {
-        Emit(p);
-    }
-
-public:
-    //! Set of emitters, one per partition.
-    Emitter emit_;
-};
-
-template <typename ValueType, typename Key, typename Value,
+template <typename TableItem, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction, typename Emitter,
-          const bool SendPair = false,
+          const bool VolatileKey,
           typename ReduceConfig_ = DefaultReduceConfig,
           typename IndexFunction = ReduceByHash<Key>,
           typename EqualToFunction = std::equal_to<Key> >
@@ -75,17 +46,16 @@ class ReduceByHashPostPhase
     static constexpr bool debug = false;
 
 public:
-    using KeyValuePair = std::pair<Key, Value>;
     using ReduceConfig = ReduceConfig_;
-
-    using PhaseEmitter = ReduceByHashPostPhaseEmitter<
-              KeyValuePair, ValueType, Emitter, SendPair>;
+    using PhaseEmitter = ReducePostPhaseEmitter<
+              TableItem, Value, Emitter, VolatileKey>;
 
     using Table = typename ReduceTableSelect<
               ReduceConfig::table_impl_,
-              ValueType, Key, Value,
+              TableItem, Key, Value,
               KeyExtractor, ReduceFunction, PhaseEmitter,
-              !SendPair, ReduceConfig, IndexFunction, EqualToFunction>::type;
+              VolatileKey, ReduceConfig,
+              IndexFunction, EqualToFunction>::type;
 
     /*!
      * A data structure which takes an arbitrary value and extracts a key using
@@ -117,11 +87,7 @@ public:
         table_.Initialize(limit_memory_bytes);
     }
 
-    void Insert(const Value& p) {
-        return table_.Insert(p);
-    }
-
-    void Insert(const KeyValuePair& kv) {
+    void Insert(const TableItem& kv) {
         return table_.Insert(kv);
     }
 
@@ -162,7 +128,7 @@ public:
                     table_.FlushPartitionEmit(
                         id, consume, /* grow */ false,
                         [this, writer](
-                            const size_t& partition_id, const KeyValuePair& p) {
+                            const size_t& partition_id, const TableItem& p) {
                             if (DoCache) writer->Put(p);
                             emitter_.Emit(partition_id, p);
                         });
@@ -213,7 +179,7 @@ public:
                 data::File::ConsumeReader reader = file.GetConsumeReader();
 
                 while (reader.HasNext()) {
-                    subtable.Insert(reader.Next<KeyValuePair>());
+                    subtable.Insert(reader.Next<TableItem>());
                 }
 
                 // after insertion, flush fully reduced partitions and save
@@ -243,7 +209,7 @@ public:
                         subtable.FlushPartitionEmit(
                             id, /* consume */ true, /* grow */ false,
                             [this, writer](
-                                const size_t& partition_id, const KeyValuePair& p) {
+                                const size_t& partition_id, const TableItem& p) {
                                 if (DoCache) writer->Put(p);
                                 emitter_.Emit(partition_id, p);
                             });
@@ -280,7 +246,7 @@ public:
             // previous PushData() has stored data in cache_
             data::File::Reader reader = cache_->GetReader(consume);
             while (reader.HasNext())
-                emitter_.Emit(reader.Next<KeyValuePair>());
+                emitter_.Emit(reader.Next<TableItem>());
         }
     }
 

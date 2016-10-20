@@ -34,33 +34,10 @@
 namespace thrill {
 namespace core {
 
-//! template specialization switch class to output key+value if VolatileKey and
-//! only value if not VolatileKey (RobustKey).
-template <typename KeyValuePair, bool VolatileKey>
-class ReducePrePhaseEmitterSwitch;
-
-template <typename KeyValuePair>
-class ReducePrePhaseEmitterSwitch<KeyValuePair, false>
-{
-public:
-    static void Put(const KeyValuePair& p, data::DynBlockWriter& writer) {
-        writer.Put(p.second);
-    }
-};
-
-template <typename KeyValuePair>
-class ReducePrePhaseEmitterSwitch<KeyValuePair, true>
-{
-public:
-    static void Put(const KeyValuePair& p, data::DynBlockWriter& writer) {
-        writer.Put(p);
-    }
-};
-
 //! Emitter implementation to plug into a reduce hash table for
 //! collecting/flushing items while reducing. Items flushed in the pre-phase are
 //! transmitted via a network Channel.
-template <typename KeyValuePair, bool VolatileKey>
+template <typename TableItem, bool VolatileKey>
 class ReducePrePhaseEmitter
 {
     static constexpr bool debug = false;
@@ -72,11 +49,10 @@ public:
 
     //! output an element into a partition, template specialized for robust and
     //! non-robust keys
-    void Emit(const size_t& partition_id, const KeyValuePair& p) {
+    void Emit(const size_t& partition_id, const TableItem& p) {
         assert(partition_id < writer_.size());
         stats_[partition_id]++;
-        ReducePrePhaseEmitterSwitch<KeyValuePair, VolatileKey>::Put(
-            p, writer_[partition_id]);
+        writer_[partition_id].Put(p);
     }
 
     void Flush(size_t partition_id) {
@@ -101,7 +77,7 @@ public:
     std::vector<size_t> stats_;
 };
 
-template <typename ValueType, typename Key, typename Value,
+template <typename TableItem, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool VolatileKey,
           typename ReduceConfig_ = DefaultReduceConfig,
@@ -112,14 +88,13 @@ class ReducePrePhase
     static constexpr bool debug = false;
 
 public:
-    using KeyValuePair = std::pair<Key, Value>;
     using ReduceConfig = ReduceConfig_;
-
-    using Emitter = ReducePrePhaseEmitter<KeyValuePair, VolatileKey>;
+    using Emitter = ReducePrePhaseEmitter<TableItem, VolatileKey>;
+    using MakeTableItem = ReduceMakeTableItem<Value, TableItem, VolatileKey>;
 
     using Table = typename ReduceTableSelect<
               ReduceConfig::table_impl_,
-              ValueType, Key, Value,
+              TableItem, Key, Value,
               KeyExtractor, ReduceFunction, Emitter,
               VolatileKey, ReduceConfig, IndexFunction, EqualToFunction>::type;
 
@@ -155,12 +130,9 @@ public:
         table_.Initialize(limit_memory_bytes);
     }
 
-    void Insert(const Value& p) {
-        return table_.Insert(p);
-    }
-
-    void Insert(const KeyValuePair& kv) {
-        return table_.Insert(kv);
+    void Insert(const Value& v) {
+        // for VolatileKey this makes std::pair and extracts the key
+        return table_.Insert(MakeTableItem::Make(v, table_.key_extractor()));
     }
 
     //! Flush all partitions

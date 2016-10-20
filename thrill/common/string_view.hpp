@@ -16,8 +16,6 @@
 #ifndef THRILL_COMMON_STRING_VIEW_HEADER
 #define THRILL_COMMON_STRING_VIEW_HEADER
 
-#include <thrill/common/fast_string.hpp>
-
 #include <algorithm>
 #include <ostream>
 #include <string>
@@ -125,11 +123,6 @@ public:
     //! Returns the data of this StringView as an std::string
     std::string ToString() const {
         return std::string(data_, size_);
-    }
-
-    //! Returns the data of this StringView as an FastString
-    FastString ToFastString() const {
-        return FastString::Ref(data_, size_);
     }
 
     // operator std::string () const { return ToString(); }

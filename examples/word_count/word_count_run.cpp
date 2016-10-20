@@ -52,27 +52,6 @@ static void RunWordCount(
     }
 }
 
-static void RunFastWordCount(
-    api::Context& ctx,
-    const std::vector<std::string>& input_filelist, const std::string& output) {
-    ctx.enable_consume();
-
-    auto lines = ReadLines(ctx, input_filelist);
-
-    auto word_pairs = FastWordCount(lines);
-
-    if (output.size()) {
-        word_pairs
-        .Map([](const FastWordCountPair& wc) {
-                 return wc.first.ToString() + ": " + std::to_string(wc.second);
-             })
-        .WriteLines(output);
-    }
-    else {
-        word_pairs.Execute();
-    }
-}
-
 /******************************************************************************/
 // Run methods with generated input, duplicate some code since it makes the
 // example easier to understand.
@@ -103,41 +82,11 @@ static void RunWordCountGenerated(
     }
 }
 
-static void RunFastWordCountGenerated(
-    api::Context& ctx, size_t num_words, const std::string& output) {
-    ctx.enable_consume();
-
-    std::default_random_engine rng(std::random_device { } ());
-
-    auto lines = Generate(
-        ctx, num_words / 10,
-        [&](size_t /* index */) {
-            return RandomTextWriterGenerate(10, rng);
-        });
-
-    auto word_pairs = FastWordCount(lines);
-
-    if (output.size()) {
-        word_pairs
-        .Map([](const FastWordCountPair& wc) {
-                 return wc.first.ToString() + ": " + std::to_string(wc.second);
-             })
-        .WriteLines(output);
-    }
-    else {
-        word_pairs.Execute();
-    }
-}
-
 /******************************************************************************/
 
 int main(int argc, char* argv[]) {
 
     common::CmdlineParser clp;
-
-    bool use_fast_string = false;
-    clp.AddFlag('f', "fast_string", use_fast_string,
-                "use FastString implementation");
 
     std::string output;
     clp.AddString('o', "output", output,
@@ -165,16 +114,10 @@ int main(int argc, char* argv[]) {
                 if (!common::from_str<size_t>(input[0], num_words))
                     die("For generated word data, set input to the number of words.");
 
-                if (use_fast_string)
-                    RunFastWordCountGenerated(ctx, num_words, output);
-                else
-                    RunWordCountGenerated(ctx, num_words, output);
+                RunWordCountGenerated(ctx, num_words, output);
             }
             else {
-                if (use_fast_string)
-                    RunFastWordCount(ctx, input, output);
-                else
-                    RunWordCount(ctx, input, output);
+                RunWordCount(ctx, input, output);
             }
         });
 }

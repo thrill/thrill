@@ -102,8 +102,11 @@ class ReduceTable
 public:
     static constexpr bool debug = false;
 
-    using KeyValuePair = std::pair<Key, Value>;
     using ReduceConfig = ReduceConfig_;
+    using TableItem =
+              typename common::If<
+                  VolatileKey, std::pair<Key, Value>, Value>::type;
+    using MakeTableItem = ReduceMakeTableItem<Value, TableItem, VolatileKey>;
 
     ReduceTable(
         Context& ctx, size_t dia_id,
@@ -230,6 +233,19 @@ public:
             if (file.num_items()) return true;
         }
         return false;
+    }
+
+    //! \}
+
+    //! \name Switches for VolatileKey
+    //! \{
+
+    Key key(const TableItem& t) {
+        return MakeTableItem::GetKey(t, key_extractor_);
+    }
+
+    TableItem reduce(const TableItem& a, const TableItem& b) {
+        return MakeTableItem::Reduce(a, b, reduce_function_);
     }
 
     //! \}

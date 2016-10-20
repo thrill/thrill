@@ -13,5 +13,6 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 endif()
 
 thrill_build_prog(json2profile)
+thrill_build_prog(memprofile2stats)
 
 ################################################################################

@@ -66,19 +66,19 @@ namespace core {
  *         PI..Partition ID
  *
  */
-template <typename ValueType, typename Key, typename Value,
+template <typename TableItem, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction, typename Emitter,
           const bool VolatileKey,
           typename ReduceConfig_,
           typename IndexFunction,
           typename EqualToFunction = std::equal_to<Key> >
 class ReduceOldProbingHashTable
-    : public ReduceTable<ValueType, Key, Value,
+    : public ReduceTable<TableItem, Key, Value,
                          KeyExtractor, ReduceFunction, Emitter,
                          VolatileKey, ReduceConfig_,
                          IndexFunction, EqualToFunction>
 {
-    using Super = ReduceTable<ValueType, Key, Value,
+    using Super = ReduceTable<TableItem, Key, Value,
                               KeyExtractor, ReduceFunction, Emitter,
                               VolatileKey, ReduceConfig_, IndexFunction,
                               EqualToFunction>;
@@ -86,10 +86,8 @@ class ReduceOldProbingHashTable
     static constexpr bool debug_items = false;
 
 public:
-    using KeyValuePair = std::pair<Key, Value>;
     using ReduceConfig = ReduceConfig_;
-
-    using KeyValueIterator = typename std::vector<KeyValuePair>::iterator;
+    using TableItemIterator = typename std::vector<TableItem>::iterator;
 
     ReduceOldProbingHashTable(
         Context& ctx, size_t dia_id,
@@ -125,7 +123,7 @@ public:
         num_buckets_per_partition_ = std::max<size_t>(
             1,
             (size_t)(static_cast<double>(limit_memory_bytes_)
-                     / static_cast<double>(sizeof(KeyValuePair))
+                     / static_cast<double>(sizeof(TableItem))
                      / static_cast<double>(num_partitions_)));
 
         num_buckets_ = num_buckets_per_partition_ * num_partitions_;
@@ -153,14 +151,6 @@ public:
     }
 
     /*!
-     * Inserts a value. Calls the key_extractor_, makes a key-value-pair and
-     * inserts the pair via the Insert() function.
-     */
-    void Insert(const Value& p) {
-        Insert(std::make_pair(key_extractor_(p), p));
-    }
-
-    /*!
      * Inserts a value into the table, potentially reducing it in case both the
      * key of the value already in the table and the key of the value to be
      * inserted are the same.
@@ -174,28 +164,28 @@ public:
      *
      * \param kv Value to be inserted into the table.
      */
-    void Insert(const KeyValuePair& kv) {
+    void Insert(const TableItem& kv) {
 
         while (mem::memory_exceeded && num_items_ != 0)
             SpillAnyPartition();
 
         typename IndexFunction::Result h = index_function_(
-            kv.first, num_partitions_,
+            key(kv), num_partitions_,
             num_buckets_per_partition_, num_buckets_);
 
         assert(h.partition_id < num_partitions_);
 
-        if (kv.first == Key()) {
+        if (key(kv) == Key()) {
             // handle pairs with sentinel key specially by reducing into last
             // element of items.
-            KeyValuePair& sentinel = items_[num_buckets_];
+            TableItem& sentinel = items_[num_buckets_];
             if (sentinel_partition_ == invalid_partition_) {
                 // first occurrence of sentinel key
                 sentinel = kv;
                 sentinel_partition_ = h.partition_id;
             }
             else {
-                sentinel.second = reduce_function_(sentinel.second, kv.second);
+                sentinel = reduce(sentinel, kv);
             }
             ++items_per_partition_[h.partition_id];
             ++num_items_;
@@ -208,22 +198,22 @@ public:
 
         size_t local_index = h.local_index(num_buckets_per_partition_);
 
-        KeyValueIterator pbegin =
+        TableItemIterator pbegin =
             items_.begin() + h.partition_id * num_buckets_per_partition_;
-        KeyValueIterator pend = pbegin + num_buckets_per_partition_;
+        TableItemIterator pend = pbegin + num_buckets_per_partition_;
 
-        KeyValueIterator begin_iter = pbegin + local_index;
-        KeyValueIterator iter = begin_iter;
+        TableItemIterator begin_iter = pbegin + local_index;
+        TableItemIterator iter = begin_iter;
 
-        while (!equal_to_function_(iter->first, Key()))
+        while (!equal_to_function_(key(*iter), Key()))
         {
-            if (equal_to_function_(iter->first, kv.first))
+            if (equal_to_function_(key(*iter), key(kv)))
             {
                 LOGC(debug_items)
-                    << "match of key: " << kv.first
-                    << " and " << iter->first << " ... reducing...";
+                    << "match of key: " << key(kv)
+                    << " and " << key(*iter) << " ... reducing...";
 
-                iter->second = reduce_function_(iter->second, kv.second);
+                *iter = reduce(*iter, kv);
 
                 return;
             }
@@ -262,7 +252,7 @@ public:
 
     //! Deallocate memory
     void Dispose() {
-        std::vector<KeyValuePair>().swap(items_);
+        std::vector<TableItem>().swap(items_);
         Super::Dispose();
     }
 
@@ -287,21 +277,21 @@ public:
 
         if (sentinel_partition_ == partition_id) {
             writer.Put(items_[num_buckets_]);
-            items_[num_buckets_] = KeyValuePair();
+            items_[num_buckets_] = TableItem();
             sentinel_partition_ = invalid_partition_;
         }
 
-        KeyValueIterator iter =
+        TableItemIterator iter =
             items_.begin() + partition_id * num_buckets_per_partition_;
-        KeyValueIterator end =
+        TableItemIterator end =
             items_.begin() + (partition_id + 1) * num_buckets_per_partition_;
 
         for ( ; iter != end; ++iter)
         {
-            if (iter->first != Key())
+            if (key(*iter) != Key())
             {
                 writer.Put(*iter);
-                *iter = KeyValuePair();
+                *iter = TableItem();
             }
         }
 
@@ -355,23 +345,23 @@ public:
         if (sentinel_partition_ == partition_id) {
             emit(partition_id, items_[num_buckets_]);
             if (consume) {
-                items_[num_buckets_] = KeyValuePair();
+                items_[num_buckets_] = TableItem();
                 sentinel_partition_ = invalid_partition_;
             }
         }
 
-        KeyValueIterator iter =
+        TableItemIterator iter =
             items_.begin() + partition_id * num_buckets_per_partition_;
-        KeyValueIterator end =
+        TableItemIterator end =
             items_.begin() + (partition_id + 1) * num_buckets_per_partition_;
 
         for ( ; iter != end; ++iter)
         {
-            if (iter->first != Key()) {
+            if (key(*iter) != Key()) {
                 emit(partition_id, *iter);
 
                 if (consume)
-                    *iter = KeyValuePair();
+                    *iter = TableItem();
             }
         }
 
@@ -388,7 +378,7 @@ public:
     void FlushPartition(size_t partition_id, bool consume, bool grow) {
         FlushPartitionEmit(
             partition_id, consume, grow,
-            [this](const size_t& partition_id, const KeyValuePair& p) {
+            [this](const size_t& partition_id, const TableItem& p) {
                 this->emitter_.Emit(partition_id, p);
             });
     }
@@ -407,7 +397,7 @@ private:
     using Super::immediate_flush_;
     using Super::index_function_;
     using Super::items_per_partition_;
-    using Super::key_extractor_;
+    using Super::key;
     using Super::limit_items_per_partition_;
     using Super::limit_memory_bytes_;
     using Super::num_buckets_;
@@ -415,10 +405,10 @@ private:
     using Super::num_items_;
     using Super::num_partitions_;
     using Super::partition_files_;
-    using Super::reduce_function_;
+    using Super::reduce;
 
     //! Storing the actual hash table.
-    std::vector<KeyValuePair> items_;
+    std::vector<TableItem> items_;
 
     //! sentinel for invalid partition or no sentinel.
     static constexpr size_t invalid_partition_ = size_t(-1);
@@ -429,19 +419,19 @@ private:
     size_t sentinel_partition_ = invalid_partition_;
 };
 
-template <typename ValueType, typename Key, typename Value,
+template <typename TableItem, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           typename Emitter, const bool VolatileKey,
           typename ReduceConfig, typename IndexFunction,
           typename EqualToFunction>
 class ReduceTableSelect<
         ReduceTableImpl::OLD_PROBING,
-        ValueType, Key, Value, KeyExtractor, ReduceFunction,
+        TableItem, Key, Value, KeyExtractor, ReduceFunction,
         Emitter, VolatileKey, ReduceConfig, IndexFunction, EqualToFunction>
 {
 public:
     using type = ReduceOldProbingHashTable<
-              ValueType, Key, Value, KeyExtractor, ReduceFunction,
+              TableItem, Key, Value, KeyExtractor, ReduceFunction,
               Emitter, VolatileKey, ReduceConfig,
               IndexFunction, EqualToFunction>;
 };
