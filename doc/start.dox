@@ -172,6 +172,18 @@ $ ~/thrill/build/misc/json2profile ourlog*.json > ourlog.html
 
 And open `ourlog.html` using a web browser to see an execution profile.
 
+It is also possible to create a .dot file of the dataflow graph using the following python code snippet
+(example for the previous page rank example):
+
+\code
+$ cd ~/thrill/misc
+$ python json2graphviz.py ~thrill/build/examples/page_rank/ourlog-host0.json > page_rank.dot
+\endcode
+
+The resulting .dot file can be used by graph drawing tools such as GraphViz.
+
+
+
 */
 
 } // namespace thrill
