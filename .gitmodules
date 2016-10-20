@@ -10,3 +10,4 @@
 [submodule "extlib/aws-sdk-cpp"]
 	path = extlib/aws-sdk-cpp
         url = https://github.com/aws/aws-sdk-cpp.git
+        ignore = all
