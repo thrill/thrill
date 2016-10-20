@@ -17,7 +17,6 @@
 #define THRILL_EXAMPLES_WORD_COUNT_WORD_COUNT_HEADER
 
 #include <thrill/api/reduce_by_key.hpp>
-#include <thrill/common/fast_string.hpp>
 #include <thrill/common/string_view.hpp>
 
 #include <string>
@@ -53,33 +52,6 @@ auto WordCount(const DIA<std::string, InputStack>&input) {
         [](const WordCountPair& a, const WordCountPair& b) -> WordCountPair {
             /* associative reduction operator: add counters */
             return WordCountPair(a.first, a.second + b.second);
-        });
-}
-
-/******************************************************************************/
-
-using FastWordCountPair = std::pair<common::FastString, size_t>;
-
-//! An optimized WordCount user program: reads a DIA containing std::string
-//! words, and returns a DIA containing WordCountPairs. In the reduce step our
-//! FastString implementation is used to reduce the number of allocations.
-template <typename InputStack>
-auto FastWordCount(const DIA<std::string, InputStack>&input) {
-
-    auto word_pairs = input.template FlatMap<FastWordCountPair>(
-        [](const std::string& line, auto emit) -> void {
-                /* map lambda: emit each word */
-            common::SplitView(
-                line, ' ', [&](const common::StringView& sv) {
-                    if (sv.size() == 0) return;
-                    emit(FastWordCountPair(sv.ToFastString(), 1));
-                });
-        });
-
-    return word_pairs.ReducePair(
-        [](const size_t& a, const size_t& b) {
-                /* associative reduction operator: add counters */
-            return a + b;
         });
 }
 

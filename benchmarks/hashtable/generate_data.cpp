@@ -13,7 +13,6 @@
 #include <thrill/api/generate.hpp>
 #include <thrill/api/write_binary.hpp>
 #include <thrill/common/cmdline_parser.hpp>
-#include <thrill/common/fast_string.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/stats_timer.hpp>
 
