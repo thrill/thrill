@@ -631,61 +631,20 @@ void * malloc(size_t size) NOEXCEPT {
         if (size_used >= log_operations_threshold && !recursive) {
             recursive = true;
 
-/*[[[perl
-  # depth of call stack to print
-  my $depth = 16;
-
-  print <<EOF;
-            // storage array for stack trace address data
-            void* addrlist[$depth + 1];
-
-            // retrieve current stack addresses
-            int addrlen = backtrace(addrlist, sizeof(addrlist) / sizeof(void*));
-
-EOF
-
-  for my $d (3...$depth-1) {
-    print("fprintf(stdout, PPREFIX \"caller".(" %p"x$d)." size %zu\\n\",\n");
-    print("        ".join("", map("addrlist[$_], ", 0...$d-1))." size);");
-  }
-  ]]]*/
             // storage array for stack trace address data
             void* addrlist[16 + 1];
+            memset(addrlist, 0, sizeof(addrlist));
 
             // retrieve current stack addresses
             int addrlen = backtrace(addrlist, sizeof(addrlist) / sizeof(void*));
 
-            fprintf(stdout, PPREFIX "caller %p %p %p size %zu\n",
-                    addrlist[0], addrlist[1], addrlist[2], size);
-            fprintf(stdout, PPREFIX "caller %p %p %p %p size %zu\n",
-                    addrlist[0], addrlist[1], addrlist[2], addrlist[3], size);
-            fprintf(stdout, PPREFIX "caller %p %p %p %p %p size %zu\n",
-                    addrlist[0], addrlist[1], addrlist[2], addrlist[3], addrlist[4], size);
-            fprintf(stdout, PPREFIX "caller %p %p %p %p %p %p size %zu\n",
-                    addrlist[0], addrlist[1], addrlist[2], addrlist[3], addrlist[4], addrlist[5], size);
-            fprintf(stdout, PPREFIX "caller %p %p %p %p %p %p %p size %zu\n",
-                    addrlist[0], addrlist[1], addrlist[2], addrlist[3], addrlist[4], addrlist[5], addrlist[6], size);
-            fprintf(stdout, PPREFIX "caller %p %p %p %p %p %p %p %p size %zu\n",
-                    addrlist[0], addrlist[1], addrlist[2], addrlist[3], addrlist[4], addrlist[5], addrlist[6], addrlist[7], size);
-            fprintf(stdout, PPREFIX "caller %p %p %p %p %p %p %p %p %p size %zu\n",
-                    addrlist[0], addrlist[1], addrlist[2], addrlist[3], addrlist[4], addrlist[5], addrlist[6], addrlist[7], addrlist[8], size);
-            fprintf(stdout, PPREFIX "caller %p %p %p %p %p %p %p %p %p %p size %zu\n",
-                    addrlist[0], addrlist[1], addrlist[2], addrlist[3], addrlist[4], addrlist[5], addrlist[6], addrlist[7], addrlist[8], addrlist[9], size);
-            fprintf(stdout, PPREFIX "caller %p %p %p %p %p %p %p %p %p %p %p size %zu\n",
-                    addrlist[0], addrlist[1], addrlist[2], addrlist[3], addrlist[4], addrlist[5], addrlist[6], addrlist[7], addrlist[8], addrlist[9], addrlist[10], size);
-            fprintf(stdout, PPREFIX "caller %p %p %p %p %p %p %p %p %p %p %p %p size %zu\n",
-                    addrlist[0], addrlist[1], addrlist[2], addrlist[3], addrlist[4], addrlist[5], addrlist[6], addrlist[7], addrlist[8], addrlist[9], addrlist[10], addrlist[11], size);
-            fprintf(stdout, PPREFIX "caller %p %p %p %p %p %p %p %p %p %p %p %p %p size %zu\n",
-                    addrlist[0], addrlist[1], addrlist[2], addrlist[3], addrlist[4], addrlist[5], addrlist[6], addrlist[7], addrlist[8], addrlist[9], addrlist[10], addrlist[11], addrlist[12], size);
-            fprintf(stdout, PPREFIX "caller %p %p %p %p %p %p %p %p %p %p %p %p %p %p size %zu\n",
-                    addrlist[0], addrlist[1], addrlist[2], addrlist[3], addrlist[4], addrlist[5], addrlist[6], addrlist[7], addrlist[8], addrlist[9], addrlist[10], addrlist[11], addrlist[12], addrlist[13], size);
-            fprintf(stdout, PPREFIX "caller %p %p %p %p %p %p %p %p %p %p %p %p %p %p %p size %zu\n",
-                    addrlist[0], addrlist[1], addrlist[2], addrlist[3], addrlist[4], addrlist[5], addrlist[6], addrlist[7], addrlist[8], addrlist[9], addrlist[10], addrlist[11], addrlist[12], addrlist[13], addrlist[14], size);
-// [[[end]]]
-
-            // fprintf(stderr, "--- begin stack -------------------------------\n");
-            // backtrace_symbols_fd(addrlist, addrlen, STDERR_FILENO);
-            // fprintf(stderr, "--- end stack ---------------------------------\n");
+            fprintf(stdout,
+                    PPREFIX "profile %zu %p %p %p %p %p %p %p %p %p %p %p %p %p %p %p %p\n",
+                    size,
+                    addrlist[0], addrlist[1], addrlist[2], addrlist[3],
+                    addrlist[4], addrlist[5], addrlist[6], addrlist[7],
+                    addrlist[8], addrlist[9], addrlist[10], addrlist[11],
+                    addrlist[12], addrlist[13], addrlist[14], addrlist[15]);
 
             recursive = false;
         }
