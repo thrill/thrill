@@ -232,9 +232,9 @@ public:
         {
             if (equal_to_function_(key(*iter), key(kv)))
             {
-                LOGC(debug_items)
-                    << "match of key: " << key(kv)
-                    << " and " << key(*iter) << " ... reducing...";
+                // LOGC(debug_items)
+                //     << "match of key: " << key(kv)
+                //     << " and " << key(*iter) << " ... reducing...";
 
                 *iter = reduce(*iter, kv);
 

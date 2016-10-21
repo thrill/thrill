@@ -55,8 +55,62 @@ auto WordCount(const DIA<std::string, InputStack>&input) {
         });
 }
 
+/******************************************************************************/
+
+using HashWord = std::pair<size_t, std::string>;
+using HashWordCount = std::pair<HashWord, size_t>;
+
+//! The second WordCount user program: reads a DIA containing std::string words,
+//! creates hash values from the words prior to reducing by hash and
+//! word. Returns a DIA containing WordCountPairs.
+template <typename InputStack>
+auto HashWordCountExample(const DIA<std::string, InputStack>&input) {
+
+    std::hash<std::string> string_hasher;
+
+    auto r =
+        input
+        .template FlatMap<std::string>(
+            [](const std::string& line, auto emit) {
+                /* map lambda: emit each word */
+                common::SplitView(
+                    line, ' ', [&](const common::StringView& sv) {
+                        if (sv.size() == 0) return;
+                        emit(sv.ToString());
+                    });
+            })
+        .Map([&](const std::string& word) {
+                 return HashWordCount(HashWord(string_hasher(word), word), 1);
+             })
+        .ReduceByKey(
+            [](const HashWordCount& in) {
+                /* reduction key: the word string */
+                return in.first;
+            },
+            [](const HashWordCount& a, const HashWordCount& b) {
+                /* associative reduction operator: add counters */
+                return HashWordCount(a.first, a.second + b.second);
+            })
+        .Map([](const HashWordCount& in) {
+                 return WordCountPair(in.first.second, in.second);
+             });
+    return r;
+}
+
 } // namespace word_count
 } // namespace examples
+
+namespace std {
+
+template <>
+struct hash<examples::word_count::HashWord>{
+    size_t operator () (const examples::word_count::HashWord& w) const {
+        // return first which is the hash of the word
+        return w.first;
+    }
+};
+
+} // namespace std
 
 #endif // !THRILL_EXAMPLES_WORD_COUNT_WORD_COUNT_HEADER
 
