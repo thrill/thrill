@@ -37,7 +37,7 @@ template <typename TableItem, typename Key, typename Value,
           const bool VolatileKey,
           typename ReduceConfig_ = DefaultReduceConfig,
           typename IndexFunction = ReduceByIndex<Key>,
-          typename EqualToFunction = std::equal_to<Key> >
+          typename KeyEqualFunction = std::equal_to<Key> >
 class ReduceByIndexPostPhase
 {
     static constexpr bool debug = false;
@@ -53,7 +53,7 @@ public:
               TableItem, Key, Value,
               KeyExtractor, ReduceFunction, PhaseEmitter,
               VolatileKey, ReduceConfig,
-              IndexFunction, EqualToFunction>::type;
+              IndexFunction, KeyEqualFunction>::type;
 
     /*!
      * A data structure which takes an arbitrary value and extracts a key using
@@ -69,14 +69,14 @@ public:
         const ReduceConfig& config = ReduceConfig(),
         const IndexFunction& index_function = IndexFunction(),
         const Value& neutral_element = Value(),
-        const EqualToFunction& equal_to_function = EqualToFunction())
+        const KeyEqualFunction& key_equal_function = KeyEqualFunction())
         : config_(config),
           emitter_(emitter),
           table_(ctx, dia_id,
                  key_extractor, reduce_function, emitter_,
                  /* num_partitions */ 32, /* TODO(tb): parameterize */
                  config, false,
-                 index_function, equal_to_function),
+                 index_function, key_equal_function),
           neutral_element_(neutral_element) { }
 
     //! non-copyable: delete copy-constructor
@@ -230,7 +230,7 @@ public:
             table_.key_extractor(), table_.reduce_function(), emitter_,
             /* num_partitions */ 32, config_, false,
             table_.index_function(),
-            table_.equal_to_function());
+            table_.key_equal_function());
 
         subtable.Initialize(table_.limit_memory_bytes());
 

@@ -83,17 +83,17 @@ template <typename TableItem, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction, typename Emitter,
           const bool VolatileKey,
           typename ReduceConfig, typename IndexFunction,
-          typename EqualToFunction = std::equal_to<Key> >
+          typename KeyEqualFunction = std::equal_to<Key> >
 class ReduceBucketHashTable
     : public ReduceTable<TableItem, Key, Value,
                          KeyExtractor, ReduceFunction, Emitter,
                          VolatileKey, ReduceConfig, IndexFunction,
-                         EqualToFunction>
+                         KeyEqualFunction>
 {
     using Super = ReduceTable<TableItem, Key, Value,
                               KeyExtractor, ReduceFunction, Emitter,
                               VolatileKey, ReduceConfig, IndexFunction,
-                              EqualToFunction>;
+                              KeyEqualFunction>;
 
     using Super::debug;
     static constexpr bool debug_items = false;
@@ -140,11 +140,11 @@ public:
         const ReduceConfig& config = ReduceConfig(),
         bool immediate_flush = false,
         const IndexFunction& index_function = IndexFunction(),
-        const EqualToFunction& equal_to_function = EqualToFunction())
+        const KeyEqualFunction& key_equal_function = KeyEqualFunction())
         : Super(ctx, dia_id,
                 key_extractor, reduce_function, emitter,
                 num_partitions, config, immediate_flush,
-                index_function, equal_to_function) {
+                index_function, key_equal_function) {
 
         assert(num_partitions > 0);
     }
@@ -261,9 +261,6 @@ public:
             key(kv), num_partitions_,
             num_buckets_per_partition_, num_buckets_);
 
-        // sLOG << "kv" << key(kv) << "-" << kv.second
-        //      << "to partition" << h.partition_id << "bucket" << h.global_index;
-
         size_t local_index = h.local_index(num_buckets_per_partition_);
 
         assert(h.partition_id < num_partitions_);
@@ -280,31 +277,22 @@ public:
                  bi != current->items + current->size; ++bi)
             {
                 // if item and key equals, then reduce.
-                if (equal_to_function_(key(kv), key(*bi)))
+                if (key_equal_function_(key(kv), key(*bi)))
                 {
-                    LOGC(debug_items)
-                        << "match of key: " << key(kv)
-                        << " and " << key(*bi) << " ... reducing...";
-
                     *bi = reduce(*bi, kv);
                     return;
                 }
             }
-
             current = current->next;
         }
 
-        //////
         // have an item that needs to be added.
-        //////
 
         current = buckets_[global_index];
 
         if (current == nullptr || current->size == block_size_)
         {
-            //////
             // new block needed.
-            //////
 
             // flush largest partition if max number of blocks reached
             while (num_blocks_ > limit_blocks_)
@@ -613,11 +601,11 @@ protected:
 
 private:
     using Super::config_;
-    using Super::equal_to_function_;
     using Super::immediate_flush_;
     using Super::index_function_;
     using Super::items_per_partition_;
     using Super::key;
+    using Super::key_equal_function_;
     using Super::limit_items_per_partition_;
     using Super::limit_memory_bytes_;
     using Super::num_buckets_;
@@ -660,17 +648,17 @@ template <typename TableItem, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           typename Emitter, const bool VolatileKey,
           typename ReduceConfig, typename IndexFunction,
-          typename EqualToFunction>
+          typename KeyEqualFunction>
 class ReduceTableSelect<
         ReduceTableImpl::BUCKET,
         TableItem, Key, Value, KeyExtractor, ReduceFunction,
-        Emitter, VolatileKey, ReduceConfig, IndexFunction, EqualToFunction>
+        Emitter, VolatileKey, ReduceConfig, IndexFunction, KeyEqualFunction>
 {
 public:
     using type = ReduceBucketHashTable<
               TableItem, Key, Value, KeyExtractor, ReduceFunction,
               Emitter, VolatileKey, ReduceConfig,
-              IndexFunction, EqualToFunction>;
+              IndexFunction, KeyEqualFunction>;
 };
 
 } // namespace core

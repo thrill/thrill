@@ -52,6 +52,27 @@ static void RunWordCount(
     }
 }
 
+static void RunHashWordCount(
+    api::Context& ctx,
+    const std::vector<std::string>& input_filelist, const std::string& output) {
+    ctx.enable_consume();
+
+    auto lines = ReadLines(ctx, input_filelist);
+
+    auto word_pairs = HashWordCountExample(lines);
+
+    if (output.size()) {
+        word_pairs
+        .Map([](const WordCountPair& wc) {
+                 return wc.first + ": " + std::to_string(wc.second);
+             })
+        .WriteLines(output);
+    }
+    else {
+        word_pairs.Execute();
+    }
+}
+
 /******************************************************************************/
 // Run methods with generated input, duplicate some code since it makes the
 // example easier to understand.
@@ -69,6 +90,32 @@ static void RunWordCountGenerated(
         });
 
     auto word_pairs = WordCount(lines);
+
+    if (output.size()) {
+        word_pairs
+        .Map([](const WordCountPair& wc) {
+                 return wc.first + ": " + std::to_string(wc.second);
+             })
+        .WriteLines(output);
+    }
+    else {
+        word_pairs.Execute();
+    }
+}
+
+static void RunHashWordCountGenerated(
+    api::Context& ctx, size_t num_words, const std::string& output) {
+    ctx.enable_consume();
+
+    std::default_random_engine rng(std::random_device { } ());
+
+    auto lines = Generate(
+        ctx, num_words / 10,
+        [&](size_t /* index */) {
+            return RandomTextWriterGenerate(10, rng);
+        });
+
+    auto word_pairs = HashWordCountExample(lines);
 
     if (output.size()) {
         word_pairs
@@ -101,6 +148,11 @@ int main(int argc, char* argv[]) {
                 "generate random words, first file pattern "
                 "specifies approximately how many.");
 
+    bool hash_words = false;
+    clp.AddFlag('H', "hash_words", hash_words,
+                "explicitly calculate hash values for words "
+                "to accelerate reduction.");
+
     if (!clp.Process(argc, argv)) {
         return -1;
     }
@@ -114,10 +166,16 @@ int main(int argc, char* argv[]) {
                 if (!common::from_str<size_t>(input[0], num_words))
                     die("For generated word data, set input to the number of words.");
 
-                RunWordCountGenerated(ctx, num_words, output);
+                if (hash_words)
+                    RunHashWordCountGenerated(ctx, num_words, output);
+                else
+                    RunWordCountGenerated(ctx, num_words, output);
             }
             else {
-                RunWordCount(ctx, input, output);
+                if (hash_words)
+                    RunWordCount(ctx, input, output);
+                else
+                    RunHashWordCount(ctx, input, output);
             }
         });
 }

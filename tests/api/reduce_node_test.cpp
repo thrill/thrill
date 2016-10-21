@@ -23,6 +23,23 @@
 using namespace thrill; // NOLINT
 using core::ReduceTableImpl;
 
+struct MyStruct {
+    size_t x;
+};
+
+struct MyStructHash {
+    size_t operator () (const MyStruct& a) const {
+        return hasher_(a.x);
+    }
+    std::hash<size_t> hasher_;
+};
+
+struct MyStructEqual {
+    size_t operator () (const MyStruct& a, const MyStruct& b) const {
+        return a.x == b.x;
+    }
+};
+
 template <ReduceTableImpl table_impl>
 class TestReduceModulo2CorrectResults
 {
@@ -35,7 +52,7 @@ public:
             });
 
         auto modulo_two = [](size_t in) {
-                              return (in % 4);
+                              return MyStruct { in % 4 };
                           };
 
         auto add_function = [](const size_t& in1, const size_t& in2) {
@@ -44,7 +61,8 @@ public:
 
         auto reduced = integers.ReduceByKey(
             VolatileKeyTag, modulo_two, add_function,
-            core::DefaultReduceConfigSelect<table_impl>());
+            core::DefaultReduceConfigSelect<table_impl>(),
+            MyStructHash(), MyStructEqual());
 
         std::vector<size_t> out_vec = reduced.AllGather();
         ASSERT_EQ(4u, out_vec.size());

@@ -174,9 +174,8 @@ struct LocalStats {
 
 #if HAVE_THREAD_LOCAL
 static thread_local LocalStats tl_stats = { 0, 0, 0 };
-#endif
-
 static const ssize_t tl_delay_threshold = 2 * 1024 * 1024;
+#endif
 
 ATTRIBUTE_NO_SANITIZE
 void update_peak(size_t float_curr, size_t base_curr) {
