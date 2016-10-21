@@ -57,7 +57,11 @@ public:
     };
 
     explicit ReduceByHash(
-        const uint64_t& salt = 0,
+        const HashFunction& hash_function = HashFunction())
+        : ReduceByHash(/* salt */ 0, hash_function) { }
+
+    explicit ReduceByHash(
+        const uint64_t& salt,
         const HashFunction& hash_function = HashFunction())
         : salt_(salt), hash_function_(hash_function) { }
 

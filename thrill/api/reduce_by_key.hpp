@@ -73,6 +73,8 @@ class ReduceNode final : public DOpNode<ValueType>
               typename common::If<
                   VolatileKey, std::pair<Key, ValueType>, ValueType>::type;
 
+    using HashIndexFunction = core::ReduceByHash<Key, KeyHashFunction>;
+
     static constexpr bool use_mix_stream_ = ReduceConfig::use_mix_stream_;
     static constexpr bool use_post_thread_ = ReduceConfig::use_post_thread_;
 
@@ -100,8 +102,8 @@ public:
                const KeyExtractor& key_extractor,
                const ReduceFunction& reduce_function,
                const ReduceConfig& config,
-               const KeyHashFunction& /* key_hash_function */,
-               const KeyEqualFunction& /* key_equal_funtion */)
+               const KeyHashFunction& key_hash_function,
+               const KeyEqualFunction& key_equal_function)
         : Super(parent.ctx(), label, { parent.id() }, { parent.node() }),
           mix_stream_(use_mix_stream_ ?
                       parent.ctx().GetNewMixStream(this) : nullptr),
@@ -111,10 +113,12 @@ public:
                     mix_stream_->GetWriters() : cat_stream_->GetWriters()),
           pre_phase_(
               context_, Super::id(), parent.ctx().num_workers(),
-              key_extractor, reduce_function, emitters_, config),
+              key_extractor, reduce_function, emitters_, config,
+              HashIndexFunction(key_hash_function), key_equal_function),
           post_phase_(
               context_, Super::id(), key_extractor, reduce_function,
-              Emitter(this), config)
+              Emitter(this), config,
+              HashIndexFunction(key_hash_function), key_equal_function)
     {
         // Hook PreOp: Locally hash elements of the current DIA onto buckets and
         // reduce each bucket to a single value, afterwards send data to another
@@ -216,11 +220,12 @@ private:
 
     core::ReducePrePhase<
         TableItem, Key, ValueType, KeyExtractor, ReduceFunction, VolatileKey,
-        ReduceConfig> pre_phase_;
+        ReduceConfig, HashIndexFunction, KeyEqualFunction> pre_phase_;
 
     core::ReduceByHashPostPhase<
         TableItem, Key, ValueType, KeyExtractor, ReduceFunction, Emitter,
-        VolatileKey, ReduceConfig> post_phase_;
+        VolatileKey, ReduceConfig,
+        HashIndexFunction, KeyEqualFunction> post_phase_;
 
     bool reduced_ = false;
 };
