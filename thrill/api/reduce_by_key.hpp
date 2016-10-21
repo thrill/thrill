@@ -58,7 +58,8 @@ class DefaultReduceConfig : public core::DefaultReduceConfig
  */
 template <typename ValueType,
           typename KeyExtractor, typename ReduceFunction,
-          typename ReduceConfig, const bool VolatileKey>
+          typename ReduceConfig, typename KeyHashFunction,
+          typename KeyEqualFunction, const bool VolatileKey>
 class ReduceNode final : public DOpNode<ValueType>
 {
     static constexpr bool debug = false;
@@ -98,7 +99,9 @@ public:
                const char* label,
                const KeyExtractor& key_extractor,
                const ReduceFunction& reduce_function,
-               const ReduceConfig& config)
+               const ReduceConfig& config,
+               const KeyHashFunction& /* key_hash_function */,
+               const KeyEqualFunction& /* key_equal_funtion */)
         : Super(parent.ctx(), label, { parent.id() }, { parent.node() }),
           mix_stream_(use_mix_stream_ ?
                       parent.ctx().GetNewMixStream(this) : nullptr),
@@ -228,6 +231,35 @@ auto DIA<ValueType, Stack>::ReduceByKey(
     const KeyExtractor &key_extractor,
     const ReduceFunction &reduce_function,
     const ReduceConfig &reduce_config) const {
+    // forward to main function
+    using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
+    return ReduceByKey(key_extractor, reduce_function, reduce_config,
+                       std::hash<Key>(), std::equal_to<Key>());
+}
+
+template <typename ValueType, typename Stack>
+template <typename KeyExtractor, typename ReduceFunction,
+          typename ReduceConfig, typename KeyHashFunction>
+auto DIA<ValueType, Stack>::ReduceByKey(
+    const KeyExtractor &key_extractor,
+    const ReduceFunction &reduce_function,
+    const ReduceConfig &reduce_config,
+    const KeyHashFunction &key_hash_function) const {
+    // forward to main function
+    using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
+    return ReduceByKey(key_extractor, reduce_function, reduce_config,
+                       key_hash_function, std::equal_to<Key>());
+}
+
+template <typename ValueType, typename Stack>
+template <typename KeyExtractor, typename ReduceFunction, typename ReduceConfig,
+          typename KeyHashFunction, typename KeyEqualFunction>
+auto DIA<ValueType, Stack>::ReduceByKey(
+    const KeyExtractor &key_extractor,
+    const ReduceFunction &reduce_function,
+    const ReduceConfig &reduce_config,
+    const KeyHashFunction &key_hash_function,
+    const KeyEqualFunction &key_equal_funtion) const {
     assert(IsValid());
 
     using DOpResult
@@ -262,9 +294,11 @@ auto DIA<ValueType, Stack>::ReduceByKey(
 
     using ReduceNode = api::ReduceNode<
               DOpResult, KeyExtractor, ReduceFunction, ReduceConfig,
-              /* VolatileKey */ false>;
+              KeyHashFunction, KeyEqualFunction, /* VolatileKey */ false>;
     auto node = common::MakeCounting<ReduceNode>(
-        *this, "ReduceByKey", key_extractor, reduce_function, reduce_config);
+        *this, "ReduceByKey",
+        key_extractor, reduce_function, reduce_config,
+        key_hash_function, key_equal_funtion);
 
     return DIA<DOpResult>(node);
 }
@@ -272,10 +306,43 @@ auto DIA<ValueType, Stack>::ReduceByKey(
 template <typename ValueType, typename Stack>
 template <typename KeyExtractor, typename ReduceFunction, typename ReduceConfig>
 auto DIA<ValueType, Stack>::ReduceByKey(
-    struct VolatileKeyTag const &,
+    struct VolatileKeyTag const & volatile_key_tag,
     const KeyExtractor &key_extractor,
     const ReduceFunction &reduce_function,
     const ReduceConfig &reduce_config) const {
+    // forward to main function
+    using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
+    return ReduceByKey(volatile_key_tag,
+                       key_extractor, reduce_function, reduce_config,
+                       std::hash<Key>(), std::equal_to<Key>());
+}
+
+template <typename ValueType, typename Stack>
+template <typename KeyExtractor, typename ReduceFunction,
+          typename ReduceConfig, typename KeyHashFunction>
+auto DIA<ValueType, Stack>::ReduceByKey(
+    struct VolatileKeyTag const & volatile_key_tag,
+    const KeyExtractor &key_extractor,
+    const ReduceFunction &reduce_function,
+    const ReduceConfig &reduce_config,
+    const KeyHashFunction &key_hash_function) const {
+    // forward to main function
+    using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
+    return ReduceByKey(volatile_key_tag,
+                       key_extractor, reduce_function, reduce_config,
+                       key_hash_function, std::equal_to<Key>());
+}
+
+template <typename ValueType, typename Stack>
+template <typename KeyExtractor, typename ReduceFunction, typename ReduceConfig,
+          typename KeyHashFunction, typename KeyEqualFunction>
+auto DIA<ValueType, Stack>::ReduceByKey(
+    struct VolatileKeyTag const &,
+    const KeyExtractor &key_extractor,
+    const ReduceFunction &reduce_function,
+    const ReduceConfig &reduce_config,
+    const KeyHashFunction &key_hash_function,
+    const KeyEqualFunction &key_equal_funtion) const {
     assert(IsValid());
 
     using DOpResult
@@ -310,10 +377,12 @@ auto DIA<ValueType, Stack>::ReduceByKey(
 
     using ReduceNode = api::ReduceNode<
               DOpResult, KeyExtractor, ReduceFunction, ReduceConfig,
-              /* VolatileKey */ true>;
+              KeyHashFunction, KeyEqualFunction, /* VolatileKey */ true>;
 
     auto node = common::MakeCounting<ReduceNode>(
-        *this, "ReduceByKey", key_extractor, reduce_function, reduce_config);
+        *this, "ReduceByKey",
+        key_extractor, reduce_function, reduce_config,
+        key_hash_function, key_equal_funtion);
 
     return DIA<DOpResult>(node);
 }
@@ -323,6 +392,33 @@ template <typename ReduceFunction, typename ReduceConfig>
 auto DIA<ValueType, Stack>::ReducePair(
     const ReduceFunction &reduce_function,
     const ReduceConfig &reduce_config) const {
+    // forward to main function
+    using Key = typename ValueType::first_type;
+    return ReducePair(reduce_function, reduce_config,
+                      std::hash<Key>(), std::equal_to<Key>());
+}
+
+template <typename ValueType, typename Stack>
+template <typename ReduceFunction,
+          typename ReduceConfig, typename KeyHashFunction>
+auto DIA<ValueType, Stack>::ReducePair(
+    const ReduceFunction &reduce_function,
+    const ReduceConfig &reduce_config,
+    const KeyHashFunction &key_hash_function) const {
+    // forward to main function
+    using Key = typename ValueType::first_type;
+    return ReduceByKey(reduce_function, reduce_config,
+                       key_hash_function, std::equal_to<Key>());
+}
+
+template <typename ValueType, typename Stack>
+template <typename ReduceFunction, typename ReduceConfig,
+          typename KeyHashFunction, typename KeyEqualFunction>
+auto DIA<ValueType, Stack>::ReducePair(
+    const ReduceFunction &reduce_function,
+    const ReduceConfig &reduce_config,
+    const KeyHashFunction &key_hash_function,
+    const KeyEqualFunction &key_equal_funtion) const {
     assert(IsValid());
 
     using DOpResult
@@ -359,12 +455,15 @@ auto DIA<ValueType, Stack>::ReducePair(
         };
 
     using ReduceNode = api::ReduceNode<
-              ValueType, decltype(key_extractor), decltype(reduce_pair_function),
-              ReduceConfig, /* VolatileKey */ false>;
+              ValueType,
+              decltype(key_extractor), decltype(reduce_pair_function),
+              ReduceConfig, KeyHashFunction, KeyEqualFunction,
+              /* VolatileKey */ false>;
 
     auto node = common::MakeCounting<ReduceNode>(
         *this, "ReducePair",
-        key_extractor, reduce_pair_function, reduce_config);
+        key_extractor, reduce_pair_function, reduce_config,
+        key_hash_function, key_equal_funtion);
 
     return DIA<ValueType>(node);
 }
