@@ -347,7 +347,7 @@ public:
         TableItem* pend = iter + partition_size_[partition_id];
 
         for ( ; iter != pend; ++iter) {
-            if (key(*iter) != Key()) {
+            if (!key_equal_function_(key(*iter), Key())) {
                 writer.Put(*iter);
                 *iter = TableItem();
             }
@@ -415,7 +415,7 @@ public:
 
         for ( ; iter != pend; ++iter)
         {
-            if (key(*iter) != Key()) {
+            if (!key_equal_function_(key(*iter), Key())) {
                 emit(partition_id, *iter);
 
                 if (consume)

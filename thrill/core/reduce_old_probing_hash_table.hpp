@@ -175,7 +175,7 @@ public:
 
         assert(h.partition_id < num_partitions_);
 
-        if (key(kv) == Key()) {
+        if (key_equal_function_(key(kv), Key())) {
             // handle pairs with sentinel key specially by reducing into last
             // element of items.
             TableItem& sentinel = items_[num_buckets_];
@@ -209,12 +209,7 @@ public:
         {
             if (key_equal_function_(key(*iter), key(kv)))
             {
-                LOGC(debug_items)
-                    << "match of key: " << key(kv)
-                    << " and " << key(*iter) << " ... reducing...";
-
                 *iter = reduce(*iter, kv);
-
                 return;
             }
 
@@ -234,7 +229,6 @@ public:
                 // increase counter for partition
                 ++items_per_partition_[h.partition_id];
                 ++num_items_;
-
                 return;
             }
         }
@@ -288,7 +282,7 @@ public:
 
         for ( ; iter != end; ++iter)
         {
-            if (key(*iter) != Key())
+            if (!key_equal_function_(key(*iter), Key()))
             {
                 writer.Put(*iter);
                 *iter = TableItem();
@@ -357,7 +351,7 @@ public:
 
         for ( ; iter != end; ++iter)
         {
-            if (key(*iter) != Key()) {
+            if (!key_equal_function_(key(*iter), Key())) {
                 emit(partition_id, *iter);
 
                 if (consume)

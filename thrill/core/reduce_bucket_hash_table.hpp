@@ -261,9 +261,6 @@ public:
             key(kv), num_partitions_,
             num_buckets_per_partition_, num_buckets_);
 
-        // sLOG << "kv" << key(kv) << "-" << kv.second
-        //      << "to partition" << h.partition_id << "bucket" << h.global_index;
-
         size_t local_index = h.local_index(num_buckets_per_partition_);
 
         assert(h.partition_id < num_partitions_);
@@ -282,29 +279,20 @@ public:
                 // if item and key equals, then reduce.
                 if (key_equal_function_(key(kv), key(*bi)))
                 {
-                    LOGC(debug_items)
-                        << "match of key: " << key(kv)
-                        << " and " << key(*bi) << " ... reducing...";
-
                     *bi = reduce(*bi, kv);
                     return;
                 }
             }
-
             current = current->next;
         }
 
-        //////
         // have an item that needs to be added.
-        //////
 
         current = buckets_[global_index];
 
         if (current == nullptr || current->size == block_size_)
         {
-            //////
             // new block needed.
-            //////
 
             // flush largest partition if max number of blocks reached
             while (num_blocks_ > limit_blocks_)
