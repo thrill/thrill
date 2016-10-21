@@ -162,11 +162,19 @@ static void update_memprofile(size_t float_current, size_t base_current);
 
 struct LocalStats {
     size_t  total_allocs;
-    ssize_t current_allocs;
-    ssize_t bytes;
+    int64_t current_allocs;
+    int64_t bytes;
 };
 
+#if !defined(__APPLE__)
+#define HAVE_THREAD_LOCAL 1
+#else
+#define HAVE_THREAD_LOCAL 0
+#endif
+
+#if HAVE_THREAD_LOCAL
 static thread_local LocalStats tl_stats = { 0, 0, 0 };
+#endif
 
 static const ssize_t tl_delay_threshold = 2 * 1024 * 1024;
 
@@ -179,6 +187,7 @@ void update_peak(size_t float_curr, size_t base_curr) {
 //! add allocation to statistics
 ATTRIBUTE_NO_SANITIZE
 static void inc_count(size_t inc) {
+#if HAVE_THREAD_LOCAL
     tl_stats.total_allocs++;
     tl_stats.current_allocs++;
     tl_stats.bytes += inc;
@@ -200,11 +209,24 @@ static void inc_count(size_t inc) {
         tl_stats.current_allocs = 0;
         tl_stats.bytes = 0;
     }
+#else
+    // no thread_local data structure -> update immediately (more contention)
+    size_t mycurr = sync_add_and_fetch(float_curr, inc);
+    total_bytes += inc;
+    update_peak(mycurr, base_curr);
+
+    sync_add_and_fetch(total_allocs, 1);
+    sync_add_and_fetch(current_allocs, 1);
+
+    memory_exceeded = (mycurr >= memory_limit_indication);
+    update_memprofile(mycurr, get(base_curr));
+#endif
 }
 
 //! decrement allocation to statistics
 ATTRIBUTE_NO_SANITIZE
 static void dec_count(size_t dec) {
+#if HAVE_THREAD_LOCAL
     tl_stats.current_allocs--;
     tl_stats.bytes -= dec;
 
@@ -221,6 +243,15 @@ static void dec_count(size_t dec) {
         tl_stats.current_allocs = 0;
         tl_stats.bytes = 0;
     }
+#else
+    // no thread_local data structure -> update immediately (more contention)
+    size_t mycurr = sync_sub_and_fetch(float_curr, dec);
+
+    sync_sub_and_fetch(current_allocs, 1);
+
+    memory_exceeded = (mycurr >= memory_limit_indication);
+    update_memprofile(mycurr, get(base_curr));
+#endif
 }
 
 //! user function to return the currently allocated amount of memory
