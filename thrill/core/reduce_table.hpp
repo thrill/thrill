@@ -96,7 +96,7 @@ template <typename ValueType, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction, typename Emitter,
           const bool VolatileKey,
           typename ReduceConfig_, typename IndexFunction,
-          typename EqualToFunction = std::equal_to<Key> >
+          typename KeyEqualFunction = std::equal_to<Key> >
 class ReduceTable
 {
 public:
@@ -117,13 +117,13 @@ public:
         const ReduceConfig& config,
         bool immediate_flush,
         const IndexFunction& index_function,
-        const EqualToFunction& equal_to_function)
+        const KeyEqualFunction& key_equal_function)
         : ctx_(ctx), dia_id_(dia_id),
           key_extractor_(key_extractor),
           reduce_function_(reduce_function),
           emitter_(emitter),
           index_function_(index_function),
-          equal_to_function_(equal_to_function),
+          key_equal_function_(key_equal_function),
           num_partitions_(num_partitions),
           config_(config),
           immediate_flush_(immediate_flush),
@@ -176,9 +176,9 @@ public:
     //! Returns index_function_ (mutable)
     IndexFunction& index_function() { return index_function_; }
 
-    //! Returns equal_to_function_
-    const EqualToFunction& equal_to_function() const
-    { return equal_to_function_; }
+    //! Returns key_equal_function_
+    const KeyEqualFunction& key_equal_function() const
+    { return key_equal_function_; }
 
     //! Returns the vector of partition files.
     std::vector<data::File>& partition_files() { return partition_files_; }
@@ -270,7 +270,7 @@ protected:
     IndexFunction index_function_;
 
     //! Comparator function for keys.
-    EqualToFunction equal_to_function_;
+    KeyEqualFunction key_equal_function_;
 
     //! Store the files for partitions.
     std::vector<data::File> partition_files_;
@@ -323,7 +323,7 @@ template <ReduceTableImpl ImplSelect,
           const bool VolatileKey = false,
           typename ReduceConfig = DefaultReduceConfig,
           typename IndexFunction = ReduceByHash<Key>,
-          typename EqualToFunction = std::equal_to<Key> >
+          typename KeyEqualFunction = std::equal_to<Key> >
 class ReduceTableSelect;
 
 } // namespace core
