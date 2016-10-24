@@ -47,10 +47,8 @@ static size_t CountTrianglesPerLine(
                     emit(std::make_pair(src, tgt));
                 }
                 else {
-                    if (src > tgt) {
-                        emit(std::make_pair(tgt, src));
-                    }
-                    // self-loop: do not emit;
+                    //do not emit when src >= tgt (will be emitted when on other
+                    //side of edge)
                 }
             }
         }).Keep();
@@ -80,7 +78,7 @@ static size_t CountTrianglesGenerated(
                 }
                 else {
                     if (neighbors.first < neighbor) {
-                        emit(std::make_pair(neighbors.first, neighbor));
+                        // emit(std::make_pair(neighbors.first, neighbor));
                     }
                     // self-loop: do not emit
                 }
