@@ -20,14 +20,13 @@ using namespace thrill;
 TEST(IO, WriteToS3) {
     auto start_func =
         [](Context& ctx) {
-        auto integers = Generate(ctx, 240,
-                                 [](const size_t& ele) {
-                                     return std::to_string(ele);
-                                 });
+            auto integers = Generate(ctx, 240,
+                                     [](const size_t& ele) {
+                                         return std::to_string(ele);
+                                     });
 
-        integers.WriteLines("s3://thrill-test/some_integers");
-
-    };
+            integers.WriteLines("s3://thrill-test/some_integers");
+        };
 
     api::RunLocalTests(start_func);
 }
@@ -35,9 +34,11 @@ TEST(IO, WriteToS3) {
 TEST(IO, ReadFilesFromS3) {
     auto start_func =
         [](Context& ctx) {
-        size_t size = ReadLines(ctx, "s3://thrill-data/tbl/customer").Size();
-        ASSERT_EQ(size, (size_t) 150000);
-    };
+            size_t size = ReadLines(ctx, "s3://thrill-data/tbl/customer").Size();
+            ASSERT_EQ(size, (size_t)150000);
+        };
 
     api::RunLocalTests(start_func);
 }
+
+/******************************************************************************/

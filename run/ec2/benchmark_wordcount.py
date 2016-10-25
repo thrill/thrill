@@ -1,4 +1,13 @@
 #!/usr/bin/env python
+##########################################################################
+# run/ec2/benchmark_wordcount.py
+#
+# Part of Project Thrill - http://project-thrill.org
+#
+# Copyright (C) 2016 Alexander Noe <aleexnoe@gmail.com>
+#
+# All rights reserved. Published under the BSD-2 license in the LICENSE file.
+##########################################################################
 
 import boto3
 import json
@@ -42,3 +51,5 @@ for size in range(0, 8):
         process.wait()
 
         print "size: " + str(size) + " i: " + str(i) + " instances: " + str(num_instances)
+
+##########################################################################
