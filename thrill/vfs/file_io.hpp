@@ -113,7 +113,7 @@ using WriteStreamPtr = common::CountingPtr<WriteStream>;
 /******************************************************************************/
 
 ReadStreamPtr OpenReadStream(
-    const FileInfo& file, const api::Context& ctx,
+    const std::string& path, const api::Context& ctx,
     const common::Range& range);
 
 WriteStreamPtr OpenWriteStream(

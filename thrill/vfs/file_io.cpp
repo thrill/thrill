@@ -228,13 +228,13 @@ FileList GlobFileSizePrefixSum(api::Context& ctx, const std::vector<std::string>
 /******************************************************************************/
 
 ReadStreamPtr OpenReadStream(
-    const FileInfo& file, const api::Context& ctx,
+    const std::string& path, const api::Context& ctx,
     const common::Range& range) {
-    if (common::StartsWith(file.path, "s3://")) {
-        return S3OpenReadStream(file, ctx, range);
+    if (common::StartsWith(path, "s3://")) {
+        return S3OpenReadStream(path, ctx, range);
     }
     else {
-        return SysOpenReadStream(file.path);
+        return SysOpenReadStream(path);
     }
 }
 

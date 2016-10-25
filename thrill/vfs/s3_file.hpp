@@ -22,7 +22,7 @@ namespace thrill {
 namespace vfs {
 
 ReadStreamPtr S3OpenReadStream(
-    const FileInfo& file, const api::Context& ctx,
+    const std::string& path, const api::Context& ctx,
     const common::Range& range);
 
 WriteStreamPtr S3OpenWriteStream(

@@ -138,7 +138,7 @@ private:
 /******************************************************************************/
 
 ReadStreamPtr S3OpenReadStream(
-    const FileInfo& file, const api::Context& ctx,
+    const std::string& path, const api::Context& ctx,
     const common::Range& my_range) {
 
     static constexpr bool debug = false;
@@ -150,7 +150,7 @@ ReadStreamPtr S3OpenReadStream(
 
     Aws::S3::Model::GetObjectRequest getObjectRequest;
 
-    std::string path_without_s3 = file.path.substr(5);
+    std::string path_without_s3 = path.substr(5);
 
     std::vector<std::string> splitted = common::Split(
         path_without_s3, '/', (std::string::size_type)2);
@@ -164,6 +164,7 @@ ReadStreamPtr S3OpenReadStream(
         << splitted[1] << "!";
 
     size_t range_start = 0;
+#if THIS_IS_NONSENSE_DESIGN
     if (/* !compressed */ true) {
         std::string range = "bytes=";
         bool use_range_ = false;
@@ -187,6 +188,7 @@ ReadStreamPtr S3OpenReadStream(
         if (use_range_)
             getObjectRequest.SetRange(range);
     }
+#endif
 
     LOG1 << "Get...";
     auto outcome = ctx.s3_client()->GetObject(getObjectRequest);
@@ -208,7 +210,7 @@ WriteStreamPtr S3OpenWriteStream(
 #else   // !THRILL_USE_AWS
 
 ReadStreamPtr S3OpenReadStream(
-    const FileInfo& file, const api::Context& ctx,
+    const std::string& path, const api::Context& ctx,
     const common::Range& my_range) {
     return nullptr;
 }
