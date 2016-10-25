@@ -22,7 +22,7 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/common/system_exception.hpp>
 #include <thrill/core/file_io.hpp>
-#include <thrill/core/temporary_directory.hpp>
+#include <thrill/vfs/temporary_directory.hpp>
 
 #include <sys/stat.h>
 
@@ -159,7 +159,7 @@ TEST(IO, WriteBinaryPatternFormatter) {
 }
 
 TEST(IO, GenerateIntegerWriteReadBinary) {
-    core::TemporaryDirectory tmpdir;
+    vfs::TemporaryDirectory tmpdir;
 
     api::RunLocalTests(
         [&tmpdir](api::Context& ctx) {
@@ -206,7 +206,7 @@ TEST(IO, GenerateIntegerWriteReadBinaryCompressed) {
     return;
 #endif
 
-    core::TemporaryDirectory tmpdir;
+    vfs::TemporaryDirectory tmpdir;
 
     api::RunLocalTests(
         [&tmpdir](api::Context& ctx) {
@@ -255,7 +255,7 @@ std::string test_string(size_t index) {
 }
 
 TEST(IO, GenerateStringWriteBinary) {
-    core::TemporaryDirectory tmpdir;
+    vfs::TemporaryDirectory tmpdir;
 
     // use pairs for easier checking and stranger string sizes.
     using Item = std::pair<size_t, std::string>;
@@ -303,7 +303,7 @@ TEST(IO, GenerateStringWriteBinary) {
 }
 
 TEST(IO, WriteAndReadBinaryEqualDIAs) {
-    core::TemporaryDirectory tmpdir;
+    vfs::TemporaryDirectory tmpdir;
 
     auto start_func =
         [&tmpdir](Context& ctx) {
@@ -357,7 +357,7 @@ TEST(IO, WriteAndReadBinaryEqualDIAs) {
 }
 
 TEST(IO, WriteAndReadBinaryEqualDIAsLocalStorage) {
-    core::TemporaryDirectory tmpdir;
+    vfs::TemporaryDirectory tmpdir;
 
     auto start_func =
         [&tmpdir](Context& ctx) {
@@ -398,7 +398,7 @@ TEST(IO, WriteAndReadBinaryEqualDIAsLocalStorage) {
 }
 
 TEST(IO, IntegerWriteReadBinaryLinesFutures) {
-    core::TemporaryDirectory tmpdir;
+    vfs::TemporaryDirectory tmpdir;
 
     api::RunLocalTests(
         [&tmpdir](api::Context& ctx) {

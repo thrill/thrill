@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/core/temporary_directory.cpp
+ * thrill/vfs/temporary_directory.cpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -9,7 +9,7 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <thrill/core/temporary_directory.hpp>
+#include <thrill/vfs/temporary_directory.hpp>
 
 #include <thrill/common/logger.hpp>
 #include <thrill/common/system_exception.hpp>
@@ -26,8 +26,10 @@
 
 #endif
 
+#include <string>
+
 namespace thrill {
-namespace core {
+namespace vfs {
 
 #if defined(_MSC_VER)
 
@@ -141,7 +143,7 @@ void TemporaryDirectory::wipe_directory(
 
 #endif
 
-} // namespace core
+} // namespace vfs
 } // namespace thrill
 
 /******************************************************************************/

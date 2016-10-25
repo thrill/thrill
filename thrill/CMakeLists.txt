@@ -14,14 +14,15 @@
 file(GLOB THRILL_SRCS
   RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/*.[ch]pp
+  ${CMAKE_CURRENT_SOURCE_DIR}/api/*.[ch]pp
   ${CMAKE_CURRENT_SOURCE_DIR}/common/*.[ch]pp
-  ${CMAKE_CURRENT_SOURCE_DIR}/mem/*.[ch]pp
-  ${CMAKE_CURRENT_SOURCE_DIR}/io/*.[ch]pp
   ${CMAKE_CURRENT_SOURCE_DIR}/core/*.[ch]pp
   ${CMAKE_CURRENT_SOURCE_DIR}/data/*.[ch]pp
+  ${CMAKE_CURRENT_SOURCE_DIR}/io/*.[ch]pp
+  ${CMAKE_CURRENT_SOURCE_DIR}/mem/*.[ch]pp
   ${CMAKE_CURRENT_SOURCE_DIR}/net/*.[ch]pp
-  ${CMAKE_CURRENT_SOURCE_DIR}/api/*.[ch]pp
   ${CMAKE_CURRENT_SOURCE_DIR}/net/mock/*.[ch]pp
+  ${CMAKE_CURRENT_SOURCE_DIR}/vfs/*.[ch]pp
   )
 
 # add net/tcp on all platforms except Windows
