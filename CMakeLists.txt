@@ -494,10 +494,7 @@ if (THRILL_USE_AWS)
   link_directories(${CMAKE_CURRENT_BINARY_DIR}/extlib/aws-sdk-cpp/aws-cpp-sdk-s3)
   set(THRILL_DEP_LIBRARIES aws-cpp-sdk-s3 ${THRILL_DEP_LIBRARIES})
 
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lssl")
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lcrypto")
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lcurl")
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lz")
+  set(THRILL_DEP_LIBRARIES ${THRILL_DEP_LIBRARIES} ssl crypto curl dl z)
 
 else()
   message(STATUS "AWS NOT USED")
