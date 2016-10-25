@@ -9,11 +9,12 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
+#include <thrill/vfs/sys_file.hpp>
+
 #include <thrill/api/context.hpp>
 #include <thrill/common/porting.hpp>
 #include <thrill/common/string.hpp>
 #include <thrill/common/system_exception.hpp>
-#include <thrill/vfs/sys_file.hpp>
 
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -45,7 +46,82 @@
 namespace thrill {
 namespace vfs {
 
-/******************************************************************************/
+/*!
+ * Represents a POSIX system file via its file descriptor.
+ */
+class SysFile final : public AbstractFile
+{
+    static constexpr bool debug = false;
+
+public:
+    //! default constructor
+    SysFile() : fd_(-1) { }
+
+    //! constructor: use OpenForRead or OpenForWrite.
+    explicit SysFile(int fd, int pid = 0) noexcept
+        : fd_(fd), pid_(pid) { }
+
+    //! non-copyable: delete copy-constructor
+    SysFile(const SysFile&) = delete;
+    //! non-copyable: delete assignment operator
+    SysFile& operator = (const SysFile&) = delete;
+    //! move-constructor
+    SysFile(SysFile&& f) noexcept
+        : fd_(f.fd_), pid_(f.pid_) {
+        f.fd_ = -1, f.pid_ = 0;
+    }
+    //! move-assignment
+    SysFile& operator = (SysFile&& f) {
+        close();
+        fd_ = f.fd_, pid_ = f.pid_;
+        f.fd_ = -1, f.pid_ = 0;
+        return *this;
+    }
+
+    ~SysFile() {
+        close();
+    }
+
+    //! POSIX write function.
+    ssize_t write(const void* data, size_t count) final {
+        assert(fd_ >= 0);
+#if defined(_MSC_VER)
+        return ::_write(fd_, data, static_cast<unsigned>(count));
+#else
+        return ::write(fd_, data, count);
+#endif
+    }
+
+    //! POSIX read function.
+    ssize_t read(void* data, size_t count) final {
+        assert(fd_ >= 0);
+#if defined(_MSC_VER)
+        return ::_read(fd_, data, static_cast<unsigned>(count));
+#else
+        return ::read(fd_, data, count);
+#endif
+    }
+
+    //! POSIX lseek function from current position.
+    ssize_t lseek(off_t offset) final {
+        assert(fd_ >= 0);
+        return ::lseek(fd_, offset, SEEK_CUR);
+    }
+
+    //! close the file descriptor
+    void close() final;
+
+private:
+    //! file descriptor
+    int fd_ = -1;
+
+#if defined(_MSC_VER)
+    using pid_t = int;
+#endif
+
+    //! pid of child process to wait for
+    pid_t pid_ = 0;
+};
 
 void SysFile::close() {
     if (fd_ >= 0) {
@@ -93,7 +169,9 @@ void SysFile::close() {
 #endif
 }
 
-std::shared_ptr<SysFile> SysOpenReadStream(const std::string& path) {
+/******************************************************************************/
+
+std::shared_ptr<AbstractFile> SysOpenReadStream(const std::string& path) {
 
     static constexpr bool debug = false;
 
@@ -179,7 +257,7 @@ std::shared_ptr<SysFile> SysOpenReadStream(const std::string& path) {
 #endif
 }
 
-std::shared_ptr<SysFile> SysOpenWriteStream(const std::string& path) {
+std::shared_ptr<AbstractFile> SysOpenWriteStream(const std::string& path) {
 
     static constexpr bool debug = false;
 

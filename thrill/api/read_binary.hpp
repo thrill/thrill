@@ -310,7 +310,7 @@ private:
 
     private:
         Context& context_;
-        std::shared_ptr<vfs::SysFile> sysfile_;
+        std::shared_ptr<vfs::AbstractFile> sysfile_;
         size_t remain_size_;
         bool is_compressed_;
         size_t& stats_total_bytes_;
