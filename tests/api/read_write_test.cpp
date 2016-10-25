@@ -21,7 +21,7 @@
 #include <thrill/api/write_lines_one.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/system_exception.hpp>
-#include <thrill/core/file_io.hpp>
+#include <thrill/vfs/file_io.hpp>
 #include <thrill/vfs/temporary_directory.hpp>
 
 #include <sys/stat.h>
@@ -151,10 +151,10 @@ TEST(IO, GenerateFromFileRandomIntegers) {
 
 TEST(IO, WriteBinaryPatternFormatter) {
 
-    std::string str1 = core::FillFilePattern("test-@@@@-########", 42, 10);
+    std::string str1 = vfs::FillFilePattern("test-@@@@-########", 42, 10);
     ASSERT_EQ("test-0042-00000010", str1);
 
-    std::string str2 = core::FillFilePattern("test", 42, 10);
+    std::string str2 = vfs::FillFilePattern("test", 42, 10);
     ASSERT_EQ("test00420000000010", str2);
 }
 

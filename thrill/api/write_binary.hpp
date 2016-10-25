@@ -17,9 +17,9 @@
 #include <thrill/api/context.hpp>
 #include <thrill/api/dia.hpp>
 #include <thrill/common/string.hpp>
-#include <thrill/core/file_io.hpp>
 #include <thrill/data/block_sink.hpp>
 #include <thrill/data/block_writer.hpp>
+#include <thrill/vfs/file_io.hpp>
 
 #include <algorithm>
 #include <string>
@@ -119,7 +119,7 @@ private:
                     size_t& stats_total_writes)
             : BlockSink(context.block_pool(), local_worker_id),
               BoundedBlockSink(context.block_pool(), local_worker_id, max_file_size),
-              file_(core::SysFile::OpenForWrite(path)),
+              file_(vfs::SysFile::OpenForWrite(path)),
               stats_total_elements_(stats_total_elements),
               stats_total_writes_(stats_total_writes) { }
 
@@ -149,7 +149,7 @@ private:
         }
 
     private:
-        std::shared_ptr<core::SysFile> file_;
+        std::shared_ptr<vfs::SysFile> file_;
         size_t& stats_total_elements_;
         size_t& stats_total_writes_;
     };
@@ -183,7 +183,7 @@ private:
         sink_.reset();
 
         // construct path from pattern containing ### and $$$
-        std::string out_path = core::FillFilePattern(
+        std::string out_path = vfs::FillFilePattern(
             out_pathbase_, context_.my_rank(), out_serial_++);
 
         sLOG << "OpenNextFile() out_path" << out_path;

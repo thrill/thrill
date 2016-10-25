@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/core/file_io.hpp
+ * thrill/vfs/file_io.hpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -10,8 +10,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_CORE_FILE_IO_HEADER
-#define THRILL_CORE_FILE_IO_HEADER
+#ifndef THRILL_VFS_FILE_IO_HEADER
+#define THRILL_VFS_FILE_IO_HEADER
 
 #include <thrill/api/context.hpp>
 #include <thrill/common/logger.hpp>
@@ -40,7 +40,7 @@
 #include <vector>
 
 namespace thrill {
-namespace core {
+namespace vfs {
 
 //! function which takes pathbase and replaces $$$ with worker and ### with
 //! the file_part values.
@@ -58,8 +58,6 @@ bool IsCompressed(const std::string& path) {
            common::EndsWith(path, ".lz4");
 }
 
-using FileSizePair = std::pair<std::string, size_t>;
-
 //! General information of system file.
 struct SysFileInfo {
     //! path to file
@@ -72,7 +70,7 @@ struct SysFileInfo {
     //! inclusive prefix sum of file sizes.
     uint64_t    size_inc_psum() const { return size_ex_psum + size; }
     //! if the file is compressed
-    bool        IsCompressed() const { return core::IsCompressed(path); }
+    bool        IsCompressed() const { return vfs::IsCompressed(path); }
 };
 
 //! List of file info and overall info.
@@ -340,9 +338,9 @@ private:
     pid_t pid_ = 0;
 };
 
-} // namespace core
+} // namespace vfs
 } // namespace thrill
 
-#endif // !THRILL_CORE_FILE_IO_HEADER
+#endif // !THRILL_VFS_FILE_IO_HEADER
 
 /******************************************************************************/

@@ -17,8 +17,8 @@
 #include <thrill/api/action_node.hpp>
 #include <thrill/api/dia.hpp>
 #include <thrill/common/math.hpp>
-#include <thrill/core/file_io.hpp>
 #include <thrill/net/buffer_builder.hpp>
+#include <thrill/vfs/file_io.hpp>
 
 #include <algorithm>
 #include <string>
@@ -48,8 +48,8 @@ public:
         : Super(parent.ctx(), "WriteLines",
                 { parent.id() }, { parent.node() }),
           out_pathbase_(path_out),
-          file_(core::AbstractFile::OpenForWrite(
-                    core::FillFilePattern(
+          file_(vfs::AbstractFile::OpenForWrite(
+                    vfs::FillFilePattern(
                         out_pathbase_, context_.my_rank(), 0), parent.ctx())),
           target_file_size_(target_file_size)
     {
@@ -93,9 +93,9 @@ public:
             if (THRILL_UNLIKELY(current_file_size_ >= target_file_size_)) {
                 LOG << "Closing file" << out_serial_;
                 file_->close();
-                std::string new_path = core::FillFilePattern(
+                std::string new_path = vfs::FillFilePattern(
                     out_pathbase_, context_.my_rank(), out_serial_++);
-                file_ = core::AbstractFile::OpenForWrite(new_path, context_);
+                file_ = vfs::AbstractFile::OpenForWrite(new_path, context_);
                 LOG << "Opening file: " << new_path;
                 current_file_size_ = 0;
             }
@@ -152,7 +152,7 @@ private:
     size_t out_serial_ = 1;
 
     //! File to wrtie to
-    std::shared_ptr<core::AbstractFile> file_;
+    std::shared_ptr<vfs::AbstractFile> file_;
 
     //! Write buffer
     net::BufferBuilder write_buffer_;

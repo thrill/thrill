@@ -20,8 +20,8 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/common/string.hpp>
 #include <thrill/common/system_exception.hpp>
-#include <thrill/core/file_io.hpp>
 #include <thrill/net/buffer_builder.hpp>
+#include <thrill/vfs/file_io.hpp>
 
 #include <string>
 #include <utility>
@@ -54,8 +54,8 @@ public:
 
         LOG << "Opening ReadLinesNode for " << globlist.size() << " globs";
 
-        filelist_ = core::GlobFileSizePrefixSum(
-            core::GlobFilePatterns(globlist), context_);
+        filelist_ = vfs::GlobFileSizePrefixSum(
+            vfs::GlobFilePatterns(globlist), context_);
 
         if (filelist_.count() == 0) {
             throw std::runtime_error(
@@ -96,7 +96,7 @@ public:
     }
 
 private:
-    core::SysFileList filelist_;
+    vfs::SysFileList filelist_;
 
     //! True, if files are on a distributed file system
     bool distributed_fs_;
@@ -104,7 +104,7 @@ private:
     class InputLineIterator
     {
     public:
-        InputLineIterator(const core::SysFileList& files,
+        InputLineIterator(const vfs::SysFileList& files,
                           const Context& context,
                           ReadLinesNode& node)
             : files_(files), context_(context), node_(node) { }
@@ -126,7 +126,7 @@ private:
         //! String, which Next() references to
         std::string data_;
         //! Input files with size prefixsum.
-        const core::SysFileList& files_;
+        const vfs::SysFileList& files_;
 
         const Context& context_;
         //! Index of current file in files_
@@ -146,7 +146,7 @@ private:
         size_t total_reads_ = 0;
         size_t total_elements_ = 0;
 
-        bool ReadBlock(std::shared_ptr<core::AbstractFile>& file, net::BufferBuilder& buffer) {
+        bool ReadBlock(std::shared_ptr<vfs::AbstractFile>& file, net::BufferBuilder& buffer) {
             read_timer.Start();
             ssize_t bytes = file->read(buffer.data(), read_size);
             read_timer.Stop();
@@ -177,7 +177,7 @@ private:
     {
     public:
         //! Creates an instance of iterator that reads file line based
-        InputLineIteratorUncompressed(const core::SysFileList& files,
+        InputLineIteratorUncompressed(const vfs::SysFileList& files,
                                       const api::Context& ctx,
                                       ReadLinesNode& node, bool distributed_fs)
             : InputLineIterator(files, ctx, node) {
@@ -198,7 +198,7 @@ private:
             if (my_range_.begin < my_range_.end) {
                 LOG << "Opening file " << current_file_;
 
-                file_ = core::AbstractFile::OpenForRead(
+                file_ = vfs::AbstractFile::OpenForRead(
                     files_.list[current_file_], context_, my_range_,
                     files_.contains_compressed);
             }
@@ -264,7 +264,7 @@ private:
                     offset_ = 0;
 
                     if (current_file_ < files_.count()) {
-                        file_ = core::AbstractFile::OpenForRead(
+                        file_ = vfs::AbstractFile::OpenForRead(
                             files_.list[current_file_], context_, my_range_,
                             files_.contains_compressed);
                         offset_ += buffer_.size();
@@ -296,7 +296,7 @@ private:
         //! Offset of current block in file_.
         size_t offset_ = 0;
         //! File handle to files_[current_file_]
-        std::shared_ptr<core::AbstractFile> file_;
+        std::shared_ptr<vfs::AbstractFile> file_;
     };
 
     //! InputLineIterator gives you access to lines of a file
@@ -304,7 +304,7 @@ private:
     {
     public:
         //! Creates an instance of iterator that reads file line based
-        InputLineIteratorCompressed(const core::SysFileList& files,
+        InputLineIteratorCompressed(const vfs::SysFileList& files,
                                     const api::Context& ctx,
                                     ReadLinesNode& node, bool distributed_fs)
             : InputLineIterator(files, ctx, node) {
@@ -336,7 +336,7 @@ private:
             if (my_range_.begin < my_range_.end) {
                 LOG << "Opening file " << current_file_;
                 LOG << "my_range : " << my_range_;
-                file_ = core::AbstractFile::OpenForRead(
+                file_ = vfs::AbstractFile::OpenForRead(
                     files_.list[current_file_], context_, my_range_,
                     files_.contains_compressed);
             }
@@ -376,7 +376,7 @@ private:
                     current_file_++;
 
                     if (current_file_ < files_.count()) {
-                        file_ = core::AbstractFile::OpenForRead(
+                        file_ = vfs::AbstractFile::OpenForRead(
                             files_.list[current_file_],
                             context_, my_range_,
                             files_.contains_compressed);
@@ -420,7 +420,7 @@ private:
                     // if (this worker reads at least one more file)
                     if (my_range_.end > files_.list[current_file_].size_inc_psum()) {
                         current_file_++;
-                        file_ = core::AbstractFile::OpenForRead(
+                        file_ = vfs::AbstractFile::OpenForRead(
                             files_.list[current_file_], context_, my_range_,
                             files_.contains_compressed);
                         ReadBlock(file_, buffer_);
@@ -438,7 +438,7 @@ private:
 
     private:
         //! File handle to files_[current_file_]
-        std::shared_ptr<core::AbstractFile> file_;
+        std::shared_ptr<vfs::AbstractFile> file_;
     };
 };
 

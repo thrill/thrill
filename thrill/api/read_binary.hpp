@@ -18,11 +18,11 @@
 #include <thrill/api/source_node.hpp>
 #include <thrill/common/item_serialization_tools.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/core/file_io.hpp>
 #include <thrill/data/block.hpp>
 #include <thrill/data/block_reader.hpp>
 #include <thrill/io/syscall_file.hpp>
 #include <thrill/net/buffer_builder.hpp>
+#include <thrill/vfs/file_io.hpp>
 
 #include <algorithm>
 #include <limits>
@@ -71,14 +71,14 @@ public:
     static constexpr uint64_t no_size_limit_ =
         std::numeric_limits<uint64_t>::max();
 
-    using SysFileInfo = core::SysFileInfo;
+    using SysFileInfo = vfs::SysFileInfo;
 
     ReadBinaryNode(Context& ctx, const std::vector<std::string>& globlist,
                    uint64_t size_limit, bool distributed_fs)
         : Super(ctx, "ReadBinary") {
 
-        core::SysFileList files = core::GlobFileSizePrefixSum(
-            core::GlobFilePatterns(globlist), context_);
+        vfs::SysFileList files = vfs::GlobFileSizePrefixSum(
+            vfs::GlobFilePatterns(globlist), context_);
 
         if (files.count() == 0) {
             throw std::runtime_error(
@@ -264,7 +264,7 @@ private:
                            size_t& stats_total_bytes,
                            size_t& stats_total_reads)
             : context_(ctx),
-              sysfile_(core::SysFile::OpenForRead(fileinfo.path)),
+              sysfile_(vfs::SysFile::OpenForRead(fileinfo.path)),
               remain_size_(fileinfo.size()),
               is_compressed_(fileinfo.is_compressed),
               stats_total_bytes_(stats_total_bytes),
@@ -311,7 +311,7 @@ private:
 
     private:
         Context& context_;
-        std::shared_ptr<core::SysFile> sysfile_;
+        std::shared_ptr<vfs::SysFile> sysfile_;
         size_t remain_size_;
         bool is_compressed_;
         size_t& stats_total_bytes_;

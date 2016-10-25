@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/core/file_io.cpp
+ * thrill/vfs/file_io.cpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -21,8 +21,8 @@
 #include <thrill/common/porting.hpp>
 #include <thrill/common/string.hpp>
 #include <thrill/common/system_exception.hpp>
-#include <thrill/core/file_io.hpp>
-#include <thrill/core/simple_glob.hpp>
+#include <thrill/vfs/file_io.hpp>
+#include <thrill/vfs/simple_glob.hpp>
 
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -52,7 +52,7 @@
 #include <vector>
 
 namespace thrill {
-namespace core {
+namespace vfs {
 
 std::string FillFilePattern(const std::string& pathbase,
                             size_t worker, size_t file_part) {
@@ -131,7 +131,7 @@ std::vector<std::string> GlobFilePatterns(
 
     std::vector<std::string> filelist;
     for (const std::string& path : globlist) {
-        std::vector<std::string> list = core::GlobFilePattern(path);
+        std::vector<std::string> list = GlobFilePattern(path);
         if (list.size() == 0)
             throw std::runtime_error("No files found matching file/glob: " + path);
         filelist.insert(filelist.end(), list.begin(), list.end());
@@ -301,7 +301,7 @@ std::shared_ptr<SysFile> SysFile::OpenForRead(const std::string& path) {
 
         sLOG << "SysFile::OpenForRead(): filefd" << fd;
 
-        return std::make_shared<core::SysFile>(SysFile(fd));
+        return std::make_shared<SysFile>(SysFile(fd));
     }
 
 #if defined(_MSC_VER)
@@ -347,7 +347,7 @@ std::shared_ptr<SysFile> SysFile::OpenForRead(const std::string& path) {
     // close the file descriptor
     ::close(fd);
 
-    return std::make_shared<core::SysFile>(SysFile(pipefd[0], pid));
+    return std::make_shared<SysFile>(SysFile(pipefd[0], pid));
 #endif
 }
 
@@ -385,7 +385,7 @@ std::shared_ptr<SysFile> SysFile::OpenForWrite(const std::string& path) {
 
         sLOG << "SysFile::OpenForWrite(): filefd" << fd;
 
-        return std::make_shared<core::SysFile>(SysFile(fd));
+        return std::make_shared<SysFile>(SysFile(fd));
     }
 
 #if defined(_MSC_VER)
@@ -431,7 +431,7 @@ std::shared_ptr<SysFile> SysFile::OpenForWrite(const std::string& path) {
     // close file descriptor (it is used by the fork)
     ::close(fd);
 
-    return std::make_shared<core::SysFile>(SysFile(pipefd[1], pid));
+    return std::make_shared<SysFile>(SysFile(pipefd[1], pid));
 #endif
 }
 
@@ -531,7 +531,7 @@ std::shared_ptr<AbstractFile> AbstractFile::OpenForWrite(
     }
 }
 
-} // namespace core
+} // namespace vfs
 } // namespace thrill
 
 /******************************************************************************/
