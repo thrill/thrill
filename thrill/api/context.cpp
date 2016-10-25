@@ -943,6 +943,7 @@ HostContext::HostContext(
     // Create client configuration file
     Aws::Client::ClientConfiguration config;
     config.region = Aws::Region::EU_WEST_1;
+
     // config.region = Aws::Region::US_EAST_1;
     config.scheme = Aws::Http::Scheme::HTTPS;
     config.connectTimeoutMs = 60000;
@@ -951,6 +952,7 @@ HostContext::HostContext(
     // create S3 client
     Aws::String access_key_id("NO");
     Aws::String secret_key("NO");
+
     Aws::Auth::AWSCredentials creds(access_key_id, secret_key);
     s3_client_ = Aws::MakeShared<Aws::S3::S3Client>(ALLOCATION_TAG,
                                                     creds, config);

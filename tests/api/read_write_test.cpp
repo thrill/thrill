@@ -22,6 +22,7 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/common/system_exception.hpp>
 #include <thrill/core/file_io.hpp>
+#include <thrill/core/temporary_directory.hpp>
 
 #include <sys/stat.h>
 
