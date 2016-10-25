@@ -110,9 +110,11 @@ public:
 using ReadStreamPtr = common::CountingPtr<ReadStream>;
 using WriteStreamPtr = common::CountingPtr<WriteStream>;
 
+/******************************************************************************/
+
 ReadStreamPtr OpenReadStream(
     const FileInfo& file, const api::Context& ctx,
-    const common::Range& my_range, bool compressed);
+    const common::Range& range);
 
 WriteStreamPtr OpenWriteStream(
     const std::string& path, const api::Context& ctx);

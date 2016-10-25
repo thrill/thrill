@@ -23,7 +23,7 @@ namespace vfs {
 
 ReadStreamPtr S3OpenReadStream(
     const FileInfo& file, const api::Context& ctx,
-    const common::Range& my_range, bool compressed);
+    const common::Range& range);
 
 WriteStreamPtr S3OpenWriteStream(
     const std::string& path, const api::Context& ctx);

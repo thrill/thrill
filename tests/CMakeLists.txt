@@ -78,7 +78,6 @@ endmacro(thrill_build_test_group)
 ### list of tests in subdirectories
 
 thrill_build_plain(common/cmdline_parser_example)
-thrill_build_plain(common/zip_stream_example)
 thrill_build_test_group(common/tests
   common/aggregate_test
   common/binary_heap_test.cpp

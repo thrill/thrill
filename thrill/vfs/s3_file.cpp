@@ -15,7 +15,6 @@
 #include <thrill/common/porting.hpp>
 #include <thrill/common/string.hpp>
 #include <thrill/common/system_exception.hpp>
-#include <thrill/common/zip_stream.hpp>
 
 #if THRILL_USE_AWS
 
@@ -48,14 +47,7 @@ public:
 
     S3File(Aws::S3::Model::GetObjectResult&& gor, size_t range_start)
         : gor_(std::move(gor)), range_start_(range_start),
-          is_valid_(true), is_read_(true), decompression_(false) { }
-
-    explicit S3File(Aws::S3::Model::GetObjectResult&& gor)
-        : gor_(std::move(gor)), is_valid_(true), is_read_(true),
-          decompression_(true) {
-
-        unzip_ = std::make_unique<common::zip_istream>(gor_.GetBody());
-    }
+          is_valid_(true), is_read_(true) { }
 
     S3File(std::shared_ptr<Aws::S3::S3Client> client, const std::string& path)
         : client_(client), path_(path), is_valid_(true), is_read_(false) { }
@@ -87,14 +79,7 @@ public:
         LOG1 << "readcount " << count;
         assert(is_valid_);
         assert(is_read_);
-        if (decompression_) {
-            size_t sizet = unzip_->readsome((char*)data, count);
-            LOG1 << "YOOO " << sizet;
-            return sizet;
-        }
-        else {
-            return gor_.GetBody().readsome((char*)data, count);
-        }
+        return gor_.GetBody().readsome((char*)data, count);
     }
 
     //! Emulates a seek. Due to HTTP Range requests we only load the file from
@@ -139,7 +124,6 @@ public:
 
 private:
     Aws::S3::Model::GetObjectResult gor_;
-    std::unique_ptr<common::zip_istream> unzip_;
 
     Aws::StringStream write_stream_;
     std::shared_ptr<Aws::S3::S3Client> client_;
@@ -149,14 +133,13 @@ private:
 
     bool is_valid_;
     bool is_read_;
-    bool decompression_;
 };
 
 /******************************************************************************/
 
 ReadStreamPtr S3OpenReadStream(
     const FileInfo& file, const api::Context& ctx,
-    const common::Range& my_range, bool compressed) {
+    const common::Range& my_range) {
 
     static constexpr bool debug = false;
 
@@ -181,7 +164,7 @@ ReadStreamPtr S3OpenReadStream(
         << splitted[1] << "!";
 
     size_t range_start = 0;
-    if (!compressed) {
+    if (/* !compressed */ true) {
         std::string range = "bytes=";
         bool use_range_ = false;
         if (my_range.begin > file.size_ex_psum) {
@@ -213,14 +196,8 @@ ReadStreamPtr S3OpenReadStream(
         throw common::ErrnoException(
                   "Download from S3 Errored: " + outcome.GetError().GetMessage());
 
-    if (!compressed) {
-        return common::MakeCounting<S3File>(outcome.GetResultWithOwnership(),
-                                            range_start);
-    }
-    else {
-        // this constructor opens a zip_stream
-        return common::MakeCounting<S3File>(outcome.GetResultWithOwnership());
-    }
+    return common::MakeCounting<S3File>(outcome.GetResultWithOwnership(),
+                                        range_start);
 }
 
 WriteStreamPtr S3OpenWriteStream(
@@ -232,7 +209,7 @@ WriteStreamPtr S3OpenWriteStream(
 
 ReadStreamPtr S3OpenReadStream(
     const FileInfo& file, const api::Context& ctx,
-    const common::Range& my_range, bool compressed) {
+    const common::Range& my_range) {
     return nullptr;
 }
 
