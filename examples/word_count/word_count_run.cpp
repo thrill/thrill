@@ -130,65 +130,6 @@ static void RunHashWordCountGenerated(
 }
 
 /******************************************************************************/
-<<<<<<< HEAD
-// Run methods with generated input, duplicate some code since it makes the
-// example easier to understand.
-
-static void RunWordCountGenerated(
-    api::Context& ctx, size_t num_words, const std::string& output) {
-    ctx.enable_consume();
-
-    std::default_random_engine rng(std::random_device { } ());
-
-    auto lines = Generate(
-        ctx, num_words / 10,
-        [&](size_t /* index */) {
-            return RandomTextWriterGenerate(10, rng);
-        });
-
-    auto word_pairs = WordCount(lines);
-
-    if (output.size()) {
-        word_pairs
-        .Map([](const WordCountPair& wc) {
-                 return wc.first + ": " + std::to_string(wc.second);
-             })
-        .WriteLines(output);
-    }
-    else {
-        word_pairs.Execute();
-    }
-}
-
-static void RunFastWordCountGenerated(
-    api::Context& ctx, size_t num_words, const std::string& output) {
-    ctx.enable_consume();
-
-    std::default_random_engine rng(std::random_device { } ());
-
-    auto lines = Generate(
-        ctx, num_words / 10,
-        [&](size_t /* index */) {
-            return RandomTextWriterGenerate(10, rng);
-        });
-
-    auto word_pairs = FastWordCount(lines);
-
-    if (output.size()) {
-        word_pairs
-        .Map([](const FastWordCountPair& wc) {
-                 return wc.first.ToString() + ": " + std::to_string(wc.second);
-             })
-        .WriteLines(output);
-    }
-    else {
-        word_pairs.Execute();
-    }
-}
-
-/******************************************************************************/
-=======
->>>>>>> master
 
 int main(int argc, char* argv[]) {
 
@@ -207,14 +148,11 @@ int main(int argc, char* argv[]) {
                 "generate random words, first file pattern "
                 "specifies approximately how many.");
 
-<<<<<<< HEAD
-=======
     bool hash_words = false;
     clp.AddFlag('H', "hash_words", hash_words,
                 "explicitly calculate hash values for words "
                 "to accelerate reduction.");
 
->>>>>>> master
     if (!clp.Process(argc, argv)) {
         return -1;
     }
@@ -234,10 +172,6 @@ int main(int argc, char* argv[]) {
                     RunWordCountGenerated(ctx, num_words, output);
             }
             else {
-                if (use_fast_string)
-                    RunFastWordCount(ctx, input, output);
-                else
-                    RunWordCount(ctx, input, output);
                 if (hash_words)
                     RunWordCount(ctx, input, output);
                 else
