@@ -14,6 +14,7 @@
 #ifndef THRILL_NET_BUFFER_READER_HEADER
 #define THRILL_NET_BUFFER_READER_HEADER
 
+#include <thrill/common/defines.hpp>
 #include <thrill/common/item_serialization_tools.hpp>
 #include <thrill/net/buffer_ref.hpp>
 
@@ -144,7 +145,7 @@ public:
     template <typename Type>
     Type Get() {
         static_assert(
-            std::is_trivially_copyable<Type>::value,
+            common::is_trivially_copyable<Type>::value,
             "You only want to Get() trivially copyable types as raw values.");
 
         CheckAvailable(sizeof(Type));

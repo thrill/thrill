@@ -70,6 +70,15 @@ if(NOT MSVC)
   # enable more warnings
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wpedantic")
 
+  # enable -march=native on Release builds
+  if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    include(CheckCXXCompilerFlag)
+    check_cxx_compiler_flag(-march=native THRILL_HAS_MARCH_NATIVE)
+    if(THRILL_HAS_MARCH_NATIVE)
+      set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native")
+    endif()
+  endif()
+
   # warn on conversions
   #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wconversion -Werror")
 
@@ -398,12 +407,14 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/thrill/net/ib/CMakeLists.txt")
   include("${CMAKE_CURRENT_SOURCE_DIR}/thrill/net/ib/CMakeLists.txt")
 endif()
 
-# example: use Boost libraries:
+# detect Boost libraries (optional). Currently no components linked.
+# uses: Spirit.Qi in tutorial
 
-#find_package(Boost 1.42.0 REQUIRED COMPONENTS regex locale serialization)
-#include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
-#set(THRILL_DEP_LIBRARIES ${Boost_LIBRARIES} ${THRILL_DEP_LIBRARIES})
-#message("Final Boost include dir: ${Boost_INCLUDE_DIRS}")
+find_package(Boost 1.42.0 COMPONENTS)
+if(Boost_FOUND)
+  include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
+  set(THRILL_DEP_LIBRARIES ${Boost_LIBRARIES} ${THRILL_DEP_LIBRARIES})
+endif()
 
 ################################################################################
 ### Build Macros

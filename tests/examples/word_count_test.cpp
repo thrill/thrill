@@ -134,12 +134,11 @@ TEST(WordCount, RandomTextWriterTest) {
             ctx.enable_consume();
 
             auto lines = Generate(
-                ctx,
+                ctx, size,
                 [](const size_t& index) -> std::string {
                     std::minstd_rand rng(static_cast<unsigned>(index));
                     return RandomTextWriterGenerate(10, rng);
-                },
-                size);
+                });
 
             auto reduced_words = WordCount(lines);
 

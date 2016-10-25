@@ -89,11 +89,10 @@ IndexDIA ConstructLCP(const InputDIA& input, const IndexDIA& /*suffix_array*/,
 
     auto lcp =
         Generate(
-            ctx,
+            ctx, input_size,
             [](size_t /*index*/) {
                 return IndexFlag { Index(0), false };
-            },
-            input_size);
+            });
 
     auto tmp_inverse_bwt =
         bwt

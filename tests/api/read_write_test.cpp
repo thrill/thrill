@@ -174,9 +174,8 @@ TEST(IO, GenerateIntegerWriteReadBinary) {
             size_t generate_size = 32000;
             {
                 auto dia = Generate(
-                    ctx,
-                    [](const size_t index) { return index + 42; },
-                    generate_size);
+                    ctx, generate_size,
+                    [](const size_t index) { return index + 42; });
 
                 dia.WriteBinary(tmpdir.get() + "/IO.IntegerBinary",
                                 16 * 1024);
@@ -222,9 +221,8 @@ TEST(IO, GenerateIntegerWriteReadBinaryCompressed) {
             size_t generate_size = 32000;
             {
                 auto dia = Generate(
-                    ctx,
-                    [](const size_t index) { return index + 42; },
-                    generate_size);
+                    ctx, generate_size,
+                    [](const size_t index) { return index + 42; });
 
                 dia.WriteBinary(tmpdir.get() + "/IO.IntegerBinary-@@@@-####.gz",
                                 16 * 1024);
@@ -275,11 +273,10 @@ TEST(IO, GenerateStringWriteBinary) {
             size_t generate_size = 32000;
             {
                 auto dia = Generate(
-                    ctx,
+                    ctx, generate_size,
                     [](const size_t index) {
                         return Item(index, test_string(index));
-                    },
-                    generate_size);
+                    });
 
                 dia.WriteBinary(tmpdir.get() + "/IO.StringBinary",
                                 16 * 1024);
@@ -418,17 +415,16 @@ TEST(IO, IntegerWriteReadBinaryLinesFutures) {
             {
                 auto dia = Generate(
                     ctx,
-                    [](const size_t index) { return index + 42; },
-                    generate_size);
+                    generate_size,
+                    [](const size_t index) { return index + 42; });
 
-                Future<> fa = dia
-                              .WriteBinary(
-                    FutureTag, tmpdir.get() + "/IO.IntegerBinary", 16 * 1024);
+                Future<> fa = dia.WriteBinaryFuture(
+                    tmpdir.get() + "/IO.IntegerBinary", 16 * 1024);
 
                 Future<> fb =
                     dia
                     .Map([](const size_t& i) { return std::to_string(i); })
-                    .WriteLinesOne(FutureTag, tmpdir.get() + "/IO.IntegerLines");
+                    .WriteLinesOneFuture(tmpdir.get() + "/IO.IntegerLines");
 
                 fa.wait();
                 fb.wait();

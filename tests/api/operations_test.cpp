@@ -213,9 +213,8 @@ TEST(Operations, GenerateIntegers) {
         [](Context& ctx) {
 
             auto integers = Generate(
-                ctx,
-                [](const size_t& index) { return index; },
-                test_size);
+                ctx, test_size,
+                [](const size_t& index) { return index; });
 
             std::vector<size_t> out_vec = integers.AllGather();
 
@@ -406,11 +405,10 @@ TEST(Operations, MapResultsCorrectChangingType) {
         [](Context& ctx) {
 
             auto integers = Generate(
-                ctx,
+                ctx, 16,
                 [](const size_t& index) -> size_t {
                     return index + 1;
-                },
-                16);
+                });
 
             auto double_elements =
                 [](size_t in) {
@@ -440,11 +438,10 @@ TEST(Operations, FlatMapResultsCorrectChangingType) {
         [](Context& ctx) {
 
             auto integers = Generate(
-                ctx,
+                ctx, 16,
                 [](const size_t& index) -> size_t {
                     return index;
-                },
-                16);
+                });
 
             auto flatmap_double =
                 [](size_t in, auto emit) {
@@ -505,11 +502,10 @@ TEST(Operations, PrefixSumCorrectResults) {
         [](Context& ctx) {
 
             auto integers = Generate(
-                ctx,
+                ctx, 16,
                 [](const size_t& input) {
                     return input + 1;
-                },
-                16);
+                });
 
             auto prefixsums = integers.PrefixSum();
 
@@ -533,11 +529,10 @@ TEST(Operations, PrefixSumFacultyCorrectResults) {
         [](Context& ctx) {
 
             auto integers = Generate(
-                ctx,
+                ctx, 10,
                 [](const size_t& input) {
                     return input + 1;
-                },
-                10);
+                });
 
             auto prefixsums = integers.PrefixSum(
                 [](size_t in1, size_t in2) {
@@ -626,9 +621,8 @@ TEST(Operations, WindowCorrectResults) {
             sLOG << ctx.num_hosts();
 
             auto integers = Generate(
-                ctx,
-                [](const size_t& input) { return input * input; },
-                test_size);
+                ctx, test_size,
+                [](const size_t& input) { return input * input; });
 
             auto window = integers.Window(
                 window_size, [=](size_t rank,
@@ -680,9 +674,8 @@ TEST(Operations, WindowCorrectResultsPartialWindows) {
         [](Context& ctx, size_t test_size, size_t window_size) {
 
             auto integers = Generate(
-                ctx,
-                [](const size_t& input) { return input * input; },
-                test_size);
+                ctx, test_size,
+                [](const size_t& input) { return input * input; });
 
             auto window = integers.Window(
                 window_size,
@@ -753,9 +746,8 @@ TEST(Operations, DisjointWindowCorrectResults) {
             sLOG << ctx.num_hosts();
 
             auto integers = Generate(
-                ctx,
-                [](const size_t& input) { return input * input; },
-                test_size);
+                ctx, test_size,
+                [](const size_t& input) { return input * input; });
 
             auto window = integers.Window(
                 DisjointTag, window_size,
@@ -801,11 +793,10 @@ TEST(Operations, FilterResultsCorrectly) {
         [](Context& ctx) {
 
             auto integers = Generate(
-                ctx,
+                ctx, 16,
                 [](const size_t& index) {
                     return (size_t)index + 1;
-                },
-                16);
+                });
 
             auto even = [](size_t in) {
                             return (in % 2 == 0);
@@ -837,11 +828,10 @@ TEST(Operations, DIACasting) {
                         };
 
             auto integers = Generate(
-                ctx,
+                ctx, 16,
                 [](const size_t& index) {
                     return index + 1;
-                },
-                16);
+                });
 
             DIA<size_t> doubled = integers.Filter(even).Collapse();
 
@@ -908,11 +898,10 @@ TEST(Operations, ForLoop) {
         [](Context& ctx) {
 
             auto integers = Generate(
-                ctx,
+                ctx, 16,
                 [](const size_t& index) -> size_t {
                     return index;
-                },
-                16);
+                });
 
             auto flatmap_duplicate = [](size_t in, auto emit) {
                                          emit(in);
@@ -950,11 +939,10 @@ TEST(Operations, WhileLoop) {
         [](Context& ctx) {
 
             auto integers = Generate(
-                ctx,
+                ctx, 16,
                 [](const size_t& index) -> size_t {
                     return index;
-                },
-                16);
+                });
 
             auto flatmap_duplicate = [](size_t in, auto emit) {
                                          emit(in);
@@ -994,19 +982,18 @@ TEST(Operations, ActionFutures) {
         [](Context& ctx) {
 
             auto integers = Generate(
-                ctx,
+                ctx, 16,
                 [](const size_t& input) {
                     return long(input + 1);
-                },
-                16).Cache();
+                }).Cache();
 
-            Future<long> minf = integers.Min(FutureTag, 16);
-            Future<long> maxf = integers.Max(FutureTag);
-            Future<long> sumf = integers.Sum(FutureTag);
+            Future<long> minf = integers.MinFuture(16);
+            Future<long> maxf = integers.MaxFuture();
+            Future<long> sumf = integers.SumFuture();
 
-            Future<size_t> sizef = integers.Size(FutureTag);
+            Future<size_t> sizef = integers.SizeFuture();
 
-            Future<std::vector<long> > vecf = integers.AllGather(FutureTag);
+            Future<std::vector<long> > vecf = integers.AllGatherFuture();
 
             ASSERT_FALSE(minf.valid());
             ASSERT_FALSE(maxf.valid());

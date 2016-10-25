@@ -74,17 +74,16 @@ private:
  *
  * \param ctx Reference to the Context object
  *
+ * \param size Size of the output DIA
+ *
  * \param generate_function Generator function, which maps `size_t` from
  * `[0,size)` to elements. Input type has to be `size_t`.
- *
- * \param size Size of the output DIA
  *
  * \ingroup dia_sources
  */
 template <typename GenerateFunction>
-auto Generate(Context & ctx,
-              const GenerateFunction &generate_function,
-              size_t size) {
+auto Generate(Context & ctx, size_t size,
+              const GenerateFunction &generate_function) {
 
     using GenerateResult =
               typename common::FunctionTraits<GenerateFunction>::result_type;
@@ -121,7 +120,7 @@ auto Generate(Context & ctx,
  */
 static inline
 auto Generate(Context & ctx, size_t size) {
-    return Generate(ctx, [](const size_t& index) { return index; }, size);
+    return Generate(ctx, size, [](const size_t& index) { return index; });
 }
 
 } // namespace api

@@ -158,7 +158,8 @@ public:
 
     //! StatsCounter for incoming data transfer.  Exclusively contains only
     //! loopback (internal) data transfer
-    size_t rx_int_items_ = 0, rx_int_bytes_ = 0, rx_int_blocks_ = 0;
+    std::atomic<size_t>
+    rx_int_items_ { 0 }, rx_int_bytes_ { 0 }, rx_int_blocks_ { 0 };
 
     //! StatsCounters for outgoing data transfer - shared by all sinks.
     //! Exclusively contains only loopback (internal) data transfer

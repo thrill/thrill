@@ -137,7 +137,7 @@ void DIA<ValueType, Stack>::AllGather(std::vector<ValueType>* out_vector) const 
 
 template <typename ValueType, typename Stack>
 Future<std::vector<ValueType> >
-DIA<ValueType, Stack>::AllGather(const struct FutureTag&) const {
+DIA<ValueType, Stack>::AllGatherFuture() const {
     assert(IsValid());
 
     using AllGatherNode = api::AllGatherNode<ValueType>;

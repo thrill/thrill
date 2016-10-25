@@ -698,7 +698,7 @@ EXCLUDE_SYMLINKS       = NO
 # against the file with absolute path, so to exclude all test directories
 # for example use the pattern */test/*
 
-EXCLUDE_PATTERNS       = *.png *.pdf *.eps *.svg *.bib *.xml *.xmi *.css */CMakeLists.txt
+EXCLUDE_PATTERNS       = *.png *.jpg *.pdf *.eps *.svg *.bib *.xml *.xmi *.css */CMakeLists.txt
 
 # The EXCLUDE_SYMBOLS tag can be used to specify one or more symbol names
 # (namespaces, classes, functions, etc.) that should be excluded from the
@@ -712,7 +712,7 @@ EXCLUDE_SYMBOLS        =
 # directories that contain example code fragments that are included (see
 # the \include command).
 
-EXAMPLE_PATH           = tests/
+EXAMPLE_PATH           = tests/ examples/
 
 # If the value of the EXAMPLE_PATH tag contains directories, you can use the
 # EXAMPLE_PATTERNS tag to specify one or more wildcard pattern (like *.cpp

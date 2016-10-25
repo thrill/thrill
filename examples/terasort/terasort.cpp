@@ -155,7 +155,7 @@ int main(int argc, char* argv[]) {
                 die_unless(common::ParseSiIecUnits(input[0].c_str(), size));
                 die_unless(!use_signed_char);
 
-                Generate(ctx, GenerateRecord(), size / sizeof(Record))
+                Generate(ctx, size / sizeof(Record), GenerateRecord())
                 .WriteBinary(output);
             }
             else if (generate) {
@@ -166,7 +166,7 @@ int main(int argc, char* argv[]) {
                 die_unless(!use_signed_char);
 
                 auto r =
-                    Generate(ctx, GenerateRecord(), size / sizeof(Record))
+                    Generate(ctx, size / sizeof(Record), GenerateRecord())
                     .Sort();
 
                 if (output.size())

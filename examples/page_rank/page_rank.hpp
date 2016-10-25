@@ -66,9 +66,8 @@ auto PageRank(const DIA<OutgoingLinks, InStack>&links,
 
     DIA<Rank> ranks =
         Generate(
-            ctx,
-            [num_pages_d](size_t) { return Rank(1.0) / num_pages_d; },
-            num_pages)
+            ctx, num_pages,
+            [num_pages_d](size_t) { return Rank(1.0) / num_pages_d; })
         .Collapse();
 
     // do iterations
@@ -137,11 +136,10 @@ auto PageRankJoin(const DIA<LinkedPage, InStack>&links, size_t num_pages,
 
     DIA<RankedPage> ranks =
         Generate(
-            ctx,
+            ctx, num_pages,
             [num_pages_d](size_t idx) {
                 return std::make_pair(idx, Rank(1.0) / num_pages_d);
-            },
-            num_pages)
+            })
         .Collapse();
 
     // do iterations

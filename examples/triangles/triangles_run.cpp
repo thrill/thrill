@@ -62,13 +62,12 @@ static size_t CountTrianglesGenerated(
     const size_t& num_vertices) {
 
     auto edge_lists = Generate(
-        ctx,
+        ctx, num_vertices,
         [graph_gen = ZipfGraphGen(base_graph_gen, num_vertices),
          rng = std::default_random_engine(std::random_device { } ())](
             size_t index) mutable {
             return std::make_pair(index, graph_gen.GenerateOutgoing(rng));
-        },
-        num_vertices);
+        });
 
     auto edges = edge_lists.template FlatMap<Edge>(
         [](std::pair<Node, std::vector<Node> > neighbors, auto emit) {

@@ -22,6 +22,7 @@
 #include <map>
 #include <string>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 using namespace thrill; // NOLINT
@@ -656,6 +657,47 @@ bool MakeSeries(const std::vector<Stats>& c_Stats, std::string& output,
 
 /******************************************************************************/
 
+using SeriesVector = std::vector<std::pair<double, double> >;
+
+template <typename Stats, typename Select>
+SeriesVector
+MakeSeriesVector(const std::vector<Stats>& c_Stats, const Select& select) {
+
+    auto where = [](const Stats&) { return true; };
+
+    uint64_t ts_curr = 0;
+
+    uint64_t ts_sum = 0;
+    double value_sum = 0;
+    size_t value_count = 0;
+
+    SeriesVector out;
+
+    for (const Stats& c : c_Stats) {
+        if (!where(c)) continue;
+
+        if (c.ts / 1000000 != ts_curr) {
+            if (value_count) {
+                ts_sum /= value_count;
+                value_sum /= value_count;
+                out.emplace_back(std::make_pair(ts_sum / 1000.0, value_sum));
+            }
+            ts_sum = 0;
+            value_sum = 0;
+            value_count = 0;
+            ts_curr = c.ts / 1000000;
+        }
+
+        ts_sum += c.ts;
+        value_sum += select(c);
+        ++value_count;
+    }
+
+    return out;
+}
+
+/******************************************************************************/
+
 void AddStageLines(common::JsonLine& xAxis) {
     common::JsonLine plotLines = xAxis.arr("plotLines");
     for (const CStageBuilder& c : c_StageBuilder) {
@@ -1234,6 +1276,52 @@ std::string PageMain() {
 
 /******************************************************************************/
 
+std::string ResultLines() {
+    std::ostringstream oss;
+
+    std::string title = GetProgramName();
+
+    SeriesVector cpu_series = MakeSeriesVector(
+        c_LinuxProcStats, [](const CLinuxProcStats& c) {
+            return c.cpu_user + c.cpu_sys;
+        });
+
+    SeriesVector net_series = MakeSeriesVector(
+        c_LinuxProcStats, [](const CLinuxProcStats& c) {
+            return c.net_tx_speed + c.net_rx_speed;
+        });
+
+    SeriesVector disk_series = MakeSeriesVector(
+        c_LinuxProcStats, [](const CLinuxProcStats& c) {
+            return c.diskstats_rd_bytes + c.diskstats_wr_bytes;
+        });
+
+    for (const auto& v : cpu_series) {
+        oss << "RESULT"
+            << "\ttitle=" << title
+            << "\tts=" << v.first
+            << "\tcpu=" << v.second << "\n";
+    }
+
+    for (const auto& v : net_series) {
+        oss << "RESULT"
+            << "\ttitle=" << title
+            << "\tts=" << v.first
+            << "\tnet=" << v.second << "\n";
+    }
+
+    for (const auto& v : disk_series) {
+        oss << "RESULT"
+            << "\ttitle=" << title
+            << "\tts=" << v.first
+            << "\tdisk=" << v.second << "\n";
+    }
+
+    return oss.str();
+}
+
+/******************************************************************************/
+
 int main(int argc, char* argv[]) {
     common::CmdlineParser clp;
     clp.SetDescription("Thrill Json Profile Parser");
@@ -1242,6 +1330,10 @@ int main(int argc, char* argv[]) {
     clp.AddOptParamStringlist("inputs", inputs, "json inputs");
 
     clp.AddString('t', "title", s_title, "override title");
+
+    bool output_RESULT_lines = false;
+    clp.AddFlag('r', "result", output_RESULT_lines,
+                "output data as RESULT lines");
 
     if (!clp.Process(argc, argv)) return -1;
 
@@ -1263,7 +1355,10 @@ int main(int argc, char* argv[]) {
     std::cerr << "Parsed " << s_num_events << " events "
               << "from " << inputs.size() << " files" << std::endl;
 
-    std::cout << PageMain();
+    if (output_RESULT_lines)
+        std::cout << ResultLines();
+    else
+        std::cout << PageMain();
 
     return 0;
 }

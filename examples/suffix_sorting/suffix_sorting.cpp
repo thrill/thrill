@@ -89,7 +89,7 @@ public:
             }
 
             DIA<uint8_t> input_dia = Generate(
-                ctx, [](size_t /* i */) { return uint8_t('a'); }, sizelimit_);
+                ctx, sizelimit_, [](size_t /* i */) { return uint8_t('a'); });
             SwitchIndexType(input_dia, sizelimit_);
         }
         else if (input_path_ == "random") {
@@ -104,11 +104,10 @@ public:
 
             DIA<uint8_t> input_dia =
                 Generate(
-                    ctx,
+                    ctx, sizelimit_,
                     [&prng](size_t index) {
                         return static_cast<uint8_t>(prng() + index);
-                    },
-                    sizelimit_)
+                    })
                 // the random input _must_ be cached, otherwise it will be
                 // regenerated ... and contain new numbers.
                 .Cache();
@@ -126,11 +125,10 @@ public:
 
             DIA<uint8_t> input_dia =
                 Generate(
-                    ctx,
+                    ctx, sizelimit_,
                     [&prng](size_t index) {
                         return static_cast<uint8_t>('0' + (prng() + index) % 10);
-                    },
-                    sizelimit_)
+                    })
                 // the random input _must_ be cached, otherwise it will be
                 // regenerated ... and contain new numbers.
                 .Cache();
@@ -148,11 +146,10 @@ public:
 
             DIA<uint8_t> input_dia =
                 Generate(
-                    ctx,
+                    ctx, sizelimit_,
                     [&prng](size_t index) {
                         return static_cast<uint8_t>('0' + (prng() + index) % 2);
-                    },
-                    sizelimit_)
+                    })
                 // the random input _must_ be cached, otherwise it will be
                 // regenerated ... and contain new numbers.
                 .Cache();

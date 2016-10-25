@@ -49,9 +49,9 @@ int main(int argc, char* argv[]) {
                  std::uniform_int_distribution<size_t> distribution(0, std::numeric_limits<size_t>::max());
 
                  std::vector<FastString> copy_enforcer;
-                 Generate(ctx, [&distribution, &generator](size_t) {
+                 Generate(ctx, elements, [&distribution, &generator](size_t) {
                               return std::to_string(distribution(generator));
-                          }, (size_t)elements).WriteLines(output);
+                          }).WriteLines(output);
              });
 }
 

@@ -38,9 +38,8 @@ TEST(ZipNode, TwoBalancedIntegerArrays) {
 
             // numbers 0..999 (evenly distributed to workers)
             auto zip_input1 = Generate(
-                ctx,
-                [](size_t index) { return index; },
-                test_size);
+                ctx, test_size,
+                [](size_t index) { return index; });
 
             // numbers 1000..1999
             auto zip_input2 = zip_input1.Map(
@@ -72,9 +71,8 @@ TEST(ZipNode, TwoBalancedIntegerArraysNoRebalance) {
 
             // numbers 0..999 (evenly distributed to workers)
             auto zip_input1 = Generate(
-                ctx,
-                [](size_t index) { return index; },
-                test_size);
+                ctx, test_size,
+                [](size_t index) { return index; });
 
             // numbers 1000..1999
             auto zip_input2 = zip_input1.Map(
@@ -109,9 +107,8 @@ TEST(ZipNode, TwoDisbalancedIntegerArrays) {
 
             // numbers 0..999 (evenly distributed to workers)
             auto input1 = Generate(
-                ctx,
-                [](size_t index) { return index; },
-                test_size);
+                ctx, test_size,
+                [](size_t index) { return index; });
 
             // numbers 1000..1999
             auto input2 = input1.Map(
@@ -162,9 +159,8 @@ TEST(ZipNode, TwoDisbalancedIntegerArraysZipWithIndex) {
 
             // numbers 0..999 (evenly distributed to workers)
             auto input1 = Generate(
-                ctx,
-                [](size_t index) { return static_cast<unsigned>(index); },
-                test_size);
+                ctx, test_size,
+                [](size_t index) { return static_cast<unsigned>(index); });
 
             // numbers 0..99 (concentrated on first workers)
             auto zip_input1 = input1.Filter(
@@ -201,15 +197,13 @@ TEST(ZipNode, TwoIntegerArraysWhereOneIsEmpty) {
 
             // numbers 0..999 (evenly distributed to workers)
             auto input1 = Generate(
-                ctx,
-                [](size_t index) { return index; },
-                test_size);
+                ctx, test_size,
+                [](size_t index) { return index; });
 
             // numbers 0..999 (evenly distributed to workers)
             auto input2 = Generate(
-                ctx,
-                [](size_t index) { return index; },
-                0);
+                ctx, 0,
+                [](size_t index) { return index; });
 
             // map to shorts
             auto input2_short = input2.Map(
@@ -238,7 +232,7 @@ TEST(ZipNode, TwoDisbalancedStringArrays) {
 
             // generate random strings with 10..20 characters
             auto input_gen = Generate(
-                ctx,
+                ctx, test_size,
                 [](size_t index) -> std::string {
                     std::default_random_engine rng(
                         123456 + static_cast<unsigned>(index));
@@ -248,8 +242,7 @@ TEST(ZipNode, TwoDisbalancedStringArrays) {
                     return common::RandomString(
                         length(rng), rng, "abcdefghijklmnopqrstuvwxyz")
                     + std::to_string(index);
-                },
-                test_size);
+                });
 
             DIA<std::string> input = input_gen.Collapse();
 
@@ -312,24 +305,21 @@ TEST(ZipNode, ThreeIntegerArrays) {
 
             // numbers 0..999 (evenly distributed to workers)
             auto input1 = Generate(
-                ctx,
-                [](size_t index) { return static_cast<short>(index); },
-                test_size);
+                ctx, test_size,
+                [](size_t index) { return static_cast<short>(index); });
 
             // numbers 0..1999 (evenly distributed to workers)
             auto input2 = Generate(
-                ctx,
-                [](size_t index) { return index; },
-                test_size * 2);
+                ctx, test_size * 2,
+                [](size_t index) { return index; });
 
             // numbers 0..0.999 (evenly distributed to workers)
             auto input3 = Generate(
-                ctx,
+                ctx, test_size,
                 [](size_t index) {
                     return static_cast<double>(index)
                     / static_cast<double>(test_size);
-                },
-                test_size);
+                });
 
             // zip
             auto zip_result = Zip(
@@ -363,24 +353,21 @@ TEST(ZipNode, ThreeIntegerArraysPadded) {
 
             // numbers 0..999 (evenly distributed to workers)
             auto input1 = Generate(
-                ctx,
-                [](size_t index) { return static_cast<short>(index); },
-                test_size);
+                ctx, test_size,
+                [](size_t index) { return static_cast<short>(index); });
 
             // numbers 0..1999 (evenly distributed to workers)
             auto input2 = Generate(
-                ctx,
-                [](size_t index) { return index; },
-                test_size * 2);
+                ctx, test_size * 2,
+                [](size_t index) { return index; });
 
             // numbers 0..0.999 (evenly distributed to workers)
             auto input3 = Generate(
-                ctx,
+                ctx, test_size,
                 [](size_t index) {
                     return static_cast<double>(index)
                     / static_cast<double>(test_size);
-                },
-                test_size);
+                });
 
             // zip
             auto zip_result = Zip(

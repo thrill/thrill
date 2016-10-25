@@ -101,9 +101,8 @@ int main(int argc, char* argv[]) {
             else {
                 std::default_random_engine rng(std::random_device { } ());
                 auto input_dia =
-                    Generate(ctx,
-                             [&](size_t) { return uint64_t(rng() % 32); },
-                             32);
+                    Generate(ctx, 32,
+                             [&](size_t) { return uint64_t(rng() % 32); });
                 ConstructWaveletTree(input_dia);
             }
         });

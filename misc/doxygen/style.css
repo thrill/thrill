@@ -97,13 +97,13 @@ div.contents {
 
 /* make text blocks red-black */
 div.textblock p, div.textblock li {
-   color: #400000;
+   color: #000000;
    margin-top: 1ex;   
    margin-bottom: 1ex;   
    font-size: 16/24px;
 }
 div.memdoc p {
-   color: #400000;
+   color: #000000;
    margin-top: 1ex;   
    margin-bottom: 1ex;   
    font-size: 16/18px;
@@ -154,6 +154,10 @@ div.groupHeader {
 }
 
 /* source code browser */
+
+div.fragment {
+   padding: 0.6ex 1.2ex;
+}
 
 /* more space between lines */
 div.line {

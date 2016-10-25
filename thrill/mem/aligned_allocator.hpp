@@ -61,7 +61,7 @@ public:
 
     //! Return allocator for different type.
     template <typename U>
-    struct rebind { using other = AlignedAllocator<U>; };
+    struct rebind { using other = AlignedAllocator<U, BaseAllocator>; };
 
     //! Construct with base allocator
     explicit AlignedAllocator(const BaseAllocator& base = BaseAllocator())

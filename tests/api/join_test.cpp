@@ -34,13 +34,13 @@ TEST(Join, PairsUnique) {
 
             size_t n = 9999;
 
-            auto dia1 = Generate(ctx, [](const size_t& e) {
+            auto dia1 = Generate(ctx, n, [](const size_t& e) {
                                      return std::make_pair(e, e * e);
-                                 }, n);
+                                 });
 
-            auto dia2 = Generate(ctx, [](const size_t& e) {
+            auto dia2 = Generate(ctx, n, [](const size_t& e) {
                                      return std::make_pair(e, e * e * e);
-                                 }, n);
+                                 });
 
             auto key_ex = [](intpair input) {
                               return input.first;
@@ -78,13 +78,13 @@ TEST(Join, PairsSameKey) {
 
             size_t n = 333;
 
-            auto dia1 = Generate(ctx, [](const size_t& e) {
+            auto dia1 = Generate(ctx, n,[](const size_t& e) {
                                      return std::make_pair(1, e);
-                                 }, n);
+                });
 
-            auto dia2 = Generate(ctx, [](const size_t& e) {
+            auto dia2 = Generate(ctx, n, [](const size_t& e) {
                                      return std::make_pair(1, e * e);
-                                 }, n);
+                                 });
 
             auto key_ex = [](const intpair& input) {
                               return input.first;
@@ -127,13 +127,13 @@ TEST(Join, PairsSameKeyDiffSizes) {
             size_t n = 333;
             size_t m = 100;
 
-            auto dia1 = Generate(ctx, [](const size_t& e) {
+            auto dia1 = Generate(ctx, m, [](const size_t& e) {
                                      return std::make_pair(1, e);
-                                 }, m);
+                                 });
 
-            auto dia2 = Generate(ctx, [](const size_t& e) {
+            auto dia2 = Generate(ctx, n, [](const size_t& e) {
                                      return std::make_pair(1, e * e);
-                                 }, n);
+                                 });
 
             auto key_ex = [](const intpair& input) {
                               return input.first;
@@ -177,13 +177,13 @@ TEST(Join, DifferentTypes) {
 
             size_t n = 9999;
 
-            auto dia1 = Generate(ctx, [](const size_t& e) {
+            auto dia1 = Generate(ctx, n, [](const size_t& e) {
                                      return std::make_pair(e, e * e);
-                                 }, n);
+                });
 
-            auto dia2 = Generate(ctx, [](const size_t& e) {
+            auto dia2 = Generate(ctx, n, [](const size_t& e) {
                                      return std::make_tuple(e, e * e, e * e * e);
-                                 }, n);
+                                 });
 
             auto key_ex1 = [](intpair input) {
                                return input.first;

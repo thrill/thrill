@@ -10,7 +10,7 @@
 namespace thrill {
 namespace api {
 
-/** \page api User Interface
+/** \page layer_api User DIA API
 
 From the user's perspective, a DIA (Distributed Immutable Array) is an immutable array,
 which can only be accessed by Operations and Actions. Operations transform a DIA into

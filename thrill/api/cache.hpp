@@ -86,10 +86,12 @@ DIA<ValueType> DIA<ValueType, Stack>::Cache() const {
     assert(IsValid());
 
 #if !defined(_MSC_VER)
-    // skip if this is already a CacheNode. MSVC messes this up.
+    // skip Cache if this is already a CacheNode. MSVC messes this up.
     if (stack_empty &&
         dynamic_cast<CacheNode<ValueType>*>(node_.get()) != nullptr) {
-        return *this;
+        // return Collapse instead, automatically eliminates CollapseNode since
+        // the stack is empty.
+        return Collapse();
     }
 #endif
     return DIA<ValueType>(

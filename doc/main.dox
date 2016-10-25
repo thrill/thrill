@@ -14,54 +14,74 @@ namespace thrill {
 /******************************************************************************/
 /** \mainpage Thrill Documentation Overview
 
+### Getting Started
+
+- First, read the Thrill [overview paper on arXiv](https://arxiv.org/abs/1608.05634).
+- \ref start_compile
+- \ref start_first
+- \ref start_run
+
+### Namespace/Components
+
 <table class="mystyle1">
   <tr>
-    <td colspan="2"><div style="text-align: center">\ref examples "examples: Some Example Programs"</div>
+    <td colspan="2"><div style="text-align: center">\ref ::examples "examples: Some Example Programs"</div>
     WordCount, PageRank, and more...</td>
   </tr>
   <tr>
-    <td colspan="2"><div style="text-align: center">\ref api "api: Thrill User Interface"</div>
-    Convenient user interface for writing Big Data algorithms as dataflow graphs with imperative actions. Contains the Context and DIA classes.<br/>See \ref dia_api "List of Operation" for a comprehensive overview.</td>
+    <td colspan="2"><div style="text-align: center">\ref layer_api "api: Thrill User Interface"</div>
+    Convenient user interface for writing Big Data algorithms as dataflow graphs with imperative actions. Contains the Context and DIA classes.<br/>See \ref dia_api "List of DIA Operation" for a comprehensive overview.</td>
   </tr>
   <tr>
-    <td colspan="2"><div style="text-align: center">\ref core "core: Internal Algorithms"</div>
+    <td colspan="2"><div style="text-align: center">\ref thrill::core "core: Internal Algorithms"</div>
     Distributed data structures and algorithms used to build API: Shuffle/Reduce Table, StageBuilder.</td>
   </tr>
   <tr>
     <td style="width: 50%">
-      <div style="text-align: center">\ref data "data: Data Layer"</div>
+      <div style="text-align: center">\ref layer_data "data: Data Layer"</div>
       Manages transfer of large amounts of data between workers. Contains Serialization, File, BlockWriter, Channel, and Multiplexer.</td>
     <td style="width: 50%">
-      <div style="text-align: center">\ref net "net: Network Layer"</div>
+      <div style="text-align: center">\ref layer_net "net: Network Layer"</div>
       Controls connections between compute nodes, contains collective communication primitives like Broadcast, AllReduce for simple datatypes.</td>
   </tr>
   <tr>
     <td style="width: 50%">
-      <div style="text-align: center">\ref data "io: Async I/O Layer"</div>
+      <div style="text-align: center">\ref thrill::io "io: Async I/O Layer"</div>
       asynchronous I/O, direct file access impl, and disk allocation. (mostly borrowed from STXXL)</td>
     <td style="width: 50%">
-      <div style="text-align: center">\ref net::mock "net::mock", \ref net::tcp "net::tcp", \ref net::mpi "net::mpi"</div>
+      <div style="text-align: center">\ref thrill::net::mock "net::mock", \ref thrill::net::tcp "net::tcp", \ref thrill::net::mpi "net::mpi"</div>
       Network backend implementations.</td>
   </tr>
   <tr>
     <td style="width: 50%">
-      <div style="text-align: center">\ref common "common: Common Tools"</div>
+      <div style="text-align: center">\ref layer_common "common: Common Tools"</div>
       Independent common tools such as Logger, ThreadPool, Delegates, ConcurrentQueue, CmdlineParser, etc.</td>
     <td style="width: 50%">
-      <div style="text-align: center">\ref mem "mem: Memory Management Layer"</div>
+      <div style="text-align: center">\ref layer_mem "mem: Memory Management Layer"</div>
       Keeps track of memory consumption of all stakeholders in system. Extra memory pool for I/O data structures.</td>
   </tr>
 </table>
 
-- \subpage api
-- \subpage net
-- \subpage data "Data Subsystem"
-- \subpage common
-- \subpage mem
+### Chapters
 
+- \subpage start
+- \subpage kmeans_tutorial
+- \subpage layer
 - \subpage style_guide
 
 */
+
+/******************************************************************************/
+/** \page layer Thrill Layer Architecture
+
+- \subpage layer_api
+- \subpage layer_net
+- \subpage layer_data
+- \subpage layer_common
+- \subpage layer_mem
+
+*/
+/******************************************************************************/
 
 } // namespace thrill
 

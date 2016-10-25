@@ -46,9 +46,10 @@ int main(int argc, char* argv[]) {
     auto start_func =
         [&count, &timer](api::Context& ctx) {
             auto key_value = Generate(
-                ctx, [](const size_t& index) {
+                ctx, count,
+                [](const size_t& index) {
                     return KeyValue { index, index + 10 };
-                }, count);
+                });
 
             timer.Start();
             // auto result = key_value.map10;

@@ -30,11 +30,10 @@ TEST(Sort, SortKnownIntegers) {
         [](Context& ctx) {
 
             auto integers = Generate(
-                ctx,
+                ctx, test_size,
                 [](const size_t& index) -> size_t {
                     return test_size - index - 1;
-                },
-                test_size);
+                });
 
             auto sorted = integers.Sort();
 
@@ -62,11 +61,10 @@ TEST(Sort, SortRandomIntegers) {
             std::uniform_int_distribution<int> distribution(0, 10000);
 
             auto integers = Generate(
-                ctx,
+                ctx, 1000000,
                 [&distribution, &generator](const size_t&) -> int {
                     return distribution(generator);
-                },
-                1000000);
+                });
 
             auto sorted = integers.Sort();
 
@@ -91,11 +89,10 @@ TEST(Sort, SortRandomIntegersCustomCompareFunction) {
             std::uniform_int_distribution<int> distribution(1, 10000);
 
             auto integers = Generate(
-                ctx,
+                ctx, 10000,
                 [&distribution, &generator](const size_t&) -> int {
                     return distribution(generator);
-                },
-                10000);
+                });
 
             auto compare_fn = [](int in1, int in2) {
                                   return in1 > in2;
@@ -132,13 +129,12 @@ TEST(Sort, SortRandomIntIntStructs) {
             std::uniform_int_distribution<int> distribution(1, 10);
 
             auto integers = Generate(
-                ctx,
+                ctx, 10000,
                 [&distribution, &generator](const size_t&) -> IntIntStruct {
                     return IntIntStruct {
                         distribution(generator), distribution(generator)
                     };
-                },
-                10000);
+                });
 
             auto cmp_fn = [](const IntIntStruct& in1, const IntIntStruct& in2) {
                               if (in1.a != in2.a) {
@@ -169,11 +165,10 @@ TEST(Sort, SortZeros) {
         [](Context& ctx) {
 
             auto integers = Generate(
-                ctx,
+                ctx, 10000,
                 [](const size_t&) -> size_t {
                     return 1;
-                },
-                10000);
+                });
 
             auto sorted = integers.Sort();
 
@@ -195,11 +190,10 @@ TEST(Sort, SortZeroToThree) {
         [](Context& ctx) {
 
             auto integers = Generate(
-                ctx,
+                ctx, 10000,
                 [](const size_t& index) -> size_t {
                     return index % 4;
-                },
-                10000);
+                });
 
             auto sorted = integers.Sort();
 
@@ -228,7 +222,7 @@ TEST(Sort, SortWithEmptyWorkers) {
             std::vector<size_t> out_vec = sorted.AllGather();
 
             size_t prev = 0;
-            for (size_t i = 0; i < out_vec.size() - 1; i++) {
+            for (size_t i = 0; i < out_vec.size(); i++) {
                 ASSERT_TRUE(out_vec[i] >= prev);
                 prev = out_vec[i];
             }
@@ -253,7 +247,7 @@ TEST(Sort, SortOneInteger) {
             std::vector<size_t> out_vec;
             sorted.AllGather(&out_vec);
 
-            for (size_t i = 0; i < out_vec.size() - 1; i++) {
+            for (size_t i = 0; i < out_vec.size(); i++) {
                 ASSERT_EQ(i, out_vec[i]);
             }
 

@@ -46,59 +46,59 @@ int main(int argc, char* argv[]) {
 
     api::Run([&equal, &elements](api::Context& ctx) {
 
-                 auto in = api::Generate(ctx,
-                                         [&equal](size_t n) {
-                                             std::array<size_t, 128> value;
-                                             for (size_t i = 0; i < 128; ++i) {
-                                                 value[i] = i + n;
-                                             }
-                                             return std::make_pair(n / equal, value);
-                                         }, elements).Keep().Execute();
+            auto in = api::Generate(ctx, elements,
+                                    [&equal](size_t n) {
+                                        std::array<size_t, 128> value;
+                                        for (size_t i = 0; i < 128; ++i) {
+                                            value[i] = i + n;
+                                        }
+                                        return std::make_pair(n / equal, value);
+                                    }).Keep().Execute();
 
 
-                 ctx.net.Barrier();
-                 common::StatsTimerStart timer;
-                 auto out = in.ReducePair(
-                     [](const std::array<size_t, 128>& in1, const std::array<size_t, 128>& in2) {
-                         std::array<size_t, 128> value_out;
-                         for (size_t i = 0; i < 128; ++i) {
-                             value_out[i] = in1[i] + in2[i];
-                         }
-                         return value_out;
-                     });
-                 out.Size();
-                 ctx.net.Barrier();
-                 timer.Stop();
+            ctx.net.Barrier();
+            common::StatsTimerStart timer;
+            auto out = in.ReducePair(
+                [](const std::array<size_t, 128>& in1, const std::array<size_t, 128>& in2) {
+                    std::array<size_t, 128> value_out;
+                    for (size_t i = 0; i < 128; ++i) {
+                        value_out[i] = in1[i] + in2[i];
+                    }
+                    return value_out;
+                });
+            out.Size();
+            ctx.net.Barrier();
+            timer.Stop();
 
-                 if (debug) {
-                     auto vec = out.AllGather();
-                     std::sort(vec.begin(), vec.end(), [](auto i1, auto i2) {
-                                   return i1.first < i2.first;
-                               });
-                     if (ctx.my_rank() == 0) {
-                         LOG1 << "Checking results!";
-                         ASSERT_EQ(elements / equal, vec.size());
-                         for (size_t i = 0; i < vec.size(); ++i) {
-                             for (size_t j = 0; j < 128; ++j) {
-                                 ASSERT_EQ(vec[i].second[j],
-                                           equal * (equal - 1) / 2
-                                           + equal * j
-                                           + equal * equal * i);
-                             }
-                         }
-                         LOG1 << "Result checking successful.";
-                     }
-                 }
+            if (debug) {
+                auto vec = out.AllGather();
+                std::sort(vec.begin(), vec.end(), [](auto i1, auto i2) {
+                        return i1.first < i2.first;
+                    });
+                if (ctx.my_rank() == 0) {
+                    LOG1 << "Checking results!";
+                    ASSERT_EQ(elements / equal, vec.size());
+                    for (size_t i = 0; i < vec.size(); ++i) {
+                        for (size_t j = 0; j < 128; ++j) {
+                            ASSERT_EQ(vec[i].second[j],
+                                      equal * (equal - 1) / 2
+                                      + equal * j
+                                      + equal * equal * i);
+                        }
+                    }
+                    LOG1 << "Result checking successful.";
+                }
+            }
 
-                 else {
-                     auto traffic = ctx.net_manager().Traffic();
-                     LOG1 << "RESULT" << " benchmark=duplicates detection=ON"
-                          << " elements=" << elements
-                          << " time=" << timer.Milliseconds()
-                          << " traffic=" << traffic.first + traffic.second
-                          << " machines=" << ctx.num_hosts();
-                 }
-             });
+            else {
+                auto traffic = ctx.net_manager().Traffic();
+                LOG1 << "RESULT" << " benchmark=duplicates detection=ON"
+                     << " elements=" << elements
+                     << " time=" << timer.Milliseconds()
+                     << " traffic=" << traffic.first + traffic.second
+                     << " machines=" << ctx.num_hosts();
+            }
+        });
 }
 
 /******************************************************************************/

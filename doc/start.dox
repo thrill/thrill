@@ -1,0 +1,191 @@
+// -*- mode: c++; mode: visual-line; mode: flyspell; fill-column: 100000 -*-
+/*******************************************************************************
+ * doc/start.dox
+ *
+ * Part of Project Thrill - http://project-thrill.org
+ *
+ * Copyright (C) 2016 Timo Bingmann <tb@panthema.net>
+ *
+ * All rights reserved. Published under the BSD-2 license in the LICENSE file.
+ ******************************************************************************/
+
+namespace thrill {
+
+/******************************************************************************/
+/** \page start Getting Started
+
+- \subpage start_compile
+- \subpage start_first
+- \subpage start_run
+- \subpage start_environment
+- \subpage start_profile
+
+*/
+
+/******************************************************************************/
+/** \page start_compile Fetching and compiling Thrill, and running an example
+
+### Fetching and Compiling Thrill
+
+Thrill is written in C++14 and requires an appropriate compiler. Gcc >= 4.9, Clang, and Microsoft Visual C++ 2015 with newest updates are supported.
+
+Under Linux Thrill can be cloned using git, and compiled by calling the `compile.sh` script in the source root. This script clones additional git submodules, creates directory `build`, runs cmake to create Makefiles, and compiles in Debug mode with a detected compiler. And then even runs the test suite. In total this takes about 10 minutes on our workstations.
+
+\code
+$ git clone https://github.com/thrill/thrill.git
+$ cd thrill
+$ ./compile.sh
+\endcode
+
+Under Windows, use cmake's GUI to create project files and open them. Real TCP Networking is currently not available on Windows, but an internal mock network is available for testing applications.
+
+### Running the WordCount example
+
+Thrill's example directory contains quite a few working programs. To run the WordCount example locally with internally generated random input run:
+
+\code
+$ cd build/examples/word_count/
+$ ./word_count_run --generate 1000 --output result-
+\endcode
+
+This will run the WordCount program locally using all cores of the machines and simulating two hosts in a loopback network. Random lines with 10 words per line are generated and the resulting counts are written to the files `result-*`.
+
+### Next Steps
+
+- \ref start_first
+- \ref start_run
+
+*/
+
+/******************************************************************************/
+/** \page start_first Write your first Thrill program
+
+### K-Means Tutorial
+
+This documentation contains a step-by-step tutorial on how to implement k-means clustering in Thrill.
+
+See \ref kmeans_tutorial_step1
+
+*/
+
+/******************************************************************************/
+/** \page start_run Running Thrill programs on a cluster
+
+### Execution Model
+
+Thrill programs are binary executables which run simultaneously on <i>h</i> hosts in a cluster with equal hardware configuration. Generally, they use all cores and RAM available on the host and communicate via a network protocol. If external disk memory is used, this should be on local disks.
+
+\image html cluster-execution.svg
+
+The input and output is usually stored on a fault tolerance distributed file system like Ceph, Lustre, NFS, or HDFS. Currently Thrill only supports the standard (POSIX) file system (HDFS's proprietary interface may be added some day).
+
+In general, the startup procedure has the goal to launch the <i>same binary</i> on all hosts. On startup, the Thrill binary will then connect to the other running instances via the network. Hence, the host, port and other connection parameters of the other instances must be passed.
+
+We provide a set of `run` scripts in the source package, which automatically launch Thrill programs via SSH, on a set of AWS EC2 instances, and on clusters scheduled by slurm. MPI is also supported natively.
+
+When started with no parameters, Thrill programs run locally and simulate a two host network with all cores available on the machine divided into the two virtual hosts. Communication is performed via local kernel sockets on Linux.
+
+Thrill's configuration is passed via the standard Unix environment variables. This makes it easy to traverse hosts in a cluster. See \ref start_environment for more configuration options.
+
+### Running via SSH
+
+The bash script `run/ssh/invoke.sh` launches the same binary on a set of hosts via ssh. These should be setup with ssh keys for authentication.
+
+For example, the following will launch the WordCount example on two hosts called `jupiter` and `saturn`. We assume Thrill is in directory `~/thrill`.
+
+\code
+$ cd ~/thrill/build/examples/word_count/
+$ ~/thrill/run/ssh/invoke.sh -h "jupiter saturn" word_count_run --generate 1000 --output result-
+\endcode
+
+This ssh invocation assumes a <b>common distributed file system</b> on all hosts including the launcher. This is a common setup in Linux clusters with an NFS server. In principle, the script access each machine via ssh and launches the `word_count_run` executable with the additional connection parameters. All arguments after word_count_run are passed on.
+
+One can also launch Thrill programs on a "remote" cluster which does not contain the executable. This is done by simply adding the `-c` option. The script then <b>copies the executable</b> via ssh to the remote hosts and runs it from `/tmp`.
+
+### Running via MPI
+
+The simplest method to run Thrill programs in a cluster is using MPI. If compiled with an MPI library like OpenMPI, the Thrill program will detect that it is running under MPI and use MPI calls to communicate. No configuration is needed.
+
+However, we have had many problems with multi-threading and MPI libraries.
+
+### Running on AWS EC2
+
+We often run Thrill programs on a set of bare-bone EC2 instances running on AWS. In principle these are accessed via SSH and the Thrill program is uploaded from the development machine.
+
+The process of looking up the currently running EC2 instances, reading the public and private IPs, etc, is automated by the scripts in `run/ec2/`. The python scripts require the boto3 library, which is available via pip.
+
+First run `~/thrill/run/ec2/make_env.py` and check the output for running EC2 instances.
+
+Then run `~/thrill/run/ec2/invoke.sh` which runs ssh's invoke with all EC2 instances.
+
+*/
+
+/******************************************************************************/
+/** \page start_environment Environment Configuration Variables
+
+### Environment Variables
+
+- `THRILL_LOG` - a file name to output extensive JSON log information. See \ref start_profile.
+
+- `THRILL_WORKERS_PER_HOST` - number of workers per host, default: number of cores detected.
+
+- `THRILL_RAM` - working memory limit, default: whole physical memory.
+
+- `THRILL_NET` - network protocol used. Currently available:
+  - `mock` - mock network via shared-memory
+  - `local` - local kernel-level loopback sockets (default launch configuration)
+  - `tcp` - usual TCP sockets
+  - `mpi` - MPI transport (automatically detected)
+
+- `THRILL_LOCAL` - for mock and local networks: number of simulated hosts.
+
+Internal environment variables set by the `run` scripts:
+
+- `THRILL_HOSTLIST` - list of TCP host:port to connect to
+
+- `THRILL_RANK` - rank this executable in a TCP network
+
+- `THRILL_DIE_WITH_PARENT` - perform kernel call to die if the parent ssh caller dies. Otherwise Thrill programs continue to run.
+
+- `THRILL_UNLINK_BINARY` - used by SSH launcher to cleanup a copied executable.
+
+*/
+
+/******************************************************************************/
+/** \page start_profile Runtime Profile Plots
+
+### Creating Runtime Profile Plots
+
+Thrill contains a built-in logging mechanism beyond the usual stdout output. This must be activated by supplying the environment variable `THRILL_LOG=abc`. Thrill writes rather extensive logs to abc-host0.json in a JSON format.
+
+The source archive contains a program to read this raw JSON log (which can be used in future for other purposes) and output a HTML execution profile.
+
+For example, try to run:
+
+\code
+$ cd ~/thrill/build/examples/page_rank/
+$ THRILL_LOG=ourlog ./page_rank_run --generate 100000
+$ ls -la ourlog*
+(this should show ourlog-host0.json and ourlog-host1.json)
+$ ~/thrill/build/misc/json2profile ourlog*.json > ourlog.html
+\endcode
+
+And open `ourlog.html` using a web browser to see an execution profile.
+
+It is also possible to create a .dot file of the dataflow graph using the following python code snippet
+(example for the previous page rank example):
+
+\code
+$ cd ~/thrill/misc
+$ python json2graphviz.py ~thrill/build/examples/page_rank/ourlog-host0.json > page_rank.dot
+\endcode
+
+The resulting .dot file can be used by graph drawing tools such as GraphViz.
+
+
+
+*/
+
+} // namespace thrill
+
+/******************************************************************************/

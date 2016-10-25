@@ -307,7 +307,7 @@ public:
     template <typename Type>
     BufferBuilder& Put(const Type& item) {
         static_assert(
-            std::is_trivially_copyable<Type>::value,
+            common::is_trivially_copyable<Type>::value,
             "You only want to Put() trivially copyable types as raw values.");
 
         if (size_ + sizeof(Type) > capacity_) DynReserve(size_ + sizeof(Type));

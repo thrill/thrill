@@ -29,8 +29,8 @@ ValueType DIA<ValueType, Stack>::Min(const ValueType& initial_value) const {
 }
 
 template <typename ValueType, typename Stack>
-Future<ValueType> DIA<ValueType, Stack>::Min(
-    const struct FutureTag&, const ValueType& initial_value) const {
+Future<ValueType> DIA<ValueType, Stack>::MinFuture(
+    const ValueType& initial_value) const {
     assert(IsValid());
 
     using MinNode = api::AllReduceNode<ValueType, common::minimum<ValueType> >;

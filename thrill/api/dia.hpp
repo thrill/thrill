@@ -37,14 +37,6 @@ namespace api {
 //! \ingroup api_layer
 //! \{
 
-//! tag structure for returning ActionFutures
-struct FutureTag {
-    FutureTag() { }
-};
-
-//! global const FutureTag instance
-const struct FutureTag FutureTag;
-
 //! tag structure for ReduceByKey(), and ReduceToIndex()
 struct VolatileKeyTag {
     VolatileKeyTag() { }
@@ -459,7 +451,7 @@ public:
      *
      * \ingroup dia_actions
      */
-    Future<size_t> Size(struct FutureTag const&) const;
+    Future<size_t> SizeFuture() const;
 
     /*!
      * Returns the whole DIA in an std::vector on each worker. This is only for
@@ -484,7 +476,7 @@ public:
      *
      * \ingroup dia_actions
      */
-    Future<std::vector<ValueType> > AllGather(struct FutureTag const&) const;
+    Future<std::vector<ValueType> > AllGatherFuture() const;
 
     /*!
      * Print is an Action, which collects all data of the DIA at the worker 0
@@ -551,8 +543,7 @@ public:
      * \ingroup dia_actions
      */
     template <typename ReduceFunction>
-    Future<ValueType> AllReduce(
-        struct FutureTag const&,
+    Future<ValueType> AllReduceFuture(
         const ReduceFunction& reduce_function,
         const ValueType& initial_value = ValueType()) const;
 
@@ -580,15 +571,12 @@ public:
      * \ingroup dia_actions
      */
     template <typename SumFunction = std::plus<ValueType> >
-    Future<ValueType> Sum(
-        struct FutureTag const&,
+    Future<ValueType> SumFuture(
         const SumFunction& sum_function = SumFunction(),
         const ValueType& initial_value = ValueType()) const;
 
     /*!
      * Min is an Action, which computes the minimum of all elements globally.
-     *
-     * \param min_function Min function.
      *
      * \param initial_value Initial value of the min.
      *
@@ -600,20 +588,15 @@ public:
      * Min is an ActionFuture, which computes the minimum of all elements
      * globally.
      *
-     * \param min_function Min function.
-     *
      * \param initial_value Initial value of the min.
      *
      * \ingroup dia_actions
      */
-    Future<ValueType> Min(
-        struct FutureTag const&,
+    Future<ValueType> MinFuture(
         const ValueType& initial_value = ValueType()) const;
 
     /*!
      * Max is an Action, which computes the maximum of all elements globally.
-     *
-     * \param max_function Max function.
      *
      * \param initial_value Initial value of the max.
      *
@@ -625,14 +608,11 @@ public:
      * Max is an ActionFuture, which computes the maximum of all elements
      * globally.
      *
-     * \param max_function Max function.
-     *
      * \param initial_value Initial value of the max.
      *
      * \ingroup dia_actions
      */
-    Future<ValueType> Max(
-        struct FutureTag const&,
+    Future<ValueType> MaxFuture(
         const ValueType& initial_value = ValueType()) const;
 
     /*!
@@ -653,8 +633,8 @@ public:
      *
      * \ingroup dia_actions
      */
-    Future<void> WriteLinesOne(
-        struct FutureTag const&, const std::string& filepath) const;
+    Future<void> WriteLinesOneFuture(
+        const std::string& filepath) const;
 
     /*!
      * WriteLines is an Action, which writes std::strings to multiple output
@@ -689,8 +669,8 @@ public:
      *
      * \ingroup dia_actions
      */
-    Future<void> WriteLines(
-        struct FutureTag const&, const std::string& filepath,
+    Future<void> WriteLinesFuture(
+        const std::string& filepath,
         size_t target_file_size = 128* 1024* 1024) const;
 
     /*!
@@ -726,8 +706,7 @@ public:
      *
      * \ingroup dia_actions
      */
-    Future<void> WriteBinary(
-        struct FutureTag const&,
+    Future<void> WriteBinaryFuture(
         const std::string& filepath,
         size_t max_file_size = 128* 1024* 1024) const;
 
@@ -1387,9 +1366,6 @@ private:
 
 //! imported from api namespace
 using api::DIA;
-
-//! imported from api namespace
-using api::FutureTag;
 
 //! imported from api namespace
 using api::DisjointTag;

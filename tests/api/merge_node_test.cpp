@@ -60,9 +60,8 @@ TEST(MergeNode, TwoBalancedIntegerArrays) {
 
             // even numbers in 0..9998 (evenly distributed to workers)
             auto merge_input1 = Generate(
-                ctx,
-                [](size_t index) { return index * 2; },
-                test_size);
+                ctx, test_size,
+                [](size_t index) { return index * 2; });
 
             // odd numbers in 1..9999
             auto merge_input2 = merge_input1.Map(
@@ -87,9 +86,8 @@ TEST(MergeNode, FourBalancedIntegerArrays) {
         [](Context& ctx) {
 
             auto merge_input1 = Generate(
-                ctx,
-                [](size_t index) { return index * 4; },
-                test_size);
+                ctx, test_size,
+                [](size_t index) { return index * 4; });
 
             auto merge_input2 = merge_input1.Map(
                 [](size_t i) { return i + 1; });
@@ -120,9 +118,8 @@ TEST(MergeNode, TwoImbalancedIntegerArrays) {
 
             // numbers in 0..4999 (evenly distributed to workers)
             auto merge_input1 = Generate(
-                ctx,
-                [](size_t index) { return index; },
-                test_size);
+                ctx, test_size,
+                [](size_t index) { return index; });
 
             // numbers in 10000..14999
             auto merge_input2 = merge_input1.Map(
@@ -155,15 +152,13 @@ TEST(MergeNode, TwoIntegerArraysOfDifferentSize) {
 
             // numbers in 0..4999 (evenly distributed to workers)
             auto merge_input1 = Generate(
-                ctx,
-                [](size_t index) { return index; },
-                test_size);
+                ctx, test_size,
+                [](size_t index) { return index; });
 
             // numbers in 2500..12499
             auto merge_input2 = Generate(
-                ctx,
-                [](size_t index) { return index + offset; },
-                test_size * 2);
+                ctx, test_size * 2,
+                [](size_t index) { return index + offset; });
 
             std::vector<size_t> expected;
             expected.reserve(test_size * 3);

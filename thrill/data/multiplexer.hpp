@@ -160,10 +160,10 @@ private:
     //! closed
     bool closed_ = false;
 
-    //! number of active CatStreams
-    size_t active_streams_ = 0;
+    //! number of active Cat/MixStreams
+    std::atomic<size_t> active_streams_ { 0 };
 
-    //! maximu number of active CatStreams
+    //! maximu number of active Cat/MixStreams
     size_t max_active_streams_ = 0;
 
     //! friends for access to network components

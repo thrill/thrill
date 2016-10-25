@@ -20,10 +20,10 @@ using namespace thrill;
 TEST(IO, WriteToS3) {
     auto start_func =
         [](Context& ctx) {
-        auto integers = Generate(ctx,
+        auto integers = Generate(ctx, 240,
                                  [](const size_t& ele) {
                                      return std::to_string(ele);
-                                 }, 240);
+                                 });
 
         integers.WriteLines("s3://thrill-test/some_integers");
 

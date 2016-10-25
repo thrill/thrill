@@ -303,7 +303,7 @@ int RunBackendLoopback(
 
     // determine number of loopback hosts
 
-    size_t num_hosts = std::thread::hardware_concurrency();
+    size_t num_hosts = 2;
 
     const char* env_local = getenv("THRILL_LOCAL");
     if (env_local && *env_local) {
@@ -335,11 +335,8 @@ int RunBackendLoopback(
         }
     }
     else {
-        if (!env_local && !env_workers_per_host) {
-            // distribute two threads per worker.
-            workers_per_host = 2;
-            num_hosts /= 2;
-        }
+        // distribute threads into hosts
+        workers_per_host = std::thread::hardware_concurrency() / num_hosts;
     }
 
     // detect memory config

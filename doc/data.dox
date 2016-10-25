@@ -13,7 +13,7 @@ namespace thrill {
 namespace data {
 
 /******************************************************************************/
-/** \page data Data Subsystem
+/** \page layer_data Data Subsystem
 
 The central notion of the data subsystem is an item, which can be serialized and deserialized. All items that are processed by Thrill must be support serialization.  For these items, the data subsystems provides methods to store, retrieve, and transmit very large sets or streams of items efficiently.  The actual implementations of underlying storage and transmission methods may change in the future, but the interfaces should not.
 

@@ -13,7 +13,7 @@ namespace thrill {
 namespace net {
 
 /******************************************************************************/
-/** \page net Network Layer
+/** \page layer_net Network Layer
 
 The Thrill Network Layer consists of sublayers:
 
@@ -24,7 +24,7 @@ The Group object is similar to an MPI communicator: it has connections to *p* pe
 Group provides
 - a \ref Group::num_hosts "num_hosts()" and \ref Group::my_host_rank "my_host_rank()" function to describe the size of the group.
 - a point-to-point Connection class with a rich set of Send, Receive methods to transfer serializable items to another peer in the group: \ref Connection::Send "Send<T>" and \ref Connection::Receive "Receive<T>". For more low-level packet-based communication there are further methods available.
-- collective operations for any **serializable** datatypes: \ref net::PrefixSum() "PrefixSum".
+- collective operations for any **serializable** datatypes: \ref Group::PrefixSum() "PrefixSum".
 
 If any operation on a Connection fails, then an Exception is thrown.
 

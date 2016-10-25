@@ -68,7 +68,7 @@ struct Chars {
                   << ',' << chars.ch[6] << ']';
     }
 
-    static Chars EndSentinel() {
+    static Chars Lowest() {
         return Chars {
                    {
                        std::numeric_limits<AlphabetType>::lowest(),
@@ -271,32 +271,32 @@ struct StringFragment {
     StringFragment() = default;
 
     // conversion from StringFragmentMod0
-    explicit StringFragment(const StringFragmentMod0<Index, AlphabetType>& _mod0)
-        : mod0(_mod0) { }
+    explicit StringFragment(
+        const StringFragmentMod0<Index, AlphabetType>& _mod0) : mod0(_mod0) { }
 
     // conversion from StringFragmentMod1
-    explicit StringFragment(const StringFragmentMod1<Index, AlphabetType>& _mod1)
-        : mod1(_mod1) { }
+    explicit StringFragment(
+        const StringFragmentMod1<Index, AlphabetType>& _mod1) : mod1(_mod1) { }
 
     // conversion from StringFragmentMod2
-    explicit StringFragment(const StringFragmentMod2<Index, AlphabetType>& _mod2)
-        : mod2(_mod2) { }
+    explicit StringFragment(
+        const StringFragmentMod2<Index, AlphabetType>& _mod2) : mod2(_mod2) { }
 
     // conversion from StringFragmentMod3
-    explicit StringFragment(const StringFragmentMod3<Index, AlphabetType>& _mod3)
-        : mod3(_mod3) { }
+    explicit StringFragment(
+        const StringFragmentMod3<Index, AlphabetType>& _mod3) : mod3(_mod3) { }
 
     // conversion from StringFragmentMod4
-    explicit StringFragment(const StringFragmentMod4<Index, AlphabetType>& _mod4)
-        : mod4(_mod4) { }
+    explicit StringFragment(
+        const StringFragmentMod4<Index, AlphabetType>& _mod4) : mod4(_mod4) { }
 
     // conversion from StringFragmentMod5
-    explicit StringFragment(const StringFragmentMod5<Index, AlphabetType>& _mod5)
-        : mod5(_mod5) { }
+    explicit StringFragment(
+        const StringFragmentMod5<Index, AlphabetType>& _mod5) : mod5(_mod5) { }
 
     // conversion from StringFragmentMod6
-    explicit StringFragment(const StringFragmentMod6<Index, AlphabetType>& _mod6)
-        : mod6(_mod6) { }
+    explicit StringFragment(
+        const StringFragmentMod6<Index, AlphabetType>& _mod6) : mod6(_mod6) { }
 
     friend std::ostream& operator << (std::ostream& os,
                                       const StringFragment& tc) {
@@ -394,9 +394,11 @@ struct CharsRanks013 {
     Index       rank1;
     Index       rank3;
 
-    friend std::ostream& operator << (std::ostream& os, const CharsRanks013& c) {
+    friend std::ostream& operator << (std::ostream& os,
+                                      const CharsRanks013& c) {
         return os << "(ch=" << c.chars
-                  << " r0=" << c.rank0 << " r1=" << c.rank1 << " r3=" << c.rank3 << ")";
+                  << " r0=" << c.rank0 << " r1=" << c.rank1
+                  << " r3=" << c.rank3 << ")";
     }
 } THRILL_ATTRIBUTE_PACKED;
 
@@ -459,14 +461,16 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size, size_t K) {
         input_dia.Keep()
         // map (t_i) -> (i,t_i,t_{i+1},...,t_{i+6}) where i = 0,1,3 mod 7
         .template FlatWindow<IndexChars>(
-            7, [input_size](size_t index, const RingBuffer<Char>& r, auto emit) {
+            7,
+            [input_size](size_t index, const RingBuffer<Char>& r, auto emit) {
                 if (IsDiffCover7(index))
                     emit(IndexChars {
                              Index(index), {
                                  { r[0], r[1], r[2], r[3], r[4], r[5], r[6] }
                              }
                          });
-            }, [input_size](size_t index, const RingBuffer<Char>& r, auto emit) {
+            },
+            [input_size](size_t index, const RingBuffer<Char>& r, auto emit) {
                 // emit last sentinel items.
                 if (IsDiffCover7(index)) {
                     emit(IndexChars {
@@ -486,13 +490,13 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size, size_t K) {
                     // emit a sentinel tuple for inputs n % 7 == 0 to
                     // separate mod0 and mod1 strings in recursive
                     // subproblem. example which needs this: aaaaaaaaaa.
-                    emit(IndexChars { Index(input_size), Chars::EndSentinel() });
+                    emit(IndexChars { Index(input_size), Chars::Lowest() });
                 }
                 if (index + 1 == input_size && input_size % 7 == 1) {
                     // emit a sentinel tuple for inputs n % 7 == 1 to
                     // separate mod1 and mod3 strings in recursive
                     // subproblem. example which needs this: aaaaaaaaaa.
-                    emit(IndexChars { Index(input_size), Chars::EndSentinel() });
+                    emit(IndexChars { Index(input_size), Chars::Lowest() });
                 }
             })
         // sort tuples by contained letters
@@ -571,7 +575,7 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size, size_t K) {
 
     assert_equal(tuple_index_sorted.Keep().Size(), size_subp);
 
-    DIA<IndexRank> ranks_rec;
+    DIA<Index> ranks_mod0, ranks_mod1, ranks_mod3;
 
     if (max_lexname + Index(1) != size_subp) {
         // some lexical name is not unique -> perform recursion on three
@@ -618,7 +622,7 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size, size_t K) {
         if (debug_print)
             suffix_array_rec.Keep().Print("suffix_array_rec");
 
-        ranks_rec =
+        auto ranks_rec =
             suffix_array_rec
             .ZipWithIndex([](const Index& sa, const size_t& i) {
                               return IndexRank { sa, Index(i) };
@@ -638,8 +642,44 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size, size_t K) {
                       return ai < bi || (ai == bi && a.index < b.index);
                   });
 
-        if (debug_print)
+        ranks_mod0 =
+            ranks_rec
+            .Filter([size_mod0](const IndexRank& a) {
+                        return a.index < size_mod0;
+                    })
+            .Map([](const IndexRank& a) {
+                     // add one to ranks such that zero can be used as sentinel
+                     // for suffixes beyond the end of the string.
+                     return a.rank + Index(1);
+                 })
+            .Collapse();
+
+        ranks_mod1 =
+            ranks_rec
+            .Filter([size_mod0, size_mod01](const IndexRank& a) {
+                        return a.index >= size_mod0 && a.index < size_mod01;
+                    })
+            .Map([](const IndexRank& a) {
+                     return a.rank + Index(1);
+                 })
+            .Collapse();
+
+        ranks_mod3 =
+            ranks_rec
+            .Filter([size_mod01](const IndexRank& a) {
+                        return a.index >= size_mod01;
+                    })
+            .Map([](const IndexRank& a) {
+                     return a.rank + Index(1);
+                 })
+            .Collapse();
+
+        if (debug_print) {
             ranks_rec.Keep().Print("ranks_rec");
+            ranks_mod0.Keep().Print("ranks_mod0");
+            ranks_mod1.Keep().Print("ranks_mod1");
+            ranks_mod3.Keep().Print("ranks_mod3");
+        }
     }
     else {
         if (ctx.my_rank() == 0)
@@ -648,7 +688,7 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size, size_t K) {
         if (debug_print)
             tuple_index_sorted.Keep().Print("tuple_index_sorted");
 
-        ranks_rec =
+        auto ranks_rec =
             tuple_index_sorted
             .ZipWithIndex(
                 [](const Index& sa, const size_t& i) {
@@ -659,17 +699,46 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size, size_t K) {
                       return a.index / 7 < b.index / 7 || (
                           a.index / 7 == b.index / 7 &&
                           a.index < b.index);
-                  })
-            .Map([size_mod0, size_mod01](const IndexRank& a) {
-                     return IndexRank {
-                         a.index % 7 == 0 ? Index(0) :
-                         a.index % 7 == 1 ? size_mod0 : size_mod01, a.rank
-                     };
+                  });
+
+        ranks_mod0 =
+            ranks_rec
+            .Filter([size_mod0](const IndexRank& a) {
+                        return a.index % 7 == 0;
+                    })
+            .Map([](const IndexRank& a) {
+                     // add one to ranks such that zero can be used as sentinel
+                     // for suffixes beyond the end of the string.
+                     return a.rank + Index(1);
                  })
             .Collapse();
 
-        if (debug_print)
+        ranks_mod1 =
+            ranks_rec
+            .Filter([size_mod0, size_mod01](const IndexRank& a) {
+                        return a.index % 7 == 1;
+                    })
+            .Map([](const IndexRank& a) {
+                     return a.rank + Index(1);
+                 })
+            .Collapse();
+
+        ranks_mod3 =
+            ranks_rec
+            .Filter([size_mod01](const IndexRank& a) {
+                        return a.index % 7 == 3;
+                    })
+            .Map([](const IndexRank& a) {
+                     return a.rank + Index(1);
+                 })
+            .Collapse();
+
+        if (debug_print) {
             ranks_rec.Keep().Print("ranks_rec");
+            ranks_mod0.Keep().Print("ranks_mod0");
+            ranks_mod1.Keep().Print("ranks_mod1");
+            ranks_mod3.Keep().Print("ranks_mod3");
+        }
     }
 
     // *** construct StringFragments ***
@@ -678,13 +747,15 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size, size_t K) {
         input_dia
         // map (t_i) -> (i,t_i,t_{i+1},...,t_{i+6}) where i != 0,1,3 mod 7
         .template FlatWindow<Chars>(
-            7, [input_size](size_t index, const RingBuffer<Char>& r, auto emit) {
+            7,
+            [input_size](size_t index, const RingBuffer<Char>& r, auto emit) {
                 if (index % 7 == 0) {
                     emit(Chars {
                              { r[0], r[1], r[2], r[3], r[4], r[5], r[6] }
                          });
                 }
-            }, [input_size](size_t index, const RingBuffer<Char>& r, auto emit) {
+            },
+            [input_size](size_t index, const RingBuffer<Char>& r, auto emit) {
                 // emit last sentinel items.
                 if (index % 7 == 0) {
                     emit(Chars {
@@ -699,45 +770,14 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size, size_t K) {
                 }
             });
 
-    auto ranks_mod0 =
-        ranks_rec
-        .Filter([size_mod0](const IndexRank& a) {
-                    return a.index < size_mod0;
-                })
-        .Map([](const IndexRank& a) {
-                 // add one to ranks such that zero can be used as sentinel
-                 // for suffixes beyond the end of the string.
-                 return a.rank + Index(1);
-             });
-
-    auto ranks_mod1 =
-        ranks_rec
-        .Filter([size_mod0, size_mod01](const IndexRank& a) {
-                    return a.index >= size_mod0 && a.index < size_mod01;
-                })
-        .Map([](const IndexRank& a) {
-                 return a.rank + Index(1);
-             });
-
-    auto ranks_mod3 =
-        ranks_rec
-        .Filter([size_mod01](const IndexRank& a) {
-                    return a.index >= size_mod01;
-                })
-        .Map([](const IndexRank& a) {
-                 return a.rank + Index(1);
-             });
+    if (debug_print)
+        tuple_chars.Keep().Print("tuple_chars");
 
     if (debug_print) {
-        tuple_chars.Keep().Print("tuple_chars");
-        ranks_mod0.Keep().Print("ranks_mod0");
-        ranks_mod1.Keep().Print("ranks_mod1");
-        ranks_mod3.Keep().Print("ranks_mod3");
+        assert_equal(ranks_mod0.Keep().Size(), size_mod0);
+        assert_equal(ranks_mod1.Keep().Size(), size_mod1);
+        assert_equal(ranks_mod3.Keep().Size(), size_mod3);
     }
-
-    assert_equal(ranks_mod0.Keep().Size(), size_mod0);
-    assert_equal(ranks_mod1.Keep().Size(), size_mod1);
-    assert_equal(ranks_mod3.Keep().Size(), size_mod3);
 
     // Zip together the three arrays, create pairs, and extract needed
     // tuples into string fragments.
@@ -759,7 +799,7 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size, size_t K) {
                const Index& mod0, const Index& mod1, const Index& mod3) {
                 return CharsRanks013 { ch, mod0, mod1, mod3 };
             },
-            std::make_tuple(Chars::EndSentinel(), 0, 0, 0),
+            std::make_tuple(Chars::Lowest(), 0, 0, 0),
             tuple_chars, ranks_mod0, ranks_mod1, ranks_mod3);
 
     if (debug_print)
@@ -775,7 +815,7 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size, size_t K) {
                     // emit last sentinel
                     emit(IndexCR013Pair {
                              Index(7 * (index + 1)), rb[1],
-                             CharsRanks013 { Chars::EndSentinel(), 0, 0, 0 }
+                             CharsRanks013 { Chars::Lowest(), 0, 0, 0 }
                          });
                 }
             });
@@ -785,7 +825,8 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size, size_t K) {
         .Map([](const IndexCR013Pair& ip) {
                  return StringFragmentMod0 {
                      ip.index,
-                     { ip.cr0.chars.ch[0], ip.cr0.chars.ch[1], ip.cr0.chars.ch[2] },
+                     { ip.cr0.chars.ch[0], ip.cr0.chars.ch[1],
+                       ip.cr0.chars.ch[2] },
                      ip.cr0.rank0, ip.cr0.rank1, ip.cr0.rank3
                  };
              })
@@ -798,8 +839,9 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size, size_t K) {
         .Map([](const IndexCR013Pair& ip) {
                  return StringFragmentMod1 {
                      ip.index + Index(1),
-                     { ip.cr0.chars.ch[1], ip.cr0.chars.ch[2], ip.cr0.chars.ch[3],
-                       ip.cr0.chars.ch[4], ip.cr0.chars.ch[5], ip.cr0.chars.ch[6] },
+                     { ip.cr0.chars.ch[1], ip.cr0.chars.ch[2],
+                       ip.cr0.chars.ch[3], ip.cr0.chars.ch[4],
+                       ip.cr0.chars.ch[5], ip.cr0.chars.ch[6] },
                      ip.cr0.rank1, ip.cr0.rank3, ip.cr1.rank0
                  };
              })
@@ -812,8 +854,9 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size, size_t K) {
         .Map([](const IndexCR013Pair& ip) {
                  return StringFragmentMod2 {
                      ip.index + Index(2),
-                     { ip.cr0.chars.ch[2], ip.cr0.chars.ch[3], ip.cr0.chars.ch[4],
-                       ip.cr0.chars.ch[5], ip.cr0.chars.ch[6], ip.cr1.chars.ch[0] },
+                     { ip.cr0.chars.ch[2], ip.cr0.chars.ch[3],
+                       ip.cr0.chars.ch[4], ip.cr0.chars.ch[5],
+                       ip.cr0.chars.ch[6], ip.cr1.chars.ch[0] },
                      ip.cr0.rank3, ip.cr1.rank0, ip.cr1.rank1
                  };
              })
@@ -826,8 +869,9 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size, size_t K) {
         .Map([](const IndexCR013Pair& ip) {
                  return StringFragmentMod3 {
                      ip.index + Index(3),
-                     { ip.cr0.chars.ch[3], ip.cr0.chars.ch[4], ip.cr0.chars.ch[5],
-                       ip.cr0.chars.ch[6], ip.cr1.chars.ch[0] },
+                     { ip.cr0.chars.ch[3], ip.cr0.chars.ch[4],
+                       ip.cr0.chars.ch[5], ip.cr0.chars.ch[6],
+                       ip.cr1.chars.ch[0] },
                      ip.cr0.rank3, ip.cr1.rank0, ip.cr1.rank1
                  };
              })
@@ -840,8 +884,9 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size, size_t K) {
         .Map([](const IndexCR013Pair& ip) {
                  return StringFragmentMod4 {
                      ip.index + Index(4),
-                     { ip.cr0.chars.ch[4], ip.cr0.chars.ch[5], ip.cr0.chars.ch[6],
-                       ip.cr1.chars.ch[0], ip.cr1.chars.ch[1], ip.cr1.chars.ch[2] },
+                     { ip.cr0.chars.ch[4], ip.cr0.chars.ch[5],
+                       ip.cr0.chars.ch[6], ip.cr1.chars.ch[0],
+                       ip.cr1.chars.ch[1], ip.cr1.chars.ch[2] },
                      ip.cr1.rank0, ip.cr1.rank1, ip.cr1.rank3
                  };
              })
@@ -854,8 +899,9 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size, size_t K) {
         .Map([](const IndexCR013Pair& ip) {
                  return StringFragmentMod5 {
                      ip.index + Index(5),
-                     { ip.cr0.chars.ch[5], ip.cr0.chars.ch[6], ip.cr1.chars.ch[0],
-                       ip.cr1.chars.ch[1], ip.cr1.chars.ch[2] },
+                     { ip.cr0.chars.ch[5], ip.cr0.chars.ch[6],
+                       ip.cr1.chars.ch[0], ip.cr1.chars.ch[1],
+                       ip.cr1.chars.ch[2] },
                      ip.cr1.rank0, ip.cr1.rank1, ip.cr1.rank3
                  };
              })
@@ -868,8 +914,8 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size, size_t K) {
         .Map([](const IndexCR013Pair& ip) {
                  return StringFragmentMod6 {
                      ip.index + Index(6),
-                     { ip.cr0.chars.ch[6], ip.cr1.chars.ch[0], ip.cr1.chars.ch[1],
-                       ip.cr1.chars.ch[2] },
+                     { ip.cr0.chars.ch[6], ip.cr1.chars.ch[0],
+                       ip.cr1.chars.ch[1], ip.cr1.chars.ch[2] },
                      ip.cr1.rank0, ip.cr1.rank1, ip.cr1.rank3
                  };
              })
@@ -1004,7 +1050,8 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size, size_t K) {
             size_t p = 0;
             for (const Index& index : vec) {
                 std::cout << std::setw(5) << p << std::setw(5) << index << " =";
-                for (Index i = index; i < index + Index(64) && i < input_size; ++i) {
+                for (Index i = index;
+                     i < index + Index(64) && i < input_size; ++i) {
                     std::cout << ' ' << uint64_t(input_vec[i]);
                 }
                 std::cout << '\n';
