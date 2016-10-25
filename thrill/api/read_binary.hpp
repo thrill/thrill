@@ -263,14 +263,14 @@ private:
                            size_t& stats_total_bytes,
                            size_t& stats_total_reads)
             : context_(ctx),
-              sysfile_(vfs::SysOpenReadStream(fileinfo.path)),
+              stream_(vfs::SysOpenReadStream(fileinfo.path)),
               remain_size_(fileinfo.size()),
               is_compressed_(fileinfo.is_compressed),
               stats_total_bytes_(stats_total_bytes),
               stats_total_reads_(stats_total_reads) {
             if (fileinfo.begin != 0 && !is_compressed_) {
                 // seek to beginning
-                size_t p = sysfile_->lseek(static_cast<off_t>(fileinfo.begin));
+                size_t p = stream_->lseek(static_cast<off_t>(fileinfo.begin));
                 die_unequal(fileinfo.begin, p);
             }
         }
@@ -285,7 +285,7 @@ private:
             size_t rb = is_compressed_
                         ? block_size : std::min(block_size, remain_size_);
 
-            ssize_t size = sysfile_->read(bytes->data(), rb);
+            ssize_t size = stream_->read(bytes->data(), rb);
             stats_total_bytes_ += size;
             stats_total_reads_++;
 
@@ -302,7 +302,7 @@ private:
             }
             else {
                 // size == 0 -> read finished
-                sysfile_->close();
+                stream_->close();
                 done_ = true;
                 return data::PinnedBlock();
             }
@@ -310,7 +310,7 @@ private:
 
     private:
         Context& context_;
-        std::shared_ptr<vfs::AbstractFile> sysfile_;
+        std::shared_ptr<vfs::ReadStream> stream_;
         size_t remain_size_;
         bool is_compressed_;
         size_t& stats_total_bytes_;

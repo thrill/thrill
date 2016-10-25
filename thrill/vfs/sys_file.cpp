@@ -49,7 +49,7 @@ namespace vfs {
 /*!
  * Represents a POSIX system file via its file descriptor.
  */
-class SysFile final : public AbstractFile
+class SysFile final : public ReadStream, public WriteStream
 {
     static constexpr bool debug = false;
 
@@ -171,7 +171,7 @@ void SysFile::close() {
 
 /******************************************************************************/
 
-std::shared_ptr<AbstractFile> SysOpenReadStream(const std::string& path) {
+std::shared_ptr<ReadStream> SysOpenReadStream(const std::string& path) {
 
     static constexpr bool debug = false;
 
@@ -257,7 +257,7 @@ std::shared_ptr<AbstractFile> SysOpenReadStream(const std::string& path) {
 #endif
 }
 
-std::shared_ptr<AbstractFile> SysOpenWriteStream(const std::string& path) {
+std::shared_ptr<WriteStream> SysOpenWriteStream(const std::string& path) {
 
     static constexpr bool debug = false;
 

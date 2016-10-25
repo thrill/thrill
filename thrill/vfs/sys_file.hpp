@@ -27,7 +27,7 @@ namespace vfs {
  *
  * \param path Path to open
  */
-std::shared_ptr<AbstractFile> SysOpenReadStream(const std::string& path);
+std::shared_ptr<ReadStream> SysOpenReadStream(const std::string& path);
 
 /*!
  * Open file for writing and return file descriptor. Handles compressed files by
@@ -35,7 +35,7 @@ std::shared_ptr<AbstractFile> SysOpenReadStream(const std::string& path);
  *
  * \param path Path to open
  */
-std::shared_ptr<AbstractFile> SysOpenWriteStream(const std::string& path);
+std::shared_ptr<WriteStream> SysOpenWriteStream(const std::string& path);
 
 } // namespace vfs
 } // namespace thrill

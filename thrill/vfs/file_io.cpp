@@ -222,7 +222,7 @@ FileList GlobFileSizePrefixSum(api::Context& ctx, const std::vector<std::string>
 
 /******************************************************************************/
 
-std::shared_ptr<AbstractFile> OpenReadStream(
+std::shared_ptr<ReadStream> OpenReadStream(
     const FileInfo& file, const api::Context& ctx,
     const common::Range& my_range, bool compressed) {
     if (common::StartsWith(file.path, "s3://")) {
@@ -233,7 +233,7 @@ std::shared_ptr<AbstractFile> OpenReadStream(
     }
 }
 
-std::shared_ptr<AbstractFile> OpenWriteStream(
+std::shared_ptr<WriteStream> OpenWriteStream(
     const std::string& path, const api::Context& ctx) {
     if (common::StartsWith(path, "s3://")) {
         return S3OpenWriteStream(path, ctx);

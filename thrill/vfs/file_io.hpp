@@ -85,11 +85,11 @@ std::vector<std::string> GlobFilePattern(const std::string& path);
 std::vector<std::string> GlobFilePatterns(
     const std::vector<std::string>& globlist);
 
+/******************************************************************************/
+
 class ReadStream
 {
 public:
-    virtual ssize_t write(const void*, size_t) = 0;
-
     virtual ssize_t read(void*, size_t) = 0;
 
     virtual ssize_t lseek(off_t) = 0;
@@ -97,23 +97,19 @@ public:
     virtual void close() = 0;
 };
 
-class AbstractFile
+class WriteStream
 {
 public:
     virtual ssize_t write(const void*, size_t) = 0;
 
-    virtual ssize_t read(void*, size_t) = 0;
-
-    virtual ssize_t lseek(off_t) = 0;
-
     virtual void close() = 0;
 };
 
-std::shared_ptr<AbstractFile> OpenReadStream(
+std::shared_ptr<ReadStream> OpenReadStream(
     const FileInfo& file, const api::Context& ctx,
     const common::Range& my_range, bool compressed);
 
-std::shared_ptr<AbstractFile> OpenWriteStream(
+std::shared_ptr<WriteStream> OpenWriteStream(
     const std::string& path, const api::Context& ctx);
 
 } // namespace vfs

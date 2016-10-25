@@ -146,7 +146,8 @@ private:
         size_t total_reads_ = 0;
         size_t total_elements_ = 0;
 
-        bool ReadBlock(std::shared_ptr<vfs::AbstractFile>& file, net::BufferBuilder& buffer) {
+        bool ReadBlock(std::shared_ptr<vfs::ReadStream>& file,
+                       net::BufferBuilder& buffer) {
             read_timer.Start();
             ssize_t bytes = file->read(buffer.data(), read_size);
             read_timer.Stop();
@@ -198,7 +199,7 @@ private:
             if (my_range_.begin < my_range_.end) {
                 LOG << "Opening file " << current_file_;
 
-                file_ = vfs::OpenReadStream(
+                stream_ = vfs::OpenReadStream(
                     files_.list[current_file_], context_, my_range_,
                     files_.contains_compressed);
             }
@@ -209,10 +210,10 @@ private:
 
             // find offset in current file:
             // offset = start - sum of previous file sizes
-            offset_ = file_->lseek(
+            offset_ = stream_->lseek(
                 static_cast<off_t>(my_range_.begin - files_.list[current_file_].size_ex_psum));
             buffer_.Reserve(read_size);
-            ReadBlock(file_, buffer_);
+            ReadBlock(stream_, buffer_);
 
             if (offset_ != 0) {
                 bool found_n = false;
@@ -229,7 +230,7 @@ private:
                     // no newline found: read new data into buffer_builder
                     if (!found_n) {
                         offset_ += buffer_.size();
-                        if (!ReadBlock(file_, buffer_)) {
+                        if (!ReadBlock(stream_, buffer_)) {
                             // EOF = newline per definition
                             found_n = true;
                         }
@@ -256,19 +257,19 @@ private:
                     }
                 }
                 offset_ += buffer_.size();
-                if (!ReadBlock(file_, buffer_)) {
+                if (!ReadBlock(stream_, buffer_)) {
                     LOG << "opening next file";
 
-                    file_->close();
+                    stream_->close();
                     current_file_++;
                     offset_ = 0;
 
                     if (current_file_ < files_.count()) {
-                        file_ = vfs::OpenReadStream(
+                        stream_ = vfs::OpenReadStream(
                             files_.list[current_file_], context_, my_range_,
                             files_.contains_compressed);
                         offset_ += buffer_.size();
-                        ReadBlock(file_, buffer_);
+                        ReadBlock(stream_, buffer_);
                     }
                     else {
                         current_ = buffer_.begin() +
@@ -293,10 +294,10 @@ private:
         }
 
     private:
-        //! Offset of current block in file_.
+        //! Offset of current block in stream_.
         size_t offset_ = 0;
         //! File handle to files_[current_file_]
-        std::shared_ptr<vfs::AbstractFile> file_;
+        std::shared_ptr<vfs::ReadStream> stream_;
     };
 
     //! InputLineIterator gives you access to lines of a file
@@ -336,7 +337,7 @@ private:
             if (my_range_.begin < my_range_.end) {
                 LOG << "Opening file " << current_file_;
                 LOG << "my_range : " << my_range_;
-                file_ = vfs::OpenReadStream(
+                stream_ = vfs::OpenReadStream(
                     files_.list[current_file_], context_, my_range_,
                     files_.contains_compressed);
             }
@@ -349,7 +350,7 @@ private:
                 return;
             }
             buffer_.Reserve(read_size);
-            ReadBlock(file_, buffer_);
+            ReadBlock(stream_, buffer_);
             data_.reserve(4 * 1024);
         }
 
@@ -370,17 +371,17 @@ private:
                     }
                 }
 
-                if (!ReadBlock(file_, buffer_)) {
+                if (!ReadBlock(stream_, buffer_)) {
                     LOG << "Opening new file!";
-                    file_->close();
+                    stream_->close();
                     current_file_++;
 
                     if (current_file_ < files_.count()) {
-                        file_ = vfs::OpenReadStream(
+                        stream_ = vfs::OpenReadStream(
                             files_.list[current_file_],
                             context_, my_range_,
                             files_.contains_compressed);
-                        ReadBlock(file_, buffer_);
+                        ReadBlock(stream_, buffer_);
                     }
                     else {
                         LOG << "reached last file";
@@ -406,7 +407,7 @@ private:
             //         v-- no new line at end ||   v-- newline at end of file
             if (current_ >= buffer_.end() || (current_ + 1 >= buffer_.end() && *current_ == '\n')) {
                 LOG << "New buffer in HasNext()";
-                ReadBlock(file_, buffer_);
+                ReadBlock(stream_, buffer_);
                 if (buffer_.size() > 1 || (buffer_.size() == 1 && buffer_[0] != '\n')) {
                     return true;
                 }
@@ -416,14 +417,14 @@ private:
                     if (current_file_ >= files_.count() - 1) {
                         return false;
                     }
-                    file_->close();
+                    stream_->close();
                     // if (this worker reads at least one more file)
                     if (my_range_.end > files_.list[current_file_].size_inc_psum()) {
                         current_file_++;
-                        file_ = vfs::OpenReadStream(
+                        stream_ = vfs::OpenReadStream(
                             files_.list[current_file_], context_, my_range_,
                             files_.contains_compressed);
-                        ReadBlock(file_, buffer_);
+                        ReadBlock(stream_, buffer_);
                         return true;
                     }
                     else {
@@ -438,7 +439,7 @@ private:
 
     private:
         //! File handle to files_[current_file_]
-        std::shared_ptr<vfs::AbstractFile> file_;
+        std::shared_ptr<vfs::ReadStream> stream_;
     };
 };
 

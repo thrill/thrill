@@ -21,11 +21,11 @@
 namespace thrill {
 namespace vfs {
 
-std::shared_ptr<AbstractFile> S3OpenReadStream(
+std::shared_ptr<ReadStream> S3OpenReadStream(
     const FileInfo& file, const api::Context& ctx,
     const common::Range& my_range, bool compressed);
 
-std::shared_ptr<AbstractFile> S3OpenWriteStream(
+std::shared_ptr<WriteStream> S3OpenWriteStream(
     const std::string& path, const api::Context& ctx);
 
 } // namespace vfs

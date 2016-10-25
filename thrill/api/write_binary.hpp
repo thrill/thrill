@@ -119,7 +119,7 @@ private:
                     size_t& stats_total_writes)
             : BlockSink(context.block_pool(), local_worker_id),
               BoundedBlockSink(context.block_pool(), local_worker_id, max_file_size),
-              file_(vfs::OpenWriteStream(path, context)),
+              stream_(vfs::OpenWriteStream(path, context)),
               stats_total_elements_(stats_total_elements),
               stats_total_writes_(stats_total_writes) { }
 
@@ -127,7 +127,7 @@ private:
             const data::PinnedBlock& b, bool /* is_last_block */) final {
             sLOG << "SysFileSink::AppendBlock()" << b;
             stats_total_writes_++;
-            file_->write(b.data_begin(), b.size());
+            stream_->write(b.data_begin(), b.size());
         }
 
         void AppendPinnedBlock(data::PinnedBlock&& b, bool is_last_block) final {
@@ -145,11 +145,11 @@ private:
         }
 
         void Close() final {
-            file_->close();
+            stream_->close();
         }
 
     private:
-        std::shared_ptr<vfs::AbstractFile> file_;
+        std::shared_ptr<vfs::WriteStream> stream_;
         size_t& stats_total_elements_;
         size_t& stats_total_writes_;
     };
