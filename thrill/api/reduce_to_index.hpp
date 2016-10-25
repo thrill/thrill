@@ -56,8 +56,7 @@ class DefaultReduceToIndexConfig : public core::DefaultReduceConfig
  */
 template <typename ValueType,
           typename KeyExtractor, typename ReduceFunction,
-          typename ReduceConfig,
-          bool VolatileKey, bool SendPair>
+          typename ReduceConfig, bool VolatileKey>
 class ReduceToIndexNode final : public DOpNode<ValueType>
 {
     static constexpr bool debug = false;
@@ -66,14 +65,13 @@ class ReduceToIndexNode final : public DOpNode<ValueType>
     using Super::context_;
 
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
-    using Value = typename common::FunctionTraits<ReduceFunction>::result_type;
-    using KeyValuePair = std::pair<Key, Value>;
+
+    using TableItem =
+              typename common::If<
+                  VolatileKey, std::pair<Key, ValueType>, ValueType>::type;
 
     static_assert(std::is_same<Key, size_t>::value,
                   "Key must be an unsigned integer");
-
-    using PrePhaseOutput =
-              typename common::If<VolatileKey, KeyValuePair, Value>::type;
 
     static constexpr bool use_mix_stream_ = ReduceConfig::use_mix_stream_;
     static constexpr bool use_post_thread_ = ReduceConfig::use_post_thread_;
@@ -102,7 +100,7 @@ public:
                       const KeyExtractor& key_extractor,
                       const ReduceFunction& reduce_function,
                       size_t result_size,
-                      const Value& neutral_element,
+                      const ValueType& neutral_element,
                       const ReduceConfig& config)
         : Super(parent.ctx(), label, { parent.id() }, { parent.node() }),
           mix_stream_(use_mix_stream_ ?
@@ -202,7 +200,7 @@ public:
             sLOG << "reading data from" << mix_stream_->id()
                  << "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
-                post_phase_.Insert(reader.template Next<PrePhaseOutput>());
+                post_phase_.Insert(reader.template Next<TableItem>());
             }
         }
         else
@@ -211,7 +209,7 @@ public:
             sLOG << "reading data from" << cat_stream_->id()
                  << "to push into post table which flushes to" << this->id();
             while (reader.HasNext()) {
-                post_phase_.Insert(reader.template Next<PrePhaseOutput>());
+                post_phase_.Insert(reader.template Next<TableItem>());
             }
         }
     }
@@ -234,12 +232,12 @@ private:
     std::thread thread_;
 
     core::ReducePrePhase<
-        ValueType, Key, Value, KeyExtractor, ReduceFunction, VolatileKey,
+        TableItem, Key, ValueType, KeyExtractor, ReduceFunction, VolatileKey,
         ReduceConfig, core::ReduceByIndex<Key> > pre_phase_;
 
     core::ReduceByIndexPostPhase<
-        ValueType, Key, Value, KeyExtractor, ReduceFunction, Emitter, SendPair,
-        ReduceConfig> post_phase_;
+        TableItem, Key, ValueType, KeyExtractor, ReduceFunction, Emitter,
+        VolatileKey, ReduceConfig> post_phase_;
 
     bool reduced_ = false;
 };
@@ -292,7 +290,7 @@ auto DIA<ValueType, Stack>::ReduceToIndex(
 
     using ReduceNode = ReduceToIndexNode<
               DOpResult, KeyExtractor, ReduceFunction,
-              ReduceConfig, /* VolatileKey */ false, false>;
+              ReduceConfig, /* VolatileKey */ false>;
 
     auto node = common::MakeCounting<ReduceNode>(
         *this, "ReduceToIndex", key_extractor, reduce_function,
@@ -350,7 +348,7 @@ auto DIA<ValueType, Stack>::ReduceToIndex(
 
     using ReduceNode = ReduceToIndexNode<
               DOpResult, KeyExtractor, ReduceFunction,
-              ReduceConfig, /* VolatileKey */ true, false>;
+              ReduceConfig, /* VolatileKey */ true>;
 
     auto node = common::MakeCounting<ReduceNode>(
         *this, "ReduceToIndex", key_extractor, reduce_function,

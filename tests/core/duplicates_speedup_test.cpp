@@ -16,9 +16,9 @@
 #include <thrill/api/reduce_by_key.hpp>
 #include <thrill/api/size.hpp>
 #include <thrill/common/cmdline_parser.hpp>
-#include <thrill/common/fast_string.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/stats_timer.hpp>
+#include <thrill/common/string_view.hpp>
 
 #include <array>
 #include <string>

@@ -221,9 +221,9 @@ public:
     using Emitter = ToVectorEmitter<Join, Key, CounterType,
                                     DIAIdxType, HashFunction, TableType>;
     using Table = typename ReduceTableSelect<
-              ReduceConfig::table_impl_, ValueType, Key, TableType,
+              ReduceConfig::table_impl_, KeyValuePair, Key, TableType,
               std::function<void()>, AddFunction, Emitter,
-              false, ReduceConfig, IndexFunction>::type;
+              true, ReduceConfig, IndexFunction>::type;
 
     // we don't need the key_extractor function here
     std::function<void()> void_fn = []() { };

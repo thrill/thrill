@@ -333,7 +333,7 @@ sub process_cpp {
         }
 
         # check for single underscore + uppercase identifiers
-        if ($data[$i] =~ m@\s_(?!(GNU_SOURCE|WIN32|MSC_VER|UNICODE|DEBUG|ASSERTE|S_))[A-Z]@) {
+        if ($data[$i] =~ m@\s_(?!(GNU_SOURCE|WIN32|MSC_VER|UNICODE|DEBUG|ASSERTE|LIBCPP_VERSION|S_))[A-Z]@) {
             print("underscore + uppercase identifier found in $path:$i\n");
             print("$data[$i]\n");
         }

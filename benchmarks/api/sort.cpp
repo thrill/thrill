@@ -13,7 +13,6 @@
 #include <thrill/api/size.hpp>
 #include <thrill/api/sort.hpp>
 #include <thrill/common/cmdline_parser.hpp>
-#include <thrill/common/fast_string.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/stats_timer.hpp>
 
@@ -22,8 +21,6 @@
 #include <utility>
 
 using namespace thrill; // NOLINT
-
-using common::FastString;
 
 int main(int argc, char* argv[]) {
 

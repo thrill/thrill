@@ -79,32 +79,6 @@ TEST(WordCount, BaconIpsum) {
     api::RunLocalTests(start_func);
 }
 
-TEST(WordCount, BaconIpsumFastString) {
-
-    auto start_func =
-        [](Context& ctx) {
-            ctx.enable_consume();
-
-            auto lines = ReadLines(ctx, "inputs/wordcount.in");
-
-            std::vector<FastWordCountPair> result =
-                FastWordCount(lines).AllGather();
-
-            // sort result, because reducing delivers any order
-            std::sort(result.begin(), result.end());
-
-            auto correct = bacon_ipsum_correct();
-
-            ASSERT_EQ(result.size(), correct.size());
-            for (size_t i = 0; i < result.size(); ++i) {
-                ASSERT_EQ(result[i].first, correct[i].first);
-                ASSERT_EQ(result[i].second, correct[i].second);
-            }
-        };
-
-    api::RunLocalTests(start_func);
-}
-
 /******************************************************************************/
 // WordCount generated text
 

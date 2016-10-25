@@ -160,6 +160,23 @@ size_t memory_limit_indication = std::numeric_limits<size_t>::max();
 ATTRIBUTE_NO_SANITIZE
 static void update_memprofile(size_t float_current, size_t base_current);
 
+struct LocalStats {
+    size_t  total_allocs;
+    int64_t current_allocs;
+    int64_t bytes;
+};
+
+#if !defined(__APPLE__)
+#define HAVE_THREAD_LOCAL 1
+#else
+#define HAVE_THREAD_LOCAL 0
+#endif
+
+#if HAVE_THREAD_LOCAL
+static thread_local LocalStats tl_stats = { 0, 0, 0 };
+static const ssize_t tl_delay_threshold = 2 * 1024 * 1024;
+#endif
+
 ATTRIBUTE_NO_SANITIZE
 void update_peak(size_t float_curr, size_t base_curr) {
     if (float_curr + base_curr > peak_bytes)
@@ -169,8 +186,31 @@ void update_peak(size_t float_curr, size_t base_curr) {
 //! add allocation to statistics
 ATTRIBUTE_NO_SANITIZE
 static void inc_count(size_t inc) {
-    size_t mycurr = sync_add_and_fetch(float_curr, inc);
+#if HAVE_THREAD_LOCAL
+    tl_stats.total_allocs++;
+    tl_stats.current_allocs++;
+    tl_stats.bytes += inc;
 
+    if (tl_stats.bytes > tl_delay_threshold) {
+        size_t mycurr = sync_add_and_fetch(
+            float_curr, tl_stats.bytes);
+
+        total_bytes += tl_stats.bytes;
+        update_peak(mycurr, base_curr);
+
+        sync_add_and_fetch(total_allocs, tl_stats.total_allocs);
+        sync_add_and_fetch(current_allocs, tl_stats.current_allocs);
+
+        memory_exceeded = (mycurr >= memory_limit_indication);
+        update_memprofile(mycurr, get(base_curr));
+
+        tl_stats.total_allocs = 0;
+        tl_stats.current_allocs = 0;
+        tl_stats.bytes = 0;
+    }
+#else
+    // no thread_local data structure -> update immediately (more contention)
+    size_t mycurr = sync_add_and_fetch(float_curr, inc);
     total_bytes += inc;
     update_peak(mycurr, base_curr);
 
@@ -179,17 +219,38 @@ static void inc_count(size_t inc) {
 
     memory_exceeded = (mycurr >= memory_limit_indication);
     update_memprofile(mycurr, get(base_curr));
+#endif
 }
 
 //! decrement allocation to statistics
 ATTRIBUTE_NO_SANITIZE
 static void dec_count(size_t dec) {
+#if HAVE_THREAD_LOCAL
+    tl_stats.current_allocs--;
+    tl_stats.bytes -= dec;
+
+    if (tl_stats.bytes < tl_delay_threshold) {
+        size_t mycurr = sync_add_and_fetch(
+            float_curr, tl_stats.bytes);
+
+        sync_add_and_fetch(current_allocs, tl_stats.current_allocs);
+
+        memory_exceeded = (mycurr >= memory_limit_indication);
+        update_memprofile(mycurr, get(base_curr));
+
+        tl_stats.total_allocs = 0;
+        tl_stats.current_allocs = 0;
+        tl_stats.bytes = 0;
+    }
+#else
+    // no thread_local data structure -> update immediately (more contention)
     size_t mycurr = sync_sub_and_fetch(float_curr, dec);
 
     sync_sub_and_fetch(current_allocs, 1);
 
     memory_exceeded = (mycurr >= memory_limit_indication);
     update_memprofile(mycurr, get(base_curr));
+#endif
 }
 
 //! user function to return the currently allocated amount of memory
@@ -622,61 +683,20 @@ void * malloc(size_t size) NOEXCEPT {
         if (size_used >= log_operations_threshold && !recursive) {
             recursive = true;
 
-/*[[[perl
-  # depth of call stack to print
-  my $depth = 16;
-
-  print <<EOF;
-            // storage array for stack trace address data
-            void* addrlist[$depth + 1];
-
-            // retrieve current stack addresses
-            int addrlen = backtrace(addrlist, sizeof(addrlist) / sizeof(void*));
-
-EOF
-
-  for my $d (3...$depth-1) {
-    print("fprintf(stdout, PPREFIX \"caller".(" %p"x$d)." size %zu\\n\",\n");
-    print("        ".join("", map("addrlist[$_], ", 0...$d-1))." size);");
-  }
-  ]]]*/
             // storage array for stack trace address data
             void* addrlist[16 + 1];
+            memset(addrlist, 0, sizeof(addrlist));
 
             // retrieve current stack addresses
             int addrlen = backtrace(addrlist, sizeof(addrlist) / sizeof(void*));
 
-            fprintf(stdout, PPREFIX "caller %p %p %p size %zu\n",
-                    addrlist[0], addrlist[1], addrlist[2], size);
-            fprintf(stdout, PPREFIX "caller %p %p %p %p size %zu\n",
-                    addrlist[0], addrlist[1], addrlist[2], addrlist[3], size);
-            fprintf(stdout, PPREFIX "caller %p %p %p %p %p size %zu\n",
-                    addrlist[0], addrlist[1], addrlist[2], addrlist[3], addrlist[4], size);
-            fprintf(stdout, PPREFIX "caller %p %p %p %p %p %p size %zu\n",
-                    addrlist[0], addrlist[1], addrlist[2], addrlist[3], addrlist[4], addrlist[5], size);
-            fprintf(stdout, PPREFIX "caller %p %p %p %p %p %p %p size %zu\n",
-                    addrlist[0], addrlist[1], addrlist[2], addrlist[3], addrlist[4], addrlist[5], addrlist[6], size);
-            fprintf(stdout, PPREFIX "caller %p %p %p %p %p %p %p %p size %zu\n",
-                    addrlist[0], addrlist[1], addrlist[2], addrlist[3], addrlist[4], addrlist[5], addrlist[6], addrlist[7], size);
-            fprintf(stdout, PPREFIX "caller %p %p %p %p %p %p %p %p %p size %zu\n",
-                    addrlist[0], addrlist[1], addrlist[2], addrlist[3], addrlist[4], addrlist[5], addrlist[6], addrlist[7], addrlist[8], size);
-            fprintf(stdout, PPREFIX "caller %p %p %p %p %p %p %p %p %p %p size %zu\n",
-                    addrlist[0], addrlist[1], addrlist[2], addrlist[3], addrlist[4], addrlist[5], addrlist[6], addrlist[7], addrlist[8], addrlist[9], size);
-            fprintf(stdout, PPREFIX "caller %p %p %p %p %p %p %p %p %p %p %p size %zu\n",
-                    addrlist[0], addrlist[1], addrlist[2], addrlist[3], addrlist[4], addrlist[5], addrlist[6], addrlist[7], addrlist[8], addrlist[9], addrlist[10], size);
-            fprintf(stdout, PPREFIX "caller %p %p %p %p %p %p %p %p %p %p %p %p size %zu\n",
-                    addrlist[0], addrlist[1], addrlist[2], addrlist[3], addrlist[4], addrlist[5], addrlist[6], addrlist[7], addrlist[8], addrlist[9], addrlist[10], addrlist[11], size);
-            fprintf(stdout, PPREFIX "caller %p %p %p %p %p %p %p %p %p %p %p %p %p size %zu\n",
-                    addrlist[0], addrlist[1], addrlist[2], addrlist[3], addrlist[4], addrlist[5], addrlist[6], addrlist[7], addrlist[8], addrlist[9], addrlist[10], addrlist[11], addrlist[12], size);
-            fprintf(stdout, PPREFIX "caller %p %p %p %p %p %p %p %p %p %p %p %p %p %p size %zu\n",
-                    addrlist[0], addrlist[1], addrlist[2], addrlist[3], addrlist[4], addrlist[5], addrlist[6], addrlist[7], addrlist[8], addrlist[9], addrlist[10], addrlist[11], addrlist[12], addrlist[13], size);
-            fprintf(stdout, PPREFIX "caller %p %p %p %p %p %p %p %p %p %p %p %p %p %p %p size %zu\n",
-                    addrlist[0], addrlist[1], addrlist[2], addrlist[3], addrlist[4], addrlist[5], addrlist[6], addrlist[7], addrlist[8], addrlist[9], addrlist[10], addrlist[11], addrlist[12], addrlist[13], addrlist[14], size);
-// [[[end]]]
-
-            // fprintf(stderr, "--- begin stack -------------------------------\n");
-            // backtrace_symbols_fd(addrlist, addrlen, STDERR_FILENO);
-            // fprintf(stderr, "--- end stack ---------------------------------\n");
+            fprintf(stdout,
+                    PPREFIX "profile %zu %p %p %p %p %p %p %p %p %p %p %p %p %p %p %p %p\n",
+                    size,
+                    addrlist[0], addrlist[1], addrlist[2], addrlist[3],
+                    addrlist[4], addrlist[5], addrlist[6], addrlist[7],
+                    addrlist[8], addrlist[9], addrlist[10], addrlist[11],
+                    addrlist[12], addrlist[13], addrlist[14], addrlist[15]);
 
             recursive = false;
         }

@@ -20,7 +20,7 @@ TEST(MallocTracker, Test1) {
 
     char* a = nullptr;
     {
-        a = reinterpret_cast<char*>(malloc(1024));
+        a = reinterpret_cast<char*>(malloc(10240000));
         // dear compiler, please don't optimize away completely!
         a[0] = 0;
     }
@@ -28,7 +28,7 @@ TEST(MallocTracker, Test1) {
     size_t curr2 = mem::malloc_tracker_current();
 
     volatile char* av = a;
-    ASSERT_GE(curr2 + av[0], curr + 1024);
+    ASSERT_GE(curr2 + av[0], curr + 10240000);
 
     free(a);
 

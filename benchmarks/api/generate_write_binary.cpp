@@ -12,7 +12,6 @@
 #include <thrill/api/generate.hpp>
 #include <thrill/api/write_binary.hpp>
 #include <thrill/common/cmdline_parser.hpp>
-#include <thrill/common/fast_string.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/stats_timer.hpp>
 
@@ -22,8 +21,6 @@
 #include <vector>
 
 using namespace thrill; // NOLINT
-
-using common::FastString;
 
 int main(int argc, char* argv[]) {
 
@@ -47,7 +44,8 @@ int main(int argc, char* argv[]) {
                  std::default_random_engine generator(std::random_device { } ());
                  std::uniform_int_distribution<size_t> distribution(0, std::numeric_limits<size_t>::max());
 
-                 std::vector<FastString> copy_enforcer;
+                 std::vector<std::string> copy_enforcer;
+
                  Generate(ctx, elements,
                           [&distribution, &generator](size_t) {
                               return distribution(generator);
