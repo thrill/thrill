@@ -152,7 +152,7 @@ private:
     size_t out_serial_ = 1;
 
     //! File to wrtie to
-    std::shared_ptr<vfs::WriteStream> stream_;
+    vfs::WriteStreamPtr stream_;
 
     //! Write buffer
     net::BufferBuilder write_buffer_;

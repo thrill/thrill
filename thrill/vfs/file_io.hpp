@@ -14,12 +14,11 @@
 #define THRILL_VFS_FILE_IO_HEADER
 
 #include <thrill/api/context.hpp>
+#include <thrill/common/counting_ptr.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/porting.hpp>
 #include <thrill/common/system_exception.hpp>
 
 #include <string>
-#include <utility>
 #include <vector>
 
 namespace thrill {
@@ -87,9 +86,11 @@ std::vector<std::string> GlobFilePatterns(
 
 /******************************************************************************/
 
-class ReadStream
+class ReadStream : public virtual common::ReferenceCount
 {
 public:
+    virtual ~ReadStream() { }
+
     virtual ssize_t read(void*, size_t) = 0;
 
     virtual ssize_t lseek(off_t) = 0;
@@ -97,19 +98,24 @@ public:
     virtual void close() = 0;
 };
 
-class WriteStream
+class WriteStream : public virtual common::ReferenceCount
 {
 public:
+    virtual ~WriteStream() { }
+
     virtual ssize_t write(const void*, size_t) = 0;
 
     virtual void close() = 0;
 };
 
-std::shared_ptr<ReadStream> OpenReadStream(
+using ReadStreamPtr = common::CountingPtr<ReadStream>;
+using WriteStreamPtr = common::CountingPtr<WriteStream>;
+
+ReadStreamPtr OpenReadStream(
     const FileInfo& file, const api::Context& ctx,
     const common::Range& my_range, bool compressed);
 
-std::shared_ptr<WriteStream> OpenWriteStream(
+WriteStreamPtr OpenWriteStream(
     const std::string& path, const api::Context& ctx);
 
 } // namespace vfs

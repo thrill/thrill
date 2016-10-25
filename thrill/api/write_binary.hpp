@@ -23,7 +23,6 @@
 
 #include <algorithm>
 #include <string>
-#include <utility>
 #include <vector>
 
 namespace thrill {
@@ -149,7 +148,7 @@ private:
         }
 
     private:
-        std::shared_ptr<vfs::WriteStream> stream_;
+        vfs::WriteStreamPtr stream_;
         size_t& stats_total_elements_;
         size_t& stats_total_writes_;
     };

@@ -49,7 +49,7 @@ namespace vfs {
 /*!
  * Represents a POSIX system file via its file descriptor.
  */
-class SysFile final : public ReadStream, public WriteStream
+class SysFile final : public virtual ReadStream, public virtual WriteStream
 {
     static constexpr bool debug = false;
 
@@ -171,7 +171,7 @@ void SysFile::close() {
 
 /******************************************************************************/
 
-std::shared_ptr<ReadStream> SysOpenReadStream(const std::string& path) {
+ReadStreamPtr SysOpenReadStream(const std::string& path) {
 
     static constexpr bool debug = false;
 
@@ -207,7 +207,7 @@ std::shared_ptr<ReadStream> SysOpenReadStream(const std::string& path) {
 
         sLOG << "SysFile::OpenForRead(): filefd" << fd;
 
-        return std::make_shared<SysFile>(fd);
+        return common::MakeCounting<SysFile>(fd);
     }
 
 #if defined(_MSC_VER)
@@ -253,11 +253,11 @@ std::shared_ptr<ReadStream> SysOpenReadStream(const std::string& path) {
     // close the file descriptor
     ::close(fd);
 
-    return std::make_shared<SysFile>(pipefd[0], pid);
+    return common::MakeCounting<SysFile>(pipefd[0], pid);
 #endif
 }
 
-std::shared_ptr<WriteStream> SysOpenWriteStream(const std::string& path) {
+WriteStreamPtr SysOpenWriteStream(const std::string& path) {
 
     static constexpr bool debug = false;
 
@@ -293,7 +293,7 @@ std::shared_ptr<WriteStream> SysOpenWriteStream(const std::string& path) {
 
         sLOG << "SysFile::OpenForWrite(): filefd" << fd;
 
-        return std::make_shared<SysFile>(fd);
+        return common::MakeCounting<SysFile>(fd);
     }
 
 #if defined(_MSC_VER)
@@ -339,7 +339,7 @@ std::shared_ptr<WriteStream> SysOpenWriteStream(const std::string& path) {
     // close file descriptor (it is used by the fork)
     ::close(fd);
 
-    return std::make_shared<SysFile>(pipefd[1], pid);
+    return common::MakeCounting<SysFile>(pipefd[1], pid);
 #endif
 }
 

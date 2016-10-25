@@ -146,7 +146,7 @@ private:
         size_t total_reads_ = 0;
         size_t total_elements_ = 0;
 
-        bool ReadBlock(std::shared_ptr<vfs::ReadStream>& file,
+        bool ReadBlock(vfs::ReadStreamPtr& file,
                        net::BufferBuilder& buffer) {
             read_timer.Start();
             ssize_t bytes = file->read(buffer.data(), read_size);
@@ -297,7 +297,7 @@ private:
         //! Offset of current block in stream_.
         size_t offset_ = 0;
         //! File handle to files_[current_file_]
-        std::shared_ptr<vfs::ReadStream> stream_;
+        vfs::ReadStreamPtr stream_;
     };
 
     //! InputLineIterator gives you access to lines of a file
@@ -439,7 +439,7 @@ private:
 
     private:
         //! File handle to files_[current_file_]
-        std::shared_ptr<vfs::ReadStream> stream_;
+        vfs::ReadStreamPtr stream_;
     };
 };
 

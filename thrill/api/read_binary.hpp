@@ -28,7 +28,6 @@
 #include <algorithm>
 #include <limits>
 #include <string>
-#include <utility>
 #include <vector>
 
 namespace thrill {
@@ -310,7 +309,7 @@ private:
 
     private:
         Context& context_;
-        std::shared_ptr<vfs::ReadStream> stream_;
+        vfs::ReadStreamPtr stream_;
         size_t remain_size_;
         bool is_compressed_;
         size_t& stats_total_bytes_;

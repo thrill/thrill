@@ -1,10 +1,6 @@
 /*******************************************************************************
  * misc/aws/config_writer.cpp
  *
-
-/*******************************************************************************
- * misc/aws/config_writer.cpp
- *
  * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2016 Alexander Noe <aleexnoe@gmail.com>

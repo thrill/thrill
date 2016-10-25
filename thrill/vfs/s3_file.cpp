@@ -29,12 +29,13 @@
 
 #include <algorithm>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace thrill {
 namespace vfs {
 
-class S3File final : public ReadStream, public WriteStream
+class S3File final : public virtual ReadStream, public virtual WriteStream
 {
     static constexpr bool debug = false;
 
@@ -149,7 +150,7 @@ private:
 
 /******************************************************************************/
 
-std::shared_ptr<ReadStream> S3OpenReadStream(
+ReadStreamPtr S3OpenReadStream(
     const FileInfo& file, const api::Context& ctx,
     const common::Range& my_range, bool compressed) {
 
@@ -209,18 +210,18 @@ std::shared_ptr<ReadStream> S3OpenReadStream(
                   "Download from S3 Errored: " + outcome.GetError().GetMessage());
 
     if (!compressed) {
-        return std::make_shared<S3File>(outcome.GetResultWithOwnership(),
-                                        range_start);
+        return common::MakeCounting<S3File>(outcome.GetResultWithOwnership(),
+                                            range_start);
     }
     else {
         // this constructor opens a zip_stream
-        return std::make_shared<S3File>(outcome.GetResultWithOwnership());
+        return common::MakeCounting<S3File>(outcome.GetResultWithOwnership());
     }
 }
 
-std::shared_ptr<WriteStream> S3OpenWriteStream(
+WriteStreamPtr S3OpenWriteStream(
     const std::string& path, const api::Context& ctx) {
-    return std::make_shared<S3File>(ctx.s3_client(), path);
+    return common::MakeCounting<S3File>(ctx.s3_client(), path);
 }
 
 } // namespace vfs
