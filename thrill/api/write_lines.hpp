@@ -48,9 +48,9 @@ public:
         : Super(parent.ctx(), "WriteLines",
                 { parent.id() }, { parent.node() }),
           out_pathbase_(path_out),
-          file_(vfs::AbstractFile::OpenForWrite(
+          file_(vfs::OpenWriteStream(
                     vfs::FillFilePattern(
-                        out_pathbase_, context_.my_rank(), 0), parent.ctx())),
+                        out_pathbase_, context_.my_rank(), 0), context_)),
           target_file_size_(target_file_size)
     {
         sLOG << "Creating write node.";
@@ -95,7 +95,7 @@ public:
                 file_->close();
                 std::string new_path = vfs::FillFilePattern(
                     out_pathbase_, context_.my_rank(), out_serial_++);
-                file_ = vfs::AbstractFile::OpenForWrite(new_path, context_);
+                file_ = vfs::OpenWriteStream(new_path, context_);
                 LOG << "Opening file: " << new_path;
                 current_file_size_ = 0;
             }

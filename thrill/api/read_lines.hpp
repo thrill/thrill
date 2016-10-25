@@ -198,7 +198,7 @@ private:
             if (my_range_.begin < my_range_.end) {
                 LOG << "Opening file " << current_file_;
 
-                file_ = vfs::AbstractFile::OpenForRead(
+                file_ = vfs::OpenReadStream(
                     files_.list[current_file_], context_, my_range_,
                     files_.contains_compressed);
             }
@@ -264,7 +264,7 @@ private:
                     offset_ = 0;
 
                     if (current_file_ < files_.count()) {
-                        file_ = vfs::AbstractFile::OpenForRead(
+                        file_ = vfs::OpenReadStream(
                             files_.list[current_file_], context_, my_range_,
                             files_.contains_compressed);
                         offset_ += buffer_.size();
@@ -336,7 +336,7 @@ private:
             if (my_range_.begin < my_range_.end) {
                 LOG << "Opening file " << current_file_;
                 LOG << "my_range : " << my_range_;
-                file_ = vfs::AbstractFile::OpenForRead(
+                file_ = vfs::OpenReadStream(
                     files_.list[current_file_], context_, my_range_,
                     files_.contains_compressed);
             }
@@ -376,7 +376,7 @@ private:
                     current_file_++;
 
                     if (current_file_ < files_.count()) {
-                        file_ = vfs::AbstractFile::OpenForRead(
+                        file_ = vfs::OpenReadStream(
                             files_.list[current_file_],
                             context_, my_range_,
                             files_.contains_compressed);
@@ -420,7 +420,7 @@ private:
                     // if (this worker reads at least one more file)
                     if (my_range_.end > files_.list[current_file_].size_inc_psum()) {
                         current_file_++;
-                        file_ = vfs::AbstractFile::OpenForRead(
+                        file_ = vfs::OpenReadStream(
                             files_.list[current_file_], context_, my_range_,
                             files_.contains_compressed);
                         ReadBlock(file_, buffer_);

@@ -119,7 +119,7 @@ private:
                     size_t& stats_total_writes)
             : BlockSink(context.block_pool(), local_worker_id),
               BoundedBlockSink(context.block_pool(), local_worker_id, max_file_size),
-              file_(vfs::SysFile::OpenForWrite(path)),
+              file_(vfs::OpenWriteStream(path, context)),
               stats_total_elements_(stats_total_elements),
               stats_total_writes_(stats_total_writes) { }
 
@@ -149,7 +149,7 @@ private:
         }
 
     private:
-        std::shared_ptr<vfs::SysFile> file_;
+        std::shared_ptr<vfs::AbstractFile> file_;
         size_t& stats_total_elements_;
         size_t& stats_total_writes_;
     };

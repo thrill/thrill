@@ -266,7 +266,9 @@ void SysFile::close() {
 #endif
 }
 
-std::shared_ptr<SysFile> SysFile::OpenForRead(const std::string& path) {
+std::shared_ptr<SysFile> SysOpenReadStream(const std::string& path) {
+
+    static constexpr bool debug = false;
 
     // first open the file and see if it exists at all.
 
@@ -300,7 +302,7 @@ std::shared_ptr<SysFile> SysFile::OpenForRead(const std::string& path) {
 
         sLOG << "SysFile::OpenForRead(): filefd" << fd;
 
-        return std::make_shared<SysFile>(SysFile(fd));
+        return std::make_shared<SysFile>(fd);
     }
 
 #if defined(_MSC_VER)
@@ -346,11 +348,13 @@ std::shared_ptr<SysFile> SysFile::OpenForRead(const std::string& path) {
     // close the file descriptor
     ::close(fd);
 
-    return std::make_shared<SysFile>(SysFile(pipefd[0], pid));
+    return std::make_shared<SysFile>(pipefd[0], pid);
 #endif
 }
 
-std::shared_ptr<SysFile> SysFile::OpenForWrite(const std::string& path) {
+std::shared_ptr<SysFile> SysOpenWriteStream(const std::string& path) {
+
+    static constexpr bool debug = false;
 
     // first create the file and see if we can write it at all.
 
@@ -384,7 +388,7 @@ std::shared_ptr<SysFile> SysFile::OpenForWrite(const std::string& path) {
 
         sLOG << "SysFile::OpenForWrite(): filefd" << fd;
 
-        return std::make_shared<SysFile>(SysFile(fd));
+        return std::make_shared<SysFile>(fd);
     }
 
 #if defined(_MSC_VER)
@@ -430,16 +434,17 @@ std::shared_ptr<SysFile> SysFile::OpenForWrite(const std::string& path) {
     // close file descriptor (it is used by the fork)
     ::close(fd);
 
-    return std::make_shared<SysFile>(SysFile(pipefd[1], pid));
+    return std::make_shared<SysFile>(pipefd[1], pid);
 #endif
 }
 
-std::shared_ptr<S3File> S3File::OpenForRead(const FileInfo& file,
-                                            const api::Context& ctx,
-                                            const common::Range& my_range,
-                                            bool compressed) {
+std::shared_ptr<S3File> S3OpenReadStream(
+    const FileInfo& file, const api::Context& ctx,
+    const common::Range& my_range, bool compressed) {
 
-    LOG1 << "Öpening fîle";
+    static constexpr bool debug = false;
+
+    LOG1 << "Opening file";
 
     // Amount of additional bytes read after end of range
     size_t maximum_line_length = 64 * 1024;
@@ -502,31 +507,29 @@ std::shared_ptr<S3File> S3File::OpenForRead(const FileInfo& file,
     }
 }
 
-std::shared_ptr<S3File> S3File::OpenForWrite(const std::string& path,
-                                             const api::Context& ctx) {
+std::shared_ptr<S3File> S3OpenWriteStream(
+    const std::string& path, const api::Context& ctx) {
     return std::make_shared<S3File>(ctx.s3_client(), path);
 }
 
-std::shared_ptr<AbstractFile> AbstractFile::OpenForRead(const FileInfo& file,
-                                                        const api::Context& ctx,
-                                                        const common::Range&
-                                                        my_range,
-                                                        bool compressed) {
+std::shared_ptr<AbstractFile> OpenReadStream(
+    const FileInfo& file, const api::Context& ctx,
+    const common::Range& my_range, bool compressed) {
     if (common::StartsWith(file.path, "s3://")) {
-        return S3File::OpenForRead(file, ctx, my_range, compressed);
+        return S3OpenReadStream(file, ctx, my_range, compressed);
     }
     else {
-        return SysFile::OpenForRead(file.path);
+        return SysOpenReadStream(file.path);
     }
 }
 
-std::shared_ptr<AbstractFile> AbstractFile::OpenForWrite(
+std::shared_ptr<AbstractFile> OpenWriteStream(
     const std::string& path, const api::Context& ctx) {
     if (common::StartsWith(path, "s3://")) {
-        return S3File::OpenForWrite(path, ctx);
+        return S3OpenWriteStream(path, ctx);
     }
     else {
-        return SysFile::OpenForWrite(path);
+        return SysOpenWriteStream(path);
     }
 }
 

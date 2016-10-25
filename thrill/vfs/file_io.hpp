@@ -102,17 +102,9 @@ std::vector<std::string> GlobFilePattern(const std::string& path);
 std::vector<std::string> GlobFilePatterns(
     const std::vector<std::string>& globlist);
 
-class AbstractFile
+class ReadStream
 {
 public:
-    static std::shared_ptr<AbstractFile> OpenForRead(const FileInfo& file,
-                                                     const api::Context& ctx,
-                                                     const common::Range& my_range,
-                                                     bool compressed);
-
-    static std::shared_ptr<AbstractFile> OpenForWrite(const std::string& path,
-                                                      const api::Context& ctx);
-
     virtual ssize_t write(const void*, size_t) = 0;
 
     virtual ssize_t read(void*, size_t) = 0;
@@ -122,9 +114,27 @@ public:
     virtual void close() = 0;
 };
 
+class AbstractFile
+{
+public:
+    virtual ssize_t write(const void*, size_t) = 0;
+
+    virtual ssize_t read(void*, size_t) = 0;
+
+    virtual ssize_t lseek(off_t) = 0;
+
+    virtual void close() = 0;
+};
+
+std::shared_ptr<AbstractFile> OpenReadStream(
+    const FileInfo& file, const api::Context& ctx,
+    const common::Range& my_range, bool compressed);
+
+std::shared_ptr<AbstractFile> OpenWriteStream(
+    const std::string& path, const api::Context& ctx);
+
 class S3File : public AbstractFile
 {
-
     static constexpr bool debug = false;
 
 public:
@@ -157,14 +167,6 @@ public:
         assert(0);
         f.is_valid_ = false;
     }
-
-    static std::shared_ptr<S3File> OpenForRead(const FileInfo& file,
-                                               const api::Context& ctx,
-                                               const common::Range& my_range,
-                                               bool compressed);
-
-    static std::shared_ptr<S3File> OpenForWrite(const std::string& path,
-                                                const api::Context& ctx);
 
     ssize_t write(const void* data, size_t count) {
         assert(is_valid_);
@@ -244,6 +246,13 @@ private:
     bool decompression_;
 };
 
+std::shared_ptr<S3File> S3OpenReadStream(
+    const FileInfo& file, const api::Context& ctx,
+    const common::Range& my_range, bool compressed);
+
+std::shared_ptr<S3File> S3OpenWriteStream(
+    const std::string& path, const api::Context& ctx);
+
 /*!
  * Represents a POSIX system file via its file descriptor.
  */
@@ -254,23 +263,6 @@ class SysFile : public AbstractFile
 public:
     //! default constructor
     SysFile() : fd_(-1) { }
-
-    /*!
-     * Open file for reading and return file descriptor. Handles compressed
-     * files by calling a decompressor in a pipe, like "cat $f | gzip -dc |" in
-     * bash.
-     *
-     * \param path Path to open
-     */
-    static std::shared_ptr<SysFile> OpenForRead(const std::string& path);
-
-    /*!
-     * Open file for writing and return file descriptor. Handles compressed
-     * files by calling a compressor in a pipe, like "| gzip -d > $f" in bash.
-     *
-     * \param path Path to open
-     */
-    static std::shared_ptr<SysFile> OpenForWrite(const std::string& path);
 
     //! non-copyable: delete copy-constructor
     SysFile(const SysFile&) = delete;
@@ -322,11 +314,11 @@ public:
         close();
     }
 
-private:
-    //! private constructor: use OpenForRead or OpenForWrite.
+    //! constructor: use OpenForRead or OpenForWrite.
     explicit SysFile(int fd, int pid = 0) noexcept
         : fd_(fd), pid_(pid) { }
 
+private:
     //! file descriptor
     int fd_ = -1;
 
@@ -337,6 +329,22 @@ private:
     //! pid of child process to wait for
     pid_t pid_ = 0;
 };
+
+/*!
+ * Open file for reading and return file descriptor. Handles compressed files by
+ * calling a decompressor in a pipe, like "cat $f | gzip -dc |" in bash.
+ *
+ * \param path Path to open
+ */
+std::shared_ptr<SysFile> SysOpenReadStream(const std::string& path);
+
+/*!
+ * Open file for writing and return file descriptor. Handles compressed files by
+ * calling a compressor in a pipe, like "| gzip -d > $f" in bash.
+ *
+ * \param path Path to open
+ */
+std::shared_ptr<SysFile> SysOpenWriteStream(const std::string& path);
 
 } // namespace vfs
 } // namespace thrill
