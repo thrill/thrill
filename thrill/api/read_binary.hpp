@@ -23,6 +23,7 @@
 #include <thrill/io/syscall_file.hpp>
 #include <thrill/net/buffer_builder.hpp>
 #include <thrill/vfs/file_io.hpp>
+#include <thrill/vfs/sys_file.hpp>
 
 #include <algorithm>
 #include <limits>
