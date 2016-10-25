@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/core/file_io.cpp
+ * thrill/core/temporary_directory.cpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -11,8 +11,8 @@
 
 #include <thrill/core/temporary_directory.hpp>
 
-#include <thrill/common/system_exception.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/common/system_exception.hpp>
 
 #if !defined(_MSC_VER)
 

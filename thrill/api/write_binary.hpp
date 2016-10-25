@@ -118,8 +118,8 @@ private:
                     size_t& stats_total_elements,
                     size_t& stats_total_writes)
             : BlockSink(context.block_pool(), local_worker_id),
-            BoundedBlockSink(context.block_pool(), local_worker_id, max_file_size),
-            file_(core::SysFile::OpenForWrite(path)),
+              BoundedBlockSink(context.block_pool(), local_worker_id, max_file_size),
+              file_(core::SysFile::OpenForWrite(path)),
               stats_total_elements_(stats_total_elements),
               stats_total_writes_(stats_total_writes) { }
 

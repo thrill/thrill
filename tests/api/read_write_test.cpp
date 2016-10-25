@@ -21,8 +21,8 @@
 #include <thrill/api/write_lines_one.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/system_exception.hpp>
-#include <thrill/core/temporary_directory.hpp>
 #include <thrill/core/file_io.hpp>
+#include <thrill/core/temporary_directory.hpp>
 
 #include <sys/stat.h>
 
@@ -40,7 +40,7 @@ using namespace thrill;
 TEST(IO, ReadSingleFile) {
     auto start_func =
         [](Context& ctx) {
-        auto integers = ReadLines(ctx, "inputs/test1")
+            auto integers = ReadLines(ctx, "inputs/test1")
                             .Map([](const std::string& line) {
                                      return std::stoi(line);
                                  });
@@ -61,21 +61,20 @@ TEST(IO, ReadSingleFile) {
 TEST(IO, ReadSingleFileLocalStorageTag) {
     auto start_func =
         [](Context& ctx) {
-        auto integers = ReadLines(api::LocalStorageTag, ctx, "inputs/test1")
+            auto integers = ReadLines(api::LocalStorageTag, ctx, "inputs/test1")
                             .Map([](const std::string& line) {
                                      return std::stoi(line);
                                  });
 
-        std::vector<int> out_vec = integers.AllGather();
+            std::vector<int> out_vec = integers.AllGather();
 
-        int i = 1;
+            int i = 1;
 
-        ASSERT_EQ(16u * ctx.num_hosts(), out_vec.size());
-        for (int element : out_vec) {
-            ASSERT_EQ(element, ((i++ - 1) % 16) + 1);
-        }
-
-    };
+            ASSERT_EQ(16u * ctx.num_hosts(), out_vec.size());
+            for (int element : out_vec) {
+                ASSERT_EQ(element, ((i++ - 1) % 16) + 1);
+            }
+        };
 
     api::RunLocalTests(start_func);
 }
@@ -393,7 +392,6 @@ TEST(IO, WriteAndReadBinaryEqualDIAsLocalStorage) {
             for (int element : out_vec2) {
                 ASSERT_EQ(element, out_vec[i++ % 16]);
             }
-
         };
 
     api::RunLocalTests(start_func);

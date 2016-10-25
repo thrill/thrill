@@ -1,5 +1,5 @@
 /*******************************************************************************
- * examples/tpch/tpch_run.cpp
+ * examples/tpch/aws.cpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -15,16 +15,15 @@
 #include <aws/core/platform/Platform.h>
 #include <aws/core/platform/Time.h>
 #include <aws/core/utils/crypto/CryptoStream.h>
+#include <aws/s3/S3Client.h>
 #include <aws/s3/model/GetObjectRequest.h>
 #include <aws/s3/model/ListObjectsRequest.h>
-#include <aws/s3/S3Client.h>
 
 #include <thrill/common/logger.hpp>
 
 #include <iostream>
 
-int main()
-{
+int main() {
     std::string home = getenv("HOME");
     std::string profilepath = home + "/awsprofile";
 
@@ -38,7 +37,6 @@ int main()
     config.scheme = Aws::Http::Scheme::HTTPS;
     config.connectTimeoutMs = 30000;
     config.requestTimeoutMs = 30000;
-
 
     Aws::Config::AWSConfigFileProfileConfigLoader writer(profilepath, false);
     writer.Load();
@@ -86,7 +84,6 @@ int main()
 
     Aws::ShutdownAPI(options);
     return 0;
-
 }
 
 /******************************************************************************/

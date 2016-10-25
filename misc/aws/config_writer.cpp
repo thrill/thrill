@@ -1,3 +1,6 @@
+/*******************************************************************************
+ * misc/aws/config_writer.cpp
+ *
 
 /*******************************************************************************
  * misc/aws/config_writer.cpp
@@ -11,23 +14,22 @@
 
 #include <aws/core/Aws.h>
 #include <aws/core/auth/AWSCredentialsProvider.h>
+#include <aws/core/config/AWSProfileConfigLoader.h>
 #include <aws/core/platform/Environment.h>
 #include <aws/core/platform/Platform.h>
 #include <aws/core/platform/Time.h>
 #include <aws/s3/S3Client.h>
-#include <aws/core/config/AWSProfileConfigLoader.h>
 
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 
 #include <iostream>
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
     Aws::SDKOptions options;
     Aws::InitAPI(options);
 
-    //!Config here (don't commit your secret key to github please :))
+    //! Config here (don't commit your secret key to github please :))
     auto region = Aws::Region::EU_WEST_1;
     Aws::String access_key_id("LULNO");
     Aws::String secret_key("MUCHSECRECY");
@@ -43,7 +45,7 @@ int main(int argc, char* argv[])
 
     std::string output_path;
     clp.AddParamString("output", output_path,
-                           "output file pattern");
+                       "output file pattern");
 
     if (!clp.Process(argc, argv)) {
         return -1;
@@ -59,11 +61,8 @@ int main(int argc, char* argv[])
 
     LOG1 << "success, writing default profile";
 
-
-
     Aws::ShutdownAPI(options);
     return 0;
-
 }
 
 /******************************************************************************/

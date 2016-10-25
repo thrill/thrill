@@ -101,13 +101,13 @@ public:
                     " size is not a multiple of " << size_t(fixed_size_));
             }
 
-
             common::Range my_range;
 
             if (distributed_fs) {
                 my_range = context_.CalculateLocalRange(
                     files.total_size / fixed_size_);
-            } else {
+            }
+            else {
                 my_range = context_.CalculateLocalRangeOnHost(
                     files.total_size / fixed_size_);
             }
@@ -207,7 +207,7 @@ public:
     ReadBinaryNode(Context& ctx, const std::string& glob, uint64_t size_limit,
                    bool distributed_fs)
         : ReadBinaryNode(ctx, std::vector<std::string>{ glob }, size_limit,
-            distributed_fs) { }
+                         distributed_fs) { }
 
     void PushData(bool consume) final {
         LOG << "ReadBinaryNode::PushData() start " << *this

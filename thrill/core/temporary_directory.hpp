@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/core/file_io.cpp
+ * thrill/core/temporary_directory.hpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
