@@ -55,7 +55,7 @@ public:
         LOG << "Opening ReadLinesNode for " << globlist.size() << " globs";
 
         filelist_ = vfs::GlobFileSizePrefixSum(
-            vfs::GlobFilePatterns(globlist), context_);
+            context_, vfs::GlobFilePatterns(globlist));
 
         if (filelist_.count() == 0) {
             throw std::runtime_error(
@@ -96,7 +96,7 @@ public:
     }
 
 private:
-    vfs::SysFileList filelist_;
+    vfs::FileList filelist_;
 
     //! True, if files are on a distributed file system
     bool distributed_fs_;
@@ -104,7 +104,7 @@ private:
     class InputLineIterator
     {
     public:
-        InputLineIterator(const vfs::SysFileList& files,
+        InputLineIterator(const vfs::FileList& files,
                           const Context& context,
                           ReadLinesNode& node)
             : files_(files), context_(context), node_(node) { }
@@ -126,7 +126,7 @@ private:
         //! String, which Next() references to
         std::string data_;
         //! Input files with size prefixsum.
-        const vfs::SysFileList& files_;
+        const vfs::FileList& files_;
 
         const Context& context_;
         //! Index of current file in files_
@@ -177,7 +177,7 @@ private:
     {
     public:
         //! Creates an instance of iterator that reads file line based
-        InputLineIteratorUncompressed(const vfs::SysFileList& files,
+        InputLineIteratorUncompressed(const vfs::FileList& files,
                                       const api::Context& ctx,
                                       ReadLinesNode& node, bool distributed_fs)
             : InputLineIterator(files, ctx, node) {
@@ -304,7 +304,7 @@ private:
     {
     public:
         //! Creates an instance of iterator that reads file line based
-        InputLineIteratorCompressed(const vfs::SysFileList& files,
+        InputLineIteratorCompressed(const vfs::FileList& files,
                                     const api::Context& ctx,
                                     ReadLinesNode& node, bool distributed_fs)
             : InputLineIterator(files, ctx, node) {

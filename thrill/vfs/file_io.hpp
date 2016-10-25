@@ -59,7 +59,7 @@ bool IsCompressed(const std::string& path) {
 }
 
 //! General information of system file.
-struct SysFileInfo {
+struct FileInfo {
     //! path to file
     std::string path;
     //! size of file.
@@ -74,26 +74,26 @@ struct SysFileInfo {
 };
 
 //! List of file info and overall info.
-struct SysFileList {
+struct FileList {
     //! list of files.
-    std::vector<SysFileInfo> list;
+    std::vector<FileInfo> list;
 
     //! number of files, list.size() - 1.
-    size_t                   count() const { return list.size() - 1; }
+    size_t                count() const { return list.size() - 1; }
 
     //! total size of files
-    uint64_t                 total_size;
+    uint64_t              total_size;
 
     //! whether the list contains a compressed file.
-    bool                     contains_compressed;
+    bool                  contains_compressed;
 };
 
 /*!
  * Reads a path as a file list contains, sizes and prefixsums (in bytes) for all
  * files in the input path.
  */
-SysFileList GlobFileSizePrefixSum(const std::vector<std::string>& files,
-                                  api::Context& ctx);
+FileList GlobFileSizePrefixSum(
+    api::Context& ctx, const std::vector<std::string>& files);
 
 //! Returns a vector of all files found by glob in the input path.
 std::vector<std::string> GlobFilePattern(const std::string& path);
@@ -105,7 +105,7 @@ std::vector<std::string> GlobFilePatterns(
 class AbstractFile
 {
 public:
-    static std::shared_ptr<AbstractFile> OpenForRead(const SysFileInfo& file,
+    static std::shared_ptr<AbstractFile> OpenForRead(const FileInfo& file,
                                                      const api::Context& ctx,
                                                      const common::Range& my_range,
                                                      bool compressed);
@@ -158,7 +158,7 @@ public:
         f.is_valid_ = false;
     }
 
-    static std::shared_ptr<S3File> OpenForRead(const SysFileInfo& file,
+    static std::shared_ptr<S3File> OpenForRead(const FileInfo& file,
                                                const api::Context& ctx,
                                                const common::Range& my_range,
                                                bool compressed);

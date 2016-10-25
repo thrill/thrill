@@ -139,10 +139,9 @@ std::vector<std::string> GlobFilePatterns(
     return filelist;
 }
 
-SysFileList GlobFileSizePrefixSum(const std::vector<std::string>& files,
-                                  api::Context& ctx) {
+FileList GlobFileSizePrefixSum(api::Context& ctx, const std::vector<std::string>& files) {
 
-    std::vector<SysFileInfo> file_info;
+    std::vector<FileInfo> file_info;
     struct stat filestat;
     uint64_t total_size = 0;
     bool contains_compressed = false;
@@ -177,7 +176,7 @@ SysFileList GlobFileSizePrefixSum(const std::vector<std::string>& files,
                 LOG1 << "file:" << object.GetKey();
                 if (object.GetSize() > 0) {
                     // folders are also in this list but have size of 0
-                    file_info.emplace_back(SysFileInfo {
+                    file_info.emplace_back(FileInfo {
                                                std::string("s3://").append(splitted[0]).append("/")
                                                .append(object.GetKey()),
                                                static_cast<uint64_t>(object.GetSize()),
@@ -202,8 +201,8 @@ SysFileList GlobFileSizePrefixSum(const std::vector<std::string>& files,
             contains_compressed = contains_compressed || IsCompressed(file);
 
             file_info.emplace_back(
-                SysFileInfo { std::move(file),
-                              static_cast<uint64_t>(filestat.st_size), total_size });
+                FileInfo { std::move(file),
+                           static_cast<uint64_t>(filestat.st_size), total_size });
 
             total_size += filestat.st_size;
         }
@@ -211,10 +210,10 @@ SysFileList GlobFileSizePrefixSum(const std::vector<std::string>& files,
 
     // sentinel entry
     file_info.emplace_back(
-        SysFileInfo { std::string(),
-                      static_cast<uint64_t>(0), total_size });
+        FileInfo { std::string(),
+                   static_cast<uint64_t>(0), total_size });
 
-    return SysFileList {
+    return FileList {
                std::move(file_info), total_size, contains_compressed
     };
 }
@@ -435,7 +434,7 @@ std::shared_ptr<SysFile> SysFile::OpenForWrite(const std::string& path) {
 #endif
 }
 
-std::shared_ptr<S3File> S3File::OpenForRead(const SysFileInfo& file,
+std::shared_ptr<S3File> S3File::OpenForRead(const FileInfo& file,
                                             const api::Context& ctx,
                                             const common::Range& my_range,
                                             bool compressed) {
@@ -508,7 +507,7 @@ std::shared_ptr<S3File> S3File::OpenForWrite(const std::string& path,
     return std::make_shared<S3File>(ctx.s3_client(), path);
 }
 
-std::shared_ptr<AbstractFile> AbstractFile::OpenForRead(const SysFileInfo& file,
+std::shared_ptr<AbstractFile> AbstractFile::OpenForRead(const FileInfo& file,
                                                         const api::Context& ctx,
                                                         const common::Range&
                                                         my_range,

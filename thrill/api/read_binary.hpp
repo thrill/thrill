@@ -71,14 +71,12 @@ public:
     static constexpr uint64_t no_size_limit_ =
         std::numeric_limits<uint64_t>::max();
 
-    using SysFileInfo = vfs::SysFileInfo;
-
     ReadBinaryNode(Context& ctx, const std::vector<std::string>& globlist,
                    uint64_t size_limit, bool distributed_fs)
         : Super(ctx, "ReadBinary") {
 
-        vfs::SysFileList files = vfs::GlobFileSizePrefixSum(
-            vfs::GlobFilePatterns(globlist), context_);
+        vfs::FileList files = vfs::GlobFileSizePrefixSum(
+            context_, vfs::GlobFilePatterns(globlist));
 
         if (files.count() == 0) {
             throw std::runtime_error(
