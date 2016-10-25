@@ -18,6 +18,7 @@
 #include <thrill/common/zip_stream.hpp>
 
 #if THRILL_USE_AWS
+
 #include <aws/core/Aws.h>
 #include <aws/core/auth/AWSCredentialsProvider.h>
 #include <aws/s3/S3Client.h>
@@ -25,6 +26,7 @@
 #include <aws/s3/model/GetObjectRequest.h>
 #include <aws/s3/model/ListObjectsRequest.h>
 #include <aws/s3/model/PutObjectRequest.h>
+
 #endif
 
 #include <algorithm>
@@ -34,6 +36,8 @@
 
 namespace thrill {
 namespace vfs {
+
+#if THRILL_USE_AWS
 
 class S3File final : public virtual ReadStream, public virtual WriteStream
 {
@@ -223,6 +227,21 @@ WriteStreamPtr S3OpenWriteStream(
     const std::string& path, const api::Context& ctx) {
     return common::MakeCounting<S3File>(ctx.s3_client(), path);
 }
+
+#else // !THRILL_USE_AWS
+
+ReadStreamPtr S3OpenReadStream(
+    const FileInfo& file, const api::Context& ctx,
+    const common::Range& my_range, bool compressed) {
+    return nullptr;
+}
+
+WriteStreamPtr S3OpenWriteStream(
+    const std::string& path, const api::Context& ctx) {
+    return nullptr;
+}
+
+#endif
 
 } // namespace vfs
 } // namespace thrill

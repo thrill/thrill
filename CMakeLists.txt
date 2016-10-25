@@ -57,7 +57,7 @@ option(THRILL_TRY_COMPILE_HEADERS
   "Test header files for self-sufficiency: try to compile them." OFF)
 
 option(THRILL_USE_AWS
-  "Use AWS SDK for S3 as a backend to read data from." ON)
+  "Use AWS SDK for S3 as a backend to read data from." OFF)
 
 # BUILD_SHARED_LIBS is a standard CMake variable, but we declare it here to
 # make it prominent in the GUI.
@@ -335,9 +335,6 @@ endif()
 
 include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/extlib/cereal/include)
 
-
-
-
 ################################################################################
 ### Find Required Libraries
 
@@ -365,7 +362,11 @@ if(THRILL_USE_JEMALLOC)
   endif()
 endif()
 
+# use ZLIB for gzip decompression
 
+find_package(ZLIB REQUIRED)
+include_directories(SYSTEM ${ZLIB_INCLUDE_DIRS})
+set(THRILL_DEP_LIBRARIES ${THRILL_DEP_LIBRARIES} ${ZLIB_LIBRARIES})
 
 # try to find Intel TBB (optional)
 

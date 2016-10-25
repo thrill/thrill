@@ -9,6 +9,8 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
+#include <thrill/vfs/file_io.hpp>
+
 #if THRILL_USE_AWS
 #include <aws/core/Aws.h>
 #include <aws/core/auth/AWSCredentialsProvider.h>
@@ -21,7 +23,6 @@
 #include <thrill/common/porting.hpp>
 #include <thrill/common/string.hpp>
 #include <thrill/common/system_exception.hpp>
-#include <thrill/vfs/file_io.hpp>
 #include <thrill/vfs/s3_file.hpp>
 #include <thrill/vfs/simple_glob.hpp>
 #include <thrill/vfs/sys_file.hpp>
@@ -154,7 +155,7 @@ FileList GlobFileSizePrefixSum(api::Context& ctx, const std::vector<std::string>
 
 #if !THRILL_USE_AWS
             throw std::runtime_error("THRILL_USE_AWS is not set to true");
-#endif
+#else // THRILL_USE_AWS
             auto s3_client = ctx.s3_client();
 
             std::string path_without_s3 = file.substr(5);
@@ -191,6 +192,7 @@ FileList GlobFileSizePrefixSum(api::Context& ctx, const std::vector<std::string>
                     total_size += object.GetSize();
                 }
             }
+#endif
         }
         else {
 
