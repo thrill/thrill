@@ -341,45 +341,6 @@ private:
     pid_t pid_ = 0;
 };
 
-/*!
- * A class which creates a temporary directory in the current directory and
- * returns it via get(). When the object is destroyed the temporary directory is
- * wiped non-recursively.
- */
-class TemporaryDirectory
-{
-public:
-    //! Create a temporary directory, returns its name without trailing /.
-    static std::string make_directory(const char* sample = "thrill-testsuite-");
-
-    //! wipe temporary directory NON RECURSIVELY!
-    static void wipe_directory(const std::string& tmp_dir, bool do_rmdir);
-
-    TemporaryDirectory()
-        : dir_(make_directory())
-    { }
-
-    ~TemporaryDirectory() {
-        wipe_directory(dir_, true);
-    }
-
-    //! non-copyable: delete copy-constructor
-    TemporaryDirectory(const TemporaryDirectory&) = delete;
-    //! non-copyable: delete assignment operator
-    TemporaryDirectory& operator = (const TemporaryDirectory&) = delete;
-
-    //! return the temporary directory name
-    const std::string& get() const { return dir_; }
-
-    //! wipe contents of directory
-    void wipe() const {
-        wipe_directory(dir_, false);
-    }
-
-private:
-    std::string dir_;
-};
-
 } // namespace core
 } // namespace thrill
 
