@@ -228,7 +228,7 @@ WriteStreamPtr S3OpenWriteStream(
     return common::MakeCounting<S3File>(ctx.s3_client(), path);
 }
 
-#else // !THRILL_USE_AWS
+#else   // !THRILL_USE_AWS
 
 ReadStreamPtr S3OpenReadStream(
     const FileInfo& file, const api::Context& ctx,

@@ -15,7 +15,6 @@
 
 #include <thrill/api/context.hpp>
 #include <thrill/common/counting_ptr.hpp>
-#include <thrill/common/logger.hpp>
 #include <thrill/common/system_exception.hpp>
 
 #include <string>

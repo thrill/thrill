@@ -13,7 +13,6 @@
 #ifndef THRILL_VFS_SYS_FILE_HEADER
 #define THRILL_VFS_SYS_FILE_HEADER
 
-#include <thrill/api/context.hpp>
 #include <thrill/vfs/file_io.hpp>
 
 #include <string>

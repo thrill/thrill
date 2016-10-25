@@ -154,8 +154,11 @@ FileList GlobFileSizePrefixSum(api::Context& ctx, const std::vector<std::string>
         if (common::StartsWith(file, "s3://")) {
 
 #if !THRILL_USE_AWS
+
             throw std::runtime_error("THRILL_USE_AWS is not set to true");
-#else // THRILL_USE_AWS
+
+#else
+
             auto s3_client = ctx.s3_client();
 
             std::string path_without_s3 = file.substr(5);
