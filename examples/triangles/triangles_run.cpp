@@ -47,8 +47,8 @@ static size_t CountTrianglesPerLine(
                     emit(std::make_pair(src, tgt));
                 }
                 else {
-                    //do not emit when src >= tgt (will be emitted when on other
-                    //side of edge)
+                    // do not emit when src >= tgt (will be emitted when on other
+                    // side of edge)
                 }
             }
         }).Keep();
@@ -77,7 +77,7 @@ static size_t CountTrianglesGenerated(
                 }
                 else {
                     if (neighbors.first < neighbor) {
-                        // emit(std::make_pair(neighbors.first, neighbor));
+                    // emit(std::make_pair(neighbors.first, neighbor));
                     }
                     // self-loop: do not emit
                 }
@@ -93,7 +93,6 @@ static size_t CountTrianglesGenerated(
 
     ctx.net.Barrier();
 
-
     if (ctx.my_rank() == 0) {
         auto traffic = ctx.net_manager().Traffic();
         if (use_detection) {
@@ -102,7 +101,8 @@ static size_t CountTrianglesGenerated(
                  << " time=" << timer.Milliseconds()
                  << " traffic=" << traffic.first + traffic.second
                  << " machines=" << ctx.num_hosts();
-        } else {
+        }
+        else {
             LOG1 << "RESULT " << "benchmark=triangles " << "detection=OFF"
                  << " vertices=" << num_vertices
                  << " time=" << timer.Milliseconds()

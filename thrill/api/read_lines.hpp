@@ -50,7 +50,7 @@ public:
     ReadLinesNode(Context& ctx, const std::vector<std::string>& globlist,
                   bool distributed_fs)
         : Super(ctx, "ReadLines"),
-        distributed_fs_(distributed_fs) {
+          distributed_fs_(distributed_fs) {
 
         LOG << "Opening ReadLinesNode for " << globlist.size() << " globs";
 
@@ -86,7 +86,7 @@ public:
         }
         else {
             InputLineIteratorUncompressed it = InputLineIteratorUncompressed(
-                filelist_, context_,  *this, distributed_fs_);
+                filelist_, context_, *this, distributed_fs_);
 
             // Hook Read
             while (it.HasNext()) {
@@ -146,7 +146,6 @@ private:
         size_t total_reads_ = 0;
         size_t total_elements_ = 0;
 
-
         bool ReadBlock(std::shared_ptr<core::AbstractFile>& file, net::BufferBuilder& buffer) {
             read_timer.Start();
             ssize_t bytes = file->read(buffer.data(), read_size);
@@ -187,7 +186,8 @@ private:
             if (distributed_fs) {
                 my_range_ = node_.context_.CalculateLocalRange(
                     files.total_size);
-            } else {
+            }
+            else {
                 my_range_ = node_.context_.CalculateLocalRangeOnHost(
                     files.total_size);
             }
@@ -313,7 +313,8 @@ private:
             if (distributed_fs) {
                 my_range_ = node_.context_.CalculateLocalRange(
                     files.total_size);
-            } else {
+            }
+            else {
                 my_range_ = node_.context_.CalculateLocalRangeOnHost(
                     files.total_size);
             }
@@ -419,7 +420,7 @@ private:
                     // if (this worker reads at least one more file)
                     if (my_range_.end > files_.list[current_file_].size_inc_psum()) {
                         current_file_++;
-                        file_ =  core::AbstractFile::OpenForRead(
+                        file_ = core::AbstractFile::OpenForRead(
                             files_.list[current_file_], context_, my_range_,
                             files_.contains_compressed);
                         ReadBlock(file_, buffer_);

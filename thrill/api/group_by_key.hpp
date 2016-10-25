@@ -367,8 +367,8 @@ auto DIA<ValueType, Stack>::GroupByKey(
         "KeyExtractor has the wrong input type");
 
     using GroupByNode = api::GroupByNode<
-        DOpResult, KeyExtractor, GroupFunction, HashFunction,
-        UseLocationDetection>;
+              DOpResult, KeyExtractor, GroupFunction, HashFunction,
+              UseLocationDetection>;
 
     auto node = common::MakeCounting<GroupByNode>(
         *this, key_extractor, groupby_function);

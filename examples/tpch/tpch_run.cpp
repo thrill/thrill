@@ -163,7 +163,6 @@ static size_t JoinTPCH4(
     splitted.resize(17);
     std::string s_lineitems = input_path[0] + std::string("lineitem*");
 
-
     auto lineitems = ReadLines(ctx, s_lineitems).FlatMap<struct LineItem>(
         [&splitted](const std::string& input, auto emit) {
 
@@ -231,19 +230,18 @@ static size_t JoinTPCH4(
 
     const bool use_detection = false;
     auto joined = lineitems.
-        template InnerJoinWith<use_detection>(orders,
-                                              [](const LineItem& li) {
-                                                  return li.orderkey;
-                                              },
-                                              [](const Order& o) {
-                                                  return o.orderkey;
-                                              },
-                                              [](const LineItem& li,
-                                                 const Order& o) {
-                                                  return ConstructJoinedElement(
-                                                      li, o);
-                                              }, thrill::hash()).Size();
-
+                  template InnerJoinWith<use_detection>(orders,
+                                                        [](const LineItem& li) {
+                                                            return li.orderkey;
+                                                        },
+                                                        [](const Order& o) {
+                                                            return o.orderkey;
+                                                        },
+                                                        [](const LineItem& li,
+                                                           const Order& o) {
+                                                            return ConstructJoinedElement(
+                                                                li, o);
+                                                        }, thrill::hash()).Size();
 
     ctx.net.Barrier();
 
@@ -255,14 +253,14 @@ static size_t JoinTPCH4(
                  << " time=" << timer.Milliseconds()
                  << " traffic=" << traffic.first + traffic.second
                  << " machines=" << ctx.num_hosts();
-        } else {
+        }
+        else {
             LOG1 << "RESULT " << "benchmark=tpch " << "detection=OFF"
                  << " items=" << num_items
                  << " time=" << timer.Milliseconds()
                  << " traffic=" << traffic.first + traffic.second
                  << " machines=" << ctx.num_hosts();
         }
-
     }
 
     return joined;

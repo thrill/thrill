@@ -23,8 +23,8 @@
 #include <thrill/io/iostats.hpp>
 
 #if THRILL_USE_AWS
-#include <aws/core/auth/AWSCredentialsProvider.h>
 #include <aws/core/Aws.h>
+#include <aws/core/auth/AWSCredentialsProvider.h>
 #include <aws/s3/S3Client.h>
 #endif
 
@@ -943,7 +943,7 @@ HostContext::HostContext(
     // Create client configuration file
     Aws::Client::ClientConfiguration config;
     config.region = Aws::Region::EU_WEST_1;
-    //config.region = Aws::Region::US_EAST_1;
+    // config.region = Aws::Region::US_EAST_1;
     config.scheme = Aws::Http::Scheme::HTTPS;
     config.connectTimeoutMs = 60000;
     config.requestTimeoutMs = 60000;
@@ -954,7 +954,6 @@ HostContext::HostContext(
     Aws::Auth::AWSCredentials creds(access_key_id, secret_key);
     s3_client_ = Aws::MakeShared<Aws::S3::S3Client>(ALLOCATION_TAG,
                                                     creds, config);
-
 
 #endif
 

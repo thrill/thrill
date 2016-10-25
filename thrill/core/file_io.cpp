@@ -9,10 +9,9 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-
 #if THRILL_USE_AWS
-#include <aws/core/auth/AWSCredentialsProvider.h>
 #include <aws/core/Aws.h>
+#include <aws/core/auth/AWSCredentialsProvider.h>
 #include <aws/s3/S3Client.h>
 #include <aws/s3/model/GetObjectRequest.h>
 #include <aws/s3/model/ListObjectsRequest.h>
@@ -102,7 +101,8 @@ std::vector<std::string> GlobFilePattern(const std::string& path) {
 
     if (common::StartsWith(path, "s3://")) {
         files.push_back(path);
-    } else {
+    }
+    else {
 
 #if defined(_MSC_VER)
         glob_local::CSimpleGlob sglob;
@@ -119,7 +119,6 @@ std::vector<std::string> GlobFilePattern(const std::string& path) {
         }
         globfree(&glob_result);
 #endif
-
     }
 
     std::sort(files.begin(), files.end());
@@ -150,7 +149,6 @@ SysFileList GlobFileSizePrefixSum(const std::vector<std::string>& files,
 
     for (const std::string& file : files) {
 
-
         if (common::StartsWith(file, "s3://")) {
 
 #if !THRILL_USE_AWS
@@ -161,7 +159,7 @@ SysFileList GlobFileSizePrefixSum(const std::vector<std::string>& files,
             std::string path_without_s3 = file.substr(5);
 
             std::vector<std::string> splitted = common::Split(
-                path_without_s3, '/', (std::string::size_type) 2);
+                path_without_s3, '/', (std::string::size_type)2);
             Aws::S3::Model::ListObjectsRequest lor;
             lor.SetBucket(splitted[0]);
 
@@ -173,35 +171,38 @@ SysFileList GlobFileSizePrefixSum(const std::vector<std::string>& files,
             if (!loo.IsSuccess()) {
                 LOG1 << "Error message: " << loo.GetError().GetMessage();
                 if (splitted.size() == 2) {
-                throw std::runtime_error(
-                    "No file found in bucket \"" + splitted[0] +
-                    "\" with correct key, which is \"" + splitted[1] + "\"");
-                } else {
                     throw std::runtime_error(
-                        "No file found in bucket \"" + splitted[0] + "\"");
+                              "No file found in bucket \"" + splitted[0] +
+                              "\" with correct key, which is \"" + splitted[1] + "\"");
+                }
+                else {
+                    throw std::runtime_error(
+                              "No file found in bucket \"" + splitted[0] + "\"");
                 }
             }
 
             for (const auto& object : loo.GetResult().GetContents()) {
                 if (object.GetSize() > 0) {
-                    //folders are also in this list but have size of 0
+                    // folders are also in this list but have size of 0
                     file_info.emplace_back(SysFileInfo {
-                            std::string("s3://").append(splitted[0]).append("/")
-                                .append(object.GetKey()),
-                                static_cast<uint64_t>(object.GetSize()),
-                                total_size});
+                                               std::string("s3://").append(splitted[0]).append("/")
+                                               .append(object.GetKey()),
+                                               static_cast<uint64_t>(object.GetSize()),
+                                               total_size
+                                           });
 
                     contains_compressed = contains_compressed ||
-                        common::EndsWith(object.GetKey(), ".gz");
+                                          common::EndsWith(object.GetKey(), ".gz");
 
                     total_size += object.GetSize();
                 }
             }
-        } else {
+        }
+        else {
 
             if (stat(file.c_str(), &filestat)) {
                 throw std::runtime_error(
-                    "ERROR: Invalid file " + std::string(file));
+                          "ERROR: Invalid file " + std::string(file));
             }
             if (!S_ISREG(filestat.st_mode)) continue;
 
@@ -209,7 +210,7 @@ SysFileList GlobFileSizePrefixSum(const std::vector<std::string>& files,
 
             file_info.emplace_back(
                 SysFileInfo { std::move(file),
-                        static_cast<uint64_t>(filestat.st_size), total_size });
+                              static_cast<uint64_t>(filestat.st_size), total_size });
 
             total_size += filestat.st_size;
         }
@@ -272,7 +273,6 @@ void SysFile::close() {
     }
 #endif
 }
-
 
 std::shared_ptr<SysFile> SysFile::OpenForRead(const std::string& path) {
 
@@ -447,7 +447,7 @@ std::shared_ptr<S3File> S3File::OpenForRead(const SysFileInfo& file,
                                             const common::Range& my_range,
                                             bool compressed) {
 
-    //Amount of additional bytes read after end of range
+    // Amount of additional bytes read after end of range
     size_t maximum_line_length = 64 * 1024;
 
     Aws::S3::Model::GetObjectRequest getObjectRequest;
@@ -455,7 +455,7 @@ std::shared_ptr<S3File> S3File::OpenForRead(const SysFileInfo& file,
     std::string path_without_s3 = file.path.substr(5);
 
     std::vector<std::string> splitted = common::Split(
-        path_without_s3, '/', (std::string::size_type) 2);
+        path_without_s3, '/', (std::string::size_type)2);
 
     assert(splitted.size() == 2);
 
@@ -473,7 +473,8 @@ std::shared_ptr<S3File> S3File::OpenForRead(const SysFileInfo& file,
             range += std::to_string(my_range.begin - file.size_ex_psum);
             range_start = my_range.begin - file.size_ex_psum;
             use_range_ = true;
-        } else {
+        }
+        else {
             range += "0";
         }
 
@@ -493,21 +494,21 @@ std::shared_ptr<S3File> S3File::OpenForRead(const SysFileInfo& file,
 
     if (!outcome.IsSuccess())
         throw common::ErrnoException(
-            "Download from S3 Errored: " + outcome.GetError().GetMessage());
+                  "Download from S3 Errored: " + outcome.GetError().GetMessage());
 
     if (!compressed) {
         return std::make_shared<S3File>(outcome.GetResultWithOwnership(),
-                                    range_start);
-    } else {
-        //this constructor opens a zip_stream
+                                        range_start);
+    }
+    else {
+        // this constructor opens a zip_stream
         return std::make_shared<S3File>(outcome.GetResultWithOwnership());
     }
-
 }
 
 std::shared_ptr<S3File> S3File::OpenForWrite(const std::string& path,
                                              const api::Context& ctx) {
-        return std::make_shared<S3File>(ctx.s3_client(), path);
+    return std::make_shared<S3File>(ctx.s3_client(), path);
 }
 
 std::shared_ptr<AbstractFile> AbstractFile::OpenForRead(const SysFileInfo& file,
@@ -517,7 +518,8 @@ std::shared_ptr<AbstractFile> AbstractFile::OpenForRead(const SysFileInfo& file,
                                                         bool compressed) {
     if (common::StartsWith(file.path, "s3://")) {
         return S3File::OpenForRead(file, ctx, my_range, compressed);
-    } else {
+    }
+    else {
         return SysFile::OpenForRead(file.path);
     }
 }
@@ -526,7 +528,8 @@ std::shared_ptr<AbstractFile> AbstractFile::OpenForWrite(
     const std::string& path, const api::Context& ctx) {
     if (common::StartsWith(path, "s3://")) {
         return S3File::OpenForWrite(path, ctx);
-    } else {
+    }
+    else {
         return SysFile::OpenForWrite(path);
     }
 }

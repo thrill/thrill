@@ -78,9 +78,9 @@ TEST(Join, PairsSameKey) {
 
             size_t n = 333;
 
-            auto dia1 = Generate(ctx, n,[](const size_t& e) {
+            auto dia1 = Generate(ctx, n, [](const size_t& e) {
                                      return std::make_pair(1, e);
-                });
+                                 });
 
             auto dia2 = Generate(ctx, n, [](const size_t& e) {
                                      return std::make_pair(1, e * e);
@@ -179,7 +179,7 @@ TEST(Join, DifferentTypes) {
 
             auto dia1 = Generate(ctx, n, [](const size_t& e) {
                                      return std::make_pair(e, e * e);
-                });
+                                 });
 
             auto dia2 = Generate(ctx, n, [](const size_t& e) {
                                      return std::make_tuple(e, e * e, e * e * e);

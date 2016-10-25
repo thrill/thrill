@@ -165,7 +165,7 @@ static void RunJoinPageRankEdgePerLine(
     // perform actual page rank calculation iterations
 
     auto ranks = PageRankJoin<UseLocationDetection>
-        (links, num_pages, iterations);
+                     (links, num_pages, iterations);
 
     // construct output as "pageid: rank"
 
@@ -195,14 +195,14 @@ static void RunJoinPageRankEdgePerLine(
                  << " pages=" << num_pages
                  << " traffic= " << traffic.first + traffic.second
                  << " machines=" << ctx.num_hosts();
-        } else {
+        }
+        else {
             LOG1 << "RESULT benchmark=pagerank_gen detection=OFF"
                  << " time=" << timer.Milliseconds()
                  << " pages=" << num_pages
                  << " traffic=" << traffic.first + traffic.second
                  << " machines=" << ctx.num_hosts();
         }
-
     }
 }
 
@@ -289,7 +289,7 @@ static void RunPageRankJoinGenerated(
     // perform actual page rank calculation iterations
 
     auto ranks = PageRankJoin<UseLocationDetection>
-        (links, num_pages, iterations);
+                     (links, num_pages, iterations);
 
     // construct output as "pageid: rank"
 
@@ -304,7 +304,7 @@ static void RunPageRankJoinGenerated(
 
     timer.Stop();
 
-     if (ctx.my_rank() == 0) {
+    if (ctx.my_rank() == 0) {
         auto traffic = ctx.net_manager().Traffic();
         if (UseLocationDetection) {
             LOG1 << "RESULT benchmark=pagerank_gen detection=ON"
@@ -312,7 +312,8 @@ static void RunPageRankJoinGenerated(
                  << " pages=" << num_pages
                  << " traffic= " << traffic.first + traffic.second
                  << " machines=" << ctx.num_hosts();
-        } else {
+        }
+        else {
             LOG1 << "RESULT benchmark=pagerank_gen detection=OFF"
                  << " time=" << timer.Milliseconds()
                  << " pages=" << num_pages

@@ -175,7 +175,6 @@ auto PageRankJoin(const DIA<LinkedPage, InStack>&links, size_t num_pages,
             .Print("outs_rank");
         }
 
-
         auto contribs = outs_rank.template FlatMap<PageRankPair>(
             [](const OutgoingLinksRank& p, auto emit) {
                 if (p.first.size() > 0) {

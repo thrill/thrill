@@ -122,7 +122,6 @@ public:
     virtual ssize_t lseek(off_t) = 0;
 
     virtual void close() = 0;
-
 };
 
 class S3File : public AbstractFile
@@ -133,20 +132,19 @@ class S3File : public AbstractFile
 public:
     S3File() : is_valid_(false), is_read_(false) { }
 
-    S3File(Aws::S3::Model::GetObjectResult&& gor, size_t range_start) :
-        gor_(std::move(gor)), range_start_(range_start),
-        is_valid_(true), is_read_(true), decompression_(false) { }
+    S3File(Aws::S3::Model::GetObjectResult&& gor, size_t range_start)
+        : gor_(std::move(gor)), range_start_(range_start),
+          is_valid_(true), is_read_(true), decompression_(false) { }
 
-    S3File(Aws::S3::Model::GetObjectResult&& gor) :
-        gor_(std::move(gor)), is_valid_(true), is_read_(true),
-        decompression_(true) {
+    S3File(Aws::S3::Model::GetObjectResult&& gor)
+        : gor_(std::move(gor)), is_valid_(true), is_read_(true),
+          decompression_(true) {
 
         unzip_ = std::make_unique<common::zip_istream>(gor_.GetBody());
-
     }
 
-    S3File(std::shared_ptr<Aws::S3::S3Client> client, const std::string& path) :
-        client_(client), path_(path), is_valid_(true), is_read_(false) { }
+    S3File(std::shared_ptr<Aws::S3::S3Client> client, const std::string& path)
+        : client_(client), path_(path), is_valid_(true), is_read_(false) { }
 
     //! non-copyable: delete copy-constructor
     S3File(const S3File&) = delete;
@@ -178,14 +176,15 @@ public:
         return write_stream_.tellp() - before;
     }
 
-     //! POSIX read function.
+    //! POSIX read function.
     ssize_t read(void* data, size_t count) {
         assert(is_valid_);
         assert(is_read_);
         if (decompression_) {
             size_t sizet = unzip_->readsome((char*)data, count);
             return sizet;
-        } else {
+        }
+        else {
             return gor_.GetBody().readsome((char*)data, count);
         }
     }
@@ -196,7 +195,7 @@ public:
     ssize_t lseek(off_t offset) {
         assert(is_valid_);
         assert(is_read_);
-        assert(offset == (off_t) range_start_);
+        assert(offset == (off_t)range_start_);
         return offset;
     }
 
@@ -207,7 +206,7 @@ public:
 
             std::string path_without_s3 = path_.substr(5);
             std::vector<std::string> splitted = common::Split(
-                path_without_s3, '/', (std::string::size_type) 2);
+                path_without_s3, '/', (std::string::size_type)2);
 
             Aws::S3::Model::CreateBucketRequest createBucketRequest;
             createBucketRequest.SetBucket(splitted[0]);
@@ -217,13 +216,13 @@ public:
             por.SetBucket(splitted[0]);
             por.SetKey(splitted[1]);
             std::shared_ptr<Aws::IOStream> stream = std::make_shared<Aws::IOStream>(
-                                                      write_stream_.rdbuf());
+                write_stream_.rdbuf());
             por.SetBody(stream);
             por.SetContentLength(write_stream_.tellp());
             auto outcome = client_->PutObject(por);
-            if(!outcome.IsSuccess()) {
+            if (!outcome.IsSuccess()) {
                 throw common::ErrnoException(
-                    "Download from S3 Errored: " + outcome.GetError().GetMessage());
+                          "Download from S3 Errored: " + outcome.GetError().GetMessage());
             }
         }
 
@@ -243,7 +242,6 @@ private:
     bool is_valid_;
     bool is_read_;
     bool decompression_;
-
 };
 
 /*!
