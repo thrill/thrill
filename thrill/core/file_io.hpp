@@ -142,9 +142,6 @@ public:
         decompression_(true) {
 
         unzip_ = std::make_unique<common::zip_istream>(gor_.GetBody());
-
-        LOG1 << "gzipdatasize: " << unzip_->get_gzip_data_size();
-
     }
 
     S3File(std::shared_ptr<Aws::S3::S3Client> client, const std::string& path) :
