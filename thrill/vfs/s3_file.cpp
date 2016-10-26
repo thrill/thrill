@@ -11,7 +11,6 @@
 
 #include <thrill/vfs/s3_file.hpp>
 
-#include <thrill/api/context.hpp>
 #include <thrill/common/porting.hpp>
 #include <thrill/common/string.hpp>
 #include <thrill/common/system_exception.hpp>
@@ -29,13 +28,11 @@ namespace vfs {
 #else   // !THRILL_USE_AWS
 
 ReadStreamPtr S3OpenReadStream(
-    const std::string& path, const api::Context& ctx,
-    const common::Range& my_range) {
+    const std::string& /* path */, const common::Range& /* range */) {
     return nullptr;
 }
 
-WriteStreamPtr S3OpenWriteStream(
-    const std::string& path, const api::Context& ctx) {
+WriteStreamPtr S3OpenWriteStream(const std::string& /* path */) {
     return nullptr;
 }
 

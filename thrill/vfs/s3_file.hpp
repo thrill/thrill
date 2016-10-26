@@ -13,7 +13,6 @@
 #ifndef THRILL_VFS_S3_FILE_HEADER
 #define THRILL_VFS_S3_FILE_HEADER
 
-#include <thrill/api/context.hpp>
 #include <thrill/vfs/file_io.hpp>
 
 #include <string>
@@ -22,11 +21,10 @@ namespace thrill {
 namespace vfs {
 
 ReadStreamPtr S3OpenReadStream(
-    const std::string& path, const api::Context& ctx,
-    const common::Range& range);
+    const std::string& path, const common::Range& range);
 
 WriteStreamPtr S3OpenWriteStream(
-    const std::string& path, const api::Context& ctx);
+    const std::string& path);
 
 } // namespace vfs
 } // namespace thrill

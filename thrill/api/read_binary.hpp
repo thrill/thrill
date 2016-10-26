@@ -76,7 +76,7 @@ public:
         : Super(ctx, "ReadBinary") {
 
         vfs::FileList files = vfs::GlobFileSizePrefixSum(
-            context_, vfs::GlobFilePatterns(globlist));
+            vfs::GlobFilePatterns(globlist));
 
         if (files.count() == 0) {
             throw std::runtime_error(

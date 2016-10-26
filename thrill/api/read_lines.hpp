@@ -52,8 +52,7 @@ public:
 
         LOG << "Opening ReadLinesNode for " << globlist.size() << " globs";
 
-        filelist_ = vfs::GlobFileSizePrefixSum(
-            context_, vfs::GlobFilePatterns(globlist));
+        filelist_ = vfs::GlobFileSizePrefixSum(vfs::GlobFilePatterns(globlist));
 
         if (filelist_.count() == 0) {
             throw std::runtime_error(
@@ -197,7 +196,7 @@ private:
                      << "my_range_" << my_range_;
 
                 stream_ = vfs::OpenReadStream(
-                    files_.list[current_file_].path, context_, my_range_);
+                    files_.list[current_file_].path, my_range_);
             }
             else {
                 LOG << "my_range : " << my_range_;
@@ -262,7 +261,7 @@ private:
 
                     if (current_file_ < files_.count()) {
                         stream_ = vfs::OpenReadStream(
-                            files_.list[current_file_].path, context_, my_range_);
+                            files_.list[current_file_].path, my_range_);
                         offset_ += buffer_.size();
                         ReadBlock(stream_, buffer_);
                     }
@@ -333,7 +332,7 @@ private:
                 LOG << "Opening file " << current_file_;
                 LOG << "my_range : " << my_range_;
                 stream_ = vfs::OpenReadStream(
-                    files_.list[current_file_].path, context_, my_range_);
+                    files_.list[current_file_].path, my_range_);
             }
             else {
                 // No local files, set buffer size to 2, so HasNext() does not try to read
@@ -372,8 +371,7 @@ private:
 
                     if (current_file_ < files_.count()) {
                         stream_ = vfs::OpenReadStream(
-                            files_.list[current_file_].path,
-                            context_, my_range_);
+                            files_.list[current_file_].path, my_range_);
                         ReadBlock(stream_, buffer_);
                     }
                     else {
@@ -415,7 +413,7 @@ private:
                     if (my_range_.end > files_.list[current_file_].size_inc_psum()) {
                         current_file_++;
                         stream_ = vfs::OpenReadStream(
-                            files_.list[current_file_].path, context_, my_range_);
+                            files_.list[current_file_].path, my_range_);
                         ReadBlock(stream_, buffer_);
                         return true;
                     }

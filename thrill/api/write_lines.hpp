@@ -50,7 +50,7 @@ public:
           out_pathbase_(path_out),
           stream_(vfs::OpenWriteStream(
                       vfs::FillFilePattern(
-                          out_pathbase_, context_.my_rank(), 0), context_)),
+                          out_pathbase_, context_.my_rank(), 0))),
           target_file_size_(target_file_size)
     {
         sLOG << "Creating write node.";
@@ -95,7 +95,7 @@ public:
                 stream_->close();
                 std::string new_path = vfs::FillFilePattern(
                     out_pathbase_, context_.my_rank(), out_serial_++);
-                stream_ = vfs::OpenWriteStream(new_path, context_);
+                stream_ = vfs::OpenWriteStream(new_path);
                 LOG << "Opening file: " << new_path;
                 current_file_size_ = 0;
             }

@@ -118,7 +118,7 @@ private:
                     size_t& stats_total_writes)
             : BlockSink(context.block_pool(), local_worker_id),
               BoundedBlockSink(context.block_pool(), local_worker_id, max_file_size),
-              stream_(vfs::OpenWriteStream(path, context)),
+              stream_(vfs::OpenWriteStream(path)),
               stats_total_elements_(stats_total_elements),
               stats_total_writes_(stats_total_writes) { }
 

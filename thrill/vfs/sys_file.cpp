@@ -11,7 +11,6 @@
 
 #include <thrill/vfs/sys_file.hpp>
 
-#include <thrill/api/context.hpp>
 #include <thrill/common/porting.hpp>
 #include <thrill/common/string.hpp>
 #include <thrill/common/system_exception.hpp>

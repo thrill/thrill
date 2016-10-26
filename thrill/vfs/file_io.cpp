@@ -11,7 +11,6 @@
 
 #include <thrill/vfs/file_io.hpp>
 
-#include <thrill/api/context.hpp>
 #include <thrill/common/porting.hpp>
 #include <thrill/common/string.hpp>
 #include <thrill/common/system_exception.hpp>
@@ -48,6 +47,14 @@
 
 namespace thrill {
 namespace vfs {
+
+bool IsCompressed(const std::string& path) {
+    return common::EndsWith(path, ".gz") ||
+           common::EndsWith(path, ".bz2") ||
+           common::EndsWith(path, ".xz") ||
+           common::EndsWith(path, ".lzo") ||
+           common::EndsWith(path, ".lz4");
+}
 
 std::string FillFilePattern(const std::string& pathbase,
                             size_t worker, size_t file_part) {
@@ -134,7 +141,7 @@ std::vector<std::string> GlobFilePatterns(
     return filelist;
 }
 
-FileList GlobFileSizePrefixSum(api::Context& ctx, const std::vector<std::string>& files) {
+FileList GlobFileSizePrefixSum(const std::vector<std::string>& files) {
 
     std::vector<FileInfo> file_info;
     struct stat filestat;
@@ -220,20 +227,18 @@ FileList GlobFileSizePrefixSum(api::Context& ctx, const std::vector<std::string>
 /******************************************************************************/
 
 ReadStreamPtr OpenReadStream(
-    const std::string& path, const api::Context& ctx,
-    const common::Range& range) {
+    const std::string& path, const common::Range& range) {
     if (common::StartsWith(path, "s3://")) {
-        return S3OpenReadStream(path, ctx, range);
+        return S3OpenReadStream(path, range);
     }
     else {
         return SysOpenReadStream(path);
     }
 }
 
-WriteStreamPtr OpenWriteStream(
-    const std::string& path, const api::Context& ctx) {
+WriteStreamPtr OpenWriteStream(const std::string& path) {
     if (common::StartsWith(path, "s3://")) {
-        return S3OpenWriteStream(path, ctx);
+        return S3OpenWriteStream(path);
     }
     else {
         return SysOpenWriteStream(path);

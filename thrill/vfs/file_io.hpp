@@ -13,8 +13,8 @@
 #ifndef THRILL_VFS_FILE_IO_HEADER
 #define THRILL_VFS_FILE_IO_HEADER
 
-#include <thrill/api/context.hpp>
 #include <thrill/common/counting_ptr.hpp>
+#include <thrill/common/math.hpp>
 #include <thrill/common/system_exception.hpp>
 
 #include <string>
@@ -28,16 +28,9 @@ namespace vfs {
 std::string FillFilePattern(const std::string& pathbase,
                             size_t worker, size_t file_part);
 
-// Returns true, if file at filepath is compressed (e.g, ends with
-// '.{gz,bz2,xz,lzo}')
-static inline
-bool IsCompressed(const std::string& path) {
-    return common::EndsWith(path, ".gz") ||
-           common::EndsWith(path, ".bz2") ||
-           common::EndsWith(path, ".xz") ||
-           common::EndsWith(path, ".lzo") ||
-           common::EndsWith(path, ".lz4");
-}
+//! Returns true, if file at filepath is compressed (e.g, ends with
+//! '.{gz,bz2,xz,lzo}')
+bool IsCompressed(const std::string& path);
 
 //! General information of system file.
 struct FileInfo {
@@ -73,8 +66,7 @@ struct FileList {
  * Reads a path as a file list contains, sizes and prefixsums (in bytes) for all
  * files in the input path.
  */
-FileList GlobFileSizePrefixSum(
-    api::Context& ctx, const std::vector<std::string>& files);
+FileList GlobFileSizePrefixSum(const std::vector<std::string>& files);
 
 //! Returns a vector of all files found by glob in the input path.
 std::vector<std::string> GlobFilePattern(const std::string& path);
@@ -90,7 +82,7 @@ class ReadStream : public virtual common::ReferenceCount
 public:
     virtual ~ReadStream() { }
 
-    virtual ssize_t read(void*, size_t) = 0;
+    virtual ssize_t read(void* data, size_t size) = 0;
 
     virtual ssize_t lseek(off_t) = 0;
 
@@ -102,7 +94,7 @@ class WriteStream : public virtual common::ReferenceCount
 public:
     virtual ~WriteStream() { }
 
-    virtual ssize_t write(const void*, size_t) = 0;
+    virtual ssize_t write(const void* data, size_t size) = 0;
 
     virtual void close() = 0;
 };
@@ -113,11 +105,9 @@ using WriteStreamPtr = common::CountingPtr<WriteStream>;
 /******************************************************************************/
 
 ReadStreamPtr OpenReadStream(
-    const std::string& path, const api::Context& ctx,
-    const common::Range& range);
+    const std::string& path, const common::Range& range);
 
-WriteStreamPtr OpenWriteStream(
-    const std::string& path, const api::Context& ctx);
+WriteStreamPtr OpenWriteStream(const std::string& path);
 
 } // namespace vfs
 } // namespace thrill
