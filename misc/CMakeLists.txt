@@ -12,9 +12,6 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   thrill_build_prog(standalone_profiler)
 endif()
 
-if(THRILL_USE_AWS)
-  thrill_build_prog(aws/config_writer)
-endif()
 thrill_build_prog(json2profile)
 thrill_build_prog(memprofile2stats)
 

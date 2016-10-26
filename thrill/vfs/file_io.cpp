@@ -11,14 +11,6 @@
 
 #include <thrill/vfs/file_io.hpp>
 
-#if THRILL_USE_AWS
-#include <aws/core/Aws.h>
-#include <aws/core/auth/AWSCredentialsProvider.h>
-#include <aws/s3/S3Client.h>
-#include <aws/s3/model/GetObjectRequest.h>
-#include <aws/s3/model/ListObjectsRequest.h>
-#endif
-
 #include <thrill/api/context.hpp>
 #include <thrill/common/porting.hpp>
 #include <thrill/common/string.hpp>

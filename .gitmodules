@@ -7,6 +7,3 @@
 [submodule "extlib/googletest"]
 	path = extlib/googletest
         url = https://github.com/google/googletest.git
-[submodule "extlib/aws-sdk-cpp"]
-	path = extlib/aws-sdk-cpp
-        url = https://github.com/aws/aws-sdk-cpp.git
