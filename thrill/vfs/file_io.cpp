@@ -48,6 +48,14 @@
 namespace thrill {
 namespace vfs {
 
+void Initialize() {
+    S3Initialize();
+}
+
+void Deinitialize() {
+    S3Deinitialize();
+}
+
 bool IsCompressed(const std::string& path) {
     return common::EndsWith(path, ".gz") ||
            common::EndsWith(path, ".bz2") ||

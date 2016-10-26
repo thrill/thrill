@@ -23,6 +23,12 @@
 namespace thrill {
 namespace vfs {
 
+//! Initialize VFS layer
+void Initialize();
+
+//! Deinitialize VFS layer
+void Deinitialize();
+
 //! function which takes pathbase and replaces $$$ with worker and ### with
 //! the file_part values.
 std::string FillFilePattern(const std::string& pathbase,

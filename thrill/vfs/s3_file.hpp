@@ -3,8 +3,7 @@
  *
  * Part of Project Thrill - http://project-thrill.org
  *
- * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
- * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2016 Timo Bingmann <tb@panthema.net>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
@@ -19,6 +18,13 @@
 
 namespace thrill {
 namespace vfs {
+
+/******************************************************************************/
+
+void S3Initialize();
+void S3Deinitialize();
+
+/******************************************************************************/
 
 ReadStreamPtr S3OpenReadStream(
     const std::string& path, const common::Range& range);

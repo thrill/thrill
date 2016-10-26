@@ -150,6 +150,7 @@ endif()
 
 thrill_build_test(vfs/sys_file_test)
 thrill_build_test(vfs/zlib_filter_test)
+thrill_build_plain(vfs/s3_file_example)
 
 thrill_build_test(data/block_queue_test)
 thrill_build_test(data/block_pool_test)

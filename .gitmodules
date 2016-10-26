@@ -7,3 +7,6 @@
 [submodule "extlib/googletest"]
 	path = extlib/googletest
         url = https://github.com/google/googletest.git
+[submodule "extlib/libs3/libs3"]
+	path = extlib/libs3/libs3
+	url = https://github.com/bji/libs3.git
