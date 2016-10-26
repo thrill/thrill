@@ -368,6 +368,12 @@ find_package(ZLIB REQUIRED)
 include_directories(SYSTEM ${ZLIB_INCLUDE_DIRS})
 set(THRILL_DEP_LIBRARIES ${THRILL_DEP_LIBRARIES} ${ZLIB_LIBRARIES})
 
+# use BZLIB for transparent gzip compression/decompression
+
+find_package(BZip2 REQUIRED)
+include_directories(SYSTEM ${BZIP2_INCLUDE_DIRS})
+set(THRILL_DEP_LIBRARIES ${THRILL_DEP_LIBRARIES} ${BZIP2_LIBRARIES})
+
 # try to find libS3 (optional)
 
 # test for all dependencies of libS3

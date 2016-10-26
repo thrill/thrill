@@ -148,6 +148,7 @@ if(NOT APPLE)
   thrill_test_only(io_file_io_sizes_test linuxaio "./testdisk1" 134217728)
 endif()
 
+thrill_build_test(vfs/bzip2_filter_test)
 thrill_build_test(vfs/sys_file_test)
 thrill_build_test(vfs/gzip_filter_test)
 thrill_build_plain(vfs/s3_file_example)
