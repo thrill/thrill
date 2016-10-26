@@ -75,14 +75,10 @@ public:
                    uint64_t size_limit, bool distributed_fs)
         : Super(ctx, "ReadBinary") {
 
-        vfs::FileList files = vfs::GlobFileSizePrefixSum(
-            vfs::GlobFilePatterns(globlist));
+        vfs::FileList files = vfs::Glob(globlist);
 
-        if (files.count() == 0) {
-            throw std::runtime_error(
-                      "No files found in globs: "
-                      + common::Join(" ", globlist));
-        }
+        if (files.size() == 0)
+            die("No files found in globs: " + common::Join(" ", globlist));
 
         if (size_limit != no_size_limit_)
             files.total_size = std::min(files.total_size, size_limit);
@@ -92,10 +88,10 @@ public:
             // use fixed_size information to split binary files.
 
             // check that files have acceptable sizes
-            for (size_t i = 0; i < files.count(); ++i) {
-                if (files.list[i].size % fixed_size_ == 0) continue;
+            for (size_t i = 0; i < files.size(); ++i) {
+                if (files[i].size % fixed_size_ == 0) continue;
 
-                die("ReadBinary() path " + files.list[i].path +
+                die("ReadBinary() path " + files[i].path +
                     " size is not a multiple of " << size_t(fixed_size_));
             }
 
@@ -117,20 +113,20 @@ public:
                  << "my_range" << my_range;
 
             size_t i = 0;
-            while (i < files.count() &&
-                   files.list[i].size_inc_psum() <= my_range.begin) {
+            while (i < files.size() &&
+                   files[i].size_inc_psum() <= my_range.begin) {
                 i++;
             }
 
-            for ( ; i < files.count() &&
-                  files.list[i].size_ex_psum <= my_range.end; ++i) {
+            for ( ; i < files.size() &&
+                  files[i].size_ex_psum <= my_range.end; ++i) {
 
-                size_t file_begin = files.list[i].size_ex_psum;
-                size_t file_end = files.list[i].size_inc_psum();
-                size_t file_size = files.list[i].size;
+                size_t file_begin = files[i].size_ex_psum;
+                size_t file_end = files[i].size_inc_psum();
+                size_t file_size = files[i].size;
 
                 FileInfo fi;
-                fi.path = files.list[i].path;
+                fi.path = files[i].path;
                 fi.begin = my_range.begin <= file_begin ? 0 : my_range.begin - file_begin;
                 fi.end = my_range.end >= file_end ? file_size : my_range.end - file_begin;
                 fi.is_compressed = false;
@@ -184,17 +180,17 @@ public:
             common::Range my_range =
                 context_.CalculateLocalRange(files.total_size);
 
-            while (i < files.count() &&
-                   files.list[i].size_inc_psum() <= my_range.begin) {
+            while (i < files.size() &&
+                   files[i].size_inc_psum() <= my_range.begin) {
                 i++;
             }
 
-            while (i < files.count() &&
-                   files.list[i].size_inc_psum() <= my_range.end) {
+            while (i < files.size() &&
+                   files[i].size_inc_psum() <= my_range.end) {
                 my_files_.push_back(
-                    FileInfo { files.list[i].path, 0,
+                    FileInfo { files[i].path, 0,
                                std::numeric_limits<size_t>::max(),
-                               files.list[i].IsCompressed() });
+                               files[i].IsCompressed() });
                 i++;
             }
 

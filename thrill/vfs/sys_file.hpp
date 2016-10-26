@@ -4,7 +4,7 @@
  * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
- * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2015-2016 Timo Bingmann <tb@panthema.net>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
@@ -19,6 +19,11 @@
 
 namespace thrill {
 namespace vfs {
+
+/*!
+ * Glob a path and augment the FileList with matching file names.
+ */
+void SysGlob(const std::string& path, FileList& filelist);
 
 /*!
  * Open file for reading and return file descriptor. Handles compressed files by

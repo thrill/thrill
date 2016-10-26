@@ -183,7 +183,7 @@ public:
             err_ = inflate(&z_stream_, Z_SYNC_FLUSH);
         }
         while ((err_ == Z_OK || err_ == Z_STREAM_END) && // NOLINT
-               z_stream_.avail_out != 0);
+               z_stream_.avail_out != 0);                // NOLINT
 
         die_unequal(z_stream_.avail_out, 0u);
 

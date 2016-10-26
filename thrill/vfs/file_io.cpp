@@ -4,7 +4,7 @@
  * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
- * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2015-2016 Timo Bingmann <tb@panthema.net>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
@@ -13,33 +13,8 @@
 
 #include <thrill/common/porting.hpp>
 #include <thrill/common/string.hpp>
-#include <thrill/common/system_exception.hpp>
 #include <thrill/vfs/s3_file.hpp>
-#include <thrill/vfs/simple_glob.hpp>
 #include <thrill/vfs/sys_file.hpp>
-
-#include <fcntl.h>
-#include <sys/stat.h>
-
-#if !defined(_MSC_VER)
-
-#include <dirent.h>
-#include <glob.h>
-#include <sys/wait.h>
-#include <unistd.h>
-
-#if !defined(O_BINARY)
-#define O_BINARY 0
-#endif
-
-#else
-
-#include <io.h>
-#include <windows.h>
-
-#define S_ISREG(m)       (((m) & _S_IFMT) == _S_IFREG)
-
-#endif
 
 #include <algorithm>
 #include <string>
@@ -48,6 +23,8 @@
 namespace thrill {
 namespace vfs {
 
+/******************************************************************************/
+
 void Initialize() {
     S3Initialize();
 }
@@ -55,6 +32,8 @@ void Initialize() {
 void Deinitialize() {
     S3Deinitialize();
 }
+
+/******************************************************************************/
 
 bool IsCompressed(const std::string& path) {
     return common::EndsWith(path, ".gz") ||
@@ -105,131 +84,49 @@ std::string FillFilePattern(const std::string& pathbase,
     return out_path;
 }
 
-std::vector<std::string> GlobFilePattern(const std::string& path) {
+/******************************************************************************/
 
-    std::vector<std::string> files;
+FileList Glob(const std::vector<std::string>& globlist) {
+    FileList filelist;
 
-    if (common::StartsWith(path, "s3://")) {
-        files.push_back(path);
-    }
-    else {
-
-#if defined(_MSC_VER)
-        glob_local::CSimpleGlob sglob;
-        sglob.Add(path.c_str());
-        for (int n = 0; n < sglob.FileCount(); ++n) {
-            files.emplace_back(sglob.File(n));
+    // run through globs and collect files. The sub-Glob() methods must only
+    // fill in the fields "path" and "size" of FileInfo, overall stats are
+    // calculated afterwards.
+    for (const std::string& path : globlist)
+    {
+        if (common::StartsWith(path, "file://")) {
+            // remove the file:// prefix
+            SysGlob(path.substr(7), filelist);
         }
-#else
-        glob_t glob_result;
-        glob(path.c_str(), GLOB_TILDE, nullptr, &glob_result);
-
-        for (unsigned int i = 0; i < glob_result.gl_pathc; ++i) {
-            files.push_back(glob_result.gl_pathv[i]);
+        else if (common::StartsWith(path, "s3://")) {
+            S3Glob(path, filelist);
         }
-        globfree(&glob_result);
-#endif
+        else {
+            SysGlob(path, filelist);
+        }
     }
 
-    std::sort(files.begin(), files.end());
+    // calculate exclusive prefix sum and overall stats
 
-    return files;
-}
+    filelist.contains_compressed = true;
+    filelist.total_size = 0;
+    uint64_t size_ex_psum = 0;
 
-std::vector<std::string> GlobFilePatterns(
-    const std::vector<std::string>& globlist) {
+    for (FileInfo& fi : filelist)
+    {
+        uint64_t size_next = size_ex_psum + fi.size;
+        fi.size_ex_psum = size_ex_psum;
+        size_ex_psum = size_next;
 
-    std::vector<std::string> filelist;
-    for (const std::string& path : globlist) {
-        std::vector<std::string> list = GlobFilePattern(path);
-        if (list.size() == 0)
-            throw std::runtime_error("No files found matching file/glob: " + path);
-        filelist.insert(filelist.end(), list.begin(), list.end());
+        filelist.contains_compressed |= fi.IsCompressed();
+        filelist.total_size += fi.size;
     }
+
     return filelist;
 }
 
-FileList GlobFileSizePrefixSum(const std::vector<std::string>& files) {
-
-    std::vector<FileInfo> file_info;
-    struct stat filestat;
-    uint64_t total_size = 0;
-    bool contains_compressed = false;
-
-    for (const std::string& file : files) {
-
-        if (common::StartsWith(file, "s3://")) {
-
-#if !THRILL_USE_AWS
-
-            throw std::runtime_error("THRILL_USE_AWS is not set to true");
-
-#else
-
-            auto s3_client = ctx.s3_client();
-
-            std::string path_without_s3 = file.substr(5);
-
-            std::vector<std::string> splitted = common::Split(
-                path_without_s3, '/', (std::string::size_type)2);
-            Aws::S3::Model::ListObjectsRequest lor;
-            lor.SetBucket(splitted[0]);
-
-            if (splitted.size() == 2) {
-                lor.SetPrefix(splitted[1]);
-            }
-
-            auto loo = s3_client->ListObjects(lor);
-            if (!loo.IsSuccess()) {
-                LOG1 << "Error message: " << loo.GetError().GetMessage();
-                throw std::runtime_error("No file found in bucket \"" + splitted[0] + "\" with correct key");
-            }
-
-            for (const auto& object : loo.GetResult().GetContents()) {
-                LOG1 << "file:" << object.GetKey();
-                if (object.GetSize() > 0) {
-                    // folders are also in this list but have size of 0
-                    file_info.emplace_back(FileInfo {
-                                               std::string("s3://").append(splitted[0]).append("/")
-                                               .append(object.GetKey()),
-                                               static_cast<uint64_t>(object.GetSize()),
-                                               total_size
-                                           });
-
-                    contains_compressed = contains_compressed ||
-                                          common::EndsWith(object.GetKey(), ".gz");
-
-                    total_size += object.GetSize();
-                }
-            }
-#endif
-        }
-        else {
-
-            if (stat(file.c_str(), &filestat)) {
-                throw std::runtime_error(
-                          "ERROR: Invalid file " + std::string(file));
-            }
-            if (!S_ISREG(filestat.st_mode)) continue;
-
-            contains_compressed = contains_compressed || IsCompressed(file);
-
-            file_info.emplace_back(
-                FileInfo { std::move(file),
-                           static_cast<uint64_t>(filestat.st_size), total_size });
-
-            total_size += filestat.st_size;
-        }
-    }
-
-    // sentinel entry
-    file_info.emplace_back(
-        FileInfo { std::string(),
-                   static_cast<uint64_t>(0), total_size });
-
-    return FileList {
-               std::move(file_info), total_size, contains_compressed
-    };
+FileList Glob(const std::string& glob) {
+    return Glob(std::vector<std::string>{ glob });
 }
 
 /******************************************************************************/

@@ -4,7 +4,7 @@
  * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
- * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2015-2016 Timo Bingmann <tb@panthema.net>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
@@ -28,6 +28,8 @@ void Initialize();
 
 //! Deinitialize VFS layer
 void Deinitialize();
+
+/******************************************************************************/
 
 //! function which takes pathbase and replaces $$$ with worker and ### with
 //! the file_part values.
@@ -53,33 +55,26 @@ struct FileInfo {
     bool        IsCompressed() const { return vfs::IsCompressed(path); }
 };
 
-//! List of file info and overall info.
-struct FileList {
-    //! list of files.
-    std::vector<FileInfo> list;
-
-    //! number of files, list.size() - 1.
-    size_t                count() const { return list.size() - 1; }
-
+//! List of file info and additional overall info.
+struct FileList : public std::vector<FileInfo>{
     //! total size of files
-    uint64_t              total_size;
+    uint64_t total_size;
 
     //! whether the list contains a compressed file.
-    bool                  contains_compressed;
+    bool     contains_compressed;
 };
 
 /*!
- * Reads a path as a file list contains, sizes and prefixsums (in bytes) for all
- * files in the input path.
+ * Reads a glob path list and deliver a file list, sizes, and prefixsums (in
+ * bytes) for all matching files.
  */
-FileList GlobFileSizePrefixSum(const std::vector<std::string>& files);
+FileList Glob(const std::string& glob);
 
-//! Returns a vector of all files found by glob in the input path.
-std::vector<std::string> GlobFilePattern(const std::string& path);
-
-//! Returns a vector of all files found by glob in the input path.
-std::vector<std::string> GlobFilePatterns(
-    const std::vector<std::string>& globlist);
+/*!
+ * Reads a glob path list and deliver a file list, sizes, and prefixsums (in
+ * bytes) for all matching files.
+ */
+FileList Glob(const std::vector<std::string>& globlist);
 
 /******************************************************************************/
 

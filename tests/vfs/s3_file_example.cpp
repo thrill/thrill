@@ -57,22 +57,18 @@ int main(int argc, char* argv[]) {
         ws->close();
     }
 
-#if 0
+    /**************************************************************************/
 
-    S3BucketContext bkt;
-    memset(&bkt, 0, sizeof(bkt));
+    if (strcmp(argv[1], "glob") == 0)
+    {
+        vfs::FileList fl = vfs::Glob(
+            "s3://commoncrawl/crawl-data/CC-MAIN-2016-40/"
+            "segments/1474738659496.36/wet/");
 
-    bkt.hostName = nullptr;
-    bkt.bucketName = "thrill-tpch";
-    bkt.protocol = S3ProtocolHTTPS;
-    bkt.uriStyle = S3UriStyleVirtualHost;
-    bkt.accessKeyId = key;
-    bkt.secretAccessKey = secret;
-
-    LibS3ListBucket list;
-    list.list_bucket(&bkt, /* prefix */ "1/", nullptr, "/");
-
-#endif
+        for (const vfs::FileInfo& fi : fl)
+            sLOG1 << "File:" << fi.path
+                  << "size" << fi.size << "size_ex_psum" << fi.size_ex_psum;
+    }
 
     vfs::Deinitialize();
 

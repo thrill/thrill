@@ -71,7 +71,7 @@ void LibS3LogError(S3Status status, const S3ErrorDetails* error) {
 
 //! Generic logger which outputs S3 properties
 S3Status ResponsePropertiesCallback(
-    const S3ResponseProperties* properties, void* /* callbackData */) {
+    const S3ResponseProperties* properties, void* /* cookie */) {
 
     if (!debug) return S3StatusOK;
 
@@ -130,13 +130,16 @@ static void FillS3BucketContext(S3BucketContext& bkt, const std::string& key) {
 /******************************************************************************/
 // List Bucket Contents on S3
 
-class LibS3ListBucket
+class S3ListBucket
 {
 public:
-    bool list_bucket(const S3BucketContext* bucket_context,
+    bool list_bucket(const std::string& path_prefix,
+                     const S3BucketContext* bucket_context,
                      const char* prefix, const char* marker = nullptr,
                      const char* delimiter = nullptr,
                      int maxkeys = std::numeric_limits<int>::max()) {
+
+        path_prefix_ = path_prefix;
 
         // construct handlers
         S3ListBucketHandler handlers;
@@ -145,8 +148,8 @@ public:
         handlers.responseHandler.propertiesCallback =
             &ResponsePropertiesCallback;
         handlers.responseHandler.completeCallback =
-            &LibS3ListBucket::ResponseCompleteCallback;
-        handlers.listBucketCallback = &LibS3ListBucket::ListBucketCallback;
+            &S3ListBucket::ResponseCompleteCallback;
+        handlers.listBucketCallback = &S3ListBucket::ListBucketCallback;
 
         // loop until all keys were received
         status_ = S3StatusOK;
@@ -156,13 +159,28 @@ public:
         do {
             S3_list_bucket(
                 bucket_context, prefix, last_marker_, delimiter, maxkeys,
-                /* requestContext */ nullptr, &handlers, this);
+                /* request_context */ nullptr, &handlers, this);
         } while (status_ == S3StatusOK && is_truncated_);      // NOLINT
+
+        // S3 keys are usually returned sorted, but we sort anyway
+        std::sort(filelist_.begin(), filelist_.end(),
+                  [](const FileInfo& a, const FileInfo& b) {
+                      return a.path < b.path;
+                  });
 
         return (status_ == S3StatusOK);
     }
 
+    //! Returns filelist_
+    const std::vector<FileInfo>& filelist() const { return filelist_; }
+
 private:
+    //! s3://path prefix for FileInfo
+    std::string path_prefix_;
+
+    //! vector of FileInfo results
+    std::vector<FileInfo> filelist_;
+
     //! status of request
     S3Status status_ = S3StatusOK;
 
@@ -183,38 +201,62 @@ private:
 
     //! static wrapper to call
     static void ResponseCompleteCallback(
-        S3Status status, const S3ErrorDetails* error, void* callbackData) {
-        LibS3ListBucket* t = reinterpret_cast<LibS3ListBucket*>(callbackData);
+        S3Status status, const S3ErrorDetails* error, void* cookie) {
+        S3ListBucket* t = reinterpret_cast<S3ListBucket*>(cookie);
         return t->ResponseCompleteCallback(status, error);
     }
 
     //! callback delivered list
     S3Status ListBucketCallback(
-        int isTruncated, const char* /* nextMarker */, int contentsCount,
-        const S3ListBucketContent* contents, int commonPrefixesCount,
-        const char** commonPrefixes) {
-        for (int i = 0; i < contentsCount; ++i) {
-            LOG1 << "ListBucketCallback - " << contents[i].key;
+        int is_truncated, const char* /* next_marker */, int contents_count,
+        const S3ListBucketContent* contents, int /* common_prefixes_count */,
+        const char** /* common_prefixes */) {
+        for (int i = 0; i < contents_count; ++i) {
+            FileInfo fi;
+            fi.path = path_prefix_ + contents[i].key;
+            fi.size = contents[i].size;
+            filelist_.emplace_back(fi);
         }
-        for (int i = 0; i < commonPrefixesCount; ++i) {
-            LOG1 << "Prefix: " << commonPrefixes[i];
-        }
-        last_marker_ = contents[contentsCount - 1].key;
-        is_truncated_ = isTruncated;
+        last_marker_ = contents[contents_count - 1].key;
+        is_truncated_ = is_truncated;
         return S3StatusOK;
     }
 
     //! static wrapper to call ListBucketCallback
     static S3Status ListBucketCallback(
-        int isTruncated, const char* nextMarker, int contentsCount,
-        const S3ListBucketContent* contents, int commonPrefixesCount,
-        const char** commonPrefixes, void* callbackData) {
-        LibS3ListBucket* t = reinterpret_cast<LibS3ListBucket*>(callbackData);
+        int is_truncated, const char* next_marker, int contents_count,
+        const S3ListBucketContent* contents, int common_prefixes_count,
+        const char** common_prefixes, void* cookie) {
+        S3ListBucket* t = reinterpret_cast<S3ListBucket*>(cookie);
         return t->ListBucketCallback(
-            isTruncated, nextMarker, contentsCount, contents,
-            commonPrefixesCount, commonPrefixes);
+            is_truncated, next_marker, contents_count, contents,
+            common_prefixes_count, common_prefixes);
     }
 };
+
+void S3Glob(const std::string& _path, FileList& filelist) {
+
+    std::string path = _path;
+    // crop off s3://
+    die_unless(common::StartsWith(path, "s3://"));
+    path = path.substr(5);
+
+    // split uri into host/path
+    std::vector<std::string> splitted = common::Split(path, '/', 2);
+
+    // construct bucket
+    S3BucketContext bkt;
+    FillS3BucketContext(bkt, splitted[0]);
+
+    S3ListBucket list;
+    list.list_bucket(/* path_prefix */ "s3://" + splitted[0] + "/",
+                                       &bkt, /* prefix */ splitted[1].c_str(),
+                                       nullptr, /* delimiter */ "/");
+
+    // append sorted result list
+    filelist.insert(filelist.end(),
+                    list.filelist().begin(), list.filelist().end());
+}
 
 /******************************************************************************/
 // Stream Reading from S3
@@ -223,8 +265,8 @@ class S3ReadStream : public vfs::ReadStream
 {
 public:
     S3ReadStream(const S3BucketContext* bucket_context, const char* key,
-                 const S3GetConditions* getConditions,
-                 uint64_t startByte, uint64_t byteCount) {
+                 const S3GetConditions* get_conditions,
+                 uint64_t start_byte, uint64_t byte_count) {
 
         // construct handlers
         S3GetObjectHandler handler;
@@ -242,15 +284,16 @@ public:
             die("S3_create_request_context() failed.");
 
         // issue request but do not wait for data
-        S3_get_object(bucket_context, key, getConditions, startByte, byteCount,
-                      /* requestContext */ req_ctx_, &handler, this);
+        S3_get_object(
+            bucket_context, key, get_conditions, start_byte, byte_count,
+            /* request_context */ req_ctx_, &handler, this);
     }
 
     //! simpler constructor
     S3ReadStream(const S3BucketContext* bucket_context, const char* key,
-                 uint64_t startByte = 0, uint64_t byteCount = 0)
-        : S3ReadStream(bucket_context, key, /* getConditions */ nullptr,
-                       startByte, byteCount) { }
+                 uint64_t start_byte = 0, uint64_t byte_count = 0)
+        : S3ReadStream(bucket_context, key, /* get_conditions */ nullptr,
+                       start_byte, byte_count) { }
 
     ~S3ReadStream() {
         close();
@@ -340,8 +383,8 @@ private:
 
     //! static wrapper to call
     static void ResponseCompleteCallback(
-        S3Status status, const S3ErrorDetails* error, void* callbackData) {
-        S3ReadStream* t = reinterpret_cast<S3ReadStream*>(callbackData);
+        S3Status status, const S3ErrorDetails* error, void* cookie) {
+        S3ReadStream* t = reinterpret_cast<S3ReadStream*>(cookie);
         return t->ResponseCompleteCallback(status, error);
     }
 
@@ -368,8 +411,8 @@ private:
 
     //! static wrapper to call GetObjectDataCallback
     static S3Status GetObjectDataCallback(
-        int bufferSize, const char* buffer, void* callbackData) {
-        S3ReadStream* t = reinterpret_cast<S3ReadStream*>(callbackData);
+        int bufferSize, const char* buffer, void* cookie) {
+        S3ReadStream* t = reinterpret_cast<S3ReadStream*>(cookie);
         return t->GetObjectDataCallback(bufferSize, buffer);
     }
 };
@@ -392,7 +435,7 @@ ReadStreamPtr S3OpenReadStream(
     // TODO(tb): figure out how to interpret range
     return common::MakeCounting<S3ReadStream>(
         &bkt, splitted[1].c_str(),
-        /* startByte */ range.begin, /* byteCount */ range.size());
+        /* start_byte */ range.begin, /* byte_count */ range.size());
 }
 
 /******************************************************************************/
@@ -401,9 +444,9 @@ class S3WriteStream : public vfs::WriteStream
 {
 public:
     S3WriteStream(const std::string& bucket, const std::string& key,
-                  S3PutProperties* putProperties = nullptr)
+                  S3PutProperties* put_properties = nullptr)
         : bucket_(bucket), key_(key),
-          put_properties_(putProperties) {
+          put_properties_(put_properties) {
 
         S3BucketContext bucket_context;
         FillS3BucketContext(bucket_context, bucket);
@@ -421,8 +464,8 @@ public:
 
         // create new multi part upload
         S3_initiate_multipart(
-            &bucket_context, key_.c_str(), putProperties, &handler,
-            /* requestContext */ nullptr, this);
+            &bucket_context, key_.c_str(), put_properties, &handler,
+            /* request_context */ nullptr, this);
     }
 
     ~S3WriteStream() {
@@ -494,8 +537,8 @@ public:
         // synchronous upload of multi part data
         S3_complete_multipart_upload(
             &bucket_context, key_.c_str(), &handler, upload_id_.c_str(),
-            /* contentLength */ xml_str.size(),
-            /* requestContext */ nullptr, this);
+            /* content_length */ xml_str.size(),
+            /* request_context */ nullptr, this);
 
         upload_id_.clear();
     }
@@ -547,22 +590,22 @@ private:
 
     //! static wrapper to call
     static void ResponseCompleteCallback(
-        S3Status status, const S3ErrorDetails* error, void* callbackData) {
-        S3WriteStream* t = reinterpret_cast<S3WriteStream*>(callbackData);
+        S3Status status, const S3ErrorDetails* error, void* cookie) {
+        S3WriteStream* t = reinterpret_cast<S3WriteStream*>(cookie);
         return t->ResponseCompleteCallback(status, error);
     }
 
     //! initiation of multipart uploads
     static S3Status MultipartInitialResponseCallback(
-        const char* upload_id, void* callbackData) {
-        S3WriteStream* t = reinterpret_cast<S3WriteStream*>(callbackData);
+        const char* upload_id, void* cookie) {
+        S3WriteStream* t = reinterpret_cast<S3WriteStream*>(cookie);
         t->upload_id_ = upload_id;
         return S3StatusOK;
     }
 
     static S3Status MultipartCommitResponseCallback(
         const char* /* location */, const char* /* etag */,
-        void* /* callbackData */) {
+        void* /* cookie */) {
         // could save the parameters if we need them.
         return S3StatusOK;
     }
@@ -593,7 +636,7 @@ private:
         S3_upload_part(&bucket_context, key_.c_str(), put_properties_,
                        &handler, upload_seq_++, upload_id_.c_str(),
                        /* partContentLength */ buffer_.size(),
-                       /* requestContext */ nullptr, this);
+                       /* request_context */ nullptr, this);
 
         buffer_.clear();
     }
@@ -608,8 +651,8 @@ private:
     }
 
     static S3Status MultipartPropertiesCallback(
-        const S3ResponseProperties* properties, void* callbackData) {
-        S3WriteStream* t = reinterpret_cast<S3WriteStream*>(callbackData);
+        const S3ResponseProperties* properties, void* cookie) {
+        S3WriteStream* t = reinterpret_cast<S3WriteStream*>(cookie);
         return t->MultipartPropertiesCallback(properties);
     }
 
@@ -622,8 +665,8 @@ private:
     }
 
     static int PutObjectDataCallback(
-        int bufferSize, char* buffer, void* callbackData) {
-        S3WriteStream* t = reinterpret_cast<S3WriteStream*>(callbackData);
+        int bufferSize, char* buffer, void* cookie) {
+        S3WriteStream* t = reinterpret_cast<S3WriteStream*>(cookie);
         return t->PutObjectDataCallback(bufferSize, buffer);
     }
 };
@@ -648,6 +691,10 @@ void S3Initialize()
 
 void S3Deinitialize()
 { }
+
+void S3Glob(const std::string& /* path */, FileList& /* filelist */) {
+    die("s3:// is not available, because Thrill was built without libS3.");
+}
 
 ReadStreamPtr S3OpenReadStream(
     const std::string& /* path */, const common::Range& /* range */) {

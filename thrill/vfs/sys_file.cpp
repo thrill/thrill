@@ -4,16 +4,18 @@
  * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
- * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2015-2016 Timo Bingmann <tb@panthema.net>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <thrill/vfs/sys_file.hpp>
 
+#include <thrill/common/die.hpp>
 #include <thrill/common/porting.hpp>
 #include <thrill/common/string.hpp>
 #include <thrill/common/system_exception.hpp>
+#include <thrill/vfs/simple_glob.hpp>
 
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -44,6 +46,51 @@
 
 namespace thrill {
 namespace vfs {
+
+/******************************************************************************/
+
+void SysGlob(const std::string& path, FileList& filelist) {
+    std::vector<std::string> list;
+
+    // collect file names
+#if defined(_MSC_VER)
+    glob_local::CSimpleGlob sglob;
+    sglob.Add(path.c_str());
+    for (int n = 0; n < sglob.FileCount(); ++n) {
+        list.emplace_back(sglob.File(n));
+    }
+#else
+    glob_t glob_result;
+    glob(path.c_str(), GLOB_TILDE, nullptr, &glob_result);
+
+    for (unsigned int i = 0; i < glob_result.gl_pathc; ++i) {
+        list.push_back(glob_result.gl_pathv[i]);
+    }
+    globfree(&glob_result);
+#endif
+
+    // sort file names
+    std::sort(list.begin(), list.end());
+
+    // stat files to collect size information
+    struct stat filestat;
+    for (const std::string& file : list)
+    {
+        if (::stat(file.c_str(), &filestat) != 0) {
+            die("ERROR: could not stat() path " + file);
+        }
+
+        // skip directory entries
+        if (!S_ISREG(filestat.st_mode)) continue;
+
+        FileInfo fi;
+        fi.path = file;
+        fi.size = static_cast<uint64_t>(filestat.st_size);
+        filelist.emplace_back(fi);
+    }
+}
+
+/******************************************************************************/
 
 /*!
  * Represents a POSIX system file via its file descriptor.
