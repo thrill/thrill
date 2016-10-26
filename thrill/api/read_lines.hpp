@@ -70,7 +70,7 @@ public:
 
     void PushData(bool /* consume */) final {
         if (filelist_.contains_compressed) {
-            InputLineIteratorCompressed it = InputLineIteratorCompressed(
+            InputLineIteratorCompressed it(
                 filelist_, context_, *this, distributed_fs_);
 
             // Hook Read
@@ -79,7 +79,7 @@ public:
             }
         }
         else {
-            InputLineIteratorUncompressed it = InputLineIteratorUncompressed(
+            InputLineIteratorUncompressed it(
                 filelist_, context_, *this, distributed_fs_);
 
             // Hook Read
@@ -122,7 +122,7 @@ private:
 
         const Context& context_;
         //! Index of current file in files_
-        size_t current_file_ = 0;
+        size_t file_nr_ = 0;
         //! Byte buffer to create line std::string values.
         net::BufferBuilder buffer_;
         //! Start of next element in current buffer.
@@ -185,15 +185,14 @@ private:
                     files.total_size);
             }
 
-            while (files_[current_file_].size_inc_psum() <= my_range_.begin) {
-                current_file_++;
+            while (files_[file_nr_].size_inc_psum() <= my_range_.begin) {
+                file_nr_++;
             }
             if (my_range_.begin < my_range_.end) {
-                sLOG << "Opening file" << current_file_
-                     << "my_range_" << my_range_;
+                sLOG << "Opening file" << file_nr_ << "my_range_" << my_range_;
 
                 stream_ = vfs::OpenReadStream(
-                    files_[current_file_].path, my_range_);
+                    files_[file_nr_].path, my_range_);
             }
             else {
                 LOG << "my_range : " << my_range_;
@@ -203,7 +202,7 @@ private:
             // find offset in current file:
             // offset = start - sum of previous file sizes
             offset_ = stream_->lseek(
-                static_cast<off_t>(my_range_.begin - files_[current_file_].size_ex_psum));
+                static_cast<off_t>(my_range_.begin - files_.size_ex_psum(file_nr_)));
             buffer_.Reserve(read_size);
             ReadBlock(stream_, buffer_);
 
@@ -253,18 +252,18 @@ private:
                     LOG << "opening next file";
 
                     stream_->close();
-                    current_file_++;
+                    file_nr_++;
                     offset_ = 0;
 
-                    if (current_file_ < files_.size()) {
+                    if (file_nr_ < files_.size()) {
                         stream_ = vfs::OpenReadStream(
-                            files_[current_file_].path, my_range_);
+                            files_[file_nr_].path, my_range_);
                         offset_ += buffer_.size();
                         ReadBlock(stream_, buffer_);
                     }
                     else {
                         current_ = buffer_.begin() +
-                                   files_[current_file_ - 1].size;
+                                   files_[file_nr_ - 1].size;
                     }
 
                     if (data_.length()) {
@@ -276,18 +275,18 @@ private:
 
         //! returns true, if an element is available in local part
         bool HasNext() {
-            size_t position_in_buf = current_ - buffer_.begin();
+            size_t pos = current_ - buffer_.begin();
             assert(current_ >= buffer_.begin());
-            size_t global_index = offset_ + position_in_buf + files_[current_file_].size_ex_psum;
+            size_t global_index = offset_ + pos + files_.size_ex_psum(file_nr_);
             return global_index < my_range_.end ||
                    (global_index == my_range_.end &&
-                    files_[current_file_].size > offset_ + position_in_buf);
+                    files_[file_nr_].size > offset_ + pos);
         }
 
     private:
         //! Offset of current block in stream_.
         size_t offset_ = 0;
-        //! File handle to files_[current_file_]
+        //! File handle to files_[file_nr_]
         vfs::ReadStreamPtr stream_;
     };
 
@@ -311,25 +310,25 @@ private:
                     files.total_size);
             }
 
-            while (files_[current_file_].size_inc_psum() <= my_range_.begin) {
-                current_file_++;
+            while (files_[file_nr_].size_inc_psum() <= my_range_.begin) {
+                file_nr_++;
             }
 
-            for (size_t file_nr = current_file_; file_nr < files_.size(); file_nr++) {
+            for (size_t file_nr = file_nr_; file_nr < files_.size(); file_nr++) {
                 if (files[file_nr].size_inc_psum() == my_range_.end) {
                     break;
                 }
                 if (files[file_nr].size_inc_psum() > my_range_.end) {
-                    my_range_.end = files_[file_nr].size_ex_psum;
+                    my_range_.end = files_.size_ex_psum(file_nr);
                     break;
                 }
             }
 
             if (my_range_.begin < my_range_.end) {
-                LOG << "Opening file " << current_file_;
+                LOG << "Opening file " << file_nr_;
                 LOG << "my_range : " << my_range_;
                 stream_ = vfs::OpenReadStream(
-                    files_[current_file_].path, my_range_);
+                    files_[file_nr_].path, my_range_);
             }
             else {
                 // No local files, set buffer size to 2, so HasNext() does not try to read
@@ -364,11 +363,11 @@ private:
                 if (!ReadBlock(stream_, buffer_)) {
                     LOG << "Opening new file!";
                     stream_->close();
-                    current_file_++;
+                    file_nr_++;
 
-                    if (current_file_ < files_.size()) {
+                    if (file_nr_ < files_.size()) {
                         stream_ = vfs::OpenReadStream(
-                            files_[current_file_].path, my_range_);
+                            files_[file_nr_].path, my_range_);
                         ReadBlock(stream_, buffer_);
                     }
                     else {
@@ -386,7 +385,7 @@ private:
 
         //! returns true, if an element is available in local part
         bool HasNext() {
-            if (files_[current_file_].size_ex_psum >= my_range_.end) {
+            if (files_.size_ex_psum(file_nr_) >= my_range_.end) {
                 return false;
             }
 
@@ -402,15 +401,15 @@ private:
                 else {
                     LOG << "Opening new file in HasNext()";
                     // already at last file
-                    if (current_file_ >= files_.size() - 1) {
+                    if (file_nr_ >= files_.size() - 1) {
                         return false;
                     }
                     stream_->close();
                     // if (this worker reads at least one more file)
-                    if (my_range_.end > files_[current_file_].size_inc_psum()) {
-                        current_file_++;
+                    if (my_range_.end > files_[file_nr_].size_inc_psum()) {
+                        file_nr_++;
                         stream_ = vfs::OpenReadStream(
-                            files_[current_file_].path, my_range_);
+                            files_[file_nr_].path, my_range_);
                         ReadBlock(stream_, buffer_);
                         return true;
                     }
@@ -425,7 +424,7 @@ private:
         }
 
     private:
-        //! File handle to files_[current_file_]
+        //! File handle to files_[file_nr_]
         vfs::ReadStreamPtr stream_;
     };
 };

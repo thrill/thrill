@@ -40,7 +40,7 @@ std::string FillFilePattern(const std::string& pathbase,
 //! '.{gz,bz2,xz,lzo}')
 bool IsCompressed(const std::string& path);
 
-//! General information of system file.
+//! General information of vfs file.
 struct FileInfo {
     //! path to file
     std::string path;
@@ -62,6 +62,14 @@ struct FileList : public std::vector<FileInfo>{
 
     //! whether the list contains a compressed file.
     bool     contains_compressed;
+
+    //! inclusive prefix sum of file sizes (only for symmetry with ex_psum)
+    uint64_t size_inc_psum(size_t i) const
+    { return operator [] (i).size_inc_psum(); }
+
+    //! exclusive prefix sum of file sizes with total_size as sentinel
+    uint64_t size_ex_psum(size_t i) const
+    { return i < size() ? operator [] (i).size_ex_psum : total_size; }
 };
 
 /*!

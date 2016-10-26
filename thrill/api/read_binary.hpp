@@ -119,10 +119,10 @@ public:
             }
 
             for ( ; i < files.size() &&
-                  files[i].size_ex_psum <= my_range.end; ++i) {
+                  files.size_ex_psum(i) <= my_range.end; ++i) {
 
-                size_t file_begin = files[i].size_ex_psum;
-                size_t file_end = files[i].size_inc_psum();
+                size_t file_begin = files.size_ex_psum(i);
+                size_t file_end = files.size_inc_psum(i);
                 size_t file_size = files[i].size;
 
                 FileInfo fi;

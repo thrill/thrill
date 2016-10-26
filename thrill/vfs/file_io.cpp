@@ -108,7 +108,7 @@ FileList Glob(const std::vector<std::string>& globlist) {
 
     // calculate exclusive prefix sum and overall stats
 
-    filelist.contains_compressed = true;
+    filelist.contains_compressed = false;
     filelist.total_size = 0;
     uint64_t size_ex_psum = 0;
 
