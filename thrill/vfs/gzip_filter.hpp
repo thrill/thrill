@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/vfs/zlib_filter.hpp
+ * thrill/vfs/gzip_filter.hpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_VFS_ZLIB_FILTER_HEADER
-#define THRILL_VFS_ZLIB_FILTER_HEADER
+#ifndef THRILL_VFS_GZIP_FILTER_HEADER
+#define THRILL_VFS_GZIP_FILTER_HEADER
 
 #include <thrill/vfs/file_io.hpp>
 
@@ -19,13 +19,13 @@
 namespace thrill {
 namespace vfs {
 
-ReadStreamPtr MakeZLibReadFilter(const ReadStreamPtr& stream);
+ReadStreamPtr MakeGZipReadFilter(const ReadStreamPtr& stream);
 
-WriteStreamPtr MakeZLibWriteFilter(const WriteStreamPtr& stream);
+WriteStreamPtr MakeGZipWriteFilter(const WriteStreamPtr& stream);
 
 } // namespace vfs
 } // namespace thrill
 
-#endif // !THRILL_VFS_ZLIB_FILTER_HEADER
+#endif // !THRILL_VFS_GZIP_FILTER_HEADER
 
 /******************************************************************************/

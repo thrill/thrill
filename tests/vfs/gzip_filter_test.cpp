@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/vfs/zlib_filter_test.cpp
+ * tests/vfs/gzip_filter_test.cpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -8,7 +8,7 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <thrill/vfs/zlib_filter.hpp>
+#include <thrill/vfs/gzip_filter.hpp>
 
 #include <gtest/gtest.h>
 #include <thrill/vfs/sys_file.hpp>
@@ -18,14 +18,14 @@
 
 using namespace thrill;
 
-TEST(ZLibFilterTest, WriteReadSingleFile) {
+TEST(GZipFilterTest, WriteReadSingleFile) {
     vfs::TemporaryDirectory tmpdir;
 
     {
         vfs::WriteStreamPtr ws = vfs::SysOpenWriteStream(
             tmpdir.get() + "/test.dat.gz");
 
-        vfs::WriteStreamPtr zs = vfs::MakeZLibWriteFilter(ws);
+        vfs::WriteStreamPtr zs = vfs::MakeGZipWriteFilter(ws);
 
         std::string test_string("test123abc");
         for (size_t i = 0; i < 1000000; ++i) {
@@ -45,7 +45,7 @@ TEST(ZLibFilterTest, WriteReadSingleFile) {
         vfs::ReadStreamPtr rs = vfs::SysOpenReadStream(
             tmpdir.get() + "/test.dat.gz");
 
-        vfs::ReadStreamPtr zs = vfs::MakeZLibReadFilter(rs);
+        vfs::ReadStreamPtr zs = vfs::MakeGZipReadFilter(rs);
 
         char buffer[10 + 1];
         for (size_t i = 0; i < 1000000; ++i) {

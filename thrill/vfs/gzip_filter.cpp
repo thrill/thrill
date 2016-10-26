@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/vfs/zlib_filter.cpp
+ * thrill/vfs/gzip_filter.cpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -8,7 +8,7 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <thrill/vfs/zlib_filter.hpp>
+#include <thrill/vfs/gzip_filter.hpp>
 
 #include <thrill/common/die.hpp>
 
@@ -20,12 +20,12 @@ namespace thrill {
 namespace vfs {
 
 /******************************************************************************/
-// ZLibWriteFilter - on-the-fly zlib compressor
+// GZipWriteFilter - on-the-fly gzip compressor
 
-class ZLibWriteFilter final : public virtual WriteStream
+class GZipWriteFilter final : public virtual WriteStream
 {
 public:
-    explicit ZLibWriteFilter(const WriteStreamPtr& output)
+    explicit GZipWriteFilter(const WriteStreamPtr& output)
         : output_(output) {
         memset(&z_stream_, 0, sizeof(z_stream_));
 
@@ -44,7 +44,7 @@ public:
         initialized_ = true;
     }
 
-    ~ZLibWriteFilter() {
+    ~GZipWriteFilter() {
         close();
     }
 
@@ -125,18 +125,18 @@ private:
     WriteStreamPtr output_;
 };
 
-WriteStreamPtr MakeZLibWriteFilter(const WriteStreamPtr& stream) {
+WriteStreamPtr MakeGZipWriteFilter(const WriteStreamPtr& stream) {
     die_unless(stream);
-    return common::MakeCounting<ZLibWriteFilter>(stream);
+    return common::MakeCounting<GZipWriteFilter>(stream);
 }
 
 /******************************************************************************/
-// ZLibReadFilter - on-the-fly zlib decompressor
+// GZipReadFilter - on-the-fly gzip decompressor
 
-class ZLibReadFilter : public virtual ReadStream
+class GZipReadFilter : public virtual ReadStream
 {
 public:
-    explicit ZLibReadFilter(const ReadStreamPtr& input)
+    explicit GZipReadFilter(const ReadStreamPtr& input)
         : input_(input) {
         memset(&z_stream_, 0, sizeof(z_stream_));
 
@@ -153,7 +153,7 @@ public:
         initialized_ = true;
     }
 
-    ~ZLibReadFilter() {
+    ~GZipReadFilter() {
         close();
     }
 
@@ -220,9 +220,9 @@ private:
     ReadStreamPtr input_;
 };
 
-ReadStreamPtr MakeZLibReadFilter(const ReadStreamPtr& stream) {
+ReadStreamPtr MakeGZipReadFilter(const ReadStreamPtr& stream) {
     die_unless(stream);
-    return common::MakeCounting<ZLibReadFilter>(stream);
+    return common::MakeCounting<GZipReadFilter>(stream);
 }
 
 /******************************************************************************/
