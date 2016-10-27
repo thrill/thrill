@@ -14,7 +14,9 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/common/string.hpp>
 
+#if THRILL_HAVE_LIBS3
 #include <libs3.h>
+#endif
 
 #include <algorithm>
 #include <limits>

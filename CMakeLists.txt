@@ -364,15 +364,21 @@ endif()
 
 # use ZLIB for transparent gzip compression/decompression
 
-find_package(ZLIB REQUIRED)
-include_directories(SYSTEM ${ZLIB_INCLUDE_DIRS})
-set(THRILL_DEP_LIBRARIES ${THRILL_DEP_LIBRARIES} ${ZLIB_LIBRARIES})
+find_package(ZLIB)
+if(ZLIB_FOUND)
+  include_directories(SYSTEM ${ZLIB_INCLUDE_DIRS})
+  set(THRILL_DEP_LIBRARIES ${THRILL_DEP_LIBRARIES} ${ZLIB_LIBRARIES})
+  add_definitions(-DTHRILL_HAVE_ZLIB=1)
+endif()
 
 # use BZLIB for transparent gzip compression/decompression
 
-find_package(BZip2 REQUIRED)
-include_directories(SYSTEM ${BZIP2_INCLUDE_DIRS})
-set(THRILL_DEP_LIBRARIES ${THRILL_DEP_LIBRARIES} ${BZIP2_LIBRARIES})
+find_package(BZip2)
+if(BZIP2_FOUND)
+  include_directories(SYSTEM ${BZIP2_INCLUDE_DIRS})
+  set(THRILL_DEP_LIBRARIES ${THRILL_DEP_LIBRARIES} ${BZIP2_LIBRARIES})
+  add_definitions(-DTHRILL_HAVE_BZIP2=1)
+endif()
 
 # try to find libS3 (optional)
 

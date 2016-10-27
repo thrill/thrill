@@ -88,6 +88,9 @@ TEST(IO, ReadFolder) {
     api::RunLocalTests(start_func);
 }
 
+// need all decompressors in folder
+#if THRILL_HAVE_ZLIB && THRILL_HAVE_BZIP2
+
 TEST(IO, ReadPartOfFolderCompressed) {
 #if defined(_MSC_VER)
     return;
@@ -114,6 +117,8 @@ TEST(IO, ReadPartOfFolderCompressed) {
 
     api::RunLocalTests(start_func);
 }
+
+#endif // THRILL_HAVE_ZLIB && THRILL_HAVE_BZIP2
 
 TEST(IO, GenerateFromFileRandomIntegers) {
     api::RunLocalSameThread(
@@ -201,6 +206,8 @@ TEST(IO, GenerateIntegerWriteReadBinary) {
         });
 }
 
+#if THRILL_HAVE_ZLIB
+
 TEST(IO, GenerateIntegerWriteReadBinaryCompressed) {
 #if defined(_MSC_VER)
     return;
@@ -247,6 +254,8 @@ TEST(IO, GenerateIntegerWriteReadBinaryCompressed) {
             }
         });
 }
+
+#endif // THRILL_HAVE_ZLIB
 
 // make weird test strings of different lengths
 std::string test_string(size_t index) {

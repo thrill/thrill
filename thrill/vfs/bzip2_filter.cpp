@@ -12,12 +12,16 @@
 
 #include <thrill/common/die.hpp>
 
+#if THRILL_HAVE_BZIP2
 #include <bzlib.h>
+#endif
 
 #include <vector>
 
 namespace thrill {
 namespace vfs {
+
+#if THRILL_HAVE_BZIP2
 
 /******************************************************************************/
 // BZip2WriteFilter - on-the-fly bzip2 compressor
@@ -218,6 +222,20 @@ ReadStreamPtr MakeBZip2ReadFilter(const ReadStreamPtr& stream) {
 }
 
 /******************************************************************************/
+
+#else   // !THRILL_HAVE_BZIP2
+
+WriteStreamPtr MakeBZip2WriteFilter(const WriteStreamPtr& stream) {
+    die(".bz2 decompression is not available, "
+        "because Thrill was built without libbz2.");
+}
+
+ReadStreamPtr MakeBZip2ReadFilter(const ReadStreamPtr& stream) {
+    die(".bz2 decompression is not available, "
+        "because Thrill was built without libbz2.");
+}
+
+#endif
 
 } // namespace vfs
 } // namespace thrill

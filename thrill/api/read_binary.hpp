@@ -225,7 +225,7 @@ public:
 
             data::BlockReader<FileBlockSource> br(
                 FileBlockSource(file, context_,
-                                   stats_total_bytes, stats_total_reads));
+                                stats_total_bytes, stats_total_reads));
 
             while (br.HasNext()) {
                 this->PushItem(br.template NextNoSelfVerify<ValueType>());
@@ -261,9 +261,9 @@ private:
         const size_t block_size = data::default_block_size;
 
         FileBlockSource(const FileInfo& fileinfo,
-                           Context& ctx,
-                           size_t& stats_total_bytes,
-                           size_t& stats_total_reads)
+                        Context& ctx,
+                        size_t& stats_total_bytes,
+                        size_t& stats_total_reads)
             : context_(ctx),
               remain_size_(fileinfo.size()),
               is_compressed_(fileinfo.is_compressed),

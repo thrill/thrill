@@ -12,17 +12,20 @@
 
 #include <thrill/common/die.hpp>
 
+#if THRILL_HAVE_ZLIB
 #include <zlib.h>
+#endif
 
 #include <vector>
 
 namespace thrill {
 namespace vfs {
 
+#if THRILL_HAVE_ZLIB
+
 /******************************************************************************/
 
-const char* Z_ERROR_to_string(int err)
-{
+const char * Z_ERROR_to_string(int err) {
     switch (err)
     {
     case Z_OK:
@@ -256,6 +259,20 @@ ReadStreamPtr MakeGZipReadFilter(const ReadStreamPtr& stream) {
 }
 
 /******************************************************************************/
+
+#else   // !THRILL_HAVE_ZLIB
+
+WriteStreamPtr MakeGZipWriteFilter(const WriteStreamPtr& stream) {
+    die(".gz decompression is not available, "
+        "because Thrill was built without zlib.");
+}
+
+ReadStreamPtr MakeGZipReadFilter(const ReadStreamPtr& stream) {
+    die(".gz decompression is not available, "
+        "because Thrill was built without zlib.");
+}
+
+#endif
 
 } // namespace vfs
 } // namespace thrill
