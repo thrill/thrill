@@ -20,6 +20,35 @@ namespace thrill {
 namespace vfs {
 
 /******************************************************************************/
+
+const char* Z_ERROR_to_string(int err)
+{
+    switch (err)
+    {
+    case Z_OK:
+        return "Z_OK";
+    case Z_STREAM_END:
+        return "Z_STREAM_END";
+    case Z_NEED_DICT:
+        return "Z_NEED_DICT";
+    case Z_ERRNO:
+        return "Z_ERRNO";
+    case Z_STREAM_ERROR:
+        return "Z_STREAM_ERROR";
+    case Z_DATA_ERROR:
+        return "Z_DATA_ERROR";
+    case Z_MEM_ERROR:
+        return "Z_MEM_ERROR";
+    case Z_BUF_ERROR:
+        return "Z_BUF_ERROR";
+    case Z_VERSION_ERROR:
+        return "Z_VERSION_ERROR";
+    default:
+        return "UNKNOWN";
+    }
+}
+
+/******************************************************************************/
 // GZipWriteFilter - on-the-fly gzip compressor
 
 class GZipWriteFilter final : public virtual WriteStream
@@ -184,6 +213,11 @@ public:
         }
         while ((err_ == Z_OK || err_ == Z_STREAM_END) && // NOLINT
                z_stream_.avail_out != 0);                // NOLINT
+
+        if (err_ != Z_OK && err_ != Z_STREAM_END) {
+            die("GZipReadFilter: " << Z_ERROR_to_string(err_) <<
+                " while inflating");
+        }
 
         die_unequal(z_stream_.avail_out, 0u);
 

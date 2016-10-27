@@ -11,8 +11,10 @@
 
 #include <thrill/vfs/file_io.hpp>
 
-#include <thrill/common/porting.hpp>
+#include <thrill/common/die.hpp>
 #include <thrill/common/string.hpp>
+#include <thrill/vfs/bzip2_filter.hpp>
+#include <thrill/vfs/gzip_filter.hpp>
 #include <thrill/vfs/s3_file.hpp>
 #include <thrill/vfs/sys_file.hpp>
 
@@ -133,21 +135,51 @@ FileList Glob(const std::string& glob) {
 
 ReadStreamPtr OpenReadStream(
     const std::string& path, const common::Range& range) {
-    if (common::StartsWith(path, "s3://")) {
-        return S3OpenReadStream(path, range);
+
+    ReadStreamPtr p;
+    if (common::StartsWith(path, "file://")) {
+        p = SysOpenReadStream(path.substr(7), range);
+    }
+    else if (common::StartsWith(path, "s3://")) {
+        p = S3OpenReadStream(path, range);
     }
     else {
-        return SysOpenReadStream(path, range);
+        p = SysOpenReadStream(path, range);
     }
+
+    if (common::EndsWith(path, ".gz")) {
+        p = MakeGZipReadFilter(p);
+        die_unless(range.begin == 0 || "Cannot seek in compressed streams.");
+    }
+    else if (common::EndsWith(path, ".bz2")) {
+        p = MakeBZip2ReadFilter(p);
+        die_unless(range.begin == 0 || "Cannot seek in compressed streams.");
+    }
+
+    return p;
 }
 
 WriteStreamPtr OpenWriteStream(const std::string& path) {
-    if (common::StartsWith(path, "s3://")) {
-        return S3OpenWriteStream(path);
+
+    WriteStreamPtr p;
+    if (common::StartsWith(path, "file://")) {
+        p = SysOpenWriteStream(path.substr(7));
+    }
+    else if (common::StartsWith(path, "s3://")) {
+        p = S3OpenWriteStream(path);
     }
     else {
-        return SysOpenWriteStream(path);
+        p = SysOpenWriteStream(path);
     }
+
+    if (common::EndsWith(path, ".gz")) {
+        p = MakeGZipWriteFilter(p);
+    }
+    else if (common::EndsWith(path, ".bz2")) {
+        p = MakeBZip2WriteFilter(p);
+    }
+
+    return p;
 }
 
 } // namespace vfs

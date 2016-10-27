@@ -23,7 +23,6 @@
 #include <thrill/io/syscall_file.hpp>
 #include <thrill/net/buffer_builder.hpp>
 #include <thrill/vfs/file_io.hpp>
-#include <thrill/vfs/sys_file.hpp>
 
 #include <algorithm>
 #include <limits>
@@ -78,7 +77,7 @@ public:
         vfs::FileList files = vfs::Glob(globlist);
 
         if (files.size() == 0)
-            die("No files found in globs: " + common::Join(" ", globlist));
+            die("ReadBinary: no files found in globs: " + common::Join(" ", globlist));
 
         if (size_limit != no_size_limit_)
             files.total_size = std::min(files.total_size, size_limit);
@@ -91,7 +90,7 @@ public:
             for (size_t i = 0; i < files.size(); ++i) {
                 if (files[i].size % fixed_size_ == 0) continue;
 
-                die("ReadBinary() path " + files[i].path +
+                die("ReadBinary: path " + files[i].path +
                     " size is not a multiple of " << size_t(fixed_size_));
             }
 
@@ -109,7 +108,7 @@ public:
             my_range.begin *= fixed_size_;
             my_range.end *= fixed_size_;
 
-            sLOG << "ReadBinaryNode" << ctx.num_workers()
+            sLOG << "ReadBinaryNode:" << ctx.num_workers()
                  << "my_range" << my_range;
 
             size_t i = 0;
@@ -131,7 +130,7 @@ public:
                 fi.end = my_range.end >= file_end ? file_size : my_range.end - file_begin;
                 fi.is_compressed = false;
 
-                sLOG << "FileInfo"
+                sLOG << "ReadBinary: fileinfo"
                      << "path" << fi.path
                      << "begin" << fi.begin << "end" << fi.end;
 
@@ -164,7 +163,7 @@ public:
 
                     item_off += item_num * fixed_size_ - bsize;
 
-                    LOG << "Adding Block " << block;
+                    LOG << "ReadBinary: adding Block " << block;
                     ext_file_.AppendBlock(std::move(block));
                 }
 
@@ -177,8 +176,15 @@ public:
             // split filelist by whole files.
             size_t i = 0;
 
-            common::Range my_range =
-                context_.CalculateLocalRange(files.total_size);
+            common::Range my_range;
+
+            if (distributed_fs) {
+                my_range = context_.CalculateLocalRange(files.total_size);
+            }
+            else {
+                my_range = context_.CalculateLocalRangeOnHost(
+                    files.total_size);
+            }
 
             while (i < files.size() &&
                    files[i].size_inc_psum() <= my_range.begin) {
@@ -194,7 +200,8 @@ public:
                 i++;
             }
 
-            LOG << my_files_.size() << " files, my range " << my_range;
+            sLOG << "ReadBinary:" << my_files_.size() << "files,"
+                 << "my_range" << my_range;
         }
     }
 
@@ -216,8 +223,8 @@ public:
         for (const FileInfo& file : my_files_) {
             LOG << "ReadBinaryNode::PushData() opening " << file.path;
 
-            data::BlockReader<SysFileBlockSource> br(
-                SysFileBlockSource(file, context_,
+            data::BlockReader<FileBlockSource> br(
+                FileBlockSource(file, context_,
                                    stats_total_bytes, stats_total_reads));
 
             while (br.HasNext()) {
@@ -248,12 +255,12 @@ private:
     size_t stats_total_bytes = 0;
     size_t stats_total_reads = 0;
 
-    class SysFileBlockSource
+    class FileBlockSource
     {
     public:
         const size_t block_size = data::default_block_size;
 
-        SysFileBlockSource(const FileInfo& fileinfo,
+        FileBlockSource(const FileInfo& fileinfo,
                            Context& ctx,
                            size_t& stats_total_bytes,
                            size_t& stats_total_reads)
@@ -264,11 +271,11 @@ private:
               stats_total_reads_(stats_total_reads) {
             // open file
             if (!is_compressed_) {
-                stream_ = vfs::SysOpenReadStream(
+                stream_ = vfs::OpenReadStream(
                     fileinfo.path, common::Range(fileinfo.begin, fileinfo.end));
             }
             else {
-                stream_ = vfs::SysOpenReadStream(fileinfo.path);
+                stream_ = vfs::OpenReadStream(fileinfo.path);
             }
         }
 
@@ -285,6 +292,8 @@ private:
             ssize_t size = stream_->read(bytes->data(), rb);
             stats_total_bytes_ += size;
             stats_total_reads_++;
+
+            LOG << "FileBlockSource::NextBlock() size " << size;
 
             if (size > 0) {
                 if (!is_compressed_) {

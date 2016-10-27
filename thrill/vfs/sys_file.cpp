@@ -227,13 +227,7 @@ ReadStreamPtr SysOpenReadStream(
 
     const char* decompressor;
 
-    if (common::EndsWith(path, ".gz")) {
-        decompressor = "gzip";
-    }
-    else if (common::EndsWith(path, ".bz2")) {
-        decompressor = "bzip2";
-    }
-    else if (common::EndsWith(path, ".xz")) {
+    if (common::EndsWith(path, ".xz")) {
         decompressor = "xz";
     }
     else if (common::EndsWith(path, ".lzo")) {
@@ -323,13 +317,7 @@ WriteStreamPtr SysOpenWriteStream(const std::string& path) {
 
     const char* compressor;
 
-    if (common::EndsWith(path, ".gz")) {
-        compressor = "gzip";
-    }
-    else if (common::EndsWith(path, ".bz2")) {
-        compressor = "bzip2";
-    }
-    else if (common::EndsWith(path, ".xz")) {
+    if (common::EndsWith(path, ".xz")) {
         compressor = "xz";
     }
     else if (common::EndsWith(path, ".lzo")) {
