@@ -215,9 +215,8 @@ public:
             }
 
             err_ = inflate(&z_stream_, Z_SYNC_FLUSH);
-        }
-        while ((err_ == Z_OK || err_ == Z_STREAM_END) && // NOLINT
-               z_stream_.avail_out != 0);                // NOLINT
+        } while ((err_ == Z_OK || err_ == Z_STREAM_END) && // NOLINT
+                 z_stream_.avail_out != 0);                // NOLINT
 
         if (err_ != Z_OK && err_ != Z_STREAM_END) {
             die("GZipReadFilter: " << Z_ERROR_to_string(err_) <<

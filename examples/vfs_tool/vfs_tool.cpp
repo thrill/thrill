@@ -14,8 +14,10 @@
 #include <thrill/vfs/file_io.hpp>
 
 #include <iostream>
+#include <string>
+#include <vector>
 
-using namespace thrill;
+using namespace thrill; // NOLINT
 
 int main(int argc, char* argv[]) {
 

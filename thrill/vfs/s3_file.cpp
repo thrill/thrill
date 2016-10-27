@@ -710,7 +710,8 @@ void S3Initialize()
 void S3Deinitialize()
 { }
 
-void S3Glob(const std::string& /* path */, FileList& /* filelist */) {
+void S3Glob(const std::string& /* path */, const GlobType& /* gtype */,
+            FileList& /* filelist */) {
     die("s3:// is not available, because Thrill was built without libS3.");
 }
 
