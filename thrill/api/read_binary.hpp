@@ -57,13 +57,11 @@ public:
 
     //! structure to store info on what to read from files
     struct FileInfo {
-        std::string path;
+        std::string   path;
         //! begin and end offsets in file.
-        size_t      begin, end;
-        //! size of exert from file
-        size_t      size() const { return end - begin; }
+        common::Range range;
         //! whether file is compressed
-        bool        is_compressed;
+        bool          is_compressed;
     };
 
     //! sentinel to disable size limit
@@ -71,7 +69,7 @@ public:
         std::numeric_limits<uint64_t>::max();
 
     ReadBinaryNode(Context& ctx, const std::vector<std::string>& globlist,
-                   uint64_t size_limit, bool distributed_fs)
+                   uint64_t size_limit, bool local_storage)
         : Super(ctx, "ReadBinary") {
 
         vfs::FileList files = vfs::Glob(globlist);
@@ -96,12 +94,12 @@ public:
 
             common::Range my_range;
 
-            if (distributed_fs) {
-                my_range = context_.CalculateLocalRange(
+            if (local_storage) {
+                my_range = context_.CalculateLocalRangeOnHost(
                     files.total_size / fixed_size_);
             }
             else {
-                my_range = context_.CalculateLocalRangeOnHost(
+                my_range = context_.CalculateLocalRange(
                     files.total_size / fixed_size_);
             }
 
@@ -126,15 +124,15 @@ public:
 
                 FileInfo fi;
                 fi.path = files[i].path;
-                fi.begin = my_range.begin <= file_begin ? 0 : my_range.begin - file_begin;
-                fi.end = my_range.end >= file_end ? file_size : my_range.end - file_begin;
+                fi.range = common::Range(
+                    my_range.begin <= file_begin ? 0 : my_range.begin - file_begin,
+                    my_range.end >= file_end ? file_size : my_range.end - file_begin);
                 fi.is_compressed = false;
 
                 sLOG << "ReadBinary: fileinfo"
-                     << "path" << fi.path
-                     << "begin" << fi.begin << "end" << fi.end;
+                     << "path" << fi.path << "range" << fi.range;
 
-                if (fi.begin == fi.end) continue;
+                if (fi.range.begin == fi.range.end) continue;
 #if 0
                 my_files_.push_back(fi);
 #else
@@ -144,11 +142,11 @@ public:
 
                 size_t item_off = 0;
 
-                for (size_t off = fi.begin; off < fi.end;
+                for (size_t off = fi.range.begin; off < fi.range.end;
                      off += data::default_block_size) {
 
-                    size_t bsize =
-                        std::min(off + data::default_block_size, fi.end) - off;
+                    size_t bsize = std::min(
+                        off + data::default_block_size, fi.range.end) - off;
 
                     data::ByteBlockPtr bbp =
                         context_.block_pool().MapExternalBlock(
@@ -178,12 +176,12 @@ public:
 
             common::Range my_range;
 
-            if (distributed_fs) {
-                my_range = context_.CalculateLocalRange(files.total_size);
-            }
-            else {
+            if (local_storage) {
                 my_range = context_.CalculateLocalRangeOnHost(
                     files.total_size);
+            }
+            else {
+                my_range = context_.CalculateLocalRange(files.total_size);
             }
 
             while (i < files.size() &&
@@ -194,8 +192,8 @@ public:
             while (i < files.size() &&
                    files[i].size_inc_psum() <= my_range.end) {
                 my_files_.push_back(
-                    FileInfo { files[i].path, 0,
-                               std::numeric_limits<size_t>::max(),
+                    FileInfo { files[i].path,
+                               common::Range(0, std::numeric_limits<size_t>::max()),
                                files[i].IsCompressed() });
                 i++;
             }
@@ -206,9 +204,9 @@ public:
     }
 
     ReadBinaryNode(Context& ctx, const std::string& glob, uint64_t size_limit,
-                   bool distributed_fs)
+                   bool local_storage)
         : ReadBinaryNode(ctx, std::vector<std::string>{ glob }, size_limit,
-                         distributed_fs) { }
+                         local_storage) { }
 
     void PushData(bool consume) final {
         LOG << "ReadBinaryNode::PushData() start " << *this
@@ -265,14 +263,13 @@ private:
                         size_t& stats_total_bytes,
                         size_t& stats_total_reads)
             : context_(ctx),
-              remain_size_(fileinfo.size()),
+              remain_size_(fileinfo.range.size()),
               is_compressed_(fileinfo.is_compressed),
               stats_total_bytes_(stats_total_bytes),
               stats_total_reads_(stats_total_reads) {
             // open file
             if (!is_compressed_) {
-                stream_ = vfs::OpenReadStream(
-                    fileinfo.path, common::Range(fileinfo.begin, fileinfo.end));
+                stream_ = vfs::OpenReadStream(fileinfo.path, fileinfo.range);
             }
             else {
                 stream_ = vfs::OpenReadStream(fileinfo.path);
@@ -342,7 +339,7 @@ DIA<ValueType> ReadBinary(
     uint64_t size_limit = ReadBinaryNode<ValueType>::no_size_limit_) {
 
     auto node = common::MakeCounting<ReadBinaryNode<ValueType> >(
-        ctx, filepath, size_limit, true);
+        ctx, filepath, size_limit, /* local_storage */ false);
 
     return DIA<ValueType>(node);
 }
@@ -354,7 +351,7 @@ DIA<ValueType> ReadBinary(
     uint64_t size_limit = ReadBinaryNode<ValueType>::no_size_limit_) {
 
     auto node = common::MakeCounting<ReadBinaryNode<ValueType> >(
-        ctx, filepath, size_limit, false);
+        ctx, filepath, size_limit, /* local_storage */ true);
 
     return DIA<ValueType>(node);
 }
@@ -376,7 +373,7 @@ DIA<ValueType> ReadBinary(
     uint64_t size_limit = ReadBinaryNode<ValueType>::no_size_limit_) {
 
     auto node = common::MakeCounting<ReadBinaryNode<ValueType> >(
-        ctx, filepath, size_limit, true);
+        ctx, filepath, size_limit, /* local_storage */ false);
 
     return DIA<ValueType>(node);
 }
@@ -387,7 +384,7 @@ DIA<ValueType> ReadBinary(
     uint64_t size_limit = ReadBinaryNode<ValueType>::no_size_limit_) {
 
     auto node = common::MakeCounting<ReadBinaryNode<ValueType> >(
-        ctx, filepath, size_limit, false);
+        ctx, filepath, size_limit, /* local_storage */ true);
 
     return DIA<ValueType>(node);
 }

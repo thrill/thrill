@@ -46,9 +46,9 @@ public:
 
     //! Constructor for a ReadLinesNode. Sets the Context and file path.
     ReadLinesNode(Context& ctx, const std::vector<std::string>& globlist,
-                  bool distributed_fs)
+                  bool local_storage)
         : Super(ctx, "ReadLines"),
-          distributed_fs_(distributed_fs) {
+          local_storage_(local_storage) {
 
         filelist_ = vfs::Glob(globlist);
 
@@ -60,8 +60,8 @@ public:
     }
 
     //! Constructor for a ReadLinesNode. Sets the Context and file path.
-    ReadLinesNode(Context& ctx, const std::string& glob, bool distributed_fs)
-        : ReadLinesNode(ctx, std::vector<std::string>{ glob }, distributed_fs)
+    ReadLinesNode(Context& ctx, const std::string& glob, bool local_storage)
+        : ReadLinesNode(ctx, std::vector<std::string>{ glob }, local_storage)
     { }
 
     DIAMemUse PushDataMemUse() final {
@@ -72,7 +72,7 @@ public:
     void PushData(bool /* consume */) final {
         if (filelist_.contains_compressed) {
             InputLineIteratorCompressed it(
-                filelist_, context_, *this, distributed_fs_);
+                filelist_, *this, local_storage_);
 
             // Hook Read
             while (it.HasNext()) {
@@ -81,7 +81,7 @@ public:
         }
         else {
             InputLineIteratorUncompressed it(
-                filelist_, context_, *this, distributed_fs_);
+                filelist_, *this, local_storage_);
 
             // Hook Read
             while (it.HasNext()) {
@@ -93,16 +93,16 @@ public:
 private:
     vfs::FileList filelist_;
 
-    //! True, if files are on a distributed file system
-    bool distributed_fs_;
+    //! true, if files are on a local file system, false: common global file
+    //! system.
+    bool local_storage_;
 
     class InputLineIterator
     {
     public:
         InputLineIterator(const vfs::FileList& files,
-                          const Context& context,
                           ReadLinesNode& node)
-            : files_(files), context_(context), node_(node) { }
+            : files_(files), node_(node) { }
 
         //! non-copyable: delete copy-constructor
         InputLineIterator(const InputLineIterator&) = delete;
@@ -121,7 +121,6 @@ private:
         //! Input files with size prefixsum.
         const vfs::FileList& files_;
 
-        const Context& context_;
         //! Index of current file in files_
         size_t file_nr_ = 0;
         //! Byte buffer to create line std::string values.
@@ -172,17 +171,16 @@ private:
     public:
         //! Creates an instance of iterator that reads file line based
         InputLineIteratorUncompressed(const vfs::FileList& files,
-                                      const api::Context& ctx,
-                                      ReadLinesNode& node, bool distributed_fs)
-            : InputLineIterator(files, ctx, node) {
+                                      ReadLinesNode& node, bool local_storage)
+            : InputLineIterator(files, node) {
 
             // Go to start of 'local part'.
-            if (distributed_fs) {
-                my_range_ = node_.context_.CalculateLocalRange(
+            if (local_storage) {
+                my_range_ = node_.context_.CalculateLocalRangeOnHost(
                     files.total_size);
             }
             else {
-                my_range_ = node_.context_.CalculateLocalRangeOnHost(
+                my_range_ = node_.context_.CalculateLocalRange(
                     files.total_size);
             }
 
@@ -193,8 +191,8 @@ private:
                 file_nr_++;
             }
 
-            offset_ =
-                my_range_.begin - files_.size_ex_psum(file_nr_);
+            offset_ = my_range_.begin - files_.size_ex_psum(file_nr_);
+
             sLOG << "ReadLines: opening file" << file_nr_
                  << "my_range_" << my_range_ << "offset_" << offset_;
 
@@ -238,7 +236,7 @@ private:
             total_elements_++;
             data_.clear();
             while (true) {
-                while (current_ < buffer_.end()) {
+                while (THRILL_LIKELY(current_ < buffer_.end())) {
                     if (THRILL_UNLIKELY(*current_ == '\n')) {
                         current_++;
                         return data_;
@@ -296,17 +294,16 @@ private:
     public:
         //! Creates an instance of iterator that reads file line based
         InputLineIteratorCompressed(const vfs::FileList& files,
-                                    const api::Context& ctx,
-                                    ReadLinesNode& node, bool distributed_fs)
-            : InputLineIterator(files, ctx, node) {
+                                    ReadLinesNode& node, bool local_storage)
+            : InputLineIterator(files, node) {
 
             // Go to start of 'local part'.
-            if (distributed_fs) {
-                my_range_ = node_.context_.CalculateLocalRange(
+            if (local_storage) {
+                my_range_ = node_.context_.CalculateLocalRangeOnHost(
                     files.total_size);
             }
             else {
-                my_range_ = node_.context_.CalculateLocalRangeOnHost(
+                my_range_ = node_.context_.CalculateLocalRange(
                     files.total_size);
             }
 
@@ -314,12 +311,12 @@ private:
                 file_nr_++;
             }
 
-            for (size_t file_nr = file_nr_; file_nr < files_.size(); file_nr++) {
-                if (files[file_nr].size_inc_psum() == my_range_.end) {
+            for (size_t i = file_nr_; i < files_.size(); i++) {
+                if (files[i].size_inc_psum() == my_range_.end) {
                     break;
                 }
-                if (files[file_nr].size_inc_psum() > my_range_.end) {
-                    my_range_.end = files_.size_ex_psum(file_nr);
+                if (files[i].size_inc_psum() > my_range_.end) {
+                    my_range_.end = files_.size_ex_psum(i);
                     break;
                 }
             }
@@ -439,8 +436,8 @@ private:
  */
 DIA<std::string> ReadLines(Context& ctx, const std::string& filepath) {
     return DIA<std::string>(
-        common::MakeCounting<ReadLinesNode>(ctx, filepath,
-                                            /* distributed FS */ true));
+        common::MakeCounting<ReadLinesNode>(
+            ctx, filepath, /* local_storage */ false));
 }
 
 /*!
@@ -455,22 +452,22 @@ DIA<std::string> ReadLines(Context& ctx, const std::string& filepath) {
 DIA<std::string> ReadLines(
     Context& ctx, const std::vector<std::string>& filepaths) {
     return DIA<std::string>(
-        common::MakeCounting<ReadLinesNode>(ctx, filepaths,
-                                            /* distributed FS */ true));
+        common::MakeCounting<ReadLinesNode>(
+            ctx, filepaths, /* local_storage */ false));
 }
 
 DIA<std::string> ReadLines(struct LocalStorageTag, Context& ctx,
                            const std::string& filepath) {
     return DIA<std::string>(
-        common::MakeCounting<ReadLinesNode>(ctx, filepath,
-                                            /* distributed FS */ false));
+        common::MakeCounting<ReadLinesNode>(
+            ctx, filepath, /* local_storage */ true));
 }
 
 DIA<std::string> ReadLines(struct LocalStorageTag, Context& ctx,
                            const std::vector<std::string>& filepaths) {
     return DIA<std::string>(
-        common::MakeCounting<ReadLinesNode>(ctx, filepaths,
-                                            /* distributed FS */ false));
+        common::MakeCounting<ReadLinesNode>(
+            ctx, filepaths, /* local_storage */ true));
 }
 
 } // namespace api
