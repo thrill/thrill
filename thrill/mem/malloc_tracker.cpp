@@ -659,7 +659,7 @@ static void preinit_free(void* ptr) {
 ATTRIBUTE_NO_SANITIZE
 void * malloc(size_t size) NOEXCEPT {
 
-    if (!real_malloc)
+    if (THRILL_UNLIKELY(!real_malloc))
         return preinit_malloc(size);
 
     //! call real malloc procedure in libc
@@ -713,13 +713,14 @@ void free(void* ptr) NOEXCEPT {
 
     if (!ptr) return;   //! free(nullptr) is no operation
 
-    if (static_cast<char*>(ptr) >= init_heap &&
-        static_cast<char*>(ptr) <= init_heap + get(init_heap_use))
+    if (THRILL_UNLIKELY(
+            static_cast<char*>(ptr) >= init_heap &&
+            static_cast<char*>(ptr) <= init_heap + get(init_heap_use)))
     {
         return preinit_free(ptr);
     }
 
-    if (!real_free) {
+    if (THRILL_UNLIKELY(!real_free)) {
         fprintf(stderr, PPREFIX
                 "free(%p) outside init heap and without real_free !!!\n", ptr);
         return;
