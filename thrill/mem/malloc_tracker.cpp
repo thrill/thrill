@@ -13,6 +13,7 @@
 #endif
 
 #include <thrill/common/json_logger.hpp>
+#include <thrill/common/porting.hpp>
 #include <thrill/common/profile_thread.hpp>
 #include <thrill/mem/malloc_tracker.hpp>
 

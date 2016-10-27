@@ -17,6 +17,7 @@ matrix:
           packages:
             - cmake
             - g++-4.9
+            - libssl-dev
 
     # gcc 5.x without AddressSanitizer, Debug & Release, with SWIG and OpenMPI
     - env: CMAKE_CC="gcc-5" CMAKE_CXX="g++-5" BUILD_TYPE="Debug" COMPILER_FLAGS=""
@@ -31,6 +32,8 @@ matrix:
             - g++-5
             - openmpi-bin
             - libopenmpi-dev
+            - libbz2-dev
+            - libssl-dev
 
     - env: CMAKE_CC="gcc-5" CMAKE_CXX="g++-5" BUILD_TYPE="Release" COMPILER_FLAGS=""
       os: linux
@@ -48,6 +51,8 @@ matrix:
           packages:
             - cmake
             - clang-3.7
+            - libbz2-dev
+            - libssl-dev
 
     # clang 3.7 without AddressSanitizer (there are some system-dependent LeakSanitizer errors)
     - env: CMAKE_CC="clang-3.7" CMAKE_CXX="clang++-3.7" BUILD_TYPE="Release" COMPILER_FLAGS="" CMAKE_ARGS="-DTHRILL_FULL_BUILD=ON"

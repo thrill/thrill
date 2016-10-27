@@ -56,8 +56,15 @@ option(THRILL_FULL_BUILD
 option(THRILL_TRY_COMPILE_HEADERS
   "Test header files for self-sufficiency: try to compile them." OFF)
 
+if(APPLE OR MSVC)
+  set(THRILL_USE_S3_DEFAULT OFF)
+else()
+  set(THRILL_USE_S3_DEFAULT ON)
+endif()
+
 option(THRILL_USE_S3
-  "Build libs3 as library. Enabled by default if all dependencies are found." ON)
+  "Build libs3 as library. Enabled by default if all dependencies are found."
+  ${THRILL_USE_S3_DEFAULT})
 
 # BUILD_SHARED_LIBS is a standard CMake variable, but we declare it here to
 # make it prominent in the GUI.
@@ -392,16 +399,16 @@ if(THRILL_USE_S3)
   if(NOT CURL_FOUND)
     message(SEND_ERROR "libS3 requires libcurl, which was not found.")
   endif()
-  if(NOT OpenSSL_FOUND)
+  if(NOT OPENSSL_FOUND)
     message(SEND_ERROR "libS3 requires OpenSSL, which was not found.")
   endif()
-  if(NOT LibXml2_FOUND)
+  if(NOT LIBXML2_FOUND)
     message(SEND_ERROR "libS3 requires libxml2, which was not found.")
   endif()
 endif()
 
 # if libS3 dependencies were found, build as external project
-if(THRILL_USE_S3 AND CURL_FOUND AND LibXml2_FOUND AND OpenSSL_FOUND)
+if(THRILL_USE_S3 AND CURL_FOUND AND LIBXML2_FOUND AND OPENSSL_FOUND)
 
   # build libS3 as cmake library
   add_subdirectory(extlib/libs3)

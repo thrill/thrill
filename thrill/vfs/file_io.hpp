@@ -15,6 +15,7 @@
 
 #include <thrill/common/counting_ptr.hpp>
 #include <thrill/common/math.hpp>
+#include <thrill/common/porting.hpp>
 #include <thrill/common/system_exception.hpp>
 
 #include <string>
