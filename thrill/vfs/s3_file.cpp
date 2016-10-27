@@ -343,10 +343,6 @@ public:
         return output_ - output_begin;
     }
 
-    ssize_t lseek(off_t) final {
-        die("Impossible.");
-    }
-
     void close() final {
         if (!req_ctx_) return;
 

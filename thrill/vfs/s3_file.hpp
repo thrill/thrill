@@ -29,7 +29,7 @@ void S3Deinitialize();
 void S3Glob(const std::string& path, FileList& filelist);
 
 ReadStreamPtr S3OpenReadStream(
-    const std::string& path, const common::Range& range);
+    const std::string& path, const common::Range& range = common::Range());
 
 WriteStreamPtr S3OpenWriteStream(
     const std::string& path);

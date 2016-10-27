@@ -31,7 +31,8 @@ void SysGlob(const std::string& path, FileList& filelist);
  *
  * \param path Path to open
  */
-ReadStreamPtr SysOpenReadStream(const std::string& path);
+ReadStreamPtr SysOpenReadStream(
+    const std::string& path, const common::Range& range = common::Range());
 
 /*!
  * Open file for writing and return file descriptor. Handles compressed files by

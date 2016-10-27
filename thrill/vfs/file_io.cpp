@@ -137,7 +137,7 @@ ReadStreamPtr OpenReadStream(
         return S3OpenReadStream(path, range);
     }
     else {
-        return SysOpenReadStream(path);
+        return SysOpenReadStream(path, range);
     }
 }
 

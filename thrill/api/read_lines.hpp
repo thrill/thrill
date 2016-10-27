@@ -50,12 +50,13 @@ public:
         : Super(ctx, "ReadLines"),
           distributed_fs_(distributed_fs) {
 
-        LOG << "Opening ReadLinesNode for " << globlist.size() << " globs";
-
         filelist_ = vfs::Glob(globlist);
 
         if (filelist_.size() == 0)
-            die("No files found in globs: " + common::Join(" ", globlist));
+            die("ReadLines: no files found in globs: " + common::Join(" ", globlist));
+
+        sLOG << "ReadLines: creating for" << globlist.size() << "globs"
+             << "matching" << filelist_.size() << "files";
     }
 
     //! Constructor for a ReadLinesNode. Sets the Context and file path.
@@ -150,7 +151,7 @@ private:
             current_ = buffer.begin();
             total_bytes_ += bytes;
             total_reads_++;
-            LOG << "Opening block with " << bytes << " bytes.";
+            LOG << "ReadLines: read block containing " << bytes << " bytes.";
             return bytes > 0;
         }
 
@@ -185,24 +186,23 @@ private:
                     files.total_size);
             }
 
+            assert(my_range_.begin <= my_range_.end);
+            if (my_range_.begin == my_range_.end) return;
+
             while (files_[file_nr_].size_inc_psum() <= my_range_.begin) {
                 file_nr_++;
             }
-            if (my_range_.begin < my_range_.end) {
-                sLOG << "Opening file" << file_nr_ << "my_range_" << my_range_;
 
-                stream_ = vfs::OpenReadStream(
-                    files_[file_nr_].path, my_range_);
-            }
-            else {
-                LOG << "my_range : " << my_range_;
-                return;
-            }
+            offset_ =
+                my_range_.begin - files_.size_ex_psum(file_nr_);
+            sLOG << "ReadLines: opening file" << file_nr_
+                 << "my_range_" << my_range_ << "offset_" << offset_;
 
             // find offset in current file:
             // offset = start - sum of previous file sizes
-            offset_ = stream_->lseek(
-                static_cast<off_t>(my_range_.begin - files_.size_ex_psum(file_nr_)));
+            stream_ = vfs::OpenReadStream(
+                files_[file_nr_].path, common::Range(offset_, 0));
+
             buffer_.Reserve(read_size);
             ReadBlock(stream_, buffer_);
 
@@ -249,7 +249,7 @@ private:
                 }
                 offset_ += buffer_.size();
                 if (!ReadBlock(stream_, buffer_)) {
-                    LOG << "opening next file";
+                    LOG << "ReadLines: opening next file";
 
                     stream_->close();
                     file_nr_++;
@@ -257,7 +257,7 @@ private:
 
                     if (file_nr_ < files_.size()) {
                         stream_ = vfs::OpenReadStream(
-                            files_[file_nr_].path, my_range_);
+                            files_[file_nr_].path, common::Range(offset_, 0));
                         offset_ += buffer_.size();
                         ReadBlock(stream_, buffer_);
                     }
@@ -324,20 +324,20 @@ private:
                 }
             }
 
-            if (my_range_.begin < my_range_.end) {
-                LOG << "Opening file " << file_nr_;
-                LOG << "my_range : " << my_range_;
-                stream_ = vfs::OpenReadStream(
-                    files_[file_nr_].path, my_range_);
-            }
-            else {
+            if (my_range_.begin >= my_range_.end) {
                 // No local files, set buffer size to 2, so HasNext() does not try to read
-                LOG << "my_range : " << my_range_;
+                LOG << "ReadLines: my_range " << my_range_;
                 buffer_.Reserve(2);
                 buffer_.set_size(2);
                 current_ = buffer_.begin();
                 return;
             }
+
+            sLOG << "ReadLines: opening compressed file" << file_nr_
+                 << "my_range" << my_range_;
+
+            stream_ = vfs::OpenReadStream(files_[file_nr_].path);
+
             buffer_.Reserve(read_size);
             ReadBlock(stream_, buffer_);
             data_.reserve(4 * 1024);
@@ -361,22 +361,22 @@ private:
                 }
 
                 if (!ReadBlock(stream_, buffer_)) {
-                    LOG << "Opening new file!";
+                    LOG << "ReadLines: opening new compressed file!";
                     stream_->close();
                     file_nr_++;
 
                     if (file_nr_ < files_.size()) {
-                        stream_ = vfs::OpenReadStream(
-                            files_[file_nr_].path, my_range_);
+                        stream_ = vfs::OpenReadStream(files_[file_nr_].path);
                         ReadBlock(stream_, buffer_);
                     }
                     else {
-                        LOG << "reached last file";
+                        LOG << "ReadLines: reached last file";
                         current_ = buffer_.begin();
                     }
 
                     if (data_.length()) {
-                        LOG << "end - returning string of length" << data_.length();
+                        LOG << "ReadLines: end - returning string of length"
+                            << data_.length();
                         return data_;
                     }
                 }
@@ -393,13 +393,13 @@ private:
             // as HasNext() has to know if file is finished
             //         v-- no new line at end ||   v-- newline at end of file
             if (current_ >= buffer_.end() || (current_ + 1 >= buffer_.end() && *current_ == '\n')) {
-                LOG << "New buffer in HasNext()";
+                LOG << "ReadLines: new buffer in HasNext()";
                 ReadBlock(stream_, buffer_);
                 if (buffer_.size() > 1 || (buffer_.size() == 1 && buffer_[0] != '\n')) {
                     return true;
                 }
                 else {
-                    LOG << "Opening new file in HasNext()";
+                    LOG << "ReadLines: opening new file in HasNext()";
                     // already at last file
                     if (file_nr_ >= files_.size() - 1) {
                         return false;
@@ -408,8 +408,7 @@ private:
                     // if (this worker reads at least one more file)
                     if (my_range_.end > files_[file_nr_].size_inc_psum()) {
                         file_nr_++;
-                        stream_ = vfs::OpenReadStream(
-                            files_[file_nr_].path, my_range_);
+                        stream_ = vfs::OpenReadStream(files_[file_nr_].path);
                         ReadBlock(stream_, buffer_);
                         return true;
                     }

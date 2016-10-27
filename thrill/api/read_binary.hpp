@@ -258,15 +258,17 @@ private:
                            size_t& stats_total_bytes,
                            size_t& stats_total_reads)
             : context_(ctx),
-              stream_(vfs::SysOpenReadStream(fileinfo.path)),
               remain_size_(fileinfo.size()),
               is_compressed_(fileinfo.is_compressed),
               stats_total_bytes_(stats_total_bytes),
               stats_total_reads_(stats_total_reads) {
-            if (fileinfo.begin != 0 && !is_compressed_) {
-                // seek to beginning
-                size_t p = stream_->lseek(static_cast<off_t>(fileinfo.begin));
-                die_unequal(fileinfo.begin, p);
+            // open file
+            if (!is_compressed_) {
+                stream_ = vfs::SysOpenReadStream(
+                    fileinfo.path, common::Range(fileinfo.begin, fileinfo.end));
+            }
+            else {
+                stream_ = vfs::SysOpenReadStream(fileinfo.path);
             }
         }
 

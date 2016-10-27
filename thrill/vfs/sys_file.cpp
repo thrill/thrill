@@ -148,12 +148,6 @@ public:
 #endif
     }
 
-    //! POSIX lseek function from current position.
-    ssize_t lseek(off_t offset) final {
-        assert(fd_ >= 0);
-        return ::lseek(fd_, offset, SEEK_CUR);
-    }
-
     //! close the file descriptor
     void close() final;
 
@@ -217,7 +211,8 @@ void SysFile::close() {
 
 /******************************************************************************/
 
-ReadStreamPtr SysOpenReadStream(const std::string& path) {
+ReadStreamPtr SysOpenReadStream(
+    const std::string& path, const common::Range& range) {
 
     static constexpr bool debug = false;
 
@@ -232,7 +227,13 @@ ReadStreamPtr SysOpenReadStream(const std::string& path) {
 
     const char* decompressor;
 
-    if (common::EndsWith(path, ".xz")) {
+    if (common::EndsWith(path, ".gz")) {
+        decompressor = "gzip";
+    }
+    else if (common::EndsWith(path, ".bz2")) {
+        decompressor = "bzip2";
+    }
+    else if (common::EndsWith(path, ".xz")) {
         decompressor = "xz";
     }
     else if (common::EndsWith(path, ".lzo")) {
@@ -246,6 +247,11 @@ ReadStreamPtr SysOpenReadStream(const std::string& path) {
         common::PortSetCloseOnExec(fd);
 
         sLOG << "SysFile::OpenForRead(): filefd" << fd;
+
+        if (range.begin) {
+            //! POSIX lseek function from current position.
+            ::lseek(fd, range.begin, SEEK_CUR);
+        }
 
         return common::MakeCounting<SysFile>(fd);
     }
@@ -293,6 +299,11 @@ ReadStreamPtr SysOpenReadStream(const std::string& path) {
     // close the file descriptor
     ::close(fd);
 
+    if (range.begin) {
+        //! POSIX lseek function from current position.
+        ::lseek(pipefd[0], range.begin, SEEK_CUR);
+    }
+
     return common::MakeCounting<SysFile>(pipefd[0], pid);
 #endif
 }
@@ -312,7 +323,13 @@ WriteStreamPtr SysOpenWriteStream(const std::string& path) {
 
     const char* compressor;
 
-    if (common::EndsWith(path, ".xz")) {
+    if (common::EndsWith(path, ".gz")) {
+        compressor = "gzip";
+    }
+    else if (common::EndsWith(path, ".bz2")) {
+        compressor = "bzip2";
+    }
+    else if (common::EndsWith(path, ".xz")) {
         compressor = "xz";
     }
     else if (common::EndsWith(path, ".lzo")) {

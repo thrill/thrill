@@ -93,8 +93,6 @@ public:
 
     virtual ssize_t read(void* data, size_t size) = 0;
 
-    virtual ssize_t lseek(off_t) = 0;
-
     virtual void close() = 0;
 };
 
@@ -114,7 +112,7 @@ using WriteStreamPtr = common::CountingPtr<WriteStream>;
 /******************************************************************************/
 
 ReadStreamPtr OpenReadStream(
-    const std::string& path, const common::Range& range);
+    const std::string& path, const common::Range& range = common::Range());
 
 WriteStreamPtr OpenWriteStream(const std::string& path);
 

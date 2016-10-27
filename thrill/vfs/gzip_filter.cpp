@@ -190,10 +190,6 @@ public:
         return size;
     }
 
-    ssize_t lseek(off_t) final {
-        die("impossible");
-    }
-
     void close() final {
         if (!initialized_) return;
 
