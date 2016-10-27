@@ -154,15 +154,6 @@ TEST(IO, GenerateFromFileRandomIntegers) {
         });
 }
 
-TEST(IO, WriteBinaryPatternFormatter) {
-
-    std::string str1 = vfs::FillFilePattern("test-@@@@-########", 42, 10);
-    ASSERT_EQ("test-0042-00000010", str1);
-
-    std::string str2 = vfs::FillFilePattern("test", 42, 10);
-    ASSERT_EQ("test00420000000010", str2);
-}
-
 TEST(IO, GenerateIntegerWriteReadBinary) {
     vfs::TemporaryDirectory tmpdir;
 

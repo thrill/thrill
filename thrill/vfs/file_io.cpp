@@ -53,6 +53,19 @@ std::string FillFilePattern(const std::string& pathbase,
     using size_type = std::string::size_type;
 
     std::string out_path = pathbase;
+
+    // detect and save extension
+    std::string extension;
+    {
+        size_type slash_end = out_path.rfind('/');
+        size_type dot_end = out_path.rfind('.');
+        if (dot_end != std::string::npos &&
+            // dot is after slash
+            (slash_end == std::string::npos || slash_end < dot_end)) {
+            extension = out_path.substr(dot_end);
+            out_path.erase(dot_end);
+        }
+    }
     {
         // replace @
         size_type at_end = out_path.rfind('@');
@@ -83,6 +96,7 @@ std::string FillFilePattern(const std::string& pathbase,
                                                 static_cast<int>(hash_length),
                                                 file_part));
     }
+    out_path += extension;
     return out_path;
 }
 

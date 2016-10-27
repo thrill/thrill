@@ -17,6 +17,21 @@
 
 using namespace thrill;
 
+TEST(SysFileTest, WriteBinaryPatternFormatter) {
+
+    std::string str1 = vfs::FillFilePattern("test-@@@@-########", 42, 10);
+    ASSERT_EQ("test-0042-00000010", str1);
+
+    std::string str2 = vfs::FillFilePattern("test", 42, 10);
+    ASSERT_EQ("test00420000000010", str2);
+
+    std::string str3 = vfs::FillFilePattern("test.gz", 42, 10);
+    ASSERT_EQ("test00420000000010.gz", str3);
+
+    std::string str4 = vfs::FillFilePattern("blah.xyz/test", 42, 10);
+    ASSERT_EQ("blah.xyz/test00420000000010", str4);
+}
+
 TEST(SysFileTest, WriteReadSingleFile) {
     vfs::TemporaryDirectory tmpdir;
 
