@@ -25,7 +25,7 @@ int main(int argc, char* argv[]) {
 
     vfs::Initialize();
 
-    if (strcmp(argv[1], "read") == 0)
+    if (argc >= 2 && strcmp(argv[1], "read") == 0)
     {
         vfs::ReadStreamPtr rs = vfs::OpenReadStream(
             "s3://commoncrawl/crawl-data/CC-MAIN-2016-40/"
@@ -44,7 +44,7 @@ int main(int argc, char* argv[]) {
 
     /**************************************************************************/
 
-    if (strcmp(argv[1], "write") == 0)
+    if (argc >= 2 && strcmp(argv[1], "write") == 0)
     {
         vfs::WriteStreamPtr ws = vfs::OpenWriteStream(
             "s3://thrill-tpch/hello.txt");
@@ -59,7 +59,7 @@ int main(int argc, char* argv[]) {
 
     /**************************************************************************/
 
-    if (strcmp(argv[1], "glob") == 0)
+    if (argc >= 2 && strcmp(argv[1], "glob") == 0)
     {
         vfs::FileList fl = vfs::Glob(
             "s3://commoncrawl/crawl-data/CC-MAIN-2016-40/"
