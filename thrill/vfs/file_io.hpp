@@ -1,6 +1,8 @@
 /*******************************************************************************
  * thrill/vfs/file_io.hpp
  *
+ * Abstract interfaces of virtual file system (VFS) layer
+ *
  * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Alexander Noe <aleexnoe@gmail.com>
@@ -23,6 +25,8 @@
 
 namespace thrill {
 namespace vfs {
+
+/******************************************************************************/
 
 //! Initialize VFS layer
 void Initialize();
@@ -87,20 +91,29 @@ FileList Glob(const std::vector<std::string>& globlist);
 
 /******************************************************************************/
 
+/*!
+ * Reader object from any source. Streams can be created for any supported URI
+ * and seek to the given range's offset.
+ */
 class ReadStream : public virtual common::ReferenceCount
 {
 public:
-    virtual ~ReadStream() { }
+    virtual ~ReadStream();
 
+    //! read up to size bytes from stream.
     virtual ssize_t read(void* data, size_t size) = 0;
 
+    //! close stream, release resources.
     virtual void close() = 0;
 };
 
+/*!
+ * Writer object to output data to any supported URI.
+ */
 class WriteStream : public virtual common::ReferenceCount
 {
 public:
-    virtual ~WriteStream() { }
+    virtual ~WriteStream();
 
     virtual ssize_t write(const void* data, size_t size) = 0;
 
@@ -112,10 +125,23 @@ using WriteStreamPtr = common::CountingPtr<WriteStream>;
 
 /******************************************************************************/
 
+/*!
+ * Construct reader for given path uri. Range is the byte range [b,e) inside the
+ * file to read. If e = 0, the complete file is read.
+ *
+ * For the POSIX SysFile implementation the range is used only to seek to the
+ * byte offset b. It allows additional bytes after e to be read.
+ *
+ * For the S3File implementations, however, the range[b,e) is used to determine
+ * which data to fetch from S3. Hence, once e is reached, read() will return
+ * EOF.
+ */
 ReadStreamPtr OpenReadStream(
     const std::string& path, const common::Range& range = common::Range());
 
 WriteStreamPtr OpenWriteStream(const std::string& path);
+
+/******************************************************************************/
 
 } // namespace vfs
 } // namespace thrill

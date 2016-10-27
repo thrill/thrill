@@ -147,6 +147,8 @@ FileList Glob(const std::string& glob) {
 
 /******************************************************************************/
 
+ReadStream::~ReadStream() { }
+
 ReadStreamPtr OpenReadStream(
     const std::string& path, const common::Range& range) {
 
@@ -172,6 +174,8 @@ ReadStreamPtr OpenReadStream(
 
     return p;
 }
+
+WriteStream::~WriteStream() { }
 
 WriteStreamPtr OpenWriteStream(const std::string& path) {
 
