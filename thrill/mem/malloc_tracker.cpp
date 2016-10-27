@@ -230,7 +230,7 @@ static void dec_count(size_t dec) {
     tl_stats.current_allocs--;
     tl_stats.bytes -= dec;
 
-    if (tl_stats.bytes < tl_delay_threshold) {
+    if (tl_stats.bytes < -tl_delay_threshold) {
         size_t mycurr = sync_add_and_fetch(
             float_curr, tl_stats.bytes);
 
