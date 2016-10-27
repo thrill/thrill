@@ -62,7 +62,7 @@ public:
 
     //! use an additional thread in ReduceNode and ReduceToIndexNode to process
     //! the pre and post phases simultaneously.
-    static constexpr bool use_post_thread_ = true;
+    static constexpr bool use_post_thread_ = false;
 
     //! \name Accessors
     //! \{
