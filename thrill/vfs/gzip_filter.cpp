@@ -167,6 +167,8 @@ WriteStreamPtr MakeGZipWriteFilter(const WriteStreamPtr& stream) {
 
 class GZipReadFilter : public virtual ReadStream
 {
+    static constexpr bool debug = false;
+
 public:
     explicit GZipReadFilter(const ReadStreamPtr& input)
         : input_(input) {
@@ -208,7 +210,7 @@ public:
             }
 
             if (err_ == Z_STREAM_END) {
-                LOG1 << "inflateReset";
+                LOG << "GZipReadFilter: inflateReset()";
                 inflateReset(&z_stream_);
             }
 
