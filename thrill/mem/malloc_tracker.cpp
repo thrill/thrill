@@ -188,6 +188,8 @@ void update_peak(ssize_t float_curr, ssize_t base_curr) {
 
 ATTRIBUTE_NO_SANITIZE
 void flush_memory_statistics() {
+#if HAVE_THREAD_LOCAL
+    // no-operation of no thread_local is available.
     ssize_t mycurr = sync_add_and_fetch(float_curr, tl_stats.bytes);
 
     sync_add_and_fetch(total_bytes, tl_stats.bytes);
@@ -201,6 +203,7 @@ void flush_memory_statistics() {
     tl_stats.bytes = 0;
     tl_stats.total_allocs = 0;
     tl_stats.current_allocs = 0;
+#endif
 }
 
 //! add allocation to statistics
