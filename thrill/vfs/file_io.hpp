@@ -45,8 +45,15 @@ std::string FillFilePattern(const std::string& pathbase,
 //! '.{gz,bz2,xz,lzo}')
 bool IsCompressed(const std::string& path);
 
+//! VFS object type
+enum class Type { File, Directory };
+
+std::ostream& operator << (std::ostream& os, const Type& t);
+
 //! General information of vfs file.
 struct FileInfo {
+    //! type of entry
+    Type        type;
     //! path to file
     std::string path;
     //! size of file.
@@ -77,17 +84,21 @@ struct FileList : public std::vector<FileInfo>{
     { return i < size() ? operator [] (i).size_ex_psum : total_size; }
 };
 
-/*!
- * Reads a glob path list and deliver a file list, sizes, and prefixsums (in
- * bytes) for all matching files.
- */
-FileList Glob(const std::string& glob);
+//! Type of objects to include in glob result.
+enum class GlobType { All, File, Directory };
 
 /*!
  * Reads a glob path list and deliver a file list, sizes, and prefixsums (in
  * bytes) for all matching files.
  */
-FileList Glob(const std::vector<std::string>& globlist);
+FileList Glob(const std::string& glob, const GlobType& gtype = GlobType::All);
+
+/*!
+ * Reads a glob path list and deliver a file list, sizes, and prefixsums (in
+ * bytes) for all matching files.
+ */
+FileList Glob(const std::vector<std::string>& globlist,
+              const GlobType& gtype = GlobType::All);
 
 /******************************************************************************/
 

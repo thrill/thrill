@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/vfs/s3_file_example.cpp
+ * examples/vfs_tool/vfs_tool.cpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -8,10 +8,10 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <thrill/common/logger.hpp>
-#include <thrill/common/die.hpp>
-#include <thrill/vfs/file_io.hpp>
 #include <thrill/common/cmdline_parser.hpp>
+#include <thrill/common/die.hpp>
+#include <thrill/common/logger.hpp>
+#include <thrill/vfs/file_io.hpp>
 
 #include <iostream>
 
@@ -24,10 +24,10 @@ int main(int argc, char* argv[]) {
     clp.SetDescription("Simple VFS tool for Thrill");
 
     std::string op;
-    clp.AddParamString("op", op,"operation: glob|read|write");
+    clp.AddParamString("op", op, "operation: glob|read|write");
 
     std::vector<std::string> paths;
-    clp.AddParamStringlist("paths", paths,"file path(s)");
+    clp.AddParamStringlist("paths", paths, "file path(s)");
 
     if (!clp.Process(argc, argv)) {
         return -1;
@@ -41,6 +41,7 @@ int main(int argc, char* argv[]) {
 
         for (const vfs::FileInfo& fi : fl) {
             std::cout << fi.path
+                      << " type " << fi.type
                       << " size " << fi.size
                       << " size_ex_psum " << fi.size_ex_psum
                       << '\n';

@@ -72,7 +72,7 @@ public:
                    uint64_t size_limit, bool local_storage)
         : Super(ctx, "ReadBinary") {
 
-        vfs::FileList files = vfs::Glob(globlist);
+        vfs::FileList files = vfs::Glob(globlist, vfs::GlobType::File);
 
         if (files.size() == 0)
             die("ReadBinary: no files found in globs: " + common::Join(" ", globlist));

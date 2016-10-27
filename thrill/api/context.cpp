@@ -184,7 +184,6 @@ static inline bool Initialize() {
 
     if (!SetupBlockSize()) return false;
 
-    LOG1 << "Initialize()";
     vfs::Initialize();
 
     return true;

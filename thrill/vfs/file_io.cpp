@@ -45,6 +45,17 @@ bool IsCompressed(const std::string& path) {
            common::EndsWith(path, ".lz4");
 }
 
+std::ostream& operator << (std::ostream& os, const Type& t) {
+    switch (t) {
+    case Type::File:
+        return os << "File";
+    case Type::Directory:
+        return os << "Directory";
+    default:
+        return os << "Invalid";
+    }
+}
+
 std::string FillFilePattern(const std::string& pathbase,
                             size_t worker, size_t file_part) {
 
@@ -102,7 +113,7 @@ std::string FillFilePattern(const std::string& pathbase,
 
 /******************************************************************************/
 
-FileList Glob(const std::vector<std::string>& globlist) {
+FileList Glob(const std::vector<std::string>& globlist, const GlobType& gtype) {
     FileList filelist;
 
     // run through globs and collect files. The sub-Glob() methods must only
@@ -112,13 +123,13 @@ FileList Glob(const std::vector<std::string>& globlist) {
     {
         if (common::StartsWith(path, "file://")) {
             // remove the file:// prefix
-            SysGlob(path.substr(7), filelist);
+            SysGlob(path.substr(7), gtype, filelist);
         }
         else if (common::StartsWith(path, "s3://")) {
-            S3Glob(path, filelist);
+            S3Glob(path, gtype, filelist);
         }
         else {
-            SysGlob(path, filelist);
+            SysGlob(path, gtype, filelist);
         }
     }
 
@@ -141,8 +152,8 @@ FileList Glob(const std::vector<std::string>& globlist) {
     return filelist;
 }
 
-FileList Glob(const std::string& glob) {
-    return Glob(std::vector<std::string>{ glob });
+FileList Glob(const std::string& glob, const GlobType& gtype) {
+    return Glob(std::vector<std::string>{ glob }, gtype);
 }
 
 /******************************************************************************/

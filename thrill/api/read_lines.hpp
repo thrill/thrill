@@ -50,7 +50,7 @@ public:
         : Super(ctx, "ReadLines"),
           local_storage_(local_storage) {
 
-        filelist_ = vfs::Glob(globlist);
+        filelist_ = vfs::Glob(globlist, vfs::GlobType::File);
 
         if (filelist_.size() == 0)
             die("ReadLines: no files found in globs: " + common::Join(" ", globlist));

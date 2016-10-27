@@ -26,7 +26,7 @@ void S3Deinitialize();
 
 /******************************************************************************/
 
-void S3Glob(const std::string& path, FileList& filelist);
+void S3Glob(const std::string& path, const GlobType& gtype, FileList& filelist);
 
 ReadStreamPtr S3OpenReadStream(
     const std::string& path, const common::Range& range = common::Range());

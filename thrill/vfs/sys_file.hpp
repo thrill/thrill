@@ -23,7 +23,8 @@ namespace vfs {
 /*!
  * Glob a path and augment the FileList with matching file names.
  */
-void SysGlob(const std::string& path, FileList& filelist);
+void SysGlob(const std::string& path, const GlobType& gtype,
+             FileList& filelist);
 
 /*!
  * Open file for reading and return file descriptor. Handles compressed files by

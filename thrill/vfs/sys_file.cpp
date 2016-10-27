@@ -49,7 +49,9 @@ namespace vfs {
 
 /******************************************************************************/
 
-void SysGlob(const std::string& path, FileList& filelist) {
+void SysGlob(const std::string& path, const GlobType& gtype,
+             FileList& filelist) {
+
     std::vector<std::string> list;
 
     // collect file names
@@ -80,13 +82,25 @@ void SysGlob(const std::string& path, FileList& filelist) {
             die("ERROR: could not stat() path " + file);
         }
 
-        // skip directory entries
-        if (!S_ISREG(filestat.st_mode)) continue;
-
-        FileInfo fi;
-        fi.path = file;
-        fi.size = static_cast<uint64_t>(filestat.st_size);
-        filelist.emplace_back(fi);
+        if (S_ISREG(filestat.st_mode)) {
+            if (gtype == GlobType::All || gtype == GlobType::File) {
+                FileInfo fi;
+                fi.type = Type::File;
+                fi.path = file;
+                fi.size = static_cast<uint64_t>(filestat.st_size);
+                filelist.emplace_back(fi);
+            }
+        }
+        else {
+            // directory entries or others
+            if (gtype == GlobType::All || gtype == GlobType::Directory) {
+                FileInfo fi;
+                fi.type = Type::Directory;
+                fi.path = file;
+                fi.size = 0;
+                filelist.emplace_back(fi);
+            }
+        }
     }
 }
 

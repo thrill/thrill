@@ -210,13 +210,21 @@ private:
 
     //! callback delivered list
     S3Status ListBucketCallback(
-        int is_truncated, const char* /* next_marker */, int contents_count,
-        const S3ListBucketContent* contents, int /* common_prefixes_count */,
-        const char** /* common_prefixes */) {
+        int is_truncated, const char* /* next_marker */,
+        int contents_count, const S3ListBucketContent* contents,
+        int common_prefixes_count, const char** common_prefixes) {
         for (int i = 0; i < contents_count; ++i) {
             FileInfo fi;
+            fi.type = Type::File;
             fi.path = path_prefix_ + contents[i].key;
             fi.size = contents[i].size;
+            filelist_.emplace_back(fi);
+        }
+        for (int i = 0; i < common_prefixes_count; ++i) {
+            FileInfo fi;
+            fi.type = Type::Directory;
+            fi.path = path_prefix_ + common_prefixes[i];
+            fi.size = 0;
             filelist_.emplace_back(fi);
         }
         last_marker_ = contents[contents_count - 1].key;
@@ -236,7 +244,8 @@ private:
     }
 };
 
-void S3Glob(const std::string& _path, FileList& filelist) {
+void S3Glob(const std::string& _path, const GlobType& gtype,
+            FileList& filelist) {
 
     std::string path = _path;
     // crop off s3://
@@ -256,8 +265,19 @@ void S3Glob(const std::string& _path, FileList& filelist) {
                                        nullptr, /* delimiter */ "/");
 
     // append sorted result list
-    filelist.insert(filelist.end(),
-                    list.filelist().begin(), list.filelist().end());
+    for (const FileInfo& fi : list.filelist())
+    {
+        if (fi.type == Type::File) {
+            if (gtype == GlobType::All || gtype == GlobType::File) {
+                filelist.emplace_back(fi);
+            }
+        }
+        else if (fi.type == Type::Directory) {
+            if (gtype == GlobType::All || gtype == GlobType::Directory) {
+                filelist.emplace_back(fi);
+            }
+        }
+    }
 }
 
 /******************************************************************************/
