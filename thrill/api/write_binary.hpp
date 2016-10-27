@@ -17,13 +17,12 @@
 #include <thrill/api/context.hpp>
 #include <thrill/api/dia.hpp>
 #include <thrill/common/string.hpp>
-#include <thrill/core/file_io.hpp>
 #include <thrill/data/block_sink.hpp>
 #include <thrill/data/block_writer.hpp>
+#include <thrill/vfs/file_io.hpp>
 
 #include <algorithm>
 #include <string>
-#include <utility>
 #include <vector>
 
 namespace thrill {
@@ -112,14 +111,14 @@ private:
     class SysFileSink final : public data::BoundedBlockSink
     {
     public:
-        SysFileSink(data::BlockPool& block_pool,
+        SysFileSink(api::Context& context,
                     size_t local_worker_id,
                     const std::string& path, size_t max_file_size,
                     size_t& stats_total_elements,
                     size_t& stats_total_writes)
-            : BlockSink(block_pool, local_worker_id),
-              BoundedBlockSink(block_pool, local_worker_id, max_file_size),
-              file_(core::SysFile::OpenForWrite(path)),
+            : BlockSink(context.block_pool(), local_worker_id),
+              BoundedBlockSink(context.block_pool(), local_worker_id, max_file_size),
+              stream_(vfs::OpenWriteStream(path)),
               stats_total_elements_(stats_total_elements),
               stats_total_writes_(stats_total_writes) { }
 
@@ -127,7 +126,7 @@ private:
             const data::PinnedBlock& b, bool /* is_last_block */) final {
             sLOG << "SysFileSink::AppendBlock()" << b;
             stats_total_writes_++;
-            file_.write(b.data_begin(), b.size());
+            stream_->write(b.data_begin(), b.size());
         }
 
         void AppendPinnedBlock(data::PinnedBlock&& b, bool is_last_block) final {
@@ -145,11 +144,11 @@ private:
         }
 
         void Close() final {
-            file_.close();
+            stream_->close();
         }
 
     private:
-        core::SysFile file_;
+        vfs::WriteStreamPtr stream_;
         size_t& stats_total_elements_;
         size_t& stats_total_writes_;
     };
@@ -183,13 +182,13 @@ private:
         sink_.reset();
 
         // construct path from pattern containing ### and $$$
-        std::string out_path = core::FillFilePattern(
+        std::string out_path = vfs::FillFilePattern(
             out_pathbase_, context_.my_rank(), out_serial_++);
 
         sLOG << "OpenNextFile() out_path" << out_path;
 
         sink_ = std::make_unique<SysFileSink>(
-            context_.block_pool(), context_.local_worker_id(),
+            context_, context_.local_worker_id(),
             out_path, max_file_size_,
             stats_total_elements_, stats_total_writes_);
 

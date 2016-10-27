@@ -17,8 +17,8 @@
 #include <thrill/api/action_node.hpp>
 #include <thrill/api/dia.hpp>
 #include <thrill/common/math.hpp>
-#include <thrill/core/file_io.hpp>
 #include <thrill/net/buffer_builder.hpp>
+#include <thrill/vfs/file_io.hpp>
 
 #include <algorithm>
 #include <string>
@@ -48,9 +48,9 @@ public:
         : Super(parent.ctx(), "WriteLines",
                 { parent.id() }, { parent.node() }),
           out_pathbase_(path_out),
-          file_(core::SysFile::OpenForWrite(
-                    core::FillFilePattern(
-                        out_pathbase_, context_.my_rank(), 0))),
+          stream_(vfs::OpenWriteStream(
+                      vfs::FillFilePattern(
+                          out_pathbase_, context_.my_rank(), 0))),
           target_file_size_(target_file_size)
     {
         sLOG << "Creating write node.";
@@ -85,17 +85,17 @@ public:
             stats_total_writes_++;
             stats_total_bytes_ += current_buffer_size_;
             timer.Start();
-            file_.write(write_buffer_.data(), current_buffer_size_);
+            stream_->write(write_buffer_.data(), current_buffer_size_);
             timer.Stop();
             write_buffer_.set_size(0);
             current_file_size_ += current_buffer_size_;
             current_buffer_size_ = 0;
             if (THRILL_UNLIKELY(current_file_size_ >= target_file_size_)) {
                 LOG << "Closing file" << out_serial_;
-                file_.close();
-                std::string new_path = core::FillFilePattern(
+                stream_->close();
+                std::string new_path = vfs::FillFilePattern(
                     out_pathbase_, context_.my_rank(), out_serial_++);
-                file_ = core::SysFile::OpenForWrite(new_path);
+                stream_ = vfs::OpenWriteStream(new_path);
                 LOG << "Opening file: " << new_path;
                 current_file_size_ = 0;
             }
@@ -106,7 +106,7 @@ public:
                 stats_total_bytes_ += input.size();
                 current_file_size_ += input.size() + 1;
                 timer.Start();
-                file_.write(input.data(), input.size());
+                stream_->write(input.data(), input.size());
                 timer.Stop();
                 current_buffer_size_ = 1;
                 write_buffer_.PutByte('\n');
@@ -125,9 +125,9 @@ public:
         stats_total_writes_++;
         stats_total_bytes_ += current_buffer_size_;
         timer.Start();
-        file_.write(write_buffer_.data(), current_buffer_size_);
+        stream_->write(write_buffer_.data(), current_buffer_size_);
         timer.Stop();
-        file_.close();
+        stream_->close();
 
         Super::logger_
             << "class" << "WriteLinesNode"
@@ -152,7 +152,7 @@ private:
     size_t out_serial_ = 1;
 
     //! File to wrtie to
-    core::SysFile file_;
+    vfs::WriteStreamPtr stream_;
 
     //! Write buffer
     net::BufferBuilder write_buffer_;

@@ -42,15 +42,17 @@ namespace thrill {
       Manages transfer of large amounts of data between workers. Contains Serialization, File, BlockWriter, Channel, and Multiplexer.</td>
     <td style="width: 50%">
       <div style="text-align: center">\ref layer_net "net: Network Layer"</div>
-      Controls connections between compute nodes, contains collective communication primitives like Broadcast, AllReduce for simple datatypes.</td>
+      Controls connections between compute nodes, contains collective communication primitives like Broadcast, AllReduce for simple datatypes.<br/>
+      Backends: \ref thrill::net::mock "net::mock", \ref thrill::net::tcp "net::tcp", \ref thrill::net::mpi "net::mpi".
+    </td>
   </tr>
   <tr>
     <td style="width: 50%">
       <div style="text-align: center">\ref thrill::io "io: Async I/O Layer"</div>
       asynchronous I/O, direct file access impl, and disk allocation. (mostly borrowed from STXXL)</td>
     <td style="width: 50%">
-      <div style="text-align: center">\ref thrill::net::mock "net::mock", \ref thrill::net::tcp "net::tcp", \ref thrill::net::mpi "net::mpi"</div>
-      Network backend implementations.</td>
+      <div style="text-align: center">\ref thrill::vfs "vfs: Virtual File System Layer"</div>
+      for transparent access to POSIX, S3, and in future HDFS.</td>
   </tr>
   <tr>
     <td style="width: 50%">

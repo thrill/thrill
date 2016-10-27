@@ -275,6 +275,7 @@ public:
         return os << ctx.host_rank() << ":" << ctx.local_worker_id();
     }
 #endif
+
     //! \}
 
     //! \name Data Subsystem
@@ -338,6 +339,11 @@ public:
     common::Range CalculateLocalRange(size_t global_size) const {
         return common::CalculateLocalRange(
             global_size, num_workers(), my_rank());
+    }
+
+    common::Range CalculateLocalRangeOnHost(size_t global_size) const {
+        return common::CalculateLocalRange(
+            global_size, workers_per_host(), local_worker_id());
     }
 
     //! Perform collectives and print min, max, mean, stdev, and all local

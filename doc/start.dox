@@ -149,6 +149,14 @@ Internal environment variables set by the `run` scripts:
 
 - `THRILL_UNLINK_BINARY` - used by SSH launcher to cleanup a copied executable.
 
+Additional environment variables used by VFS layer
+
+- `THRILL_S3_HOST` - default S3 host (optional, default: AWS)
+
+- `THRILL_S3_KEY` - S3 access key id (required for `s3://` URLs)
+
+- `THRILL_S3_SECRET` - S3 access secret (required for `s3://` URLs)
+
 */
 
 /******************************************************************************/

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/core/simple_glob.hpp
+ * thrill/vfs/simple_glob.hpp
  *
  * A sane, simple, portable implementation of glob(). Used only on Windows.
  *
@@ -14,8 +14,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_CORE_SIMPLE_GLOB_HEADER
-#define THRILL_CORE_SIMPLE_GLOB_HEADER
+#ifndef THRILL_VFS_SIMPLE_GLOB_HEADER
+#define THRILL_VFS_SIMPLE_GLOB_HEADER
 
 // ---------------------------------------------------------------------------
 // Platform dependent implementations
@@ -83,7 +83,7 @@
 #endif
 
 namespace thrill {
-namespace core {
+namespace vfs {
 namespace glob_local {
 
 /*! \file simple_glob.hpp
@@ -975,9 +975,9 @@ using CSimpleGlobU = CSimpleGlobTempl<UChar>;
 #endif
 
 } // namespace glob_local
-} // namespace core
+} // namespace vfs
 } // namespace thrill
 
-#endif // !THRILL_CORE_SIMPLE_GLOB_HEADER
+#endif // !THRILL_VFS_SIMPLE_GLOB_HEADER
 
 /******************************************************************************/

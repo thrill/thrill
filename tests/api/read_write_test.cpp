@@ -21,7 +21,8 @@
 #include <thrill/api/write_lines_one.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/system_exception.hpp>
-#include <thrill/core/file_io.hpp>
+#include <thrill/vfs/file_io.hpp>
+#include <thrill/vfs/temporary_directory.hpp>
 
 #include <sys/stat.h>
 
@@ -57,6 +58,27 @@ TEST(IO, ReadSingleFile) {
     api::RunLocalTests(start_func);
 }
 
+TEST(IO, ReadSingleFileLocalStorageTag) {
+    auto start_func =
+        [](Context& ctx) {
+            auto integers = ReadLines(api::LocalStorageTag, ctx, "inputs/test1")
+                            .Map([](const std::string& line) {
+                                     return std::stoi(line);
+                                 });
+
+            std::vector<int> out_vec = integers.AllGather();
+
+            int i = 1;
+
+            ASSERT_EQ(16u * ctx.num_hosts(), out_vec.size());
+            for (int element : out_vec) {
+                ASSERT_EQ(element, ((i++ - 1) % 16) + 1);
+            }
+        };
+
+    api::RunLocalTests(start_func);
+}
+
 TEST(IO, ReadFolder) {
     auto start_func =
         [](Context& ctx) {
@@ -65,6 +87,9 @@ TEST(IO, ReadFolder) {
 
     api::RunLocalTests(start_func);
 }
+
+// need all decompressors in folder
+#if THRILL_HAVE_ZLIB && THRILL_HAVE_BZIP2
 
 TEST(IO, ReadPartOfFolderCompressed) {
 #if defined(_MSC_VER)
@@ -92,6 +117,8 @@ TEST(IO, ReadPartOfFolderCompressed) {
 
     api::RunLocalTests(start_func);
 }
+
+#endif // THRILL_HAVE_ZLIB && THRILL_HAVE_BZIP2
 
 TEST(IO, GenerateFromFileRandomIntegers) {
     api::RunLocalSameThread(
@@ -127,17 +154,8 @@ TEST(IO, GenerateFromFileRandomIntegers) {
         });
 }
 
-TEST(IO, WriteBinaryPatternFormatter) {
-
-    std::string str1 = core::FillFilePattern("test-@@@@-########", 42, 10);
-    ASSERT_EQ("test-0042-00000010", str1);
-
-    std::string str2 = core::FillFilePattern("test", 42, 10);
-    ASSERT_EQ("test00420000000010", str2);
-}
-
 TEST(IO, GenerateIntegerWriteReadBinary) {
-    core::TemporaryDirectory tmpdir;
+    vfs::TemporaryDirectory tmpdir;
 
     api::RunLocalTests(
         [&tmpdir](api::Context& ctx) {
@@ -155,7 +173,7 @@ TEST(IO, GenerateIntegerWriteReadBinary) {
                     ctx, generate_size,
                     [](const size_t index) { return index + 42; });
 
-                dia.WriteBinary(tmpdir.get() + "/IO.IntegerBinary",
+                dia.WriteBinary(tmpdir.get() + "/IntegerBinary",
                                 16 * 1024);
             }
             ctx.net.Barrier();
@@ -164,7 +182,7 @@ TEST(IO, GenerateIntegerWriteReadBinary) {
             {
                 auto dia = api::ReadBinary<size_t>(
                     ctx,
-                    tmpdir.get() + "/IO.IntegerBinary*");
+                    tmpdir.get() + "/IntegerBinary*");
 
                 std::vector<size_t> vec = dia.AllGather();
 
@@ -178,13 +196,15 @@ TEST(IO, GenerateIntegerWriteReadBinary) {
             }
         });
 }
+
+#if THRILL_HAVE_ZLIB
 
 TEST(IO, GenerateIntegerWriteReadBinaryCompressed) {
 #if defined(_MSC_VER)
     return;
 #endif
 
-    core::TemporaryDirectory tmpdir;
+    vfs::TemporaryDirectory tmpdir;
 
     api::RunLocalTests(
         [&tmpdir](api::Context& ctx) {
@@ -202,7 +222,7 @@ TEST(IO, GenerateIntegerWriteReadBinaryCompressed) {
                     ctx, generate_size,
                     [](const size_t index) { return index + 42; });
 
-                dia.WriteBinary(tmpdir.get() + "/IO.IntegerBinary-@@@@-####.gz",
+                dia.WriteBinary(tmpdir.get() + "/IntegerBinary.gz",
                                 16 * 1024);
             }
             ctx.net.Barrier();
@@ -211,7 +231,7 @@ TEST(IO, GenerateIntegerWriteReadBinaryCompressed) {
             {
                 auto dia = api::ReadBinary<size_t>(
                     ctx,
-                    tmpdir.get() + "/IO.IntegerBinary*");
+                    tmpdir.get() + "/IntegerBinary*");
 
                 std::vector<size_t> vec = dia.AllGather();
 
@@ -225,6 +245,8 @@ TEST(IO, GenerateIntegerWriteReadBinaryCompressed) {
             }
         });
 }
+
+#endif // THRILL_HAVE_ZLIB
 
 // make weird test strings of different lengths
 std::string test_string(size_t index) {
@@ -233,7 +255,7 @@ std::string test_string(size_t index) {
 }
 
 TEST(IO, GenerateStringWriteBinary) {
-    core::TemporaryDirectory tmpdir;
+    vfs::TemporaryDirectory tmpdir;
 
     // use pairs for easier checking and stranger string sizes.
     using Item = std::pair<size_t, std::string>;
@@ -256,7 +278,7 @@ TEST(IO, GenerateStringWriteBinary) {
                         return Item(index, test_string(index));
                     });
 
-                dia.WriteBinary(tmpdir.get() + "/IO.StringBinary",
+                dia.WriteBinary(tmpdir.get() + "/StringBinary",
                                 16 * 1024);
             }
             ctx.net.Barrier();
@@ -265,7 +287,7 @@ TEST(IO, GenerateStringWriteBinary) {
             {
                 auto dia = api::ReadBinary<Item>(
                     ctx,
-                    tmpdir.get() + "/IO.StringBinary*");
+                    tmpdir.get() + "/StringBinary*");
 
                 std::vector<Item> vec = dia.AllGather();
 
@@ -281,7 +303,7 @@ TEST(IO, GenerateStringWriteBinary) {
 }
 
 TEST(IO, WriteAndReadBinaryEqualDIAs) {
-    core::TemporaryDirectory tmpdir;
+    vfs::TemporaryDirectory tmpdir;
 
     auto start_func =
         [&tmpdir](Context& ctx) {
@@ -334,8 +356,49 @@ TEST(IO, WriteAndReadBinaryEqualDIAs) {
     api::RunLocalTests(start_func);
 }
 
+TEST(IO, WriteAndReadBinaryEqualDIAsLocalStorage) {
+    vfs::TemporaryDirectory tmpdir;
+
+    auto start_func =
+        [&tmpdir](Context& ctx) {
+            if (ctx.my_rank() == 0) {
+                tmpdir.wipe();
+            }
+            ctx.net.Barrier();
+
+            auto integers = ReadLines(ctx, "inputs/test1")
+                            .Map([](const std::string& line) {
+                                     return std::stoi(line);
+                                 });
+
+            auto out_vec = integers.AllGather();
+
+            ASSERT_EQ(16u, integers.Size());
+
+            integers.WriteBinary(tmpdir.get() + "/output_");
+
+            std::string path = "outputs/testsf.out";
+
+            ctx.net.Barrier();
+
+            auto integers2 = api::ReadBinary<int>(
+                api::LocalStorageTag, ctx, tmpdir.get() + "/*");
+
+            auto out_vec2 = integers2.AllGather();
+
+            ASSERT_EQ(16u * ctx.num_hosts(), integers2.Size());
+
+            size_t i = 0;
+            for (int element : out_vec2) {
+                ASSERT_EQ(element, out_vec[i++ % 16]);
+            }
+        };
+
+    api::RunLocalTests(start_func);
+}
+
 TEST(IO, IntegerWriteReadBinaryLinesFutures) {
-    core::TemporaryDirectory tmpdir;
+    vfs::TemporaryDirectory tmpdir;
 
     api::RunLocalTests(
         [&tmpdir](api::Context& ctx) {
@@ -355,12 +418,12 @@ TEST(IO, IntegerWriteReadBinaryLinesFutures) {
                     [](const size_t index) { return index + 42; });
 
                 Future<> fa = dia.WriteBinaryFuture(
-                    tmpdir.get() + "/IO.IntegerBinary", 16 * 1024);
+                    tmpdir.get() + "/IntegerBinary", 16 * 1024);
 
                 Future<> fb =
                     dia
                     .Map([](const size_t& i) { return std::to_string(i); })
-                    .WriteLinesOneFuture(tmpdir.get() + "/IO.IntegerLines");
+                    .WriteLinesOneFuture(tmpdir.get() + "/IntegerLines");
 
                 fa.wait();
                 fb.wait();
@@ -370,7 +433,7 @@ TEST(IO, IntegerWriteReadBinaryLinesFutures) {
             // read the binary integers from disk (collectively) and compare
             {
                 auto dia = api::ReadBinary<size_t>(
-                    ctx, tmpdir.get() + "/IO.IntegerBinary*");
+                    ctx, tmpdir.get() + "/IntegerBinary*");
 
                 std::vector<size_t> vec = dia.AllGather();
 
@@ -386,7 +449,7 @@ TEST(IO, IntegerWriteReadBinaryLinesFutures) {
             // read the text integers from disk (collectively) and compare
             {
                 auto dia = api::ReadLines(
-                    ctx, tmpdir.get() + "/IO.IntegerLines*");
+                    ctx, tmpdir.get() + "/IntegerLines*");
 
                 std::vector<std::string> vec = dia.AllGather();
 
