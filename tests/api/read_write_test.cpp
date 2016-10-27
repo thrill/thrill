@@ -173,7 +173,7 @@ TEST(IO, GenerateIntegerWriteReadBinary) {
                     ctx, generate_size,
                     [](const size_t index) { return index + 42; });
 
-                dia.WriteBinary(tmpdir.get() + "/IO.IntegerBinary",
+                dia.WriteBinary(tmpdir.get() + "/IntegerBinary",
                                 16 * 1024);
             }
             ctx.net.Barrier();
@@ -182,7 +182,7 @@ TEST(IO, GenerateIntegerWriteReadBinary) {
             {
                 auto dia = api::ReadBinary<size_t>(
                     ctx,
-                    tmpdir.get() + "/IO.IntegerBinary*");
+                    tmpdir.get() + "/IntegerBinary*");
 
                 std::vector<size_t> vec = dia.AllGather();
 
@@ -222,7 +222,7 @@ TEST(IO, GenerateIntegerWriteReadBinaryCompressed) {
                     ctx, generate_size,
                     [](const size_t index) { return index + 42; });
 
-                dia.WriteBinary(tmpdir.get() + "/IO.IntegerBinary-@@@@-####.gz",
+                dia.WriteBinary(tmpdir.get() + "/IntegerBinary.gz",
                                 16 * 1024);
             }
             ctx.net.Barrier();
@@ -231,7 +231,7 @@ TEST(IO, GenerateIntegerWriteReadBinaryCompressed) {
             {
                 auto dia = api::ReadBinary<size_t>(
                     ctx,
-                    tmpdir.get() + "/IO.IntegerBinary*");
+                    tmpdir.get() + "/IntegerBinary*");
 
                 std::vector<size_t> vec = dia.AllGather();
 
@@ -278,7 +278,7 @@ TEST(IO, GenerateStringWriteBinary) {
                         return Item(index, test_string(index));
                     });
 
-                dia.WriteBinary(tmpdir.get() + "/IO.StringBinary",
+                dia.WriteBinary(tmpdir.get() + "/StringBinary",
                                 16 * 1024);
             }
             ctx.net.Barrier();
@@ -287,7 +287,7 @@ TEST(IO, GenerateStringWriteBinary) {
             {
                 auto dia = api::ReadBinary<Item>(
                     ctx,
-                    tmpdir.get() + "/IO.StringBinary*");
+                    tmpdir.get() + "/StringBinary*");
 
                 std::vector<Item> vec = dia.AllGather();
 
@@ -418,12 +418,12 @@ TEST(IO, IntegerWriteReadBinaryLinesFutures) {
                     [](const size_t index) { return index + 42; });
 
                 Future<> fa = dia.WriteBinaryFuture(
-                    tmpdir.get() + "/IO.IntegerBinary", 16 * 1024);
+                    tmpdir.get() + "/IntegerBinary", 16 * 1024);
 
                 Future<> fb =
                     dia
                     .Map([](const size_t& i) { return std::to_string(i); })
-                    .WriteLinesOneFuture(tmpdir.get() + "/IO.IntegerLines");
+                    .WriteLinesOneFuture(tmpdir.get() + "/IntegerLines");
 
                 fa.wait();
                 fb.wait();
@@ -433,7 +433,7 @@ TEST(IO, IntegerWriteReadBinaryLinesFutures) {
             // read the binary integers from disk (collectively) and compare
             {
                 auto dia = api::ReadBinary<size_t>(
-                    ctx, tmpdir.get() + "/IO.IntegerBinary*");
+                    ctx, tmpdir.get() + "/IntegerBinary*");
 
                 std::vector<size_t> vec = dia.AllGather();
 
@@ -449,7 +449,7 @@ TEST(IO, IntegerWriteReadBinaryLinesFutures) {
             // read the text integers from disk (collectively) and compare
             {
                 auto dia = api::ReadLines(
-                    ctx, tmpdir.get() + "/IO.IntegerLines*");
+                    ctx, tmpdir.get() + "/IntegerLines*");
 
                 std::vector<std::string> vec = dia.AllGather();
 
