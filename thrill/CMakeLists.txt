@@ -43,7 +43,7 @@ if(MPI_FOUND)
   list(APPEND THRILL_SRCS ${THRILL_NET_MPI_SRCS})
 endif()
 
-add_library(thrill ${THRILL_SRCS})
+add_library(thrill STATIC ${THRILL_SRCS})
 target_link_libraries(thrill ${THRILL_DEP_LIBRARIES})
 
 ################################################################################
