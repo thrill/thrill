@@ -27,10 +27,10 @@
 namespace thrill {
 namespace vfs {
 
+#if THRILL_HAVE_LIBS3
+
 // flag to output debug info from S3
 static constexpr bool debug = false;
-
-#if THRILL_HAVE_LIBS3
 
 /******************************************************************************/
 
@@ -450,7 +450,6 @@ ReadStreamPtr S3OpenReadStream(
     S3BucketContext bkt;
     FillS3BucketContext(bkt, splitted[0]);
 
-    // TODO(tb): figure out how to interpret range
     return common::MakeCounting<S3ReadStream>(
         &bkt, splitted[1].c_str(),
         /* start_byte */ range.begin, /* byte_count */ range.size());
