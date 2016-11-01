@@ -21,21 +21,21 @@ using namespace thrill; // NOLINT
 static unsigned int count_deletes = 0;
 
 // derive from counted_object to include reference counter
-struct MyInteger : public common::ReferenceCount {
+struct MyIntegerRC : public common::ReferenceCount {
     int i;
 
-    explicit MyInteger(int _i) : i(_i) { }
+    explicit MyIntegerRC(int _i) : i(_i) { }
 
     // count number of destructor calls
-    ~MyInteger()
+    ~MyIntegerRC()
     { ++count_deletes; }
 };
 
-using IntegerPtr = common::CountingPtr<MyInteger>;
-using IntegerCPtr = common::CountingPtr<const MyInteger>;
+using IntegerPtr = common::CountingPtr<MyIntegerRC>;
+using IntegerCPtr = common::CountingPtr<const MyIntegerRC>;
 
 IntegerPtr MakeIntegerPtr() {
-    return IntegerPtr(new MyInteger(24));
+    return IntegerPtr(new MyIntegerRC(24));
 }
 
 TEST(CountingPtr, RunTest) {
@@ -43,7 +43,7 @@ TEST(CountingPtr, RunTest) {
     {
         {
             // create object and pointer to it
-            IntegerPtr i1 = IntegerPtr(new MyInteger(42));
+            IntegerPtr i1 = IntegerPtr(new MyIntegerRC(42));
 
             ASSERT_EQ(42, i1->i);
             ASSERT_EQ(42, (*i1).i);
@@ -65,7 +65,7 @@ TEST(CountingPtr, RunTest) {
             ASSERT_EQ(3, i3->reference_count());
 
             // replace object in i3 with new integer
-            i3 = IntegerPtr(new MyInteger(5));
+            i3 = IntegerPtr(new MyIntegerRC(5));
             ASSERT_TRUE(i3 != i1);
             ASSERT_EQ(2, i1->reference_count());
         }

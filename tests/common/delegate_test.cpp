@@ -150,7 +150,7 @@ TEST(Delegate, TestClassFunction) {
     }
 }
 
-class Functor
+class AddFunctor
 {
 public:
     int x;
@@ -161,7 +161,7 @@ public:
 };
 
 TEST(Delegate, TestFunctorClass) {
-    Functor f = { 12 };
+    AddFunctor f = { 12 };
 
     {
         // calls general functor constructor

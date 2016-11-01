@@ -83,10 +83,10 @@ TEST(Meta, VariadicCallEnumerate) {
 /******************************************************************************/
 // VariadicMapIndex
 
-class Functor
+class RunFunctor
 {
 public:
-    Functor() { }
+    RunFunctor() { }
 
     template <typename Type>
     void Run(const Type& t) {
@@ -99,7 +99,7 @@ TEST(Meta, VariadicMapIndex) {
 
     auto res = common::VariadicMapIndex(
         [](auto index, auto a) {
-            Functor().Run(a);
+            RunFunctor().Run(a);
             return a + decltype(a)(index);
         },
         // some argument to map.
