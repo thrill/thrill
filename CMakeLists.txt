@@ -66,6 +66,9 @@ option(THRILL_USE_S3
   "Build libs3 as library. Enabled by default if all dependencies are found."
   ${THRILL_USE_S3_DEFAULT})
 
+option(THRILL_USE_HDFS3
+  "Download and build with libhdfs3 for hdfs:// support." OFF)
+
 # BUILD_SHARED_LIBS is a standard CMake variable, but we declare it here to
 # make it prominent in the GUI.
 option(BUILD_SHARED_LIBS "Build shared libraries (DLLs)." OFF)
@@ -430,6 +433,29 @@ if(THRILL_USE_S3 AND CURL_FOUND AND LIBXML2_FOUND AND OPENSSL_FOUND)
   #   set(THRILL_DEP_LIBRARIES ${THRILL_DEP_LIBRARIES} ${LibS3_LIBRARIES})
   #   add_definitions(-DTHRILL_HAVE_LIBS3=1)
   # endif()
+endif()
+
+# try to find libHDFS3 (optional)
+
+if(THRILL_USE_HDFS3)
+
+  include(ExternalProject)
+  ExternalProject_Add(libhdfs3
+    URL https://github.com/Pivotal-Data-Attic/pivotalrd-libhdfs3/archive/v2.2.31.tar.gz
+    URL_MD5 7629f18ba81b638f5f47599e07eee28c
+    PREFIX ${CMAKE_BINARY_DIR}/extlib/libhdfs3
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>)
+
+  ExternalProject_Get_Property(libhdfs3 INSTALL_DIR)
+
+  include_directories(${INSTALL_DIR}/include)
+  add_library(hdfs3 UNKNOWN IMPORTED)
+  set_target_properties(hdfs3 PROPERTIES
+    IMPORTED_LOCATION ${INSTALL_DIR}/lib/libhdfs3.so)
+  add_dependencies(hdfs3 libhdfs3)
+  set(THRILL_DEP_LIBRARIES ${THRILL_DEP_LIBRARIES} hdfs3)
+  add_definitions(-DTHRILL_HAVE_LIBHDFS3=1)
+
 endif()
 
 # try to find Intel TBB (optional)

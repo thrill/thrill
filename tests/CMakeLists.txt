@@ -150,6 +150,7 @@ endif()
 
 thrill_build_test(vfs/sys_file_test)
 thrill_build_plain(vfs/s3_file_example)
+thrill_build_plain(vfs/hdfs3_file_example)
 if(ZLIB_FOUND)
   thrill_build_test(vfs/gzip_filter_test)
 endif()

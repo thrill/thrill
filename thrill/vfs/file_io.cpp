@@ -15,6 +15,7 @@
 #include <thrill/common/string.hpp>
 #include <thrill/vfs/bzip2_filter.hpp>
 #include <thrill/vfs/gzip_filter.hpp>
+#include <thrill/vfs/hdfs3_file.hpp>
 #include <thrill/vfs/s3_file.hpp>
 #include <thrill/vfs/sys_file.hpp>
 
@@ -29,10 +30,12 @@ namespace vfs {
 
 void Initialize() {
     S3Initialize();
+    Hdfs3Initialize();
 }
 
 void Deinitialize() {
     S3Deinitialize();
+    Hdfs3Deinitialize();
 }
 
 /******************************************************************************/
@@ -128,6 +131,9 @@ FileList Glob(const std::vector<std::string>& globlist, const GlobType& gtype) {
         else if (common::StartsWith(path, "s3://")) {
             S3Glob(path, gtype, filelist);
         }
+        else if (common::StartsWith(path, "hdfs://")) {
+            Hdfs3Glob(path, gtype, filelist);
+        }
         else {
             SysGlob(path, gtype, filelist);
         }
@@ -170,6 +176,9 @@ ReadStreamPtr OpenReadStream(
     else if (common::StartsWith(path, "s3://")) {
         p = S3OpenReadStream(path, range);
     }
+    else if (common::StartsWith(path, "hdfs://")) {
+        p = Hdfs3OpenReadStream(path, range);
+    }
     else {
         p = SysOpenReadStream(path, range);
     }
@@ -196,6 +205,9 @@ WriteStreamPtr OpenWriteStream(const std::string& path) {
     }
     else if (common::StartsWith(path, "s3://")) {
         p = S3OpenWriteStream(path);
+    }
+    else if (common::StartsWith(path, "hdfs://")) {
+        p = Hdfs3OpenWriteStream(path);
     }
     else {
         p = SysOpenWriteStream(path);
