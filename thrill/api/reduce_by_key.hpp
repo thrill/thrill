@@ -114,7 +114,8 @@ public:
           pre_phase_(
               context_, Super::id(), parent.ctx().num_workers(),
               key_extractor, reduce_function, emitters_, config,
-              HashIndexFunction(key_hash_function), key_equal_function),
+              HashIndexFunction(key_hash_function), key_equal_function,
+              key_hash_function),
           post_phase_(
               context_, Super::id(), key_extractor, reduce_function,
               Emitter(this), config,
@@ -218,10 +219,10 @@ private:
     //! handle to additional thread for post phase
     std::thread thread_;
 
-    core::ReducePrePhaseDuplicates<
-        TableItem, Key, ValueType, KeyExtractor, ReduceFunction, VolatileKey,
-        ReduceConfig, HashIndexFunction, KeyEqualFunction, KeyHashFunction>
-        pre_phase_;
+    core::ReducePrePhase<TableItem, Key, ValueType, KeyExtractor,
+                         ReduceFunction, VolatileKey, ReduceConfig,
+                         HashIndexFunction, KeyEqualFunction, KeyHashFunction,
+                         false> pre_phase_;
 
     core::ReduceByHashPostPhase<
         TableItem, Key, ValueType, KeyExtractor, ReduceFunction, Emitter,

@@ -16,6 +16,7 @@
 #ifndef THRILL_CORE_REDUCE_PRE_PHASE_HEADER
 #define THRILL_CORE_REDUCE_PRE_PHASE_HEADER
 
+#include <thrill/common/defines.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/math.hpp>
 #include <thrill/core/duplicate_detection.hpp>
@@ -87,8 +88,27 @@ template <typename TableItem, typename Key, typename Value,
           const bool VolatileKey,
           typename ReduceConfig_ = DefaultReduceConfig,
           typename IndexFunction = ReduceByHash<Key>,
-          typename KeyEqualFunction = std::equal_to<Key> >
-class ReducePrePhase
+          typename KeyEqualFunction = std::equal_to<Key>,
+          typename HashFunction = std::hash<Key>,
+          bool UseDuplicateDetection = false>
+class ReducePrePhase;
+
+template <typename TableItem, typename Key, typename Value,
+          typename KeyExtractor, typename ReduceFunction,
+          const bool VolatileKey,
+          typename ReduceConfig_,
+          typename IndexFunction,
+          typename KeyEqualFunction,
+          typename HashFunction>
+class ReducePrePhase<TableItem, Key, Value,
+                     KeyExtractor, ReduceFunction,
+                     VolatileKey,
+                     ReduceConfig_,
+                     IndexFunction,
+                     KeyEqualFunction,
+                     HashFunction,
+                     false>
+
 {
     static constexpr bool debug = false;
 
@@ -116,6 +136,7 @@ public:
                    const ReduceConfig& config = ReduceConfig(),
                    const IndexFunction& index_function = IndexFunction(),
                    const KeyEqualFunction& key_equal_function = KeyEqualFunction(),
+                   const HashFunction hash_function = HashFunction(),
                    bool duplicates = false)
         : emit_(emit),
           key_extractor_(key_extractor),
@@ -123,6 +144,8 @@ public:
                  key_extractor, reduce_function, emit_,
                  num_partitions, config, !duplicates,
                  index_function, key_equal_function) {
+
+        common::UNUSED(hash_function);
 
         sLOG << "creating ReducePrePhase with" << emit.size() << "output emitters";
 
@@ -188,39 +211,48 @@ protected:
 template <typename TableItem, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool VolatileKey,
-          typename ReduceConfig = DefaultReduceConfig,
-          typename IndexFunction = ReduceByHash<Key>,
-          typename EqualToFunction = std::equal_to<Key>,
-          typename HashFunction = std::hash<Key> >
-class ReducePrePhaseDuplicates : public ReducePrePhase<TableItem, Key, Value,
-                                                       KeyExtractor,
-                                                       ReduceFunction,
-                                                       VolatileKey,
-                                                       ReduceConfig,
-                                                       IndexFunction,
-                                                       EqualToFunction>
-{
+          typename ReduceConfig,
+          typename IndexFunction,
+          typename EqualToFunction,
+          typename HashFunction>
+class ReducePrePhase <TableItem, Key, Value,
+                      KeyExtractor,
+                      ReduceFunction,
+                      VolatileKey,
+                      ReduceConfig,
+                      IndexFunction,
+                      EqualToFunction,
+                      HashFunction,
+                      true> : public ReducePrePhase<TableItem, Key, Value,
+                                                    KeyExtractor,
+                                                    ReduceFunction,
+                                                    VolatileKey,
+                                                    ReduceConfig,
+                                                    IndexFunction,
+                                                    EqualToFunction,
+                                                    HashFunction,
+                                                    false> {
 
 public:
     using Super = ReducePrePhase<TableItem, Key, Value, KeyExtractor,
                                  ReduceFunction, VolatileKey, ReduceConfig,
-                                 IndexFunction, EqualToFunction>;
+                                 IndexFunction, EqualToFunction, HashFunction,
+                                 false>;
     using KeyValuePair = std::pair<Key, Value>;
 
 
-    ReducePrePhaseDuplicates(Context& ctx, size_t dia_id,
-                             size_t num_partitions,
-                             KeyExtractor key_extractor,
-                             ReduceFunction reduce_function,
-                             std::vector<data::DynBlockWriter>& emit,
-                             const ReduceConfig& config = ReduceConfig(),
-                             const IndexFunction& index_function =
-                                 IndexFunction(),
-                             const EqualToFunction& equal_to_function =
-                                 EqualToFunction(),
-                             const HashFunction hash_function = HashFunction())
-        : Super(ctx, dia_id, num_partitions, key_extractor, reduce_function, emit,
-                config, index_function, equal_to_function, /*duplicates*/ true),
+    ReducePrePhase(Context& ctx, size_t dia_id,
+                   size_t num_partitions,
+                   KeyExtractor key_extractor,
+                   ReduceFunction reduce_function,
+                   std::vector<data::DynBlockWriter>& emit,
+                   const ReduceConfig& config = ReduceConfig(),
+                   const IndexFunction& index_function = IndexFunction(),
+                   const EqualToFunction& equal_to_function = EqualToFunction(),
+                   const HashFunction hash_function = HashFunction())
+        : Super(ctx, dia_id, num_partitions, key_extractor, reduce_function,
+                emit, config, index_function, equal_to_function, hash_function,
+                /*duplicates*/ true),
           hash_function_(hash_function) { }
 
     void Insert(const Value& v) {
@@ -256,7 +288,7 @@ public:
                     Super::emit_.Emit(partition_id, ti);
                 }
                 else {
-                    non_duplicate_elements_++;
+                   non_duplicate_elements_++;
                     Super::emit_.Emit(Super::table_.ctx().my_rank(), ti);
                 }
             });
