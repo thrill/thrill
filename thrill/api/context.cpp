@@ -21,12 +21,7 @@
 #include <thrill/common/string.hpp>
 #include <thrill/common/system_exception.hpp>
 #include <thrill/io/iostats.hpp>
-
-#if THRILL_USE_AWS
-#include <aws/core/Aws.h>
-#include <aws/core/auth/AWSCredentialsProvider.h>
-#include <aws/s3/S3Client.h>
-#endif
+#include <thrill/vfs/file_io.hpp>
 
 // mock net backend is always available -tb :)
 #include <thrill/net/mock/group.hpp>
@@ -158,7 +153,7 @@ RunLoopbackThreads(
 }
 
 /******************************************************************************/
-// Other Configuration Options
+// Other Configuration Initializations
 
 static inline bool SetupBlockSize() {
 
@@ -181,6 +176,22 @@ static inline bool SetupBlockSize() {
     std::cerr << "Thrill: setting default_block_size = "
               << data::default_block_size
               << std::endl;
+
+    return true;
+}
+
+static inline bool Initialize() {
+
+    if (!SetupBlockSize()) return false;
+
+    vfs::Initialize();
+
+    return true;
+}
+
+static inline bool Deinitialize() {
+
+    vfs::Deinitialize();
 
     return true;
 }
@@ -351,8 +362,12 @@ int RunBackendLoopback(
               << " test hosts and " << workers_per_host << " workers per host"
               << " in a local " << backend << " network." << std::endl;
 
+    if (!Initialize()) return -1;
+
     RunLoopbackThreads<NetGroup>(
         mem_config, num_hosts, workers_per_host, job_startpoint);
+
+    if (!Deinitialize()) return -1;
 
     return 0;
 }
@@ -460,7 +475,7 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
         std::cerr << ' ' << ep;
     std::cerr << std::endl;
 
-    if (!SetupBlockSize()) return -1;
+    if (!Initialize()) return -1;
 
     static constexpr size_t kGroupCount = net::Manager::kGroupCount;
 
@@ -496,6 +511,8 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
     for (size_t i = 0; i < workers_per_host; i++) {
         threads[i].join();
     }
+
+    if (!Deinitialize()) return -1;
 
     return global_result;
 }
@@ -544,7 +561,7 @@ int RunBackendMpi(const std::function<void(Context&)>& job_startpoint) {
               << " as rank " << mpi_rank << "."
               << std::endl;
 
-    if (!SetupBlockSize()) return -1;
+    if (!Initialize()) return -1;
 
     static constexpr size_t kGroupCount = net::Manager::kGroupCount;
 
@@ -581,6 +598,8 @@ int RunBackendMpi(const std::function<void(Context&)>& job_startpoint) {
     for (size_t i = 0; i < workers_per_host; i++) {
         threads[i].join();
     }
+
+    if (!Deinitialize()) return -1;
 
     return global_result;
 }
@@ -629,7 +648,7 @@ int RunBackendIb(const std::function<void(Context&)>& job_startpoint) {
               << " as rank " << mpi_rank << "."
               << std::endl;
 
-    if (!SetupBlockSize()) return -1;
+    if (!Initialize()) return -1;
 
     static constexpr size_t kGroupCount = net::Manager::kGroupCount;
 
@@ -666,6 +685,8 @@ int RunBackendIb(const std::function<void(Context&)>& job_startpoint) {
     for (size_t i = 0; i < workers_per_host; i++) {
         threads[i].join();
     }
+
+    if (!Deinitialize()) return -1;
 
     return global_result;
 }
@@ -935,29 +956,6 @@ HostContext::HostContext(
       local_host_id_(local_host_id),
       workers_per_host_(workers_per_host),
       net_manager_(std::move(groups), logger_) {
-
- #if THRILL_USE_AWS
-    Aws::SDKOptions options;
-    Aws::InitAPI(options);
-    const char* ALLOCATION_TAG = "reading_from_s3";
-    // Create client configuration file
-    Aws::Client::ClientConfiguration config;
-    config.region = Aws::Region::EU_WEST_1;
-
-    // config.region = Aws::Region::US_EAST_1;
-    config.scheme = Aws::Http::Scheme::HTTPS;
-    config.connectTimeoutMs = 60000;
-    config.requestTimeoutMs = 60000;
-
-    // create S3 client
-    Aws::String access_key_id("NO");
-    Aws::String secret_key("NO");
-
-    Aws::Auth::AWSCredentials creds(access_key_id, secret_key);
-    s3_client_ = Aws::MakeShared<Aws::S3::S3Client>(ALLOCATION_TAG,
-                                                    creds, config);
-
-#endif
 
     // write command line parameters to json log
     common::LogCmdlineParams(logger_);

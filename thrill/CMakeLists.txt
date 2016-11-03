@@ -14,14 +14,15 @@
 file(GLOB THRILL_SRCS
   RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/*.[ch]pp
+  ${CMAKE_CURRENT_SOURCE_DIR}/api/*.[ch]pp
   ${CMAKE_CURRENT_SOURCE_DIR}/common/*.[ch]pp
-  ${CMAKE_CURRENT_SOURCE_DIR}/mem/*.[ch]pp
-  ${CMAKE_CURRENT_SOURCE_DIR}/io/*.[ch]pp
   ${CMAKE_CURRENT_SOURCE_DIR}/core/*.[ch]pp
   ${CMAKE_CURRENT_SOURCE_DIR}/data/*.[ch]pp
+  ${CMAKE_CURRENT_SOURCE_DIR}/io/*.[ch]pp
+  ${CMAKE_CURRENT_SOURCE_DIR}/mem/*.[ch]pp
   ${CMAKE_CURRENT_SOURCE_DIR}/net/*.[ch]pp
-  ${CMAKE_CURRENT_SOURCE_DIR}/api/*.[ch]pp
   ${CMAKE_CURRENT_SOURCE_DIR}/net/mock/*.[ch]pp
+  ${CMAKE_CURRENT_SOURCE_DIR}/vfs/*.[ch]pp
   )
 
 # add net/tcp on all platforms except Windows
@@ -42,7 +43,7 @@ if(MPI_FOUND)
   list(APPEND THRILL_SRCS ${THRILL_NET_MPI_SRCS})
 endif()
 
-add_library(thrill ${THRILL_SRCS})
+add_library(thrill STATIC ${THRILL_SRCS})
 target_link_libraries(thrill ${THRILL_DEP_LIBRARIES})
 
 ################################################################################

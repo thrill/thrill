@@ -78,7 +78,6 @@ endmacro(thrill_build_test_group)
 ### list of tests in subdirectories
 
 thrill_build_plain(common/cmdline_parser_example)
-thrill_build_plain(common/zip_stream_example)
 thrill_build_test_group(common/tests
   common/aggregate_test
   common/binary_heap_test.cpp
@@ -149,6 +148,15 @@ if(NOT APPLE)
   thrill_test_only(io_file_io_sizes_test linuxaio "./testdisk1" 134217728)
 endif()
 
+thrill_build_test(vfs/sys_file_test)
+thrill_build_plain(vfs/s3_file_example)
+if(ZLIB_FOUND)
+  thrill_build_test(vfs/gzip_filter_test)
+endif()
+if(BZIP2_FOUND)
+  thrill_build_test(vfs/bzip2_filter_test)
+endif()
+
 thrill_build_test(data/block_queue_test)
 thrill_build_test(data/block_pool_test)
 thrill_build_test(data/file_test)
@@ -170,7 +178,6 @@ thrill_build_test(api/join_test)
 thrill_build_test(api/merge_node_test)
 thrill_build_test(api/operations_test)
 thrill_build_test(api/read_write_test)
-thrill_build_only(api/read_write_test_aws)
 thrill_build_test(api/reduce_node_test)
 thrill_build_test(api/sort_node_test)
 thrill_build_test(api/stage_builder_test)

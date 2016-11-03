@@ -13,6 +13,7 @@
 #endif
 
 #include <thrill/common/json_logger.hpp>
+#include <thrill/common/porting.hpp>
 #include <thrill/common/profile_thread.hpp>
 #include <thrill/mem/malloc_tracker.hpp>
 
@@ -86,20 +87,22 @@ static constexpr size_t sentinel = 0xDEADC0DE;
 
 #define USE_ATOMICS 0
 
-//! CounterType is used for atomic counters, and get to retrieve their contents
+//! CounterType is used for atomic counters, and get to retrieve their
+//! contents. Due to the thread-local cached statistics, the overall memory
+//! usage counter can actually go negative!
 #if defined(_MSC_VER) || USE_ATOMICS
-using CounterType = std::atomic<size_t>;
+using CounterType = std::atomic<ssize_t>;
 #else
 // we cannot use std::atomic on gcc/clang because only real atomic instructions
 // work with the Sanitizers
-using CounterType = size_t;
+using CounterType = ssize_t;
 #endif
 
 // actually only such that formatting is not messed up
 #define COUNTER_ZERO { 0 }
 
 ATTRIBUTE_NO_SANITIZE
-static inline size_t get(const CounterType& a) {
+static inline ssize_t get(const CounterType& a) {
 #if defined(_MSC_VER) || USE_ATOMICS
     return a.load();
 #else
@@ -108,7 +111,7 @@ static inline size_t get(const CounterType& a) {
 }
 
 ATTRIBUTE_NO_SANITIZE
-static inline size_t sync_add_and_fetch(CounterType& curr, size_t inc) {
+static inline ssize_t sync_add_and_fetch(CounterType& curr, ssize_t inc) {
 #if defined(_MSC_VER) || USE_ATOMICS
     return (curr += inc);
 #else
@@ -117,7 +120,7 @@ static inline size_t sync_add_and_fetch(CounterType& curr, size_t inc) {
 }
 
 ATTRIBUTE_NO_SANITIZE
-static inline size_t sync_sub_and_fetch(CounterType& curr, size_t dec) {
+static inline ssize_t sync_sub_and_fetch(CounterType& curr, ssize_t dec) {
 #if defined(_MSC_VER) || USE_ATOMICS
     return (curr -= dec);
 #else
@@ -154,11 +157,11 @@ static CounterType base_curr COUNTER_ZERO;
 
 //! memory limit exceeded indicator
 bool memory_exceeded = false;
-size_t memory_limit_indication = std::numeric_limits<size_t>::max();
+ssize_t memory_limit_indication = std::numeric_limits<ssize_t>::max();
 
 // prototype for profiling
 ATTRIBUTE_NO_SANITIZE
-static void update_memprofile(size_t float_current, size_t base_current);
+static void update_memprofile(ssize_t float_current, ssize_t base_current);
 
 struct LocalStats {
     size_t  total_allocs;
@@ -174,13 +177,33 @@ struct LocalStats {
 
 #if HAVE_THREAD_LOCAL
 static thread_local LocalStats tl_stats = { 0, 0, 0 };
-static const ssize_t tl_delay_threshold = 2 * 1024 * 1024;
+static const ssize_t tl_delay_threshold = 1024 * 1024;
 #endif
 
 ATTRIBUTE_NO_SANITIZE
-void update_peak(size_t float_curr, size_t base_curr) {
+void update_peak(ssize_t float_curr, ssize_t base_curr) {
     if (float_curr + base_curr > peak_bytes)
         peak_bytes = float_curr + base_curr;
+}
+
+ATTRIBUTE_NO_SANITIZE
+void flush_memory_statistics() {
+#if HAVE_THREAD_LOCAL
+    // no-operation of no thread_local is available.
+    ssize_t mycurr = sync_add_and_fetch(float_curr, tl_stats.bytes);
+
+    sync_add_and_fetch(total_bytes, tl_stats.bytes);
+    sync_add_and_fetch(total_allocs, tl_stats.total_allocs);
+    sync_add_and_fetch(current_allocs, tl_stats.current_allocs);
+    update_peak(mycurr, base_curr);
+
+    memory_exceeded = (mycurr >= memory_limit_indication);
+    update_memprofile(mycurr, get(base_curr));
+
+    tl_stats.bytes = 0;
+    tl_stats.total_allocs = 0;
+    tl_stats.current_allocs = 0;
+#endif
 }
 
 //! add allocation to statistics
@@ -191,26 +214,11 @@ static void inc_count(size_t inc) {
     tl_stats.current_allocs++;
     tl_stats.bytes += inc;
 
-    if (tl_stats.bytes > tl_delay_threshold) {
-        size_t mycurr = sync_add_and_fetch(
-            float_curr, tl_stats.bytes);
-
-        total_bytes += tl_stats.bytes;
-        update_peak(mycurr, base_curr);
-
-        sync_add_and_fetch(total_allocs, tl_stats.total_allocs);
-        sync_add_and_fetch(current_allocs, tl_stats.current_allocs);
-
-        memory_exceeded = (mycurr >= memory_limit_indication);
-        update_memprofile(mycurr, get(base_curr));
-
-        tl_stats.total_allocs = 0;
-        tl_stats.current_allocs = 0;
-        tl_stats.bytes = 0;
-    }
+    if (tl_stats.bytes > tl_delay_threshold)
+        flush_memory_statistics();
 #else
     // no thread_local data structure -> update immediately (more contention)
-    size_t mycurr = sync_add_and_fetch(float_curr, inc);
+    ssize_t mycurr = sync_add_and_fetch(float_curr, inc);
     total_bytes += inc;
     update_peak(mycurr, base_curr);
 
@@ -229,22 +237,11 @@ static void dec_count(size_t dec) {
     tl_stats.current_allocs--;
     tl_stats.bytes -= dec;
 
-    if (tl_stats.bytes < tl_delay_threshold) {
-        size_t mycurr = sync_add_and_fetch(
-            float_curr, tl_stats.bytes);
-
-        sync_add_and_fetch(current_allocs, tl_stats.current_allocs);
-
-        memory_exceeded = (mycurr >= memory_limit_indication);
-        update_memprofile(mycurr, get(base_curr));
-
-        tl_stats.total_allocs = 0;
-        tl_stats.current_allocs = 0;
-        tl_stats.bytes = 0;
-    }
+    if (tl_stats.bytes < -tl_delay_threshold)
+        flush_memory_statistics();
 #else
     // no thread_local data structure -> update immediately (more contention)
-    size_t mycurr = sync_sub_and_fetch(float_curr, dec);
+    ssize_t mycurr = sync_sub_and_fetch(float_curr, dec);
 
     sync_sub_and_fetch(current_allocs, 1);
 
@@ -254,12 +251,12 @@ static void dec_count(size_t dec) {
 }
 
 //! user function to return the currently allocated amount of memory
-size_t malloc_tracker_current() {
+ssize_t malloc_tracker_current() {
     return float_curr;
 }
 
 //! user function to return the peak allocation
-size_t malloc_tracker_peak() {
+ssize_t malloc_tracker_peak() {
     return peak_bytes;
 }
 
@@ -269,7 +266,7 @@ void malloc_tracker_reset_peak() {
 }
 
 //! user function to return total number of allocations
-size_t malloc_tracker_total_allocs() {
+ssize_t malloc_tracker_total_allocs() {
     return total_allocs;
 }
 
@@ -279,7 +276,7 @@ void malloc_tracker_print_status() {
             get(float_curr), get(peak_bytes), get(base_curr));
 }
 
-void set_memory_limit_indication(size_t size) {
+void set_memory_limit_indication(ssize_t size) {
     // fprintf(stderr, PPREFIX "set_memory_limit_indication %zu\n", size);
     memory_limit_indication = size;
 }
@@ -292,15 +289,15 @@ static constexpr bool mp_enable = true;
 static CounterType mp_next_bar COUNTER_ZERO;
 
 struct OhlcBar {
-    size_t high = 0, low = 0, close = 0;
+    ssize_t high = 0, low = 0, close = 0;
 
     ATTRIBUTE_NO_SANITIZE
-    void   init(size_t current) {
+    void    init(ssize_t current) {
         high = low = close = current;
     }
 
     ATTRIBUTE_NO_SANITIZE
-    void   aggregate(size_t current) {
+    void    aggregate(ssize_t current) {
         if (high < current) high = current;
         if (low > current) low = current;
         close = current;
@@ -311,7 +308,7 @@ struct OhlcBar {
 static OhlcBar mp_float, mp_base;
 
 ATTRIBUTE_NO_SANITIZE
-static void update_memprofile(size_t float_current, size_t base_current) {
+static void update_memprofile(ssize_t float_current, ssize_t base_current) {
 
     if (!mp_enable) return;
 
@@ -473,7 +470,7 @@ void * bypass_malloc(size_t size) noexcept {
     }
 #endif
 
-    size_t mycurr = sync_add_and_fetch(base_curr, size);
+    ssize_t mycurr = sync_add_and_fetch(base_curr, size);
 
     total_bytes += size;
     update_peak(float_curr, mycurr);
@@ -515,7 +512,7 @@ void bypass_free(void* ptr, size_t size) noexcept {
     }
 #endif
 
-    size_t mycurr = sync_sub_and_fetch(base_curr, size);
+    ssize_t mycurr = sync_sub_and_fetch(base_curr, size);
 
     sync_sub_and_fetch(current_allocs, 1);
 
@@ -658,7 +655,7 @@ static void preinit_free(void* ptr) {
 ATTRIBUTE_NO_SANITIZE
 void * malloc(size_t size) NOEXCEPT {
 
-    if (!real_malloc)
+    if (THRILL_UNLIKELY(!real_malloc))
         return preinit_malloc(size);
 
     //! call real malloc procedure in libc
@@ -712,13 +709,14 @@ void free(void* ptr) NOEXCEPT {
 
     if (!ptr) return;   //! free(nullptr) is no operation
 
-    if (static_cast<char*>(ptr) >= init_heap &&
-        static_cast<char*>(ptr) <= init_heap + get(init_heap_use))
+    if (THRILL_UNLIKELY(
+            static_cast<char*>(ptr) >= init_heap &&
+            static_cast<char*>(ptr) <= init_heap + get(init_heap_use)))
     {
         return preinit_free(ptr);
     }
 
-    if (!real_free) {
+    if (THRILL_UNLIKELY(!real_free)) {
         fprintf(stderr, PPREFIX
                 "free(%p) outside init heap and without real_free !!!\n", ptr);
         return;

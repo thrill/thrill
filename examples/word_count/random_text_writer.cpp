@@ -13,8 +13,11 @@
  ******************************************************************************/
 
 #include <examples/word_count/random_text_writer.hpp>
+#include <thrill/api/generate.hpp>
+#include <thrill/api/write_lines.hpp>
 #include <thrill/common/cmdline_parser.hpp>
 
+#include <fstream>
 #include <random>
 #include <string>
 #include <vector>
@@ -22,17 +25,85 @@
 using namespace thrill;               // NOLINT
 using namespace examples::word_count; // NOLINT
 
+unsigned min_words_key = 5, max_words_key = 10,
+    min_words_value = 20, max_words_value = 100;
+
+unsigned seed = 123456;
+
+uint64_t totalbytes;
+bool tab_separator = false;
+
+unsigned range_words_key, range_words_value;
+
+static int Sequential(std::ostream& os) {
+
+    std::mt19937 prng(seed);
+
+    uint64_t written_bytes = 0;
+
+    while (written_bytes < totalbytes)
+    {
+        unsigned num_words_key =
+            min_words_key + static_cast<unsigned>(prng()) % range_words_key;
+        unsigned num_words_value =
+            min_words_value + static_cast<unsigned>(prng()) % range_words_value;
+
+        std::string key_words = RandomTextWriterGenerate(num_words_key, prng);
+        std::string value_words = RandomTextWriterGenerate(num_words_value, prng);
+
+        size_t out_size = key_words.size() + 1 + value_words.size() + 1;
+        if (written_bytes + out_size > totalbytes) break;
+
+        if (tab_separator)
+            os << key_words << '\t' << value_words << '\n';
+        else
+            os << key_words << value_words << '\n';
+
+        written_bytes += out_size;
+    }
+
+    return 0;
+}
+
+static void Parallel(api::Context& ctx, const std::string& output) {
+
+    size_t num_workers = ctx.num_workers();
+    std::mt19937 prng(seed + ctx.my_rank());
+
+    // generate sentinel value for each worker
+    Generate(ctx, num_workers)
+    // map sentinel to many lines
+    .FlatMap<std::string>(
+        [&](size_t /* index */, auto emit) {
+
+            uint64_t written_bytes = 0;
+            while (written_bytes < totalbytes / num_workers)
+            {
+                unsigned num_words_key =
+                    min_words_key + static_cast<unsigned>(prng()) % range_words_key;
+                unsigned num_words_value =
+                    min_words_value + static_cast<unsigned>(prng()) % range_words_value;
+
+                std::string key_words = RandomTextWriterGenerate(num_words_key, prng);
+                std::string value_words = RandomTextWriterGenerate(num_words_value, prng);
+
+                size_t out_size = key_words.size() + 1 + value_words.size() + 1;
+                if (written_bytes + out_size > totalbytes) break;
+
+                if (tab_separator)
+                    emit(key_words + "\t" + value_words);
+                else
+                    emit(key_words + value_words);
+
+                written_bytes += out_size;
+            }
+        })
+    .WriteLines(output);
+}
+
 int main(int argc, char* argv[]) {
 
     common::CmdlineParser cp;
-
-    unsigned min_words_key = 5, max_words_key = 10,
-        min_words_value = 20, max_words_value = 100;
-
-    unsigned seed = 123456;
-
-    uint64_t totalbytes;
-    bool tab_separator = false;
 
     cp.AddUInt('k', "min_words_key", "<N>", min_words_key,
                "minimum words in a key");
@@ -53,41 +124,37 @@ int main(int argc, char* argv[]) {
     cp.AddParamBytes("totalbytes", totalbytes,
                      "total number of bytes to generate (approximately)");
 
+    bool parallel = false;
+    cp.AddFlag(1, "parallel", parallel,
+               "run as Thrill parallel/distributed program");
+
+    std::string output;
+    cp.AddString('o', "output", "<path>", output, "output path");
+
     if (!cp.Process(argc, argv)) {
         return -1;
     }
 
     cp.PrintResult(std::cerr);
 
-    unsigned range_words_key = max_words_key - min_words_key;
-    unsigned range_words_value = max_words_value - min_words_value;
+    // calculate range of words
+    range_words_key = max_words_key - min_words_key;
+    range_words_value = max_words_value - min_words_value;
 
-    std::mt19937 prng(seed);
-
-    uint64_t written_bytes = 0;
-
-    while (written_bytes < totalbytes)
-    {
-        unsigned num_words_key =
-            min_words_key + static_cast<unsigned>(prng()) % range_words_key;
-        unsigned num_words_value =
-            min_words_value + static_cast<unsigned>(prng()) % range_words_value;
-
-        std::string key_words = RandomTextWriterGenerate(num_words_key, prng);
-        std::string value_words = RandomTextWriterGenerate(num_words_value, prng);
-
-        size_t out_size = key_words.size() + 1 + value_words.size() + 1;
-        if (written_bytes + out_size > totalbytes) break;
-
-        if (tab_separator)
-            std::cout << key_words << '\t' << value_words << '\n';
-        else
-            std::cout << key_words << value_words << '\n';
-
-        written_bytes += out_size;
+    if (!parallel) {
+        if (output.size()) {
+            std::ofstream of(output);
+            return Sequential(of);
+        }
+        else {
+            return Sequential(std::cout);
+        }
     }
-
-    return 0;
+    else {
+        return api::Run([&](api::Context& ctx) {
+                            Parallel(ctx, output);
+                        });
+    }
 }
 
 /******************************************************************************/

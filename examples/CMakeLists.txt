@@ -20,6 +20,7 @@ add_subdirectory(terasort)
 add_subdirectory(tpch)
 add_subdirectory(triangles)
 add_subdirectory(tutorial)
+add_subdirectory(vfs_tool)
 add_subdirectory(word_count)
 
 ################################################################################

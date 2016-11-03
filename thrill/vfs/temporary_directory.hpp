@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/core/temporary_directory.hpp
+ * thrill/vfs/temporary_directory.hpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -10,13 +10,13 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_CORE_TEMPORARY_DIRECTORY_HEADER
-#define THRILL_CORE_TEMPORARY_DIRECTORY_HEADER
+#ifndef THRILL_VFS_TEMPORARY_DIRECTORY_HEADER
+#define THRILL_VFS_TEMPORARY_DIRECTORY_HEADER
 
 #include <string>
 
 namespace thrill {
-namespace core {
+namespace vfs {
 
 /*!
  * A class which creates a temporary directory in the current directory and
@@ -57,9 +57,9 @@ private:
     std::string dir_;
 };
 
-} // namespace core
+} // namespace vfs
 } // namespace thrill
 
-#endif // !THRILL_CORE_TEMPORARY_DIRECTORY_HEADER
+#endif // !THRILL_VFS_TEMPORARY_DIRECTORY_HEADER
 
 /******************************************************************************/

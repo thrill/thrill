@@ -17,9 +17,10 @@ matrix:
           packages:
             - cmake
             - g++-4.9
+            - libssl-dev
 
     # gcc 5.x without AddressSanitizer, Debug & Release, with SWIG and OpenMPI
-    - env: CMAKE_CC="gcc-5" CMAKE_CXX="g++-5" BUILD_TYPE="Debug" COMPILER_FLAGS="" USE_SWIG="1"
+    - env: CMAKE_CC="gcc-5" CMAKE_CXX="g++-5" BUILD_TYPE="Debug" COMPILER_FLAGS=""
       os: linux
       addons: &gcc5
         apt:
@@ -31,8 +32,10 @@ matrix:
             - g++-5
             - openmpi-bin
             - libopenmpi-dev
+            - libbz2-dev
+            - libssl-dev
 
-    - env: CMAKE_CC="gcc-5" CMAKE_CXX="g++-5" BUILD_TYPE="Release" COMPILER_FLAGS="" USE_SWIG="1"
+    - env: CMAKE_CC="gcc-5" CMAKE_CXX="g++-5" BUILD_TYPE="Release" COMPILER_FLAGS=""
       os: linux
       addons: *gcc5
 
@@ -48,6 +51,8 @@ matrix:
           packages:
             - cmake
             - clang-3.7
+            - libbz2-dev
+            - libssl-dev
 
     # clang 3.7 without AddressSanitizer (there are some system-dependent LeakSanitizer errors)
     - env: CMAKE_CC="clang-3.7" CMAKE_CXX="clang++-3.7" BUILD_TYPE="Release" COMPILER_FLAGS="" CMAKE_ARGS="-DTHRILL_FULL_BUILD=ON"
@@ -69,17 +74,6 @@ env:
     - TSAN_OPTIONS="halt_on_error=1"
 
 before_script:
-
-  # Install newer swig
-  - if [ -n "$USE_SWIG" ]; then
-      curl -sS -L http://prdownloads.sourceforge.net/swig/swig-2.0.12.tar.gz | tar xz;
-      cd swig-2.0.12;
-      ./configure --without-alllang --with-python --prefix=$PWD/../swig-install;
-      make -j4;
-      make install;
-      cd ..;
-      export PATH=$PATH:$PWD/swig-install/bin;
-    fi
 
   # print out some version numbers
   - $CMAKE_CXX --version

@@ -21,8 +21,8 @@
 #include <thrill/api/write_lines_one.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/system_exception.hpp>
-#include <thrill/core/file_io.hpp>
-#include <thrill/core/temporary_directory.hpp>
+#include <thrill/vfs/file_io.hpp>
+#include <thrill/vfs/temporary_directory.hpp>
 
 #include <sys/stat.h>
 
@@ -88,6 +88,9 @@ TEST(IO, ReadFolder) {
     api::RunLocalTests(start_func);
 }
 
+// need all decompressors in folder
+#if THRILL_HAVE_ZLIB && THRILL_HAVE_BZIP2
+
 TEST(IO, ReadPartOfFolderCompressed) {
 #if defined(_MSC_VER)
     return;
@@ -114,6 +117,8 @@ TEST(IO, ReadPartOfFolderCompressed) {
 
     api::RunLocalTests(start_func);
 }
+
+#endif // THRILL_HAVE_ZLIB && THRILL_HAVE_BZIP2
 
 TEST(IO, GenerateFromFileRandomIntegers) {
     api::RunLocalSameThread(
@@ -149,17 +154,8 @@ TEST(IO, GenerateFromFileRandomIntegers) {
         });
 }
 
-TEST(IO, WriteBinaryPatternFormatter) {
-
-    std::string str1 = core::FillFilePattern("test-@@@@-########", 42, 10);
-    ASSERT_EQ("test-0042-00000010", str1);
-
-    std::string str2 = core::FillFilePattern("test", 42, 10);
-    ASSERT_EQ("test00420000000010", str2);
-}
-
 TEST(IO, GenerateIntegerWriteReadBinary) {
-    core::TemporaryDirectory tmpdir;
+    vfs::TemporaryDirectory tmpdir;
 
     api::RunLocalTests(
         [&tmpdir](api::Context& ctx) {
@@ -177,7 +173,7 @@ TEST(IO, GenerateIntegerWriteReadBinary) {
                     ctx, generate_size,
                     [](const size_t index) { return index + 42; });
 
-                dia.WriteBinary(tmpdir.get() + "/IO.IntegerBinary",
+                dia.WriteBinary(tmpdir.get() + "/IntegerBinary",
                                 16 * 1024);
             }
             ctx.net.Barrier();
@@ -186,7 +182,7 @@ TEST(IO, GenerateIntegerWriteReadBinary) {
             {
                 auto dia = api::ReadBinary<size_t>(
                     ctx,
-                    tmpdir.get() + "/IO.IntegerBinary*");
+                    tmpdir.get() + "/IntegerBinary*");
 
                 std::vector<size_t> vec = dia.AllGather();
 
@@ -200,13 +196,15 @@ TEST(IO, GenerateIntegerWriteReadBinary) {
             }
         });
 }
+
+#if THRILL_HAVE_ZLIB
 
 TEST(IO, GenerateIntegerWriteReadBinaryCompressed) {
 #if defined(_MSC_VER)
     return;
 #endif
 
-    core::TemporaryDirectory tmpdir;
+    vfs::TemporaryDirectory tmpdir;
 
     api::RunLocalTests(
         [&tmpdir](api::Context& ctx) {
@@ -224,7 +222,7 @@ TEST(IO, GenerateIntegerWriteReadBinaryCompressed) {
                     ctx, generate_size,
                     [](const size_t index) { return index + 42; });
 
-                dia.WriteBinary(tmpdir.get() + "/IO.IntegerBinary-@@@@-####.gz",
+                dia.WriteBinary(tmpdir.get() + "/IntegerBinary.gz",
                                 16 * 1024);
             }
             ctx.net.Barrier();
@@ -233,7 +231,7 @@ TEST(IO, GenerateIntegerWriteReadBinaryCompressed) {
             {
                 auto dia = api::ReadBinary<size_t>(
                     ctx,
-                    tmpdir.get() + "/IO.IntegerBinary*");
+                    tmpdir.get() + "/IntegerBinary*");
 
                 std::vector<size_t> vec = dia.AllGather();
 
@@ -247,6 +245,8 @@ TEST(IO, GenerateIntegerWriteReadBinaryCompressed) {
             }
         });
 }
+
+#endif // THRILL_HAVE_ZLIB
 
 // make weird test strings of different lengths
 std::string test_string(size_t index) {
@@ -255,7 +255,7 @@ std::string test_string(size_t index) {
 }
 
 TEST(IO, GenerateStringWriteBinary) {
-    core::TemporaryDirectory tmpdir;
+    vfs::TemporaryDirectory tmpdir;
 
     // use pairs for easier checking and stranger string sizes.
     using Item = std::pair<size_t, std::string>;
@@ -278,7 +278,7 @@ TEST(IO, GenerateStringWriteBinary) {
                         return Item(index, test_string(index));
                     });
 
-                dia.WriteBinary(tmpdir.get() + "/IO.StringBinary",
+                dia.WriteBinary(tmpdir.get() + "/StringBinary",
                                 16 * 1024);
             }
             ctx.net.Barrier();
@@ -287,7 +287,7 @@ TEST(IO, GenerateStringWriteBinary) {
             {
                 auto dia = api::ReadBinary<Item>(
                     ctx,
-                    tmpdir.get() + "/IO.StringBinary*");
+                    tmpdir.get() + "/StringBinary*");
 
                 std::vector<Item> vec = dia.AllGather();
 
@@ -303,7 +303,7 @@ TEST(IO, GenerateStringWriteBinary) {
 }
 
 TEST(IO, WriteAndReadBinaryEqualDIAs) {
-    core::TemporaryDirectory tmpdir;
+    vfs::TemporaryDirectory tmpdir;
 
     auto start_func =
         [&tmpdir](Context& ctx) {
@@ -357,7 +357,7 @@ TEST(IO, WriteAndReadBinaryEqualDIAs) {
 }
 
 TEST(IO, WriteAndReadBinaryEqualDIAsLocalStorage) {
-    core::TemporaryDirectory tmpdir;
+    vfs::TemporaryDirectory tmpdir;
 
     auto start_func =
         [&tmpdir](Context& ctx) {
@@ -398,7 +398,7 @@ TEST(IO, WriteAndReadBinaryEqualDIAsLocalStorage) {
 }
 
 TEST(IO, IntegerWriteReadBinaryLinesFutures) {
-    core::TemporaryDirectory tmpdir;
+    vfs::TemporaryDirectory tmpdir;
 
     api::RunLocalTests(
         [&tmpdir](api::Context& ctx) {
@@ -418,12 +418,12 @@ TEST(IO, IntegerWriteReadBinaryLinesFutures) {
                     [](const size_t index) { return index + 42; });
 
                 Future<> fa = dia.WriteBinaryFuture(
-                    tmpdir.get() + "/IO.IntegerBinary", 16 * 1024);
+                    tmpdir.get() + "/IntegerBinary", 16 * 1024);
 
                 Future<> fb =
                     dia
                     .Map([](const size_t& i) { return std::to_string(i); })
-                    .WriteLinesOneFuture(tmpdir.get() + "/IO.IntegerLines");
+                    .WriteLinesOneFuture(tmpdir.get() + "/IntegerLines");
 
                 fa.wait();
                 fb.wait();
@@ -433,7 +433,7 @@ TEST(IO, IntegerWriteReadBinaryLinesFutures) {
             // read the binary integers from disk (collectively) and compare
             {
                 auto dia = api::ReadBinary<size_t>(
-                    ctx, tmpdir.get() + "/IO.IntegerBinary*");
+                    ctx, tmpdir.get() + "/IntegerBinary*");
 
                 std::vector<size_t> vec = dia.AllGather();
 
@@ -449,7 +449,7 @@ TEST(IO, IntegerWriteReadBinaryLinesFutures) {
             // read the text integers from disk (collectively) and compare
             {
                 auto dia = api::ReadLines(
-                    ctx, tmpdir.get() + "/IO.IntegerLines*");
+                    ctx, tmpdir.get() + "/IntegerLines*");
 
                 std::vector<std::string> vec = dia.AllGather();
 

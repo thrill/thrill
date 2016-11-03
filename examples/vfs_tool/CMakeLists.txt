@@ -1,13 +1,13 @@
 ################################################################################
-# examples/tpch/CMakeLists.txt
+# examples/vfs_tool/CMakeLists.txt
 #
 # Part of Project Thrill - http://project-thrill.org
 #
-# Copyright (C) 2016 Alexander Noe <aleexnoe@gmail.com>
+# Copyright (C) 2016 Timo Bingmann <tb@panthema.net>
 #
 # All rights reserved. Published under the BSD-2 license in the LICENSE file.
 ################################################################################
 
-thrill_build_prog(tpch_run)
+thrill_build_prog(vfs_tool)
 
 ################################################################################

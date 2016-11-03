@@ -15,6 +15,7 @@
 #include <thrill/common/logger.hpp>
 
 #if defined(_MSC_VER)
+// windows/msvc is a mess.
 #include <BaseTsd.h>
 using ssize_t = SSIZE_T;
 #endif

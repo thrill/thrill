@@ -16,7 +16,7 @@ cmake_minimum_required(VERSION 2.8)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/misc/cmake)
 
 # project: we only use C++
-project(thrill CXX)
+project(thrill)
 
 # prohibit in-source builds
 if("${PROJECT_SOURCE_DIR}" STREQUAL "${PROJECT_BINARY_DIR}")
@@ -56,8 +56,15 @@ option(THRILL_FULL_BUILD
 option(THRILL_TRY_COMPILE_HEADERS
   "Test header files for self-sufficiency: try to compile them." OFF)
 
-option(THRILL_USE_AWS
-  "Use AWS SDK for S3 as a backend to read data from." ON)
+if(APPLE OR MSVC)
+  set(THRILL_USE_S3_DEFAULT OFF)
+else()
+  set(THRILL_USE_S3_DEFAULT ON)
+endif()
+
+option(THRILL_USE_S3
+  "Build libs3 as library. Enabled by default if all dependencies are found."
+  ${THRILL_USE_S3_DEFAULT})
 
 # BUILD_SHARED_LIBS is a standard CMake variable, but we declare it here to
 # make it prominent in the GUI.
@@ -335,9 +342,6 @@ endif()
 
 include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/extlib/cereal/include)
 
-
-
-
 ################################################################################
 ### Find Required Libraries
 
@@ -365,7 +369,68 @@ if(THRILL_USE_JEMALLOC)
   endif()
 endif()
 
+# use ZLIB for transparent gzip compression/decompression
 
+find_package(ZLIB)
+if(ZLIB_FOUND)
+  include_directories(SYSTEM ${ZLIB_INCLUDE_DIRS})
+  set(THRILL_DEP_LIBRARIES ${THRILL_DEP_LIBRARIES} ${ZLIB_LIBRARIES})
+  add_definitions(-DTHRILL_HAVE_ZLIB=1)
+endif()
+
+# use BZLIB for transparent gzip compression/decompression
+
+find_package(BZip2)
+if(BZIP2_FOUND)
+  include_directories(SYSTEM ${BZIP2_INCLUDE_DIRS})
+  set(THRILL_DEP_LIBRARIES ${THRILL_DEP_LIBRARIES} ${BZIP2_LIBRARIES})
+  add_definitions(-DTHRILL_HAVE_BZIP2=1)
+endif()
+
+# try to find libS3 (optional)
+
+# test for all dependencies of libS3
+find_package(CURL)
+find_package(LibXml2)
+find_package(OpenSSL)
+
+# if libS3 is desired check if all dependencies were found
+if(THRILL_USE_S3)
+  if(NOT CURL_FOUND)
+    message(SEND_ERROR "libS3 requires libcurl, which was not found.")
+  endif()
+  if(NOT OPENSSL_FOUND)
+    message(SEND_ERROR "libS3 requires OpenSSL, which was not found.")
+  endif()
+  if(NOT LIBXML2_FOUND)
+    message(SEND_ERROR "libS3 requires libxml2, which was not found.")
+  endif()
+endif()
+
+# if libS3 dependencies were found, build as external project
+if(THRILL_USE_S3 AND CURL_FOUND AND LIBXML2_FOUND AND OPENSSL_FOUND)
+
+  # build libS3 as cmake library
+  add_subdirectory(extlib/libs3)
+
+  # add libS3 and dependencies to thrill's dependencies
+  set(THRILL_DEP_LIBRARIES ${THRILL_DEP_LIBRARIES} s3)
+  add_definitions(-DTHRILL_HAVE_LIBS3=1)
+  include_directories("${CMAKE_SOURCE_DIR}/extlib/libs3/libs3/inc/")
+
+  # saved code to detect libs3 on the system. use this once multipart upload is
+  # mainstream.
+
+  # find_package(LibS3)
+  # if(NOT LibS3_FOUND)
+  #   message(STATUS "libS3 not found. No problem, s3:// will not work.")
+  #   add_definitions(-DTHRILL_HAVE_LIBS3=0)
+  # else()
+  #   include_directories(SYSTEM ${LibS3_INCLUDE_DIRS})
+  #   set(THRILL_DEP_LIBRARIES ${THRILL_DEP_LIBRARIES} ${LibS3_LIBRARIES})
+  #   add_definitions(-DTHRILL_HAVE_LIBS3=1)
+  # endif()
+endif()
 
 # try to find Intel TBB (optional)
 
@@ -471,36 +536,6 @@ macro(thrill_test_multiple TESTNAME)
   thrill_test_single("${TESTNAME}4" "THRILL_LOCAL=4" ${ARGN})
 
 endmacro(thrill_test_multiple)
-
-#add aws sdk
-if (THRILL_USE_AWS)
-
-  add_definitions(-DTHRILL_USE_AWS=1)
-  set(CPP_STANDARD "14")
-  set(PLATFORM_LINUX "1")
-
-  set(ENABLE_OPENSSL_ENCRYPTION "1")
-  add_definitions(-DENABLE_OPENSSL_ENCRYPTION=1)
-  set(ENABLE_CURL_CLIENT "1")
-  add_definitions(-DENABLE_CURL_CLIENT=1)
-
-  add_subdirectory(extlib/aws-sdk-cpp/aws-cpp-sdk-core)
-  include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/extlib/aws-sdk-cpp/aws-cpp-sdk-core/include)
-  link_directories(${CMAKE_CURRENT_BINARY_DIR}/extlib/aws-sdk-cpp/aws-cpp-sdk-core)
-  set(THRILL_DEP_LIBRARIES aws-cpp-sdk-core ${THRILL_DEP_LIBRARIES})
-
-  add_subdirectory(extlib/aws-sdk-cpp/aws-cpp-sdk-s3)
-  include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/extlib/aws-sdk-cpp/aws-cpp-sdk-s3/include)
-  link_directories(${CMAKE_CURRENT_BINARY_DIR}/extlib/aws-sdk-cpp/aws-cpp-sdk-s3)
-  set(THRILL_DEP_LIBRARIES aws-cpp-sdk-s3 ${THRILL_DEP_LIBRARIES})
-
-  set(THRILL_DEP_LIBRARIES ${THRILL_DEP_LIBRARIES} ssl crypto curl dl z)
-
-else()
-  message(STATUS "AWS NOT USED")
-endif()
-
-message(STATUS "Linker Flags: ${CMAKE_EXE_LINKER_FLAGS}")
 
 ################################################################################
 ### Descend into Subdirectories
