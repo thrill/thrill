@@ -185,14 +185,14 @@ protected:
     Table table_;
 };
 
-template <typename ValueType, typename Key, typename Value,
+template <typename TableItem, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool VolatileKey,
           typename ReduceConfig = DefaultReduceConfig,
           typename IndexFunction = ReduceByHash<Key>,
           typename EqualToFunction = std::equal_to<Key>,
           typename HashFunction = std::hash<Key> >
-class ReducePrePhaseDuplicates : public ReducePrePhase<ValueType, Key, Value,
+class ReducePrePhaseDuplicates : public ReducePrePhase<TableItem, Key, Value,
                                                        KeyExtractor,
                                                        ReduceFunction,
                                                        VolatileKey,
@@ -202,10 +202,11 @@ class ReducePrePhaseDuplicates : public ReducePrePhase<ValueType, Key, Value,
 {
 
 public:
-    using Super = ReducePrePhase<ValueType, Key, Value, KeyExtractor,
+    using Super = ReducePrePhase<TableItem, Key, Value, KeyExtractor,
                                  ReduceFunction, VolatileKey, ReduceConfig,
                                  IndexFunction, EqualToFunction>;
     using KeyValuePair = std::pair<Key, Value>;
+
 
     ReducePrePhaseDuplicates(Context& ctx, size_t dia_id,
                              size_t num_partitions,
@@ -222,17 +223,13 @@ public:
                 config, index_function, equal_to_function, /*duplicates*/ true),
           hash_function_(hash_function) { }
 
-    void Insert(const Value& p) {
-        if (Super::table_.Insert(p)) {
-            hashes_.push_back(hash_function_(Super::key_extractor_(p)));
+    void Insert(const Value& v) {
+        if (Super::table_.Insert(
+                Super::MakeTableItem::Make(v, Super::table_.key_extractor()))) {
+            hashes_.push_back(hash_function_(Super::key_extractor_(v)));
         }
     }
 
-    void Insert(const KeyValuePair& kv) {
-        if (Super::table_.Insert(kv)) {
-            hashes_.push_back(hash_function_(kv.first));
-        }
-    }
 
     //! Flush all partitions
     void FlushAll() {
@@ -250,16 +247,17 @@ public:
     void FlushPartition(size_t partition_id, bool consume, bool grow) {
         Super::table_.FlushPartitionEmit(
             partition_id, consume, grow,
-            [this](const size_t& partition_id, const KeyValuePair& p) {
-                if (!non_duplicates_[std::hash < Key > ()(p.first) %
-                                     max_hash_]) {
+            [this](const size_t& partition_id, const TableItem& ti) {
+                Key key = Super::MakeTableItem::GetKey(
+                    ti, Super::table_.key_extractor());
+                if (!non_duplicates_[hash_function_(key) % max_hash_]) {
 
                     duplicated_elements_++;
-                    Super::emit_.Emit(partition_id, p);
+                    Super::emit_.Emit(partition_id, ti);
                 }
                 else {
                     non_duplicate_elements_++;
-                    Super::emit_.Emit(Super::table_.ctx().my_rank(), p);
+                    Super::emit_.Emit(Super::table_.ctx().my_rank(), ti);
                 }
             });
 
@@ -267,16 +265,17 @@ public:
             data::File::Reader reader =
                 Super::table_.partition_files()[partition_id].GetReader(true);
             while (reader.HasNext()) {
-                KeyValuePair kv = reader.Next<KeyValuePair>();
-                if (!non_duplicates_[std::hash < Key > ()(kv.first) %
-                                     max_hash_]) {
+                TableItem ti = reader.Next<TableItem>();
+                Key key = Super::MakeTableItem::GetKey(
+                    ti, Super::table_.key_extractor());
+                if (!non_duplicates_[hash_function_(key) % max_hash_]) {
 
                     duplicated_elements_++;
-                    Super::emit_.Emit(partition_id, kv);
+                    Super::emit_.Emit(partition_id, ti);
                 }
                 else {
                     non_duplicate_elements_++;
-                    Super::emit_.Emit(Super::table_.ctx().my_rank(), kv);
+                    Super::emit_.Emit(Super::table_.ctx().my_rank(), ti);
                 }
             }
         }

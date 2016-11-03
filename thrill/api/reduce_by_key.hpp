@@ -218,9 +218,10 @@ private:
     //! handle to additional thread for post phase
     std::thread thread_;
 
-    core::ReducePrePhase<
+    core::ReducePrePhaseDuplicates<
         TableItem, Key, ValueType, KeyExtractor, ReduceFunction, VolatileKey,
-        ReduceConfig, HashIndexFunction, KeyEqualFunction> pre_phase_;
+        ReduceConfig, HashIndexFunction, KeyEqualFunction, KeyHashFunction>
+        pre_phase_;
 
     core::ReduceByHashPostPhase<
         TableItem, Key, ValueType, KeyExtractor, ReduceFunction, Emitter,
