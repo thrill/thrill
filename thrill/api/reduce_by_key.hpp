@@ -222,7 +222,7 @@ private:
     core::ReducePrePhase<TableItem, Key, ValueType, KeyExtractor,
                          ReduceFunction, VolatileKey, ReduceConfig,
                          HashIndexFunction, KeyEqualFunction, KeyHashFunction,
-                         false> pre_phase_;
+                         true> pre_phase_;
 
     core::ReduceByHashPostPhase<
         TableItem, Key, ValueType, KeyExtractor, ReduceFunction, Emitter,

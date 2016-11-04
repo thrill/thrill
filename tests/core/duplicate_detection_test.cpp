@@ -36,7 +36,6 @@ TEST(DuplicateDetection, AllDuplicatedList) {
 
                           std::vector<bool> comparison;
                           comparison.resize(max_hash, false);
-
                           if (ctx.num_workers() == 1) {
                               for (size_t i = 0; i < elements; ++i) {
                                   comparison[i] = true;

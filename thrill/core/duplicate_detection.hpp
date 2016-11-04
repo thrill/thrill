@@ -195,8 +195,6 @@ public:
                            context.num_workers(),
                            max_hash);
 
-        std::vector<std::pair<size_t, size_t> > hashes_dups;
-
         std::vector<data::BlockReader<data::ConsumeBlockQueueSource> > readers =
             golomb_data_stream->GetReaders();
 
@@ -211,7 +209,6 @@ public:
             assert(reader.HasNext());
             size_t data_size = reader.template Next<size_t>();
             size_t num_elements = reader.template Next<size_t>();
-            // size_t* raw_data = new size_t[data_size + 1];
             data_pointers.push_back(
                 std::make_unique<size_t[]>(data_size + 1));
 
@@ -230,12 +227,6 @@ public:
                               return hash1 < hash2;
                           });
 
-        while (puller.HasNext()) {
-            hashes_dups.push_back(puller.NextWithSource());
-        }
-
-        assert(total_elements == hashes_dups.size());
-
         data::CatStreamPtr duplicates_stream = context.GetNewCatStream(dia_id);
 
         std::vector<data::CatStream::Writer> duplicate_writers =
@@ -250,40 +241,46 @@ public:
                                      upper_space_bound, false, b));
         }
 
-        if (hashes_dups.size()) {
+        std::pair<size_t, size_t> this_element;
+        std::pair<size_t, size_t> next_element;
 
-            size_t j = 0;
+        size_t ctr = 0;
 
-            while (j < hashes_dups.size() - 1) {
-                //! finds all duplicated hashes and insert them in the
-                //! according golomb codes
+        if (total_elements > 0) {
+            next_element = puller.NextWithSource();
 
-                if (hashes_dups[j].first != hashes_dups[j + 1].first) {
-                    size_t proc = hashes_dups[j].second;
-                    bitsets[proc]->golomb_in(hashes_dups[j].first -
+            while (ctr < total_elements - 1) {
+
+                this_element = next_element;
+                next_element = puller.NextWithSource();
+                ctr++;
+                //! find all keys only occuring on a single worker and insert
+                //! to according bitset
+
+                if (this_element.first != next_element.first) {
+                    size_t proc = this_element.second;
+                    bitsets[proc]->golomb_in(this_element.first -
                                              deltas[proc]);
-                    deltas[proc] = hashes_dups[j].first;
+                    deltas[proc] = this_element.first;
                     element_counters[proc]++;
-                    ++j;
-                }
-                else {
-                    size_t cmp = hashes_dups[j].first;
-                    while (j < hashes_dups.size() &&
-                           hashes_dups[j].first == cmp) {
-                        ++j;
+                } else {
+                    size_t cmp = next_element.first;
+                    while (puller.HasNext() &&
+                           next_element.first == cmp) {
+                        next_element = puller.NextWithSource();
+                        ctr++;
                     }
                 }
             }
-
-            j = hashes_dups.size() - 1;
-            if (hashes_dups[j].first != hashes_dups[j - 1].first) {
-                size_t proc = hashes_dups[j].second;
-                bitsets[proc]->golomb_in(hashes_dups[j].first -
-                                         deltas[proc]);
-                deltas[proc] = hashes_dups[j].first;
-                element_counters[proc]++;
-            }
         }
+
+        if (this_element.first != next_element.first) {
+            bitsets[next_element.second]->golomb_in(next_element.first -
+                                                    deltas[next_element.second]);
+            element_counters[next_element.second]++;
+        }
+
+        assert(!puller.HasNext());
 
         for (size_t i = 0; i < context.num_workers(); ++i) {
             duplicate_writers[i].Put(bitsets[i]->size());
