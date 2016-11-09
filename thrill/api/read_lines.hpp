@@ -307,15 +307,18 @@ private:
                     files.total_size);
             }
 
-            while (files_[file_nr_].size_inc_psum() <= my_range_.begin) {
+            while ((files_[file_nr_].size_inc_psum() +
+                    files_[file_nr_].size_ex_psum) / 2 <= my_range_.begin) {
                 file_nr_++;
             }
 
             for (size_t i = file_nr_; i < files_.size(); i++) {
-                if (files[i].size_inc_psum() == my_range_.end) {
+                if ((files_[i].size_inc_psum() + files_[i].size_ex_psum) / 2
+                    == my_range_.end) {
                     break;
                 }
-                if (files[i].size_inc_psum() > my_range_.end) {
+                if ((files_[i].size_inc_psum() + files_[i].size_ex_psum) / 2
+                    > my_range_.end) {
                     my_range_.end = files_.size_ex_psum(i);
                     break;
                 }
