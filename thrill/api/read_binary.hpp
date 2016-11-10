@@ -80,7 +80,8 @@ public:
         if (size_limit != no_size_limit_)
             files.total_size = std::min(files.total_size, size_limit);
 
-        if (is_fixed_size_ && !files.contains_compressed)
+        if (is_fixed_size_ &&
+            !files.contains_compressed && !files.contains_remote_uri)
         {
             // use fixed_size information to split binary files.
 

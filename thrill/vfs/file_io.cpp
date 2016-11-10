@@ -48,6 +48,11 @@ bool IsCompressed(const std::string& path) {
            common::EndsWith(path, ".lz4");
 }
 
+bool IsRemoteUri(const std::string& path) {
+    return common::StartsWith(path, "s3://") ||
+           common::StartsWith(path, "hdfs://");
+}
+
 std::ostream& operator << (std::ostream& os, const Type& t) {
     switch (t) {
     case Type::File:
@@ -142,6 +147,7 @@ FileList Glob(const std::vector<std::string>& globlist, const GlobType& gtype) {
     // calculate exclusive prefix sum and overall stats
 
     filelist.contains_compressed = false;
+    filelist.contains_remote_uri = false;
     filelist.total_size = 0;
     uint64_t size_ex_psum = 0;
 
@@ -152,6 +158,7 @@ FileList Glob(const std::vector<std::string>& globlist, const GlobType& gtype) {
         size_ex_psum = size_next;
 
         filelist.contains_compressed |= fi.IsCompressed();
+        filelist.contains_remote_uri |= fi.IsRemoteUri();
         filelist.total_size += fi.size;
     }
 
