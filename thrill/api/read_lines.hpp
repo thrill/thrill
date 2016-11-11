@@ -122,7 +122,7 @@ private:
         const vfs::FileList& files_;
 
         //! Index of current file in files_
-        size_t file_nr_ = 0;
+        size_t file_nr_;
         //! Byte buffer to create line std::string values.
         net::BufferBuilder buffer_;
         //! Start of next element in current buffer.
@@ -186,6 +186,8 @@ private:
 
             assert(my_range_.begin <= my_range_.end);
             if (my_range_.begin == my_range_.end) return;
+
+            file_nr_ = 0;
 
             while (files_[file_nr_].size_inc_psum() <= my_range_.begin) {
                 file_nr_++;
@@ -307,9 +309,20 @@ private:
                     files.total_size);
             }
 
-            while ((files_[file_nr_].size_inc_psum() +
+
+            file_nr_ = 0;
+
+
+            while (file_nr_ < files_.size() &&
+                   (files_[file_nr_].size_inc_psum() +
                     files_[file_nr_].size_ex_psum) / 2 <= my_range_.begin) {
-                file_nr_++;
+                ++file_nr_;
+            }
+
+
+            if (file_nr_ == files_.size()) {
+                LOG << "Start behind last file, not reading anything!";
+                return;
             }
 
             for (size_t i = file_nr_; i < files_.size(); i++) {
@@ -323,6 +336,7 @@ private:
                     break;
                 }
             }
+
 
             if (my_range_.begin >= my_range_.end) {
                 // No local files, set buffer size to 2, so HasNext() does not try to read
