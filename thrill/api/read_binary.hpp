@@ -43,6 +43,9 @@ class ReadBinaryNode final : public SourceNode<ValueType>
 {
     static constexpr bool debug = false;
 
+    //! for testing old method of pushing items instead of PushFile().
+    static constexpr bool debug_no_extfile = false;
+
 public:
     using Super = SourceNode<ValueType>;
     using Super::context_;
@@ -80,8 +83,7 @@ public:
         if (size_limit != no_size_limit_)
             files.total_size = std::min(files.total_size, size_limit);
 
-        if (is_fixed_size_ &&
-            !files.contains_compressed && !files.contains_remote_uri)
+        if (is_fixed_size_ && !files.contains_compressed)
         {
             // use fixed_size information to split binary files.
 
@@ -134,40 +136,47 @@ public:
                      << "path" << fi.path << "range" << fi.range;
 
                 if (fi.range.begin == fi.range.end) continue;
-#if 0
-                my_files_.push_back(fi);
-#else
-                io::FileBasePtr file(
-                    new io::SyscallFile(
-                        fi.path, io::FileBase::RDONLY | io::FileBase::NO_LOCK));
 
-                size_t item_off = 0;
-
-                for (size_t off = fi.range.begin; off < fi.range.end;
-                     off += data::default_block_size) {
-
-                    size_t bsize = std::min(
-                        off + data::default_block_size, fi.range.end) - off;
-
-                    data::ByteBlockPtr bbp =
-                        context_.block_pool().MapExternalBlock(
-                            file, off, bsize);
-
-                    size_t item_num =
-                        (bsize - item_off + fixed_size_ - 1) / fixed_size_;
-
-                    data::Block block(
-                        std::move(bbp), 0, bsize, item_off, item_num,
-                        /* typecode_verify */ false);
-
-                    item_off += item_num * fixed_size_ - bsize;
-
-                    LOG << "ReadBinary: adding Block " << block;
-                    ext_file_.AppendBlock(std::move(block));
+                if (files.contains_remote_uri || debug_no_extfile) {
+                    // push file and range into file list for remote files
+                    // (these cannot be mapped using the io layer)
+                    my_files_.push_back(fi);
                 }
+                else {
+                    // new method: map blocks into a File using io layer
 
-                use_ext_file_ = true;
-#endif
+                    io::FileBasePtr file(
+                        new io::SyscallFile(
+                            fi.path,
+                            io::FileBase::RDONLY | io::FileBase::NO_LOCK));
+
+                    size_t item_off = 0;
+
+                    for (size_t off = fi.range.begin; off < fi.range.end;
+                         off += data::default_block_size) {
+
+                        size_t bsize = std::min(
+                            off + data::default_block_size, fi.range.end) - off;
+
+                        data::ByteBlockPtr bbp =
+                            context_.block_pool().MapExternalBlock(
+                                file, off, bsize);
+
+                        size_t item_num =
+                            (bsize - item_off + fixed_size_ - 1) / fixed_size_;
+
+                        data::Block block(
+                            std::move(bbp), 0, bsize, item_off, item_num,
+                            /* typecode_verify */ false);
+
+                        item_off += item_num * fixed_size_ - bsize;
+
+                        LOG << "ReadBinary: adding Block " << block;
+                        ext_file_.AppendBlock(std::move(block));
+                    }
+
+                    use_ext_file_ = true;
+                }
             }
         }
         else
@@ -211,12 +220,11 @@ public:
 
     void PushData(bool consume) final {
         LOG << "ReadBinaryNode::PushData() start " << *this
-            << " consume " << consume;
+            << " consume=" << consume
+            << " use_ext_file_=" << use_ext_file_;
 
-        if (use_ext_file_) {
-            this->PushFile(ext_file_, consume);
-            return;
-        }
+        if (use_ext_file_)
+            return this->PushFile(ext_file_, consume);
 
         // Hook Read
         for (const FileInfo& file : my_files_) {
@@ -278,7 +286,8 @@ private:
         }
 
         data::PinnedBlock NextBlock() {
-            if (done_) return data::PinnedBlock();
+            if (done_ || remain_size_ == 0)
+                return data::PinnedBlock();
 
             data::PinnedByteBlockPtr bytes
                 = context_.block_pool().AllocateByteBlock(
@@ -302,7 +311,7 @@ private:
                                          /* typecode_verify */ false);
             }
             else if (size < 0) {
-                throw common::ErrnoException("File reading error");
+                throw common::ErrnoException("Error reading vfs file");
             }
             else {
                 // size == 0 -> read finished
