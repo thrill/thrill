@@ -161,7 +161,7 @@ static size_t JoinTPCH4(
     ctx.enable_consume();
     std::vector<std::string> splitted;
     splitted.resize(17);
-    std::string s_lineitems = input_path[0] + std::string("lineitem*");
+    std::string s_lineitems = input_path[0] + std::string("lineitem");
 
     auto lineitems = ReadLines(ctx, s_lineitems).FlatMap<struct LineItem>(
         [&splitted](const std::string& input, auto emit) {
@@ -194,14 +194,14 @@ static size_t JoinTPCH4(
 
                 emit(li);
             }
-        }).Cache().Execute();
+        }).Cache().Keep().Execute();
 
     size_t num_items = lineitems.Size();
 
     time_t starttime = time_to_epoch("1993-07-01");
     time_t stoptime = time_to_epoch("1993-10-01");
 
-    std::string s_orders = input_path[0] + std::string("orders*");
+    std::string s_orders = input_path[0] + std::string("orders");
     auto orders = ReadLines(ctx, s_orders).FlatMap<struct Order>(
         [&splitted, &starttime, &stoptime](const std::string& input, auto emit) {
             Order o;
@@ -222,7 +222,7 @@ static size_t JoinTPCH4(
 
                 emit(o);
             }
-        }).Cache().Execute();
+        }).Cache().Keep().Execute();
 
     ctx.net.Barrier();
 
