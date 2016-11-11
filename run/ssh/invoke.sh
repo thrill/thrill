@@ -21,8 +21,9 @@ dir=
 #user=$(whoami)
 user=
 with_perf=0
+with_perf_graph=0
 
-while getopts "u:h:H:cvCw:p:Q" opt; do
+while getopts "u:h:H:cvCw:pPQ" opt; do
     case "$opt" in
     h)  # this overrides the user environment variable
         THRILL_SSHLIST=$OPTARG
@@ -43,6 +44,8 @@ while getopts "u:h:H:cvCw:p:Q" opt; do
     Q)  dir=/home/$user/
         ;;
     p)  with_perf=1
+        ;;
+    P)  with_perf_graph=1
         ;;
     w)  # this overrides the user environment variable
         THRILL_WORKERS_PER_HOST=$OPTARG
@@ -70,6 +73,8 @@ if [ -z "$cmd" ]; then
     echo "  -u <name>  ssh user name"
     echo "  -w <num>   set thrill workers per host variable"
     echo "  -v         verbose output"
+    echo "  -p         run with perf"
+    echo "  -P         run with perf -g (profile callgraph)"
     exit 1
 fi
 
@@ -137,6 +142,10 @@ for hostport in $THRILL_SSHLIST; do
   #REMOTEPID="/tmp/$cmdbase.$hostport.$$.pid"
   RUN_PREFIX="exec"
   if [ "$with_perf" == "1" ]; then
+      # run with perf
+      RUN_PREFIX="exec perf record -o perf-$rank.data"
+  fi
+  if [ "$with_perf_graph" == "1" ]; then
       # run with perf
       RUN_PREFIX="exec perf record -g -o perf-$rank.data"
   fi
