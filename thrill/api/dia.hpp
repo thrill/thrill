@@ -742,7 +742,8 @@ public:
      *
      * \ingroup dia_dops
      */
-    template <typename KeyExtractor, typename ReduceFunction,
+    template <const bool UseDuplicateDetection = false,
+              typename KeyExtractor, typename ReduceFunction,
               typename ReduceConfig = class DefaultReduceConfig>
     auto ReduceByKey(
         const KeyExtractor &key_extractor,
@@ -778,7 +779,8 @@ public:
      *
      * \ingroup dia_dops
      */
-    template <typename KeyExtractor, typename ReduceFunction,
+    template <const bool UseDuplicateDetection = false,
+              typename KeyExtractor, typename ReduceFunction,
               typename ReduceConfig, typename KeyHashFunction>
     auto ReduceByKey(
         const KeyExtractor &key_extractor,
@@ -817,7 +819,8 @@ public:
      *
      * \ingroup dia_dops
      */
-    template <typename KeyExtractor, typename ReduceFunction,
+    template <const bool UseDuplicateDetection = false,
+              typename KeyExtractor, typename ReduceFunction,
               typename ReduceConfig,
               typename KeyHashFunction, typename KeyEqualFunction>
     auto ReduceByKey(
@@ -856,7 +859,8 @@ public:
      *
      * \ingroup dia_dops
      */
-    template <typename KeyExtractor, typename ReduceFunction,
+    template <const bool UseDuplicateDetection = false,
+              typename KeyExtractor, typename ReduceFunction,
               typename ReduceConfig = class DefaultReduceConfig>
     auto ReduceByKey(
         struct VolatileKeyTag const &,
@@ -895,7 +899,8 @@ public:
      *
      * \ingroup dia_dops
      */
-    template <typename KeyExtractor, typename ReduceFunction,
+    template <const bool UseDuplicateDetection = false,
+              typename KeyExtractor, typename ReduceFunction,
               typename ReduceConfig, typename KeyHashFunction>
     auto ReduceByKey(
         struct VolatileKeyTag const &,
@@ -937,7 +942,8 @@ public:
      *
      * \ingroup dia_dops
      */
-    template <typename KeyExtractor, typename ReduceFunction,
+    template <const bool UseDuplicateDetection = false,
+              typename KeyExtractor, typename ReduceFunction,
               typename ReduceConfig,
               typename KeyHashFunction, typename KeyEqualFunction>
     auto ReduceByKey(
@@ -970,7 +976,7 @@ public:
      *
      * \ingroup dia_dops
      */
-    template <typename ReduceFunction,
+    template <const bool UseDuplicateDetection = false, typename ReduceFunction,
               typename ReduceConfig = class DefaultReduceConfig>
     auto ReducePair(
         const ReduceFunction &reduce_function,
@@ -1000,7 +1006,7 @@ public:
      *
      * \ingroup dia_dops
      */
-    template <typename ReduceFunction,
+    template <const bool UseDuplicateDetection = false, typename ReduceFunction,
               typename ReduceConfig,
               typename KeyHashFunction>
     auto ReducePair(
@@ -1034,7 +1040,7 @@ public:
      *
      * \ingroup dia_dops
      */
-    template <typename ReduceFunction,
+    template <const bool UseDuplicateDetection = false, typename ReduceFunction,
               typename ReduceConfig,
               typename KeyHashFunction, typename KeyEqualFunction>
     auto ReducePair(
@@ -1353,7 +1359,7 @@ public:
      *
      * \ingroup dia_dops
      */
-    template <const bool UseLocationDetection = false,
+    template <const bool UseLocationDetection = true,
               typename KeyExtractor1, typename KeyExtractor2,
               typename JoinFunction, typename SecondDIA, typename HashFunction =
                   std::hash<typename common::FunctionTraits<KeyExtractor1>::result_type> >

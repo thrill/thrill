@@ -31,7 +31,7 @@ using WordCountPair = std::pair<std::string, size_t>;
 
 //! The most basic WordCount user program: reads a DIA containing std::string
 //! words, and returns a DIA containing WordCountPairs.
-template <typename InputStack>
+template <const bool UseDuplicateDetection = false, typename InputStack>
 auto WordCount(const DIA<std::string, InputStack>&input) {
 
     auto word_pairs = input.template FlatMap<WordCountPair>(
@@ -44,7 +44,7 @@ auto WordCount(const DIA<std::string, InputStack>&input) {
                 });
         });
 
-    return word_pairs.ReduceByKey(
+    return word_pairs.template ReduceByKey<UseDuplicateDetection>(
         [](const WordCountPair& in) -> std::string {
             /* reduction key: the word string */
             return in.first;
@@ -70,7 +70,7 @@ struct HashWordHasher {
 //! The second WordCount user program: reads a DIA containing std::string words,
 //! creates hash values from the words prior to reducing by hash and
 //! word. Returns a DIA containing WordCountPairs.
-template <typename InputStack>
+template <const bool UseDuplicateDetection = false, typename InputStack>
 auto HashWordCountExample(const DIA<std::string, InputStack>&input) {
 
     std::hash<std::string> string_hasher;
@@ -89,7 +89,7 @@ auto HashWordCountExample(const DIA<std::string, InputStack>&input) {
         .Map([&](const std::string& word) {
                  return HashWordCount(HashWord(string_hasher(word), word), 1);
              })
-        .ReduceByKey(
+        .template ReduceByKey<UseDuplicateDetection>(
             [](const HashWordCount& in) {
                 /* reduction key: the word string */
                 return in.first;
