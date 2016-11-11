@@ -157,7 +157,7 @@ public:
         }
         else {
             auto input_dia =
-                ReadBinary<uint8_t>(ctx, input_path_, sizelimit_).Collapse();
+                ReadBinary<uint8_t>(ctx, input_path_, sizelimit_).Cache();
             size_t input_size = input_dia.Keep().Size();
             SwitchIndexType(input_dia, input_size);
         }
