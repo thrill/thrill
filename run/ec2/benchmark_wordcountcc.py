@@ -15,7 +15,11 @@ import os
 import sys
 import subprocess
 
-iterations = 5
+
+def getString(integer):
+    return "s3://commoncrawl/" + lines[integer] + " "
+
+iterations = 1
 
 log_min_size = 1
 log_max_size = 1
@@ -33,23 +37,30 @@ if 'filters' in data:
 
 instances = ec2.instances.filter(Filters=filters)
 
+lines = [line.rstrip('\n') for line in open('../../../cc-paths')]
+
 username = "ubuntu"
 num_instances = 0
 for instance in instances:
     num_instances = num_instances + 1
-    target = username + "@" + instance.public_ip_address + ":/home/" + username + "/wordcount_run"
-    process = subprocess.Popen(["scp", "../../build/examples/wordcount/wordcount_run", target])
+    target = username + "@" + instance.public_ip_address + ":/home/" + username + "/word_count_run"
+    process = subprocess.Popen(["scp", "../../build/examples/word_count/word_count_run", target])
     process.wait()
 
-for size in range(0, 8):
+for size in range(4, 5):
     size_pow = pow(2, size)
-    path = "COMMONCRAWLPATH"
+    path = ""
+    for i in range(0, size_pow):
+        path += getString(i)
+    print path
     for i in range(0, iterations):
-        process = subprocess.Popen(["./invoke.sh", "-u", username, "-Q",
-                                    "wordcount_run", path])
+        process = subprocess.Popen(["./invoke.sh", "-u", username, "-Q", "word_count_run", path])
 
         process.wait()
 
         print "size: " + str(size) + " i: " + str(i) + " instances: " + str(num_instances)
+
+
+
 
 ##########################################################################
