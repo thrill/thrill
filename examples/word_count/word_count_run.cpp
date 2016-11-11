@@ -62,7 +62,7 @@ static void RunWordCount(
                 LOG1 << "RESULT benchmark=wordcount detection=ON"
                      << " time=" << timer.Milliseconds()
                      << " files=" << input_filelist.size()
-                     << " traffic= " << traffic.first + traffic.second
+                     << " traffic=" << traffic.first + traffic.second
                      << " machines=" << ctx.num_hosts();
             }
             else {
