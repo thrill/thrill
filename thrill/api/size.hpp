@@ -14,6 +14,7 @@
 #define THRILL_API_SIZE_HEADER
 
 #include <thrill/api/action_node.hpp>
+#include <thrill/api/cache.hpp>
 #include <thrill/api/dia.hpp>
 #include <thrill/net/group.hpp>
 
@@ -37,11 +38,19 @@ public:
         : Super(parent.ctx(), "Size", { parent.id() }, { parent.node() }),
           parent_stack_empty_(ParentDIA::stack_empty) {
 
-        // Hook PreOp(s)
-        auto pre_op_fn = [this](const ValueType&) { ++local_size_; };
+        if (parent_stack_empty_ &&
+            dynamic_cast<CacheNode<ValueType>*>(parent.node().get()) != nullptr) {
+            // Add as child, but do not receive items via PreOp Hook.
+            LOG << "SizeNode: skipping callback, accessing CacheNode directly";
+            parent.node()->AddChild(this);
+        }
+        else {
+            // Hook PreOp(s)
+            auto pre_op_fn = [this](const ValueType&) { ++local_size_; };
 
-        auto lop_chain = parent.stack().push(pre_op_fn).fold();
-        parent.node()->AddChild(this, lop_chain);
+            auto lop_chain = parent.stack().push(pre_op_fn).fold();
+            parent.node()->AddChild(this, lop_chain);
+        }
     }
 
     //! Receive a whole data::File of ValueType, but only if our stack is empty.
@@ -53,6 +62,14 @@ public:
 
     //! Executes the size operation.
     void Execute() final {
+
+        // check if parent is CacheNode -> read number of items directly
+        CacheNode<ValueType>* parent_cache =
+            dynamic_cast<CacheNode<ValueType>*>(parents_[0].get());
+
+        if (parent_stack_empty_ && parent_cache != nullptr)
+            local_size_ = parent_cache->NumItems();
+
         // get the number of elements that are stored on this worker
         LOG << "MainOp processing, sum: " << local_size_;
 

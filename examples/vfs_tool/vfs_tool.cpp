@@ -41,6 +41,9 @@ int main(int argc, char* argv[]) {
     {
         vfs::FileList fl = vfs::Glob(paths);
 
+        if (fl.size() == 0)
+            std::cout << "No files returned in glob." << std::endl;
+
         for (const vfs::FileInfo& fi : fl) {
             std::cout << fi.path
                       << " type " << fi.type

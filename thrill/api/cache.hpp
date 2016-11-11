@@ -72,6 +72,10 @@ public:
         file_.Clear();
     }
 
+    size_t NumItems() const {
+        return file_.num_items();
+    }
+
 private:
     //! Local data file
     data::File file_ { context_.GetFile(this) };

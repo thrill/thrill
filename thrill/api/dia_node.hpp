@@ -73,7 +73,7 @@ public:
      * This way the parent can push all its result elements to each of the
      * children. This procedure enables the minimization of IO-accesses.
      */
-    virtual void AddChild(DIABase* node, const Callback& callback,
+    virtual void AddChild(DIABase* node, const Callback& callback = Callback(),
                           size_t parent_index = 0) {
         children_.emplace_back(Child { node, callback, parent_index });
     }
@@ -121,6 +121,14 @@ public:
     //! method. Then cleans up the DIA graph by freeing parent references of
     //! children.
     void RunPushData() override {
+        bool need_callback = false;
+        for (const Child& child : children_)
+            need_callback = need_callback || (child.callback != nullptr);
+        if (!need_callback) {
+            LOG0 << "RunPushData(): skip PushData as no callback";
+            return;
+        }
+
         for (const Child& child : children_)
             child.node->StartPreOp(child.parent_index);
 
@@ -138,7 +146,8 @@ public:
     //! Method for derived classes to Push a single item to all children.
     void PushItem(const ValueType& item) const {
         for (const Child& child : children_) {
-            child.callback(item);
+            if (child.callback)
+                child.callback(item);
         }
     }
 
@@ -161,7 +170,8 @@ public:
         while (reader.HasNext()) {
             ValueType item = reader.Next<ValueType>();
             for (const Child& child : nonfile_children) {
-                child.callback(item);
+                if (child.callback)
+                    child.callback(item);
             }
         }
     }

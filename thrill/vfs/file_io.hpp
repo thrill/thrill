@@ -45,6 +45,9 @@ std::string FillFilePattern(const std::string& pathbase,
 //! '.{gz,bz2,xz,lzo}')
 bool IsCompressed(const std::string& path);
 
+//! Returns true, if file at filepath is a remote uri like s3:// or hdfs://
+bool IsRemoteUri(const std::string& path);
+
 //! VFS object type
 enum class Type { File, Directory };
 
@@ -65,6 +68,8 @@ struct FileInfo {
     uint64_t    size_inc_psum() const { return size_ex_psum + size; }
     //! if the file is compressed
     bool        IsCompressed() const { return vfs::IsCompressed(path); }
+    //! if the file is at remote uri
+    bool        IsRemoteUri() const { return vfs::IsRemoteUri(path); }
 };
 
 //! List of file info and additional overall info.
@@ -74,6 +79,9 @@ struct FileList : public std::vector<FileInfo>{
 
     //! whether the list contains a compressed file.
     bool     contains_compressed;
+
+    //! whether the list contains a remote-uri file.
+    bool     contains_remote_uri;
 
     //! inclusive prefix sum of file sizes (only for symmetry with ex_psum)
     uint64_t size_inc_psum(size_t i) const
