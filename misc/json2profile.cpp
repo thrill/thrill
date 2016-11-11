@@ -484,14 +484,20 @@ public:
     uint32_t id;
     std::string label;
     std::string event;
+    std::vector<uint32_t> targets;
 
     explicit CStageBuilder(const rapidjson::Document& d)
         : CEvent(d),
           worker_rank(GetUint32(d, "worker_rank")),
           id(GetUint32(d, "id")),
           label(GetString(d, "label")),
-          event(GetString(d, "event"))
-    { }
+          event(GetString(d, "event")) {
+        // extract targets array
+        if (d["targets"].IsArray()) {
+            for (auto it = d["targets"].Begin(); it != d["targets"].End(); ++it)
+                targets.emplace_back(it->GetUint());
+        }
+    }
 
     bool operator < (const CStageBuilder& o) const {
         return std::tie(ts, worker_rank, id)
@@ -754,6 +760,7 @@ std::string PageMain() {
     oss << "    \n";
     oss << "    <style type=\"text/css\">\n";
     oss << "table.dataframe td { text-align: right }\n";
+    oss << "table.dataframe td.left { text-align: left }\n";
     oss << "    </style>\n";
     oss << "    \n";
     oss << "    <!-- SUPPORT FOR IE6-8 OF HTML5 ELEMENTS -->\n";
@@ -1193,6 +1200,42 @@ std::string PageMain() {
         << "\n";
 
     oss << "-->\n";
+
+    /**************************************************************************/
+
+    {
+        oss << "<h2>Stage Summary</h2>\n";
+
+        oss << "<table border=\"1\" class=\"dataframe\">";
+        oss << "<thead><tr>";
+        oss << "<th>ts</th>";
+        oss << "<th>dia_id</th>";
+        oss << "<th>event</th>";
+        oss << "<th>targets</th>";
+        oss << "</tr></thead>";
+        oss << "<tbody>";
+
+        for (const CStageBuilder& c : c_StageBuilder) {
+            if (c.worker_rank != 0) continue;
+
+            oss << "<tr>"
+                << "<td>" << c.ts / 1000.0 << "</td>"
+                << "<td class=\"left\">" << c.label << "." << c.id << "</td>"
+                << "<td class=\"left\">" << c.event << "</td>";
+
+            // enumerate targets
+            oss << "<td class=\"left\">";
+            for (const uint32_t& id : c.targets) {
+                oss << m_DIABase[id] << " ";
+            }
+            oss << "</td>";
+            oss << "</tr>";
+        }
+
+        oss << "</tbody>";
+        oss << "</table>";
+        oss << "\n";
+    }
 
     /**************************************************************************/
 
