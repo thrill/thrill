@@ -89,6 +89,13 @@ if(NOT MSVC)
     endif()
   endif()
 
+  # remove -rdynamic from linker flags (smaller binaries which cannot be loaded
+  # with dlopen() -- something no one needs)
+  string(REGEX REPLACE "-rdynamic" ""
+    CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "${CMAKE_SHARED_LIBRARY_LINK_C_FLAGS}")
+  string(REGEX REPLACE "-rdynamic" ""
+    CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "${CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS}")
+
   # warn on conversions
   #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wconversion -Werror")
 
