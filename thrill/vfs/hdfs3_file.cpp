@@ -167,7 +167,7 @@ void Hdfs3Glob(const std::string& _path, const GlobType& gtype,
 /******************************************************************************/
 // Stream Reading from HDFS
 
-class Hdfs3ReadStream : public vfs::ReadStream
+class Hdfs3ReadStream : public ReadStream
 {
 public:
     Hdfs3ReadStream(hdfsFS fs, hdfsFile file,
@@ -232,7 +232,7 @@ ReadStreamPtr Hdfs3OpenReadStream(
 /******************************************************************************/
 // Stream Writing to HDFS
 
-class Hdfs3WriteStream : public vfs::WriteStream
+class Hdfs3WriteStream : public WriteStream
 {
 public:
     Hdfs3WriteStream(hdfsFS fs, hdfsFile file)

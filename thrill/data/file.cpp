@@ -207,7 +207,7 @@ PinnedBlock ConsumeFileBlockSource::NextBlock() {
 
     // operate without prefetching
     if (num_prefetch_ == 0) {
-        data::PinRequestPtr f = file_->blocks_.front().Pin(local_worker_id_);
+        PinRequestPtr f = file_->blocks_.front().Pin(local_worker_id_);
         file_->blocks_.pop_front();
         return f->Wait();
     }

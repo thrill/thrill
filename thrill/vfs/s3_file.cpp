@@ -283,7 +283,7 @@ void S3Glob(const std::string& _path, const GlobType& gtype,
 /******************************************************************************/
 // Stream Reading from S3
 
-class S3ReadStream : public vfs::ReadStream
+class S3ReadStream : public ReadStream
 {
 public:
     S3ReadStream(const S3BucketContext* bucket_context, const char* key,
@@ -457,7 +457,7 @@ ReadStreamPtr S3OpenReadStream(
 
 /******************************************************************************/
 
-class S3WriteStream : public vfs::WriteStream
+class S3WriteStream : public WriteStream
 {
 public:
     S3WriteStream(const std::string& bucket, const std::string& key,

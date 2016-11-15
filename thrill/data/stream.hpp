@@ -223,7 +223,7 @@ public:
 
     //! Creates a StreamSet with the given number of streams (num workers per
     //! host).
-    StreamSet(data::Multiplexer& multiplexer, StreamId id,
+    StreamSet(Multiplexer& multiplexer, StreamId id,
               size_t workers_per_host, size_t dia_id) {
         for (size_t i = 0; i < workers_per_host; i++)
             streams_.emplace_back(

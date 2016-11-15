@@ -111,7 +111,7 @@ class BoundedBlockSink : public virtual BlockSink
 {
 public:
     //! constructor with reference to BlockPool
-    BoundedBlockSink(data::BlockPool& block_pool, size_t local_worker_id, size_t max_size)
+    BoundedBlockSink(BlockPool& block_pool, size_t local_worker_id, size_t max_size)
         : BlockSink(block_pool, local_worker_id),
           max_size_(max_size), available_(max_size)
     { }

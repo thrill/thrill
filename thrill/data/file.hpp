@@ -280,8 +280,8 @@ private:
     size_t stats_items_ = 0;
 
     //! for access to blocks_ and num_items_sum_
-    friend class data::KeepFileBlockSource;
-    friend class data::ConsumeFileBlockSource;
+    friend class KeepFileBlockSource;
+    friend class ConsumeFileBlockSource;
 };
 
 using FilePtr = common::CountingPtr<File>;
@@ -325,7 +325,7 @@ private:
     size_t num_prefetch_;
 
     //! current prefetch operations
-    std::deque<data::PinRequestPtr> fetching_blocks_;
+    std::deque<PinRequestPtr> fetching_blocks_;
 
     //! number of the first block
     size_t first_block_;
@@ -382,7 +382,7 @@ private:
     size_t num_prefetch_;
 
     //! current prefetch operations
-    std::deque<data::PinRequestPtr> fetching_blocks_;
+    std::deque<PinRequestPtr> fetching_blocks_;
 };
 
 //! Get BlockReader seeked to the corresponding item index

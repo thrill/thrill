@@ -227,8 +227,8 @@ public:
     }
 
     //! Explicit conversion to Buffer MOVING the memory ownership.
-    net::Buffer ToBuffer() {
-        net::Buffer b = net::Buffer::Acquire(data_, size_);
+    Buffer ToBuffer() {
+        Buffer b = Buffer::Acquire(data_, size_);
         Detach();
         return b;
     }

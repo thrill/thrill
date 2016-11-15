@@ -27,7 +27,7 @@ class MultiwayMergeTree
 public:
     using Reader = typename std::iterator_traits<ReaderIterator>::value_type;
 
-    using LoserTreeType = typename core::LoserTreeTraits<
+    using LoserTreeType = typename LoserTreeTraits<
               /* stable */ false, ValueType, Comparator>::Type;
 
     MultiwayMergeTree(ReaderIterator readers_begin, ReaderIterator readers_end,

@@ -60,7 +60,7 @@ public:
     { }
 
     //! Constructor, assign memory area from net::Buffer, does NOT copy!
-    BufferRef(const net::Buffer& b) // NOLINT
+    BufferRef(const Buffer& b) // NOLINT
         : data_(b.data()), size_(b.size())
     { }
 
@@ -77,9 +77,9 @@ public:
     { return std::string(reinterpret_cast<const char*>(data_), size_); }
 
     //! Explicit conversion to Buffer MOVING the memory ownership.
-    net::Buffer ToBuffer() {
+    Buffer ToBuffer() {
         void* addr = reinterpret_cast<void*>(const_cast<Byte*>(data_));
-        net::Buffer b = net::Buffer::Acquire(addr, size_);
+        Buffer b = Buffer::Acquire(addr, size_);
         data_ = nullptr;
         size_ = 0;
         return b;

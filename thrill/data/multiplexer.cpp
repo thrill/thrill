@@ -110,7 +110,7 @@ struct Multiplexer::Data {
 };
 
 Multiplexer::Multiplexer(mem::Manager& mem_manager,
-                         data::BlockPool& block_pool,
+                         BlockPool& block_pool,
                          size_t workers_per_host, net::Group& group)
     : mem_manager_(mem_manager),
       block_pool_(block_pool),

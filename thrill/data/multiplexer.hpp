@@ -67,7 +67,7 @@ class Multiplexer
 
 public:
     Multiplexer(mem::Manager& mem_manager,
-                data::BlockPool& block_pool,
+                BlockPool& block_pool,
                 size_t workers_per_host, net::Group& group);
 
     //! non-copyable: delete copy-constructor
@@ -142,7 +142,7 @@ private:
     mem::Manager& mem_manager_;
 
     //! reference to host-global BlockPool.
-    data::BlockPool& block_pool_;
+    BlockPool& block_pool_;
 
     //! dispatcher used for all communication by data::Multiplexer, the thread
     //! never leaves the data components!
