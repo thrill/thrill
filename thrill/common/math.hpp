@@ -59,7 +59,7 @@ static inline Integral RoundDownToPowerOfTwo(Integral n) {
 //! does what it says.
 static inline bool IsPowerOfTwo(size_t i) {
     if (i <= 0) return false;
-    return ! (i & (i - 1));
+    return !(i & (i - 1));
 }
 
 #if defined(__GNUC__) || defined(__clang__)

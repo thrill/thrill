@@ -94,7 +94,7 @@ struct Serialization<Archive, std::pair<U, V> >{
 
 namespace detail {
 
-//-------------------------- tuple serializer --------------------------------//
+// ------------------------- tuple serializer --------------------------------//
 // serialize the (|tuple| - RevIndex)-th element in the tuple
 // and call recursively to serialize the next element:
 // (|tuple| - (RevIndex - 1))
@@ -133,7 +133,7 @@ struct TupleSerialization<Archive, 0, Args ...>{
     static constexpr size_t fixed_size = 0;
 };
 
-//-------------------------- tuple deserializer ------------------------------//
+// ------------------------- tuple deserializer ------------------------------//
 template <typename Archive, int RevIndex, typename T, typename ... Args>
 struct TupleDeserializer { };
 
@@ -164,7 +164,7 @@ struct TupleDeserializer<Archive, 0, std::tuple<> >{
 
 //! \}
 
-//--------------------- tuple de-/serializer interface -----------------------//
+// -------------------- tuple de-/serializer interface -----------------------//
 template <typename Archive, typename ... Args>
 struct Serialization<Archive, std::tuple<Args ...> >{
     static void Serialize(const std::tuple<Args ...>& x, Archive& ar) {

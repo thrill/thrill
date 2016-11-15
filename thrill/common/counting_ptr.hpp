@@ -220,7 +220,7 @@ public:
 
     //! make and refer a copy if the original object was shared.
     void unify() {
-        if (ptr_ && ! ptr_->unique())
+        if (ptr_ && !ptr_->unique())
             operator = (new Type(*ptr_));
     }
 

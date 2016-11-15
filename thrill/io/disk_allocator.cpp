@@ -292,7 +292,7 @@ void DiskAllocator::AddFreeRegion(int64_t block_pos, int64_t block_size) {
                     // coalesce with successor
                     region_size += (*succ).second;
                     free_space.erase(succ);
-                    //-tb: set succ to pred afterwards due to iterator invalidation
+                    // -tb: set succ to pred afterwards due to iterator invalidation
                     succ = pred;
                 }
                 if (succ_is_not_the_first)

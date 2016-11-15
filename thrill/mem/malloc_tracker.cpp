@@ -33,12 +33,12 @@
 #include <mutex>
 #include <utility>
 
-#if defined(__clang__) || defined (__GNUC__)
+#if defined(__clang__) || defined(__GNUC__)
 
 #define ATTRIBUTE_NO_SANITIZE_ADDRESS \
     __attribute__ ((no_sanitize_address)) /* NOLINT */
 
-#if defined (__GNUC__) && __GNUC__ >= 5
+#if defined(__GNUC__) && __GNUC__ >= 5
 #define ATTRIBUTE_NO_SANITIZE_THREAD \
     __attribute__ ((no_sanitize_thread))  /* NOLINT */
 #else

@@ -455,7 +455,7 @@ public:
             // the smaller one gets promoted
             if (!keyp ||
                 (losers_[pos].keyp && cmp_(*losers_[pos].keyp, *keyp)))
-            {                   //the other one is smaller
+            {                   // the other one is smaller
                 swap(losers_[pos].source, source);
                 swap(losers_[pos].keyp, keyp);
             }
@@ -605,12 +605,12 @@ public:
         Source left = init_winner(2 * root);
         Source right = init_winner(2 * root + 1);
         if (!cmp_(losers_[right].key, losers_[left].key))
-        {                       //left one is less or equal
+        {                       // left one is less or equal
             losers_[root] = losers_[right];
             return left;
         }
         else
-        {                       //right one is less
+        {                       // right one is less
             losers_[root] = losers_[left];
             return right;
         }

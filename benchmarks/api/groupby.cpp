@@ -69,7 +69,7 @@ int main(int argc, char* argv[]) {
                           auto res2 = in.GroupByKey<size_t>(modulo_keyfn, median_fn).Size();
                           timer.Stop();
 
-                          LOG1 //<< "\n"
+                          LOG1 // << "\n"
                               << "RESULT"
                               << " name=total"
                               << " time=" << timer.Milliseconds()

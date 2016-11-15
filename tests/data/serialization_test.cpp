@@ -30,7 +30,7 @@ TEST_F(Serialization, string) {
     std::string foo = "foo";
     {
         auto w = f.GetWriter();
-        w.Put(foo); //gets serialized
+        w.Put(foo); // gets serialized
     }
     auto r = f.GetKeepReader();
     auto fooserial = r.Next<decltype(foo)>();
@@ -43,7 +43,7 @@ TEST_F(Serialization, int) {
     data::File f(block_pool_, 0, /* dia_id */ 0);
     {
         auto w = f.GetWriter();
-        w.Put(foo); //gets serialized
+        w.Put(foo); // gets serialized
     }
     auto r = f.GetKeepReader();
     auto fooserial = r.Next<decltype(foo)>();
@@ -56,7 +56,7 @@ TEST_F(Serialization, pair_string_int) {
     data::File f(block_pool_, 0, /* dia_id */ 0);
     {
         auto w = f.GetWriter();
-        w.Put(foo); //gets serialized
+        w.Put(foo); // gets serialized
     }
     auto r = f.GetKeepReader();
     auto fooserial = r.Next<decltype(foo)>();
@@ -71,7 +71,7 @@ TEST_F(Serialization, pair_int_int) {
     data::File f(block_pool_, 0, /* dia_id */ 0);
     {
         auto w = f.GetWriter();
-        w.Put(foo); //gets serialized
+        w.Put(foo); // gets serialized
     }
     auto r = f.GetKeepReader();
     auto fooserial = r.Next<decltype(foo)>();
@@ -89,7 +89,7 @@ TEST_F(Serialization, pod_struct) {
     data::File f(block_pool_, 0, /* dia_id */ 0);
     {
         auto w = f.GetWriter();
-        w.Put(foo); //gets serialized
+        w.Put(foo); // gets serialized
     }
     auto r = f.GetKeepReader();
     auto fooserial = r.Next<MyPodStruct>();
@@ -109,7 +109,7 @@ TEST_F(Serialization, tuple) {
     data::File f(block_pool_, 0, /* dia_id */ 0);
     {
         auto w = f.GetWriter();
-        w.Put(foo); //gets serialized
+        w.Put(foo); // gets serialized
     }
     auto r = f.GetKeepReader();
     auto fooserial = r.Next<decltype(foo)>();
@@ -127,7 +127,7 @@ TEST_F(Serialization, tuple_w_pair) {
     data::File f(block_pool_, 0, /* dia_id */ 0);
     {
         auto w = f.GetWriter();
-        w.Put(foo); //gets serialized
+        w.Put(foo); // gets serialized
     }
     ASSERT_EQ(1u, f.num_items());
     auto r = f.GetKeepReader();

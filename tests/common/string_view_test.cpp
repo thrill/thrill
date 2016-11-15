@@ -29,7 +29,7 @@ TEST(StringViewTest, AssignAndCompare) {
     std::string input2 = "is a string1";
 
     StringView other_str;
-    StringView fast_str = StringView(&input[5], 11); //"is a string"
+    StringView fast_str = StringView(&input[5], 11); // "is a string"
     ASSERT_EQ(fast_str.size(), 11);
 
     std::string cmp = "is a string";
@@ -41,10 +41,10 @@ TEST(StringViewTest, AssignAndCompare) {
     std::string subset = "is a strin";
     ASSERT_FALSE(fast_str == subset);
 
-    other_str = StringView(&input[6], 11);             //"s a string "
+    other_str = StringView(&input[6], 11);             // "s a string "
     ASSERT_FALSE(fast_str == other_str);
     ASSERT_TRUE(fast_str != other_str);
-    StringView equal_str = StringView(&input2[0], 11); //"is a string"
+    StringView equal_str = StringView(&input2[0], 11); // "is a string"
     ASSERT_TRUE(fast_str == equal_str);
     ASSERT_FALSE(fast_str != equal_str);
 }

@@ -85,7 +85,7 @@ public:
 
             // Hook Read
             while (it.HasNext()) {
-                this->PushItem(it.Next());//it.Next());
+                this->PushItem(it.Next());
             }
         }
     }

@@ -24,7 +24,7 @@ Pool& GPool() {
     return *pool;
 }
 
-#if defined(__clang__) || defined (__GNUC__)
+#if defined(__clang__) || defined(__GNUC__)
 static __attribute__ ((destructor)) void s_gpool_destroy() { // NOLINT
     // deallocate memory arenas but do not destroy the pool
     GPool().DeallocateAll();

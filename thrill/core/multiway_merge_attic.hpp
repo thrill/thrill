@@ -132,11 +132,11 @@ public:
      * \return \c True if less equal.
      */
     friend bool operator <= (self_type& bi1, self_type& bi2) {
-        if (bi2.current == bi2.end)                   //bi1 is sup
-            return bi1.current != bi1.end;            //bi2 is not sup
-        if (bi1.current == bi1.end)                   //bi2 is sup
+        if (bi2.current == bi2.end)                   // bi1 is sup
+            return bi1.current != bi1.end;            // bi2 is not sup
+        if (bi1.current == bi1.end)                   // bi2 is sup
             return false;
-        return !bi1.comp(*bi2, *bi1);                 //normal compare
+        return !bi1.comp(*bi2, *bi1);                 // normal compare
     }
 };
 
@@ -323,8 +323,8 @@ prepare_unguarded_sentinel(RandomAccessIteratorIterator seqs_begin,
     {
         if ((*s).first == (*s).second)
             continue;
-        value_type& v = *((*s).second - 1);              //last element in sequence
-        if (!max_value || comp(*max_value, v))           //strictly greater
+        value_type& v = *((*s).second - 1);              // last element in sequence
+        if (!max_value || comp(*max_value, v))           // strictly greater
             max_value = &v;
     }
 
@@ -334,7 +334,7 @@ prepare_unguarded_sentinel(RandomAccessIteratorIterator seqs_begin,
     {
         RandomAccessIterator split = std::lower_bound((*s).first, (*s).second, *max_value, comp);
         overhang_size += (*s).second - split;
-        *((*s).second) = *max_value;           //set sentinel
+        *((*s).second) = *max_value;           // set sentinel
     }
 
     return overhang_size;                      // so many elements will be left over afterwards
@@ -812,12 +812,12 @@ multiway_merge_4_combined(RandomAccessIteratorIterator seqs_begin,
     // THRILL_DEBUG_ASSERT(stxxl::is_sorted(target, target_end, comp));
 
     std::vector<RandomAccessIteratorPair> one_missing(seqs_begin, seqs_end);
-    one_missing.erase(one_missing.begin() + min_seq);                                 //remove
+    one_missing.erase(one_missing.begin() + min_seq);                                 // remove
 
     target_end = multiway_merge_3_variant<guarded_iterator>(one_missing.begin(), one_missing.end(), target_end, overhang, comp);
 
-    one_missing.insert(one_missing.begin() + min_seq, seqs_begin[min_seq]);           //insert back again
-    std::copy(one_missing.begin(), one_missing.end(), seqs_begin);                    //write back modified iterators
+    one_missing.insert(one_missing.begin() + min_seq, seqs_begin[min_seq]);           // insert back again
+    std::copy(one_missing.begin(), one_missing.end(), seqs_begin);                    // write back modified iterators
 
     // THRILL_DEBUG_ASSERT(target_end == target + length);
     // THRILL_DEBUG_ASSERT(stxxl::is_sorted(target, target_end, comp));

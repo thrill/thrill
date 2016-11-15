@@ -112,7 +112,7 @@ bool LinuxaioRequest::cancel_aio() {
     LinuxaioQueue* queue = dynamic_cast<LinuxaioQueue*>(
         DiskQueues::GetInstance()->GetQueue(file_->get_queue_id()));
     long result = syscall(SYS_io_cancel, queue->io_context(), &cb_, &event);
-    if (result == 0)    //successfully canceled
+    if (result == 0)    // successfully canceled
         queue->HandleEvents(&event, 1, true);
     return result == 0;
 }

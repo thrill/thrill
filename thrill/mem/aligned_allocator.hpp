@@ -154,7 +154,7 @@ inline void* AlignedAllocator<Type, BaseAllocator, Alignment>::allocate_bytes(
     LOG << "aligned_alloc<" << Alignment << ">() address " << static_cast<void*>(result)
         << " lost " << (result - buffer) << " bytes";
 
-    //-tb: check that there is space for one char* before the "result" pointer
+    // -tb: check that there is space for one char* before the "result" pointer
     // delivered to the user. this char* is set below to the beginning of the
     // allocated area.
     assert(long(result - buffer) >= long(sizeof(char*)));

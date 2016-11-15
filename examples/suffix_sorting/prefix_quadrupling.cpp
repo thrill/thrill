@@ -410,7 +410,7 @@ DIA<Index> PrefixQuadruplingDiscarding(const InputDIA& input_dia, size_t input_s
                                      { rb[0].rank, Index(0), Index(0), Index(0) },
                                      Status::FULLY_DISCARDED
                                  });
-                        else     //(rb[0].status == Status::UNDECIDED)
+                        else     // (rb[0].status == Status::UNDECIDED)
                             emit(IndexQuadRankStatus {
                                      rb[0].index,
                                      { rb[0].rank, Index(0), Index(0), Index(0) },
