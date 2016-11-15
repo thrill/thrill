@@ -547,53 +547,6 @@ private:
             data_writers[j].Close();
     }
 
-    void SortAndWriteToFile(
-        std::vector<ValueType>& vec, std::deque<data::File>& files) {
-
-        LOG << "SortAndWriteToFile() " << vec.size()
-            << " items into file #" << files.size();
-
-        size_t vec_size = vec.size();
-        local_out_size_ += vec.size();
-
-        // advice block pool to write out data if necessary
-        context_.block_pool().AdviseFree(vec.size() * sizeof(ValueType));
-
-        timer_sort_.Start();
-        sort_algorithm_(vec.begin(), vec.end(), compare_function_);
-        // common::qsort_two_pivots_yaroslavskiy(vec.begin(), vec.end(), compare_function_);
-        // common::qsort_three_pivots(vec.begin(), vec.end(), compare_function_);
-        timer_sort_.Stop();
-
-        LOG << "SortAndWriteToFile() sort took " << timer_sort_;
-
-        Timer write_time;
-        write_time.Start();
-
-        files.emplace_back(context_.GetFile(this));
-        auto writer = files.back().GetWriter();
-        for (const ValueType& elem : vec) {
-            writer.Put(elem);
-        }
-        writer.Close();
-
-        write_time.Stop();
-
-        LOG << "SortAndWriteToFile() finished writing files";
-
-        vec.clear();
-
-        LOG << "SortAndWriteToFile() vector cleared";
-
-        Super::logger_
-            << "class" << "SortNode"
-            << "event" << "write_file"
-            << "file_num" << (files.size() - 1)
-            << "items" << vec_size
-            << "timer_sort_" << timer_sort_
-            << "write_time" << write_time;
-    }
-
     void MainOp() {
         RunTimer timer(timer_execute_);
 
@@ -739,17 +692,63 @@ private:
                 vec.push_back(reader.template Next<ValueType>());
             }
             else {
-                SortAndWriteToFile(vec, files_);
+                SortAndWriteToFile(vec);
             }
         }
 
         if (vec.size())
-            SortAndWriteToFile(vec, files_);
+            SortAndWriteToFile(vec);
 
         if (stats_enabled) {
             context_.PrintCollectiveMeanStdev(
                 "Sort() timer_sort_", timer_sort_.SecondsDouble());
         }
+    }
+
+    void SortAndWriteToFile(std::vector<ValueType>& vec) {
+
+        LOG << "SortAndWriteToFile() " << vec.size()
+            << " items into file #" << files_.size();
+
+        size_t vec_size = vec.size();
+        local_out_size_ += vec.size();
+
+        // advice block pool to write out data if necessary
+        context_.block_pool().AdviseFree(vec.size() * sizeof(ValueType));
+
+        timer_sort_.Start();
+        sort_algorithm_(vec.begin(), vec.end(), compare_function_);
+        // common::qsort_two_pivots_yaroslavskiy(vec.begin(), vec.end(), compare_function_);
+        // common::qsort_three_pivots(vec.begin(), vec.end(), compare_function_);
+        timer_sort_.Stop();
+
+        LOG << "SortAndWriteToFile() sort took " << timer_sort_;
+
+        Timer write_time;
+        write_time.Start();
+
+        files_.emplace_back(context_.GetFile(this));
+        auto writer = files_.back().GetWriter();
+        for (const ValueType& elem : vec) {
+            writer.Put(elem);
+        }
+        writer.Close();
+
+        write_time.Stop();
+
+        LOG << "SortAndWriteToFile() finished writing files";
+
+        vec.clear();
+
+        LOG << "SortAndWriteToFile() vector cleared";
+
+        Super::logger_
+            << "class" << "SortNode"
+            << "event" << "write_file"
+            << "file_num" << (files_.size() - 1)
+            << "items" << vec_size
+            << "timer_sort_" << timer_sort_
+            << "write_time" << write_time;
     }
 };
 
