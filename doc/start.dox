@@ -139,6 +139,8 @@ Then run `~/thrill/run/ec2/invoke.sh` which runs ssh's invoke with all EC2 insta
 
 - `THRILL_LOCAL` - for mock and local networks: number of simulated hosts.
 
+- `THRILL_CORE_OFFSET` - (local only) number of cores to skip, default: 0 (pin to cores 0 to THRILL_LOCAL * THRILL_WORKERS_PER_HOST - 1)
+
 Internal environment variables set by the `run` scripts:
 
 - `THRILL_HOSTLIST` - list of TCP host:port to connect to

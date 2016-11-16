@@ -116,7 +116,7 @@ template <typename NetGroup>
 static inline void
 RunLoopbackThreads(
     const MemoryConfig& mem_config,
-    size_t num_hosts, size_t workers_per_host,
+    size_t num_hosts, size_t workers_per_host, size_t core_offset,
     const std::function<void(Context&)>& job_startpoint) {
 
     MemoryConfig host_mem_config = mem_config.divide(num_hosts);
@@ -142,7 +142,7 @@ RunLoopbackThreads(
 
                     ctx.Launch(job_startpoint);
                 });
-            common::SetCpuAffinity(threads[id], id);
+            common::SetCpuAffinity(threads[id], core_offset + id);
         }
     }
 
@@ -210,7 +210,7 @@ void RunLocalMock(const MemoryConfig& mem_config,
                   const std::function<void(Context&)>& job_startpoint) {
 
     return RunLoopbackThreads<TestGroup>(
-        mem_config, num_hosts, workers_per_host, job_startpoint);
+        mem_config, num_hosts, workers_per_host, 0, job_startpoint);
 }
 
 std::vector<std::unique_ptr<HostContext> >
@@ -350,6 +350,24 @@ int RunBackendLoopback(
         workers_per_host = std::thread::hardware_concurrency() / num_hosts;
     }
 
+    // core offset for pinning
+    const char* env_core_offset = getenv("THRILL_CORE_OFFSET");
+    size_t core_offset = 0;
+    if (env_core_offset && *env_core_offset) {
+        core_offset = std::strtoul(env_core_offset, &endptr, 10);
+
+        size_t last_core = core_offset + num_hosts * workers_per_host;
+        if (!endptr || *endptr != 0 ||
+            last_core > std::thread::hardware_concurrency())
+        {
+            std::cerr << "Thrill: environment variable"
+                      << " THRILL_CORE_OFFSET=" << env_core_offset
+                      << " is not a valid number of cores to skip for pinning."
+                      << std::endl;
+            return -1;
+        }
+    }
+
     // detect memory config
 
     MemoryConfig mem_config;
@@ -365,7 +383,7 @@ int RunBackendLoopback(
     if (!Initialize()) return -1;
 
     RunLoopbackThreads<NetGroup>(
-        mem_config, num_hosts, workers_per_host, job_startpoint);
+        mem_config, num_hosts, workers_per_host, core_offset, job_startpoint);
 
     if (!Deinitialize()) return -1;
 
