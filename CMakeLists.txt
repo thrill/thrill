@@ -426,7 +426,7 @@ if(THRILL_USE_S3 AND CURL_FOUND AND LIBXML2_FOUND AND OPENSSL_FOUND)
   # add libS3 and dependencies to thrill's dependencies
   set(THRILL_DEP_LIBRARIES ${THRILL_DEP_LIBRARIES} s3)
   add_definitions(-DTHRILL_HAVE_LIBS3=1)
-  include_directories("${CMAKE_SOURCE_DIR}/extlib/libs3/libs3/inc/")
+  include_directories("extlib/libs3/libs3/inc/")
 
   # saved code to detect libs3 on the system. use this once multipart upload is
   # mainstream.
