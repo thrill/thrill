@@ -36,7 +36,8 @@ public:
      */
     template <typename ParentDIA>
     explicit CollapseNode(const ParentDIA& parent)
-        : Super(parent.ctx(), "Collapse", { parent.id() }, { parent.node() })
+        : Super(parent.ctx(), "Collapse", { parent.id() }, { parent.node() }),
+        parent_stack_empty_(ParentDIA::stack_empty)
     {
         auto propagate_fn = [this](const ValueType& input) {
                                 this->PushItem(input);
@@ -56,6 +57,21 @@ public:
     void StartPreOp(size_t /* id */) final {
         for (typename Super::Child & child : Super::children_)
             child.node->StartPreOp(child.parent_index);
+    }
+
+    //! Receive a whole data::File of ValueType, but only if our stack is empty.
+    bool OnPreOpFile(const data::File& file, size_t /* parent_index */) final {
+        if (!parent_stack_empty_) {
+            LOG1 << "Collapse rejected File from parent "
+                 << "due to non-empty function stack.";
+            return false;
+        }
+
+        // forward file
+        LOG1 << "Collapse accepted File from parent";
+        data::File file_copy = file.Copy();
+        this->PushFile(file_copy, /* consume */ true);
+        return true;
     }
 
     void StopPreOp(size_t /* id */) final {
@@ -94,6 +110,10 @@ public:
             p->SetConsumeCounter(consume);
         }
     }
+
+private:
+    //! Whether the parent stack is empty
+    const bool parent_stack_empty_;
 };
 
 #ifndef THRILL_DOXYGEN_IGNORE
