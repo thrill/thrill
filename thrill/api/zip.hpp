@@ -83,15 +83,15 @@ class ZipNode final : public DOpNode<ValueType>
     template <size_t Index>
     using ZipArgN =
               typename common::FunctionTraits<ZipFunction>::template arg_plain<Index>;
-    using ZipArgs =
-              typename common::FunctionTraits<ZipFunction>::args_plain;
+    using ZipArgsTuple =
+              typename common::FunctionTraits<ZipFunction>::args_tuple_plain;
 
 public:
     /*!
      * Constructor for a ZipNode.
      */
     template <typename ParentDIA0, typename ... ParentDIAs>
-    ZipNode(const ZipFunction& zip_function, const ZipArgs& padding,
+    ZipNode(const ZipFunction& zip_function, const ZipArgsTuple& padding,
             const ParentDIA0& parent0, const ParentDIAs& ... parents)
         : Super(parent0.ctx(), "Zip",
                 { parent0.id(), parents.id() ... },
@@ -187,7 +187,7 @@ private:
     ZipFunction zip_function_;
 
     //! padding for shorter DIAs
-    const ZipArgs padding_;
+    const ZipArgsTuple padding_;
 
     //! Whether the parent stack is empty
     const std::array<bool, kNumInputs> parent_stack_empty_;
@@ -453,8 +453,8 @@ auto Zip(const ZipFunction &zip_function,
     using ZipResult
               = typename common::FunctionTraits<ZipFunction>::result_type;
 
-    using ZipArgs =
-              typename common::FunctionTraits<ZipFunction>::args_plain;
+    using ZipArgsTuple =
+              typename common::FunctionTraits<ZipFunction>::args_tuple_plain;
 
     using ZipNode = api::ZipNode<
               ZipResult, ZipFunction,
@@ -462,7 +462,7 @@ auto Zip(const ZipFunction &zip_function,
               1 + sizeof ... (DIAs)>;
 
     auto node = common::MakeCounting<ZipNode>(
-        zip_function, ZipArgs(), first_dia, dias ...);
+        zip_function, ZipArgsTuple(), first_dia, dias ...);
 
     return DIA<ZipResult>(node);
 }
@@ -512,8 +512,8 @@ auto Zip(struct CutTag,
     using ZipResult
               = typename common::FunctionTraits<ZipFunction>::result_type;
 
-    using ZipArgs =
-              typename common::FunctionTraits<ZipFunction>::args_plain;
+    using ZipArgsTuple =
+              typename common::FunctionTraits<ZipFunction>::args_tuple_plain;
 
     using ZipNode = api::ZipNode<
               ZipResult, ZipFunction,
@@ -521,7 +521,7 @@ auto Zip(struct CutTag,
               1 + sizeof ... (DIAs)>;
 
     auto node = common::MakeCounting<ZipNode>(
-        zip_function, ZipArgs(), first_dia, dias ...);
+        zip_function, ZipArgsTuple(), first_dia, dias ...);
 
     return DIA<ZipResult>(node);
 }
@@ -571,8 +571,8 @@ auto Zip(struct PadTag,
     using ZipResult =
               typename common::FunctionTraits<ZipFunction>::result_type;
 
-    using ZipArgs =
-              typename common::FunctionTraits<ZipFunction>::args_plain;
+    using ZipArgsTuple =
+              typename common::FunctionTraits<ZipFunction>::args_tuple_plain;
 
     using ZipNode = api::ZipNode<
               ZipResult, ZipFunction,
@@ -580,7 +580,7 @@ auto Zip(struct PadTag,
               1 + sizeof ... (DIAs)>;
 
     auto node = common::MakeCounting<ZipNode>(
-        zip_function, ZipArgs(), first_dia, dias ...);
+        zip_function, ZipArgsTuple(), first_dia, dias ...);
 
     return DIA<ZipResult>(node);
 }
@@ -614,7 +614,7 @@ template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
 auto Zip(
     struct PadTag,
     const ZipFunction &zip_function,
-    const typename common::FunctionTraits<ZipFunction>::args_plain & padding,
+    const typename common::FunctionTraits<ZipFunction>::args_tuple_plain & padding,
     const DIA<FirstDIAType, FirstDIAStack>&first_dia,
     const DIAs &... dias) {
 
@@ -693,8 +693,8 @@ auto Zip(
     using ZipResult =
               typename common::FunctionTraits<ZipFunction>::result_type;
 
-    using ZipArgs =
-              typename common::FunctionTraits<ZipFunction>::args_plain;
+    using ZipArgsTuple =
+              typename common::FunctionTraits<ZipFunction>::args_tuple_plain;
 
     using ZipNode = api::ZipNode<
               ZipResult, ZipFunction,
@@ -702,7 +702,7 @@ auto Zip(
               1 + sizeof ... (DIAs)>;
 
     auto node = common::MakeCounting<ZipNode>(
-        zip_function, ZipArgs(), first_dia, dias ...);
+        zip_function, ZipArgsTuple(), first_dia, dias ...);
 
     return DIA<ZipResult>(node);
 }
