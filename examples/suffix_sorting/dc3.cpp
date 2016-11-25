@@ -551,10 +551,10 @@ DC3Recursive(const InputDIA& input_dia, size_t input_size, size_t K) {
 
     auto zip_triple_pairs1 =
         ZipWindow(
-            ArrayTag, PadTag, /* window_size */ { 3, 2 },
+            ArrayTag, PadTag, /* window_size */ { { 3, 2 } },
             [](const std::array<Char, 3>& ch, const std::array<IndexRank, 2>& mod12) {
                 return CharsRanks12 {
-                    { ch[0], ch[1], ch[2] }, mod12[0].rank, mod12[1].rank
+                    { { ch[0], ch[1], ch[2] } }, mod12[0].rank, mod12[1].rank
                 };
             },
             std::make_tuple(std::numeric_limits<Char>::lowest(), IndexRank { 0, 0 }),

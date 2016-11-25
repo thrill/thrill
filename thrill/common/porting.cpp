@@ -132,7 +132,6 @@ void SetCpuAffinity(size_t cpu_id) {
              << rc << ": " << strerror(errno);
     }
 #else
-    UNUSED(thread);
     UNUSED(cpu_id);
 #endif
 }
