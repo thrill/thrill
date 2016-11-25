@@ -448,7 +448,8 @@ static inline bool IsDiffCover7(size_t i) {
 }
 
 template <typename Index, typename InputDIA>
-DIA<Index> DC7(const InputDIA& input_dia, size_t input_size, size_t K) {
+DIA<dc7_local::StringFragment<Index, typename InputDIA::ValueType> >
+DC7Recursive(const InputDIA& input_dia, size_t input_size, size_t K) {
 
     using Char = typename InputDIA::ValueType;
     using IndexChars = dc7_local::IndexChars<Index, Char>;
@@ -613,7 +614,9 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size, size_t K) {
 
         assert_equal(string_mod013.Keep().Size(), size_subp);
 
-        auto suffix_array_rec = DC7<Index>(
+        using RecStringFragment = dc7_local::StringFragment<Index, Index>;
+
+        DIA<RecStringFragment> suffix_array_rec = DC7Recursive<Index>(
             string_mod013, size_subp, max_lexname + Index(1));
 
         // reverse suffix array of recursion strings to find ranks for mod 0,
@@ -624,8 +627,8 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size, size_t K) {
 
         auto ranks_rec =
             suffix_array_rec
-            .ZipWithIndex([](const Index& sa, const size_t& i) {
-                              return IndexRank { sa, Index(i) };
+            .ZipWithIndex([](const RecStringFragment& sa, const size_t& i) {
+                              return IndexRank { sa.index, Index(i) };
                           })
             .Sort([size_mod0, size_mod01](
                       const IndexRank& a, const IndexRank& b) {
@@ -933,100 +936,44 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size, size_t K) {
         fragments_mod6.Keep().Print("fragments_mod6");
     }
 
-    // Sort the three string fragment sets
-
-    auto sorted_fragments_mod0 =
-        fragments_mod0
-        .Sort([](const StringFragmentMod0& a, const StringFragmentMod0& b) {
-                  return a.r0 < b.r0;
-              }, dc7_local::RadixSortFragment<StringFragmentMod0, 0>(K));
-
-    auto sorted_fragments_mod1 =
-        fragments_mod1
-        .Sort([](const StringFragmentMod1& a, const StringFragmentMod1& b) {
-                  return a.r0 < b.r0;
-              }, dc7_local::RadixSortFragment<StringFragmentMod1, 0>(K));
-
-    auto sorted_fragments_mod2 =
-        fragments_mod2
-        .Sort([](const StringFragmentMod2& a, const StringFragmentMod2& b) {
-                  return std::tie(a.t[0], a.r1) < std::tie(b.t[0], b.r1);
-              }, dc7_local::RadixSortFragment<StringFragmentMod2, 1>(K));
-
-    auto sorted_fragments_mod3 =
-        fragments_mod3
-        .Sort([](const StringFragmentMod3& a, const StringFragmentMod3& b) {
-                  return a.r0 < b.r0;
-              }, dc7_local::RadixSortFragment<StringFragmentMod3, 0>(K));
-
-    auto sorted_fragments_mod4 =
-        fragments_mod4
-        .Sort([](const StringFragmentMod4& a, const StringFragmentMod4& b) {
-                  return std::tie(a.t[0], a.t[1], a.t[2], a.r3)
-                  < std::tie(b.t[0], b.t[1], b.t[2], b.r3);
-              }, dc7_local::RadixSortFragment<StringFragmentMod4, 3>(K));
-
-    auto sorted_fragments_mod5 =
-        fragments_mod5
-        .Sort([](const StringFragmentMod5& a, const StringFragmentMod5& b) {
-                  return std::tie(a.t[0], a.t[1], a.r2)
-                  < std::tie(b.t[0], b.t[1], b.r2);
-              }, dc7_local::RadixSortFragment<StringFragmentMod5, 2>(K));
-
-    auto sorted_fragments_mod6 =
-        fragments_mod6
-        .Sort([](const StringFragmentMod6& a, const StringFragmentMod6& b) {
-                  return std::tie(a.t[0], a.r1) < std::tie(b.t[0], b.r1);
-              }, dc7_local::RadixSortFragment<StringFragmentMod6, 1>(K));
-
-    if (debug_print) {
-        sorted_fragments_mod0.Keep().Print("sorted_fragments_mod0");
-        sorted_fragments_mod1.Keep().Print("sorted_fragments_mod1");
-        sorted_fragments_mod2.Keep().Print("sorted_fragments_mod2");
-        sorted_fragments_mod3.Keep().Print("sorted_fragments_mod3");
-        sorted_fragments_mod4.Keep().Print("sorted_fragments_mod4");
-        sorted_fragments_mod5.Keep().Print("sorted_fragments_mod5");
-        sorted_fragments_mod6.Keep().Print("sorted_fragments_mod6");
-    }
+    // Sort/Merge and map to only suffix array
 
     using StringFragment = dc7_local::StringFragment<Index, Char>;
 
     auto string_fragments_mod0 =
-        sorted_fragments_mod0
+        fragments_mod0
         .Map([](const StringFragmentMod0& mod0)
              { return StringFragment(mod0); });
 
     auto string_fragments_mod1 =
-        sorted_fragments_mod1
+        fragments_mod1
         .Map([](const StringFragmentMod1& mod1)
              { return StringFragment(mod1); });
 
     auto string_fragments_mod2 =
-        sorted_fragments_mod2
+        fragments_mod2
         .Map([](const StringFragmentMod2& mod2)
              { return StringFragment(mod2); });
 
     auto string_fragments_mod3 =
-        sorted_fragments_mod3
+        fragments_mod3
         .Map([](const StringFragmentMod3& mod3)
              { return StringFragment(mod3); });
 
     auto string_fragments_mod4 =
-        sorted_fragments_mod4
+        fragments_mod4
         .Map([](const StringFragmentMod4& mod4)
              { return StringFragment(mod4); });
 
     auto string_fragments_mod5 =
-        sorted_fragments_mod5
+        fragments_mod5
         .Map([](const StringFragmentMod5& mod5)
              { return StringFragment(mod5); });
 
     auto string_fragments_mod6 =
-        sorted_fragments_mod6
+        fragments_mod6
         .Map([](const StringFragmentMod6& mod6)
              { return StringFragment(mod6); });
-
-    // merge and map to only suffix array
 
     auto suffix_array =
         Union(string_fragments_mod0,
@@ -1037,14 +984,16 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size, size_t K) {
               string_fragments_mod5,
               string_fragments_mod6)
         .Sort(dc7_local::FragmentComparator<StringFragment>())
-        .Map([](const StringFragment& a) { return a.index; })
         .Execute();
 
     // debug output
 
     if (debug_print) {
         std::vector<Char> input_vec = input_dia.Keep().Gather();
-        std::vector<Index> vec = suffix_array.Keep().Gather();
+        std::vector<Index> vec =
+            suffix_array.Keep()
+            .Map([](const StringFragment& a) { return a.index; })
+            .Gather();
 
         if (ctx.my_rank() == 0) {
             size_t p = 0;
@@ -1064,6 +1013,16 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size, size_t K) {
     // die_unless(CheckSA(input_dia, suffix_array.Keep()));
 
     return suffix_array.Collapse();
+}
+
+template <typename Index, typename InputDIA>
+DIA<Index> DC7(const InputDIA& input_dia, size_t input_size, size_t K) {
+
+    using Char = typename InputDIA::ValueType;
+    using StringFragment = dc7_local::StringFragment<Index, Char>;
+
+    return DC7Recursive<Index>(input_dia, input_size, K)
+           .Map([](const StringFragment& a) { return a.index; });
 }
 
 template DIA<uint32_t> DC7<uint32_t>(
