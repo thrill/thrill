@@ -25,6 +25,7 @@
 #include <thrill/api/sum.hpp>
 #include <thrill/api/union.hpp>
 #include <thrill/api/window.hpp>
+#include <thrill/api/zip_window.hpp>
 #include <thrill/api/zip_with_index.hpp>
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/radix_sort.hpp>
@@ -576,7 +577,7 @@ DC7Recursive(const InputDIA& input_dia, size_t input_size, size_t K) {
 
     assert_equal(tuple_index_sorted.Keep().Size(), size_subp);
 
-    DIA<Index> ranks_mod0, ranks_mod1, ranks_mod3;
+    DIA<IndexRank> ranks_mod013;
 
     if (max_lexname + Index(1) != size_subp) {
         // some lexical name is not unique -> perform recursion on three
@@ -625,10 +626,12 @@ DC7Recursive(const InputDIA& input_dia, size_t input_size, size_t K) {
         if (debug_print)
             suffix_array_rec.Keep().Print("suffix_array_rec");
 
-        auto ranks_rec =
+        ranks_mod013 =
             suffix_array_rec
             .ZipWithIndex([](const RecStringFragment& sa, const size_t& i) {
-                              return IndexRank { sa.index, Index(i) };
+                              // add one to ranks such that zero can be used as sentinel
+                              // for suffixes beyond the end of the string.
+                              return IndexRank { sa.index, Index(i) + 1 };
                           })
             .Sort([size_mod0, size_mod01](
                       const IndexRank& a, const IndexRank& b) {
@@ -641,47 +644,23 @@ DC7Recursive(const InputDIA& input_dia, size_t input_size, size_t K) {
                                   b.index < size_mod01 ? b.index - size_mod0 :
                                   b.index - size_mod01);
 
-                      // use sort order for better locality later.
+                      // use sort order to interleave ranks mod 0/1/3
                       return ai < bi || (ai == bi && a.index < b.index);
                   });
 
-        ranks_mod0 =
-            ranks_rec
-            .Filter([size_mod0](const IndexRank& a) {
-                        return a.index < size_mod0;
-                    })
-            .Map([](const IndexRank& a) {
-                     // add one to ranks such that zero can be used as sentinel
-                     // for suffixes beyond the end of the string.
-                     return a.rank + Index(1);
-                 })
-            .Collapse();
-
-        ranks_mod1 =
-            ranks_rec
-            .Filter([size_mod0, size_mod01](const IndexRank& a) {
-                        return a.index >= size_mod0 && a.index < size_mod01;
-                    })
-            .Map([](const IndexRank& a) {
-                     return a.rank + Index(1);
-                 })
-            .Collapse();
-
-        ranks_mod3 =
-            ranks_rec
-            .Filter([size_mod01](const IndexRank& a) {
-                        return a.index >= size_mod01;
-                    })
-            .Map([](const IndexRank& a) {
-                     return a.rank + Index(1);
-                 })
-            .Collapse();
-
         if (debug_print) {
-            ranks_rec.Keep().Print("ranks_rec");
-            ranks_mod0.Keep().Print("ranks_mod0");
-            ranks_mod1.Keep().Print("ranks_mod1");
-            ranks_mod3.Keep().Print("ranks_mod3");
+            // check that ranks are correctly interleaved
+            ranks_mod013.Keep()
+            .Window(
+                DisjointTag, 3,
+                [size_mod0, size_mod01](size_t, const std::vector<IndexRank>& ir) {
+                    die_unless(ir[0].index < size_mod0);
+                    die_unless(ir[1].index >= size_mod0 || ir[1].rank < size_mod01);
+                    die_unless(ir[2].index >= size_mod01);
+                    return true;
+                })
+            .Execute();
+            ranks_mod013.Keep().Print("ranks_rec");
         }
     }
     else {
@@ -691,96 +670,38 @@ DC7Recursive(const InputDIA& input_dia, size_t input_size, size_t K) {
         if (debug_print)
             tuple_index_sorted.Keep().Print("tuple_index_sorted");
 
-        auto ranks_rec =
+        ranks_mod013 =
             tuple_index_sorted
             .ZipWithIndex(
                 [](const Index& sa, const size_t& i) {
-                    return IndexRank { sa, Index(i) };
+                    // add one to ranks such that zero can be used as sentinel
+                    // for suffixes beyond the end of the string.
+                    return IndexRank { sa, Index(i) + 1 };
                 })
             .Sort([](const IndexRank& a, const IndexRank& b) {
-                      // use sort order for better locality later.
+                    // use sort order for better locality later.
                       return a.index / 7 < b.index / 7 || (
                           a.index / 7 == b.index / 7 &&
                           a.index < b.index);
                   });
 
-        ranks_mod0 =
-            ranks_rec
-            .Filter([size_mod0](const IndexRank& a) {
-                        return a.index % 7 == 0;
-                    })
-            .Map([](const IndexRank& a) {
-                     // add one to ranks such that zero can be used as sentinel
-                     // for suffixes beyond the end of the string.
-                     return a.rank + Index(1);
-                 })
-            .Collapse();
-
-        ranks_mod1 =
-            ranks_rec
-            .Filter([size_mod0, size_mod01](const IndexRank& a) {
-                        return a.index % 7 == 1;
-                    })
-            .Map([](const IndexRank& a) {
-                     return a.rank + Index(1);
-                 })
-            .Collapse();
-
-        ranks_mod3 =
-            ranks_rec
-            .Filter([size_mod01](const IndexRank& a) {
-                        return a.index % 7 == 3;
-                    })
-            .Map([](const IndexRank& a) {
-                     return a.rank + Index(1);
-                 })
-            .Collapse();
-
         if (debug_print) {
-            ranks_rec.Keep().Print("ranks_rec");
-            ranks_mod0.Keep().Print("ranks_mod0");
-            ranks_mod1.Keep().Print("ranks_mod1");
-            ranks_mod3.Keep().Print("ranks_mod3");
+            // check that ranks are correctly interleaved
+            ranks_mod013.Keep()
+            .Window(
+                DisjointTag, 3,
+                [](size_t, const std::vector<IndexRank>& ir) {
+                    die_unless(ir[0].index % 7 == 0);
+                    die_unless(ir[1].index % 7 == 1);
+                    die_unless(ir[2].index % 7 == 3);
+                    return true;
+                })
+            .Execute();
+            ranks_mod013.Keep().Print("ranks_rec");
         }
     }
 
     // *** construct StringFragments ***
-
-    auto tuple_chars =
-        input_dia
-        // map (t_i) -> (i,t_i,t_{i+1},...,t_{i+6}) where i != 0,1,3 mod 7
-        .template FlatWindow<Chars>(
-            7,
-            [input_size](size_t index, const RingBuffer<Char>& r, auto emit) {
-                if (index % 7 == 0) {
-                    emit(Chars {
-                             { r[0], r[1], r[2], r[3], r[4], r[5], r[6] }
-                         });
-                }
-            },
-            [input_size](size_t index, const RingBuffer<Char>& r, auto emit) {
-                // emit last sentinel items.
-                if (index % 7 == 0) {
-                    emit(Chars {
-                             { r.size() >= 1 ? r[0] : Char(),
-                               r.size() >= 2 ? r[1] : Char(),
-                               r.size() >= 3 ? r[2] : Char(),
-                               r.size() >= 4 ? r[3] : Char(),
-                               r.size() >= 5 ? r[4] : Char(),
-                               r.size() >= 6 ? r[5] : Char(),
-                               Char() }
-                         });
-                }
-            });
-
-    if (debug_print)
-        tuple_chars.Keep().Print("tuple_chars");
-
-    if (debug_print) {
-        assert_equal(ranks_mod0.Keep().Size(), size_mod0);
-        assert_equal(ranks_mod1.Keep().Size(), size_mod1);
-        assert_equal(ranks_mod3.Keep().Size(), size_mod3);
-    }
 
     // Zip together the three arrays, create pairs, and extract needed
     // tuples into string fragments.
@@ -797,13 +718,16 @@ DC7Recursive(const InputDIA& input_dia, size_t input_size, size_t K) {
     using IndexCR013Pair = dc7_local::IndexCR013Pair<Index, Char>;
 
     auto zip_tuple_pairs1 =
-        Zip(PadTag,
-            [](const Chars& ch,
-               const Index& mod0, const Index& mod1, const Index& mod3) {
-                return CharsRanks013 { ch, mod0, mod1, mod3 };
+        ZipWindow(
+            ArrayTag, PadTag, /* window_size */ { 7, 3 },
+            [](const std::array<Char, 7>& ch, const std::array<IndexRank, 3>& mod013) {
+                return CharsRanks013 {
+                    { ch[0], ch[1], ch[2], ch[3], ch[4], ch[5], ch[6] },
+                    mod013[0].rank, mod013[1].rank, mod013[2].rank
+                };
             },
-            std::make_tuple(Chars::Lowest(), 0, 0, 0),
-            tuple_chars, ranks_mod0, ranks_mod1, ranks_mod3);
+            std::make_tuple(std::numeric_limits<Char>::lowest(), IndexRank { 0, 0 }),
+            input_dia, ranks_mod013);
 
     if (debug_print)
         zip_tuple_pairs1.Keep().Print("zip_tuple_pairs1");
@@ -1022,7 +946,8 @@ DIA<Index> DC7(const InputDIA& input_dia, size_t input_size, size_t K) {
     using StringFragment = dc7_local::StringFragment<Index, Char>;
 
     return DC7Recursive<Index>(input_dia, input_size, K)
-           .Map([](const StringFragment& a) { return a.index; });
+           .Map([](const StringFragment& a) { return a.index; })
+           .Collapse();
 }
 
 template DIA<uint32_t> DC7<uint32_t>(
