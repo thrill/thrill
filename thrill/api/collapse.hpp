@@ -37,7 +37,7 @@ public:
     template <typename ParentDIA>
     explicit CollapseNode(const ParentDIA& parent)
         : Super(parent.ctx(), "Collapse", { parent.id() }, { parent.node() }),
-        parent_stack_empty_(ParentDIA::stack_empty)
+          parent_stack_empty_(ParentDIA::stack_empty)
     {
         auto propagate_fn = [this](const ValueType& input) {
                                 this->PushItem(input);

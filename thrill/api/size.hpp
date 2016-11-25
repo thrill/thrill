@@ -55,7 +55,12 @@ public:
 
     //! Receive a whole data::File of ValueType, but only if our stack is empty.
     bool OnPreOpFile(const data::File& file, size_t /* parent_index */) final {
-        if (!parent_stack_empty_) return false;
+        if (!parent_stack_empty_) {
+            LOGC(common::g_debug_push_file)
+                << "Size rejected File from parent "
+                << "due to non-empty function stack.";
+            return false;
+        }
         local_size_ = file.num_items();
         return true;
     }

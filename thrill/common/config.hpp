@@ -37,6 +37,12 @@ static constexpr bool g_profile_thread = true;
 //! Finding cache line size is hard - we assume 64 byte.
 static constexpr unsigned g_cache_line_size = 64;
 
+//! global flag to warn user when two DIANodes could push data directly via a
+//! File (skipping one data round trip) if the function stack were empty. This
+//! can be used to find lambda which could be be fused to reduce the number of
+//! data round trips.
+static constexpr bool g_debug_push_file = false;
+
 #if !defined(_MSC_VER)
 #define THRILL_HAVE_NET_TCP 1
 #endif

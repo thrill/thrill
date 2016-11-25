@@ -113,14 +113,19 @@ public:
             }
             sample_interval_ = std::max(
                 size_t(1), (local_items_ + 1) / wanted_sample_size());
-            LOG << "SortNode::PreOp() sample_interval_=" << sample_interval_;
+            LOG0 << "SortNode::PreOp() sample_interval_=" << sample_interval_;
         }
         local_items_++;
     }
 
     //! Receive a whole data::File of ValueType, but only if our stack is empty.
     bool OnPreOpFile(const data::File& file, size_t /* parent_index */) final {
-        if (!parent_stack_empty_) return false;
+        if (!parent_stack_empty_) {
+            LOGC(common::g_debug_push_file)
+                << "Sort rejected File from parent "
+                << "due to non-empty function stack.";
+            return false;
+        }
 
         // accept file
         unsorted_file_ = file.Copy();
@@ -143,8 +148,8 @@ public:
     void StopPreOp(size_t /* id */) final {
         unsorted_writer_.Close();
 
-        LOG << "wanted_sample_size()=" << wanted_sample_size()
-            << " samples.size()= " << samples_.size();
+        LOG0 << "wanted_sample_size()=" << wanted_sample_size()
+             << " samples.size()= " << samples_.size();
 
         timer_preop_.Stop();
         if (stats_enabled) {
@@ -555,7 +560,7 @@ private:
 
         size_t num_total_workers = context_.num_workers();
 
-        sLOG << "worker " << context_.my_rank()
+        sLOG << "worker" << context_.my_rank()
              << "local_items_" << local_items_
              << "prefix_items" << prefix_items
              << "total_items" << total_items
@@ -633,9 +638,9 @@ private:
             // launch receiver thread.
             thread = common::CreateThread(
                 [this, &data_stream]() {
+                    common::SetCpuAffinity(context_.local_worker_id());
                     return ReceiveItems(data_stream);
                 });
-            common::SetCpuAffinity(thread, context_.local_worker_id());
         }
 
         TransmitItems(
@@ -680,7 +685,7 @@ private:
 
         auto reader = data_stream->GetMixReader(/* consume */ true);
 
-        LOG << "Writing files";
+        LOG0 << "Writing files";
 
         // M/2 such that the other half is used to prepare the next bulk
         size_t capacity = DIABase::mem_limit_ / sizeof(ValueType) / 2;
@@ -713,7 +718,7 @@ private:
         size_t vec_size = vec.size();
         local_out_size_ += vec.size();
 
-        // advice block pool to write out data if necessary
+        // advise block pool to write out data if necessary
         context_.block_pool().AdviseFree(vec.size() * sizeof(ValueType));
 
         timer_sort_.Start();
@@ -722,7 +727,7 @@ private:
         // common::qsort_three_pivots(vec.begin(), vec.end(), compare_function_);
         timer_sort_.Stop();
 
-        LOG << "SortAndWriteToFile() sort took " << timer_sort_;
+        LOG0 << "SortAndWriteToFile() sort took " << timer_sort_;
 
         Timer write_time;
         write_time.Start();
@@ -736,11 +741,11 @@ private:
 
         write_time.Stop();
 
-        LOG << "SortAndWriteToFile() finished writing files";
+        LOG0 << "SortAndWriteToFile() finished writing files";
 
         vec.clear();
 
-        LOG << "SortAndWriteToFile() vector cleared";
+        LOG0 << "SortAndWriteToFile() vector cleared";
 
         Super::logger_
             << "class" << "SortNode"

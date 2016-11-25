@@ -156,11 +156,21 @@ public:
 
         if (num_inputs_ == parent_stack_empty_.size()) {
             // ConcatNode was constructed from different parents
-            if (!parent_stack_empty_[parent_index]) return false;
+            if (!parent_stack_empty_[parent_index]) {
+                LOGC(common::g_debug_push_file)
+                    << "Concat rejected File from parent "
+                    << "due to non-empty function stack.";
+                return false;
+            }
         }
         else {
             // ConcatNode was constructor with a vector of equal parents
-            if (!parent_stack_empty_[0]) return false;
+            if (!parent_stack_empty_[0]) {
+                LOGC(common::g_debug_push_file)
+                    << "Concat rejected File from parent "
+                    << "due to non-empty function stack.";
+                return false;
+            }
         }
 
         // accept file

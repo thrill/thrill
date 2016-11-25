@@ -70,7 +70,12 @@ public:
     }
 
     bool OnPreOpFile(const data::File& file, size_t /* parent_index */) final {
-        if (!parent_stack_empty_) return false;
+        if (!parent_stack_empty_) {
+            LOGC(common::g_debug_push_file)
+                << "Window rejected File from parent "
+                << "due to non-empty function stack.";
+            return false;
+        }
         // accept file
         assert(file_.num_items() == 0);
         file_ = file.Copy();
