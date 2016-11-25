@@ -155,6 +155,8 @@ void DispatcherThread::Enqueue(Job&& job) {
 //! What happens in the dispatcher thread
 void DispatcherThread::Work() {
     common::NameThisThread(name_);
+    // pin DispatcherThread to last core
+    common::SetCpuAffinity(std::thread::hardware_concurrency() - 1);
 
     while (!terminate_ ||
            dispatcher_->HasAsyncWrites() || !jobqueue_.empty())

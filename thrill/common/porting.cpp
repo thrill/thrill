@@ -121,6 +121,22 @@ void SetCpuAffinity(std::thread& thread, size_t cpu_id) {
 #endif
 }
 
+void SetCpuAffinity(size_t cpu_id) {
+#if __linux__
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    CPU_SET(cpu_id % std::thread::hardware_concurrency(), &cpuset);
+    int rc = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
+    if (rc != 0) {
+        LOG1 << "Error calling pthread_setaffinity_np(): "
+             << rc << ": " << strerror(errno);
+    }
+#else
+    UNUSED(thread);
+    UNUSED(cpu_id);
+#endif
+}
+
 std::string GetHostname() {
 #if __linux__
     char buffer[64];

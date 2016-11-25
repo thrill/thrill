@@ -57,6 +57,9 @@ std::thread CreateThread(Args&& ... args) {
 //! set cpu/core affinity of a thread
 void SetCpuAffinity(std::thread& thread, size_t cpu_id);
 
+//! set cpu/core affinity of current thread
+void SetCpuAffinity(size_t cpu_id);
+
 //! get hostname
 std::string GetHostname();
 

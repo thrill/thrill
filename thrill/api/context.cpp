@@ -544,6 +544,11 @@ int RunBackendMpi(const std::function<void(Context&)>& job_startpoint) {
         workers_per_host = std::thread::hardware_concurrency();
     }
 
+    // reserve one thread for MPI net::Dispatcher which runs a busy-waiting loop
+
+    die_unless(workers_per_host > 1);
+    --workers_per_host;
+
     // detect memory config
 
     MemoryConfig mem_config;
@@ -556,7 +561,7 @@ int RunBackendMpi(const std::function<void(Context&)>& job_startpoint) {
     size_t mpi_rank = net::mpi::MpiRank();
 
     std::cerr << "Thrill: running in MPI network with " << num_hosts
-              << " hosts and " << workers_per_host << " workers per host"
+              << " hosts and " << workers_per_host << "+1 workers per host"
               << " with " << common::GetHostname()
               << " as rank " << mpi_rank << "."
               << std::endl;

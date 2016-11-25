@@ -15,6 +15,7 @@
  ******************************************************************************/
 
 #include <thrill/common/logger.hpp>
+#include <thrill/common/porting.hpp>
 #include <thrill/io/error_handling.hpp>
 #include <thrill/io/file_base.hpp>
 #include <thrill/io/request_queue_impl_qw_qr.hpp>
@@ -51,7 +52,7 @@ void RequestQueueImplQwQr::AddRequest(RequestPtr& req) {
     {
 #if THRILL_CHECK_FOR_PENDING_REQUESTS_ON_SUBMISSION
         {
-            std::unique_lock<std::mutex> Lock(write_mutex_);
+            std::unique_lock<std::mutex> lock(write_mutex_);
             if (std::find_if(write_queue_.begin(), write_queue_.end(),
                              bind2nd(FileOffsetMatch(), req))
                 != write_queue_.end())
@@ -60,14 +61,14 @@ void RequestQueueImplQwQr::AddRequest(RequestPtr& req) {
             }
         }
 #endif
-        std::unique_lock<std::mutex> Lock(read_mutex_);
+        std::unique_lock<std::mutex> lock(read_mutex_);
         read_queue_.push_back(req);
     }
     else
     {
 #if THRILL_CHECK_FOR_PENDING_REQUESTS_ON_SUBMISSION
         {
-            std::unique_lock<std::mutex> Lock(read_mutex_);
+            std::unique_lock<std::mutex> lock(read_mutex_);
             if (std::find_if(read_queue_.begin(), read_queue_.end(),
                              bind2nd(FileOffsetMatch(), req))
                 != read_queue_.end())
@@ -76,7 +77,7 @@ void RequestQueueImplQwQr::AddRequest(RequestPtr& req) {
             }
         }
 #endif
-        std::unique_lock<std::mutex> Lock(write_mutex_);
+        std::unique_lock<std::mutex> lock(write_mutex_);
         write_queue_.push_back(req);
     }
 
@@ -94,27 +95,27 @@ bool RequestQueueImplQwQr::CancelRequest(Request* req) {
     bool was_still_in_queue = false;
     if (req->type() == Request::READ)
     {
-        std::unique_lock<std::mutex> Lock(read_mutex_);
+        std::unique_lock<std::mutex> lock(read_mutex_);
         Queue::iterator pos
             = std::find(read_queue_.begin(), read_queue_.end(), req);
         if (pos != read_queue_.end())
         {
             read_queue_.erase(pos);
             was_still_in_queue = true;
-            Lock.unlock();
+            lock.unlock();
             sem_.wait();
         }
     }
     else
     {
-        std::unique_lock<std::mutex> Lock(write_mutex_);
+        std::unique_lock<std::mutex> lock(write_mutex_);
         Queue::iterator pos
             = std::find(write_queue_.begin(), write_queue_.end(), req);
         if (pos != write_queue_.end())
         {
             write_queue_.erase(pos);
             was_still_in_queue = true;
-            Lock.unlock();
+            lock.unlock();
             sem_.wait();
         }
     }
@@ -128,6 +129,8 @@ RequestQueueImplQwQr::~RequestQueueImplQwQr() {
 
 void* RequestQueueImplQwQr::worker(void* arg) {
     RequestQueueImplQwQr* pthis = static_cast<RequestQueueImplQwQr*>(arg);
+    // pin I/O thread to last core
+    common::SetCpuAffinity(std::thread::hardware_concurrency() - 1);
 
     bool write_phase = true;
     for ( ; ; )
@@ -136,20 +139,20 @@ void* RequestQueueImplQwQr::worker(void* arg) {
 
         if (write_phase)
         {
-            std::unique_lock<std::mutex> WriteLock(pthis->write_mutex_);
+            std::unique_lock<std::mutex> write_lock(pthis->write_mutex_);
             if (!pthis->write_queue_.empty())
             {
                 RequestPtr req = pthis->write_queue_.front();
                 pthis->write_queue_.pop_front();
 
-                WriteLock.unlock();
+                write_lock.unlock();
 
                 // assert(req->get_reference_count()) > 1);
                 dynamic_cast<ServingRequest*>(req.get())->serve();
             }
             else
             {
-                WriteLock.unlock();
+                write_lock.unlock();
 
                 pthis->sem_.signal();
 
@@ -162,14 +165,14 @@ void* RequestQueueImplQwQr::worker(void* arg) {
         }
         else
         {
-            std::unique_lock<std::mutex> ReadLock(pthis->read_mutex_);
+            std::unique_lock<std::mutex> read_lock(pthis->read_mutex_);
 
             if (!pthis->read_queue_.empty())
             {
                 RequestPtr req = pthis->read_queue_.front();
                 pthis->read_queue_.pop_front();
 
-                ReadLock.unlock();
+                read_lock.unlock();
 
                 LOG << "queue: before serve request has " << req->reference_count() << " references ";
                 // assert(req->get_reference_count() > 1);
@@ -178,7 +181,7 @@ void* RequestQueueImplQwQr::worker(void* arg) {
             }
             else
             {
-                ReadLock.unlock();
+                read_lock.unlock();
 
                 pthis->sem_.signal();
 
