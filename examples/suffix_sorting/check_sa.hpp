@@ -30,8 +30,6 @@ bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
     using namespace thrill; // NOLINT
     using thrill::common::RingBuffer;
 
-    Context& ctx = input.ctx();
-
     using Char = typename InputDIA::ValueType;
     using Index = typename SuffixArrayDIA::ValueType;
 
@@ -52,10 +50,9 @@ bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
     auto isa_pair =
         suffix_array
         // build tuples with index: (SA[i]) -> (i, SA[i]),
-        .Zip(Generate(ctx, input_size),
-             [](const Index& sa, const size_t& i) {
-                 return IndexRank { sa, Index(i) };
-             })
+        .ZipWithIndex([](const Index& sa, const size_t& i) {
+                          return IndexRank { sa, Index(i) };
+                      })
         // take (i, SA[i]) and sort to (ISA[i], i)
         .Sort([](const IndexRank& a, const IndexRank& b) {
                   return a.index < b.index;
@@ -65,10 +62,9 @@ bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
     // permutation of [0,n)
     Index perm_check =
         isa_pair.Keep()
-        .Zip(Generate(ctx, input_size),
-             [](const IndexRank& ir, const size_t& index) -> Index {
-                 return ir.index == Index(index) ? 0 : 1;
-             })
+        .ZipWithIndex([](const IndexRank& ir, const size_t& index) -> Index {
+                          return ir.index == Index(index) ? 0 : 1;
+                      })
         // sum over all boolean values.
         .Max();
 

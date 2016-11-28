@@ -631,7 +631,7 @@ DC7Recursive(const InputDIA& input_dia, size_t input_size, size_t K) {
             .ZipWithIndex([](const RecStringFragment& sa, const size_t& i) {
                               // add one to ranks such that zero can be used as sentinel
                               // for suffixes beyond the end of the string.
-                              return IndexRank { sa.index, Index(i) + 1 };
+                              return IndexRank { sa.index, Index(i + 1) };
                           })
             .Sort([size_mod0, size_mod01](
                       const IndexRank& a, const IndexRank& b) {
@@ -676,7 +676,7 @@ DC7Recursive(const InputDIA& input_dia, size_t input_size, size_t K) {
                 [](const Index& sa, const size_t& i) {
                     // add one to ranks such that zero can be used as sentinel
                     // for suffixes beyond the end of the string.
-                    return IndexRank { sa, Index(i) + 1 };
+                    return IndexRank { sa, Index(i + 1) };
                 })
             .Sort([](const IndexRank& a, const IndexRank& b) {
                     // use sort order for better locality later.
@@ -719,10 +719,14 @@ DC7Recursive(const InputDIA& input_dia, size_t input_size, size_t K) {
 
     auto zip_tuple_pairs1 =
         ZipWindow(
-            ArrayTag, PadTag, /* window_size */ { { 7, 3 } },
+            ArrayTag, PadTag, /* window_size */ {
+                { 7, 3 }
+            },
             [](const std::array<Char, 7>& ch, const std::array<IndexRank, 3>& mod013) {
                 return CharsRanks013 {
-                    { { ch[0], ch[1], ch[2], ch[3], ch[4], ch[5], ch[6] } },
+                    {
+                        { ch[0], ch[1], ch[2], ch[3], ch[4], ch[5], ch[6] }
+                    },
                     mod013[0].rank, mod013[1].rank, mod013[2].rank
                 };
             },
