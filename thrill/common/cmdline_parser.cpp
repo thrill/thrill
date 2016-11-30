@@ -927,32 +927,37 @@ bool CmdlineParser::Process(
                     os << "Invalid option \"" << arg << '"' << std::endl;
                 }
                 else {
-                    ArgumentList::const_iterator oi = optlist_.begin();
-                    for ( ; oi != optlist_.end(); ++oi)
-                    {
-                        if (arg[1] == (*oi)->key_)
+                    size_t offset = 1;
+                    int old_argc = argc;
+                    while (offset < strlen(arg) && argc == old_argc) {
+                        ArgumentList::const_iterator oi = optlist_.begin();
+                        for ( ; oi != optlist_.end(); ++oi)
                         {
-                            if (!(*oi)->Process(argc, argv))
+                            if (arg[offset] == (*oi)->key_)
                             {
-                                PrintOptionError(argc, argv, *oi, os);
-                                return false;
+                                ++offset;
+                                if (!(*oi)->Process(argc, argv))
+                                {
+                                    PrintOptionError(argc, argv, *oi, os);
+                                    return false;
+                                }
+                                else if (verbose_process_)
+                                {
+                                    os << "Option " << (*oi)->OptionText()
+                                       << " set to ";
+                                    (*oi)->PrintValue(os);
+                                    os << '.' << std::endl;
+                                }
+                                break;
                             }
-                            else if (verbose_process_)
-                            {
-                                os << "Option " << (*oi)->OptionText()
-                                   << " set to ";
-                                (*oi)->PrintValue(os);
-                                os << '.' << std::endl;
-                            }
-                            break;
                         }
-                    }
-                    if (oi == optlist_.end())
-                    {
-                        os << "Error: Unknown option \"" << arg << "\"."
-                           << std::endl << std::endl;
-                        PrintUsage(os);
-                        return false;
+                        if (oi == optlist_.end())
+                        {
+                            os << "Error: Unknown option \"" << arg << "\"."
+                               << std::endl << std::endl;
+                            PrintUsage(os);
+                            return false;
+                        }
                     }
                 }
             }
