@@ -927,9 +927,11 @@ bool CmdlineParser::Process(
                     os << "Invalid option \"" << arg << '"' << std::endl;
                 }
                 else {
-                    size_t offset = 1;
+                    size_t offset = 1, arg_length = strlen(arg);
                     int old_argc = argc;
-                    while (offset < strlen(arg) && argc == old_argc) {
+                    // Arguments will increase argc, so abort if it increases,
+                    // while flags won't, so increase offset and parse next
+                    while (offset < arg_length && argc == old_argc) {
                         ArgumentList::const_iterator oi = optlist_.begin();
                         for ( ; oi != optlist_.end(); ++oi)
                         {
@@ -953,8 +955,13 @@ bool CmdlineParser::Process(
                         }
                         if (oi == optlist_.end())
                         {
-                            os << "Error: Unknown option \"" << arg << "\"."
-                               << std::endl << std::endl;
+                            os << "Error: Unknown option \"";
+                            if (arg_length > 2) {
+                                // multiple short options combined
+                                os << "-" << arg[offset] << "\" at position "
+                                   << offset << " in option sequence \"";
+                            }
+                            os << arg << "\"." << std::endl << std::endl;
                             PrintUsage(os);
                             return false;
                         }
