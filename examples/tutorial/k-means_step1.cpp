@@ -41,7 +41,7 @@ void Process(thrill::Context& ctx) {
     std::uniform_real_distribution<double> dist(0.0, 1000.0);
 
     // generate 100 random points using uniform distribution
-    auto points =
+    DIA<Point> points =
         Generate(
             ctx, /* size */ 100,
             [&](const size_t& /* index */) {
