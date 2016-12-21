@@ -19,6 +19,8 @@
 #include <ostream>
 #include <random>
 
+using thrill::DIA;
+
 //! [Point class]
 //! A 2-dimensional point with double precision
 struct Point {
