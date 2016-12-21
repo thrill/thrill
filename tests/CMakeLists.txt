@@ -8,6 +8,8 @@
 # All rights reserved. Published under the BSD-2 license in the LICENSE file.
 ################################################################################
 
+include_directories(SYSTEM ${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
+
 # macro for building test target programs with correct libraries
 macro(thrill_build_target TARGETNAME)
 
