@@ -46,7 +46,7 @@ endif()
 add_library(thrill STATIC ${THRILL_SRCS})
 target_compile_definitions(thrill PUBLIC ${THRILL_DEFINITIONS})
 target_include_directories(thrill PUBLIC ${PROJECT_SOURCE_DIR})
-target_include_directories(thrill SYSTEM PUBLIC ${THRILL_INCLUDE_DIRS})
+target_include_directories(thrill PUBLIC ${THRILL_INCLUDE_DIRS})
 target_link_libraries(thrill ${THRILL_LINK_LIBRARIES})
 
 ################################################################################
