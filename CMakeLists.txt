@@ -29,8 +29,9 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Build type")
 endif()
 
-option(THRILL_USE_MPI
-  "Use (optional) MPI net backend." OFF)
+# THRILL_USE_MPI tristate switch
+set(THRILL_USE_MPI AUTO CACHE STRING "Use (optional) MPI net backend.")
+set_property(CACHE THRILL_USE_MPI PROPERTY STRINGS AUTO ON OFF)
 
 option(THRILL_USE_TBB
   "Use (optional) Intel TBB library if available." ON)
@@ -56,15 +57,10 @@ option(THRILL_FULL_BUILD
 option(THRILL_TRY_COMPILE_HEADERS
   "Test header files for self-sufficiency: try to compile them." OFF)
 
-if(APPLE OR MSVC)
-  set(THRILL_USE_S3_DEFAULT OFF)
-else()
-  set(THRILL_USE_S3_DEFAULT ON)
-endif()
-
-option(THRILL_USE_S3
-  "Build libs3 as library. Enabled by default if all dependencies are found."
-  ${THRILL_USE_S3_DEFAULT})
+# THRILL_USE_S3 tristate switch
+set(THRILL_USE_S3 AUTO CACHE
+  STRING "Build libs3 as library. Enabled by default if all dependencies are found.")
+set_property(CACHE THRILL_USE_S3 PROPERTY STRINGS AUTO ON OFF)
 
 option(THRILL_USE_HDFS3
   "Download and build with libhdfs3 for hdfs:// support." OFF)
@@ -404,26 +400,25 @@ endif()
 
 # try to find libS3 (optional)
 
-# test for all dependencies of libS3
-find_package(CURL)
-find_package(LibXml2)
-find_package(OpenSSL)
+if(THRILL_USE_S3 STREQUAL "AUTO")
+  # test for all dependencies of libS3
+  find_package(CURL)
+  find_package(LibXml2)
+  find_package(OpenSSL)
 
-# if libS3 is desired check if all dependencies were found
-if(THRILL_USE_S3)
-  if(NOT CURL_FOUND)
-    message(SEND_ERROR "libS3 requires libcurl, which was not found.")
-  endif()
-  if(NOT OPENSSL_FOUND)
-    message(SEND_ERROR "libS3 requires OpenSSL, which was not found.")
-  endif()
-  if(NOT LIBXML2_FOUND)
-    message(SEND_ERROR "libS3 requires libxml2, which was not found.")
+  if(CURL_FOUND AND LIBXML2_FOUND AND OPENSSL_FOUND)
+    message("All libS3 dependencies available.")
+    set(THRILL_USE_S3 ON)
+  else()
+    message("libS3 not built as not all dependencies available.")
+    set(THRILL_USE_S3 OFF)
   endif()
 endif()
 
-# if libS3 dependencies were found, build as external project
-if(THRILL_USE_S3 AND CURL_FOUND AND LIBXML2_FOUND AND OPENSSL_FOUND)
+if(THRILL_USE_S3)
+  find_package(CURL REQUIRED)
+  find_package(LibXml2 REQUIRED)
+  find_package(OpenSSL REQUIRED)
 
   # build libS3 as cmake library
   add_subdirectory(extlib/libs3)
@@ -493,16 +488,23 @@ endif()
 
 # use MPI library (optional)
 
-if(THRILL_USE_MPI)
+if(THRILL_USE_MPI STREQUAL "AUTO")
   find_package(MPI)
 
   if(NOT MPI_FOUND)
     message(STATUS "No MPI library found. No problem, it is optional.")
+    set(THRILL_USE_MPI OFF)
   else()
-    list(APPEND THRILL_DEFINITIONS "THRILL_HAVE_HAVE_NET_MPI=1")
-    list(APPEND THRILL_INCLUDE_DIRS ${MPI_INCLUDE_PATH})
-    list(APPEND THRILL_LINK_LIBRARIES ${MPI_LIBRARIES})
+    set(THRILL_USE_MPI ON)
   endif()
+endif()
+
+if(THRILL_USE_MPI)
+  find_package(MPI REQUIRED)
+
+  list(APPEND THRILL_DEFINITIONS "THRILL_HAVE_HAVE_NET_MPI=1")
+  list(APPEND THRILL_INCLUDE_DIRS ${MPI_INCLUDE_PATH})
+  list(APPEND THRILL_LINK_LIBRARIES ${MPI_LIBRARIES})
 endif()
 
 # build Infiniband/MPI net backend (optional)
