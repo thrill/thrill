@@ -29,6 +29,17 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Build type")
 endif()
 
+################################################################################
+### Options and Switches
+
+# BUILD_SHARED_LIBS is a standard CMake variable, but we declare it here to
+# make it prominent in the GUI.
+option(BUILD_SHARED_LIBS "Build shared libraries (DLLs)." OFF)
+
+option(THRILL_BUILD_EXAMPLES "Build thrill's examples." OFF)
+
+option(THRILL_BUILD_TESTS "Build thrill's tests and benchmarks." OFF)
+
 # THRILL_USE_ZLIB tristate switch
 set(THRILL_USE_ZLIB AUTO CACHE
   STRING "Use (optional) zlib for transparent .gz compression/decompression.")
@@ -75,9 +86,7 @@ set_property(CACHE THRILL_USE_S3 PROPERTY STRINGS AUTO ON OFF)
 option(THRILL_USE_HDFS3
   "Download and build with libhdfs3 for hdfs:// support." OFF)
 
-# BUILD_SHARED_LIBS is a standard CMake variable, but we declare it here to
-# make it prominent in the GUI.
-option(BUILD_SHARED_LIBS "Build shared libraries (DLLs)." OFF)
+################################################################################
 
 # variables to collect compile-time definitions, include dirs, and libraries
 set(THRILL_DEFINITIONS "")
@@ -618,14 +627,18 @@ endmacro(thrill_test_multiple)
 # descend into library source
 add_subdirectory(thrill)
 
-# descend into testsuite
-add_subdirectory(tests)
+if(THRILL_BUILD_TESTS)
+  # descend into testsuite
+  add_subdirectory(tests)
 
-# descend into benchmarks and examples programs
-add_subdirectory(benchmarks)
+  # descend into benchmarks and examples programs
+  add_subdirectory(benchmarks)
+endif()
 
-# descend into examples source
-add_subdirectory(examples)
+if(THRILL_BUILD_EXAMPLES)
+  # descend into examples source
+  add_subdirectory(examples)
+endif()
 
 # build frontends
 add_subdirectory(frontends)

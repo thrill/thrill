@@ -14,7 +14,7 @@ set -ex
 git submodule init
 git submodule update
 
-CMAKE_OPTS=
+CMAKE_OPTS="-DTHRILL_BUILD_EXAMPLES=ON -DTHRILL_BUILD_TESTS=ON"
 
 # try to find a modern C++ compiler
 set +x
