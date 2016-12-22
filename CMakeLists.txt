@@ -29,6 +29,16 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Build type")
 endif()
 
+# THRILL_USE_ZLIB tristate switch
+set(THRILL_USE_ZLIB AUTO CACHE
+  STRING "Use (optional) zlib for transparent .gz compression/decompression.")
+set_property(CACHE THRILL_USE_ZLIB PROPERTY STRINGS AUTO ON OFF)
+
+# THRILL_USE_BZIP2 tristate switch
+set(THRILL_USE_BZIP2 AUTO CACHE
+  STRING "Use (optional) bzip2 for transparent .bz2 compression/decompression.")
+set_property(CACHE THRILL_USE_BZIP2 PROPERTY STRINGS AUTO ON OFF)
+
 # THRILL_USE_MPI tristate switch
 set(THRILL_USE_MPI AUTO CACHE STRING "Use (optional) MPI net backend.")
 set_property(CACHE THRILL_USE_MPI PROPERTY STRINGS AUTO ON OFF)
@@ -380,19 +390,43 @@ if(THRILL_USE_JEMALLOC)
   endif()
 endif()
 
-# use ZLIB for transparent gzip compression/decompression
+# use ZLIB for transparent .gz compression/decompression
 
-find_package(ZLIB)
-if(ZLIB_FOUND)
+if(THRILL_USE_ZLIB STREQUAL "AUTO")
+  find_package(ZLIB)
+  if(ZLIB_FOUND)
+    message("Using zlib for transparent .gz compression/decompression.")
+    set(THRILL_USE_ZLIB ON)
+  else()
+    message("zlib not available (optional).")
+    set(THRILL_USE_ZLIB OFF)
+  endif()
+endif()
+
+if(THRILL_USE_ZLIB)
+  find_package(ZLIB REQUIRED)
+
   list(APPEND THRILL_DEFINITIONS "THRILL_HAVE_ZLIB=1")
   list(APPEND THRILL_INCLUDE_DIRS ${ZLIB_INCLUDE_DIRS})
   list(APPEND THRILL_LINK_LIBRARIES ${ZLIB_LIBRARIES})
 endif()
 
-# use BZLIB for transparent gzip compression/decompression
+# use BZLIB for transparent .bz2 compression/decompression
 
-find_package(BZip2)
-if(BZIP2_FOUND)
+if(THRILL_USE_BZIP2 STREQUAL "AUTO")
+  find_package(BZip2)
+  if(BZIP2_FOUND)
+    message("Using bzip2 for transparent .bz2 compression/decompression.")
+    set(THRILL_USE_BZIP2 ON)
+  else()
+    message("bzip2 not available (optional).")
+    set(THRILL_USE_BZIP2 OFF)
+  endif()
+endif()
+
+if(THRILL_USE_BZIP2)
+  find_package(BZip2 REQUIRED)
+
   list(APPEND THRILL_DEFINITIONS "THRILL_HAVE_BZIP2=1")
   list(APPEND THRILL_INCLUDE_DIRS ${BZIP2_INCLUDE_DIRS})
   list(APPEND THRILL_LINK_LIBRARIES ${BZIP2_LIBRARIES})
