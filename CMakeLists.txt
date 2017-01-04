@@ -10,7 +10,7 @@
 # All rights reserved. Published under the BSD-2 license in the LICENSE file.
 ################################################################################
 
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.8.12)
 
 # custom cmake scripts
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/misc/cmake)
