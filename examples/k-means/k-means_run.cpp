@@ -111,7 +111,7 @@ static void RunKMeansGenerated(
     const std::string& svg_path, double svg_scale,
     const std::vector<std::string>& input_paths) {
 
-    std::default_random_engine rng(std::random_device { } ());
+    std::default_random_engine rng(123456);
     std::uniform_real_distribution<float> dist(0.0, 1000.0);
 
     size_t num_points;
