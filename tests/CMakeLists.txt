@@ -123,7 +123,11 @@ endif()
 if(MPI_FOUND)
   thrill_build_only(net/mpi_test)
   # run test with mpirun
-  add_test(net_mpi_test ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 8 net_mpi_test)
+  add_test(net_mpi_test1 ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1 net_mpi_test)
+  add_test(net_mpi_test2 ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2 net_mpi_test)
+  add_test(net_mpi_test3 ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 3 net_mpi_test)
+  add_test(net_mpi_test7 ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 7 net_mpi_test)
+  add_test(net_mpi_test8 ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 8 net_mpi_test)
 endif()
 
 # compile io tests

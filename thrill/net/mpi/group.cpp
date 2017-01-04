@@ -152,7 +152,8 @@ void Group::Barrier() {
 
     print "void Group::ExPrefixSumPlus$$e[1]($$e[0]& value) {\n";
     print "    std::unique_lock<std::mutex> lock(g_mutex);\n";
-    print "    MPI_Exscan(MPI_IN_PLACE, &value, 1, MPI_$$e[2], MPI_SUM, MPI_COMM_WORLD);\n";
+    print "    $$e[0] temp = value;\n";
+    print "    MPI_Exscan(&temp, &value, 1, MPI_$$e[2], MPI_SUM, MPI_COMM_WORLD);\n";
     print "}\n";
 
     print "void Group::Broadcast$$e[1]($$e[0]& value, size_t origin) {\n";
@@ -182,7 +183,8 @@ void Group::PrefixSumPlusInt(int& value) {
 }
 void Group::ExPrefixSumPlusInt(int& value) {
     std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Exscan(MPI_IN_PLACE, &value, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+    int temp = value;
+    MPI_Exscan(&temp, &value, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 }
 void Group::BroadcastInt(int& value, size_t origin) {
     std::unique_lock<std::mutex> lock(g_mutex);
@@ -206,7 +208,8 @@ void Group::PrefixSumPlusUnsignedInt(unsigned int& value) {
 }
 void Group::ExPrefixSumPlusUnsignedInt(unsigned int& value) {
     std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Exscan(MPI_IN_PLACE, &value, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
+    unsigned int temp = value;
+    MPI_Exscan(&temp, &value, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
 }
 void Group::BroadcastUnsignedInt(unsigned int& value, size_t origin) {
     std::unique_lock<std::mutex> lock(g_mutex);
@@ -230,7 +233,8 @@ void Group::PrefixSumPlusLong(long& value) {
 }
 void Group::ExPrefixSumPlusLong(long& value) {
     std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Exscan(MPI_IN_PLACE, &value, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
+    long temp = value;
+    MPI_Exscan(&temp, &value, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
 }
 void Group::BroadcastLong(long& value, size_t origin) {
     std::unique_lock<std::mutex> lock(g_mutex);
@@ -254,7 +258,8 @@ void Group::PrefixSumPlusUnsignedLong(unsigned long& value) {
 }
 void Group::ExPrefixSumPlusUnsignedLong(unsigned long& value) {
     std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Exscan(MPI_IN_PLACE, &value, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
+    unsigned long temp = value;
+    MPI_Exscan(&temp, &value, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
 }
 void Group::BroadcastUnsignedLong(unsigned long& value, size_t origin) {
     std::unique_lock<std::mutex> lock(g_mutex);
@@ -278,7 +283,8 @@ void Group::PrefixSumPlusLongLong(long long& value) {
 }
 void Group::ExPrefixSumPlusLongLong(long long& value) {
     std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Exscan(MPI_IN_PLACE, &value, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
+    long long temp = value;
+    MPI_Exscan(&temp, &value, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
 }
 void Group::BroadcastLongLong(long long& value, size_t origin) {
     std::unique_lock<std::mutex> lock(g_mutex);
@@ -302,7 +308,8 @@ void Group::PrefixSumPlusUnsignedLongLong(unsigned long long& value) {
 }
 void Group::ExPrefixSumPlusUnsignedLongLong(unsigned long long& value) {
     std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Exscan(MPI_IN_PLACE, &value, 1, MPI_UNSIGNED_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
+    unsigned long long temp = value;
+    MPI_Exscan(&temp, &value, 1, MPI_UNSIGNED_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
 }
 void Group::BroadcastUnsignedLongLong(unsigned long long& value, size_t origin) {
     std::unique_lock<std::mutex> lock(g_mutex);
