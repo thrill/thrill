@@ -14,9 +14,9 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/common/matrix.hpp>
 #include <thrill/common/stats_timer.hpp>
-#include <thrill/common/thread_pool.hpp>
 #include <thrill/data/block_queue.hpp>
 #include <tlx/cmdline_parser.hpp>
+#include <tlx/thread_pool.hpp>
 
 #include <algorithm>
 #include <iostream>
@@ -246,13 +246,13 @@ public:
             abort();
         bool consume = reader_type_ == "consume";
 
-        common::ThreadPool threads(num_threads_ + 1);
+        tlx::ThreadPool pool(num_threads_ + 1);
         for (unsigned i = 0; i < iterations_; i++) {
             auto queue = data::BlockQueue(ctx.block_pool(), 0, /* dia_id */ 0);
             auto data = Generator<Type>(bytes_, min_size_, max_size_);
 
             StatsTimerStopped write_timer;
-            threads.Enqueue(
+            pool.enqueue(
                 [&]() {
                     auto writer = queue.GetWriter();
                     write_timer.Start();
@@ -266,7 +266,7 @@ public:
             std::chrono::microseconds::rep read_time = 0;
 
             for (size_t thread = 0; thread < num_threads_; thread++) {
-                threads.Enqueue(
+                pool.enqueue(
                     [&]() {
                         StatsTimerStart read_timer;
                         auto reader = queue.GetReader(consume, 0);
@@ -277,7 +277,7 @@ public:
                         read_time = std::max(read_time, read_timer.Microseconds());
                     });
             }
-            threads.LoopUntilEmpty();
+            pool.loop_until_empty();
             LOG1 << "RESULT"
                  << " experiment=" << "block_queue"
                  << " workers=" << ctx.num_workers()
@@ -583,8 +583,8 @@ public:
             auto stream = ctx.GetNewStream<Stream>(/* dia_id */ 0);
 
             // start reader thread
-            common::ThreadPool threads(ctx.num_workers() + 1);
-            threads.Enqueue(
+            tlx::ThreadPool pool(ctx.num_workers() + 1);
+            pool.enqueue(
                 [&]() {
                     read_timer.Start();
                     auto reader = stream->GetReader(consume);
@@ -597,7 +597,7 @@ public:
             auto writers = stream->GetWriters();
             std::chrono::microseconds::rep write_time = 0;
             for (size_t target = 0; target < ctx.num_workers(); target++) {
-                threads.Enqueue(
+                pool.enqueue(
                     [&, target]() {
                         auto data = Generator<Type>(
                             bytes_ / ctx.num_workers(), min_size_, max_size_);
@@ -612,7 +612,7 @@ public:
                         write_time = std::max(write_time, write_timer.Microseconds());
                     });
             }
-            threads.LoopUntilEmpty();
+            pool.loop_until_empty();
 
             total_timer.Stop();
             LOG1 << "RESULT"
@@ -711,8 +711,8 @@ public:
             // start reader thread
             StatsTimerStopped read_timer;
 
-            common::ThreadPool threads(2);
-            threads.Enqueue(
+            tlx::ThreadPool pool(2);
+            pool.enqueue(
                 [&]() {
                     read_timer.Start();
                     auto reader = stream->GetReader(consume);
@@ -723,7 +723,7 @@ public:
 
             // start writer threads: send to all workers
             std::chrono::microseconds::rep write_time = 0;
-            threads.Enqueue(
+            pool.enqueue(
                 [&]() {
                     writer.Close();
                     std::vector<size_t> offsets;
@@ -743,7 +743,8 @@ public:
                     write_timer.Stop();
                     write_time = std::max(write_time, write_timer.Microseconds());
                 });
-            threads.LoopUntilEmpty();
+
+            pool.loop_until_empty();
 
             total_timer.Stop();
             LOG1 << "RESULT"

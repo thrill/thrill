@@ -98,7 +98,6 @@ thrill_build_test_group(common/tests
   common/stats_timer_test.cpp
   common/string_view_test.cpp
   common/thread_barrier_test.cpp
-  common/thread_pool_test.cpp
   common/timed_counter_test.cpp
   common/uint_types_test.cpp
   common/zipf_distribution_test.cpp
