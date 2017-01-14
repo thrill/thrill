@@ -171,7 +171,7 @@ public:
         my_last.reserve(window_size_ - 1);
 
         assert(window_.size() < window_size_);
-        window_.move_to(my_last);
+        window_.move_to(&my_last);
 
         // collective operation: get k - 1 predecessors
         std::vector<Input> pre =
@@ -416,7 +416,7 @@ public:
         my_last.reserve(window_size_ - 1);
 
         assert(window_.size() < window_size_);
-        window_.move_to(my_last);
+        window_.move_to(&my_last);
 
         // collective operation: get k - 1 predecessors
         std::vector<Input> pre =
@@ -449,7 +449,7 @@ public:
         // copy window into vector containing first items
         std::vector<Input> window;
         window.reserve(window_size_);
-        window_.copy_to(window);
+        window_.copy_to(&window);
         assert(window.size() < window_size_);
 
         size_t rank = first_rank_ - (window_size_ - 1);
