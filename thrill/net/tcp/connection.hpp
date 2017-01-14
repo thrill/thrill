@@ -203,6 +203,12 @@ public:
         SyncRecv(recv_data, recv_size);
     }
 
+    void SyncRecvSend(const void* send_data, size_t send_size,
+                      void* recv_data, size_t recv_size) final {
+        SyncRecv(recv_data, recv_size);
+        SyncSend(send_data, send_size, NoFlags);
+    }
+
     //! Close this Connection
     void Close() {
         socket_.close();

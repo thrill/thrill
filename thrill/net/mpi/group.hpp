@@ -124,6 +124,8 @@ public:
 
     void SyncSendRecv(const void* send_data, size_t send_size,
                       void* recv_data, size_t recv_size) final;
+    void SyncRecvSend(const void* send_data, size_t send_size,
+                      void* recv_data, size_t recv_size) final;
 
     //! \}
 

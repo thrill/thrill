@@ -357,7 +357,12 @@ void Group::AllReduceHypercube(T& value, BinarySumOp sum_op) {
             //      << ": Sending" << value << "to worker" << peer;
 
             T recv_data;
-            connection(peer).SendReceive(value, &recv_data);
+            if (my_host_rank() & d) {
+                connection(peer).SendReceive(value, &recv_data);
+            }
+            else {
+                connection(peer).ReceiveSend(value, &recv_data);
+            }
 
             // The order of addition is important. The total sum of the smaller
             // hypercube always comes first.
