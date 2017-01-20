@@ -64,6 +64,8 @@ public:
         if (buf_ + Size >= ptr_ + n) {
             char* r = ptr_;
             ptr_ += n;
+            if (n % alignment != 0)
+                ptr_ += alignment - n % alignment;
             return r;
         }
         // otherwise fallback to malloc()
