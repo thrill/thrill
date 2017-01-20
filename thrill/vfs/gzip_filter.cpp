@@ -263,12 +263,12 @@ ReadStreamPtr MakeGZipReadFilter(const ReadStreamPtr& stream) {
 
 #else   // !THRILL_HAVE_ZLIB
 
-WriteStreamPtr MakeGZipWriteFilter(const WriteStreamPtr& stream) {
+WriteStreamPtr MakeGZipWriteFilter(const WriteStreamPtr&) {
     die(".gz decompression is not available, "
         "because Thrill was built without zlib.");
 }
 
-ReadStreamPtr MakeGZipReadFilter(const ReadStreamPtr& stream) {
+ReadStreamPtr MakeGZipReadFilter(const ReadStreamPtr&) {
     die(".gz decompression is not available, "
         "because Thrill was built without zlib.");
 }

@@ -225,12 +225,12 @@ ReadStreamPtr MakeBZip2ReadFilter(const ReadStreamPtr& stream) {
 
 #else   // !THRILL_HAVE_BZIP2
 
-WriteStreamPtr MakeBZip2WriteFilter(const WriteStreamPtr& stream) {
+WriteStreamPtr MakeBZip2WriteFilter(const WriteStreamPtr&) {
     die(".bz2 decompression is not available, "
         "because Thrill was built without libbz2.");
 }
 
-ReadStreamPtr MakeBZip2ReadFilter(const ReadStreamPtr& stream) {
+ReadStreamPtr MakeBZip2ReadFilter(const ReadStreamPtr&) {
     die(".bz2 decompression is not available, "
         "because Thrill was built without libbz2.");
 }
