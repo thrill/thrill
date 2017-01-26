@@ -177,10 +177,10 @@ $ cd ~/thrill/build/examples/page_rank/
 $ THRILL_LOG=ourlog ./page_rank_run --generate 100000
 $ ls -la ourlog*
 (this should show ourlog-host0.json and ourlog-host1.json)
-$ ~/thrill/build/misc/json2profile ourlog*.json > ourlog.html
+$ ~/thrill/build/misc/json2profile ourlog*.json > exec-profile.html
 \endcode
 
-And open `ourlog.html` using a web browser to see an **execution profile**.
+And open <tt>[exec-profile.html](exec-profile.html)</tt> using a web browser to see an <b>[execution profile](exec-profile.html)</b> and more important statistics.
 
 ### DIA Dataflow Graph Output
 
