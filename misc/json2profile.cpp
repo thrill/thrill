@@ -93,7 +93,11 @@ public:
 
 std::vector<CCmdline> c_Cmdline;
 
+//! static: the title shown over the plot
 std::string s_title;
+
+//! static: whether to show more detailed tables
+bool s_detail_tables = false;
 
 static inline
 std::string GetProgramName() {
@@ -1270,7 +1274,7 @@ std::string PageMain() {
 
     /**************************************************************************/
 
-    if (c_Stream.size() != 0)
+    if (s_detail_tables && c_Stream.size() != 0)
     {
         oss << "<h2>Stream Details</h2>\n";
 
@@ -1290,7 +1294,7 @@ std::string PageMain() {
 
     /**************************************************************************/
 
-    if (c_File.size() != 0)
+    if (s_detail_tables && c_File.size() != 0)
     {
         oss << "<h2>File Details</h2>\n";
 
@@ -1373,6 +1377,8 @@ int main(int argc, char* argv[]) {
     clp.AddOptParamStringlist("inputs", inputs, "json inputs");
 
     clp.AddString('t', "title", s_title, "override title");
+
+    clp.AddFlag('d', "detail", s_detail_tables, "show detail tables");
 
     bool output_RESULT_lines = false;
     clp.AddFlag('r', "result", output_RESULT_lines,
