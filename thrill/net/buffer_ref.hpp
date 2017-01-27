@@ -93,7 +93,7 @@ public:
 
     //! Compare contents of two BufferRefs.
     bool operator != (const BufferRef& br) const noexcept {
-        return ! operator == (br);
+        return !operator == (br);
     }
 };
 

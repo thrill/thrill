@@ -327,7 +327,7 @@ sub process_cpp {
         }
 
         # check for double underscore identifiers
-        if ($data[$i] =~ m@\s__(?!(attribute__|sync_|builtin_|has_feature|FILE__|LINE__|FUNCTION__|PRETTY_FUNCTION__|GNUC__|linux__|APPLE__|FreeBSD__|clang__|STDC_WANT_SECURE_LIB__))@ && $data[$i] !~ /NOLINT/) {
+        if ($data[$i] =~ m@\s__(?!(attribute__|sync_|builtin_|has_feature|FILE__|LINE__|FUNCTION__|PRETTY_FUNCTION__|GNUC__|linux__|APPLE__|FreeBSD__|clang__|STDC_WANT_SECURE_LIB__|BYTE_ORDER__|ORDER_LITTLE_ENDIAN__|ORDER_BIG_ENDIAN__))@ && $data[$i] !~ /NOLINT/) {
             print("double underscore identifier found in $path:$i\n");
             print("$data[$i]\n");
         }
@@ -763,7 +763,7 @@ foreach my $file (@filelist)
         # use pdf2svg to convert pdfs to svgs for doxygen.
         process_doc_images_pdf($file);
     }
-    elsif ($file =~ /^doc\/images\/.*\.(svg|png|jpg)$/) {
+    elsif ($file =~ /^doc\/images\/.*\.(svg|png|jpg|html)$/) {
     }
     # recognize further files
     elsif ($file =~ m!(^|/)\.git/!) {

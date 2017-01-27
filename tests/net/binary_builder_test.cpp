@@ -8,10 +8,10 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
+#include <thrill/common/string.hpp>
 #include <thrill/net/buffer_builder.hpp>
 #include <thrill/net/buffer_reader.hpp>
 #include <thrill/net/fixed_buffer_builder.hpp>
-#include <thrill/common/string.hpp>
 
 #include <gtest/gtest.h>
 
