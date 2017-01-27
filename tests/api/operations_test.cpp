@@ -553,38 +553,6 @@ TEST(Operations, PrefixSumFacultyCorrectResults) {
     api::RunLocalTests(start_func);
 }
 
-TEST(Operations, GenerateAndSumHaveEqualAmount1) {
-
-    std::default_random_engine generator(std::random_device { } ());
-    std::uniform_int_distribution<int> distribution(1000, 10000);
-
-    size_t generate_size = distribution(generator);
-
-    auto start_func =
-        [generate_size](Context& ctx) {
-
-            auto input = GenerateFromFile(
-                ctx,
-                "inputs/test1",
-                [](const std::string& line) {
-                    return std::stoi(line);
-                },
-                generate_size);
-
-            auto ones = input.Map([](int) {
-                                      return 1;
-                                  });
-
-            auto add_function = [](int in1, int in2) {
-                                    return in1 + in2;
-                                };
-
-            ASSERT_EQ((int)generate_size + 42, ones.Sum(add_function, 42));
-        };
-
-    api::RunLocalTests(start_func);
-}
-
 TEST(Operations, GenerateAndSumHaveEqualAmount2) {
 
     auto start_func =

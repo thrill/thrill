@@ -120,40 +120,6 @@ TEST(IO, ReadPartOfFolderCompressed) {
 
 #endif // THRILL_HAVE_ZLIB && THRILL_HAVE_BZIP2
 
-TEST(IO, GenerateFromFileRandomIntegers) {
-    api::RunLocalSameThread(
-        [](api::Context& ctx) {
-            std::default_random_engine generator(std::random_device { } ());
-            std::uniform_int_distribution<int> distribution(1000, 10000);
-
-            size_t generate_size = distribution(generator);
-
-            auto input = GenerateFromFile(
-                ctx,
-                "inputs/test1",
-                [](const std::string& line) {
-                    return std::stoi(line);
-                },
-                generate_size);
-
-            size_t writer_size = 0;
-
-            input.Map(
-                [&writer_size](const int& item) {
-                    // file contains ints between 1  and 16
-                    // fails if wrong integer is generated
-                    EXPECT_GE(item, 1);
-                    EXPECT_GE(16, item);
-                    writer_size++;
-                    return std::to_string(item) + "\n";
-                })
-            .WriteLines("outputs/generated", 8 * 1024);
-
-            // DIA contains as many elements as we wanted to generate
-            ASSERT_EQ(generate_size, writer_size);
-        });
-}
-
 TEST(IO, GenerateIntegerWriteReadBinary) {
     vfs::TemporaryDirectory tmpdir;
 
