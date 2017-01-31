@@ -14,7 +14,7 @@
 #include <thrill/api/cache.hpp>
 #include <thrill/api/dia.hpp>
 #include <thrill/api/generate.hpp>
-#include <thrill/api/join.hpp>
+#include <thrill/api/inner_join.hpp>
 #include <thrill/api/read_lines.hpp>
 #include <thrill/api/size.hpp>
 #include <thrill/common/cmdline_parser.hpp>
@@ -229,19 +229,21 @@ static size_t JoinTPCH4(
     common::StatsTimerStart timer;
 
     const bool use_detection = false;
-    auto joined = lineitems.
-                  template InnerJoinWith<use_detection>(orders,
-                                                        [](const LineItem& li) {
-                                                            return li.orderkey;
-                                                        },
-                                                        [](const Order& o) {
-                                                            return o.orderkey;
-                                                        },
-                                                        [](const LineItem& li,
-                                                           const Order& o) {
-                                                            return ConstructJoinedElement(
-                                                                li, o);
-                                                        }, thrill::hash()).Size();
+    auto joined =
+        lineitems.
+        template InnerJoin<use_detection>(
+            orders,
+            [](const LineItem& li) {
+                return li.orderkey;
+            },
+            [](const Order& o) {
+                return o.orderkey;
+            },
+            [](const LineItem& li,
+               const Order& o) {
+                return ConstructJoinedElement(
+                    li, o);
+            }, thrill::hash()).Size();
 
     ctx.net.Barrier();
 

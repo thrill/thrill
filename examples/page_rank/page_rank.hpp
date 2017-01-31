@@ -15,7 +15,7 @@
 
 #include <thrill/api/collapse.hpp>
 #include <thrill/api/generate.hpp>
-#include <thrill/api/join.hpp>
+#include <thrill/api/inner_join.hpp>
 #include <thrill/api/print.hpp>
 #include <thrill/api/reduce_by_key.hpp>
 #include <thrill/api/reduce_to_index.hpp>
@@ -154,7 +154,7 @@ auto PageRankJoin(const DIA<LinkedPage, InStack>&links, size_t num_pages,
         // 2) compute rank contribution for each linked_url: (FlatMap)
         // (linked_url, rank / outgoing.size)
 
-        auto outs_rank = links.template InnerJoinWith<UseLocationDetection>(
+        auto outs_rank = links.template InnerJoin<UseLocationDetection>(
             ranks,
             [](const LinkedPage& lp) {
                 return lp.first;

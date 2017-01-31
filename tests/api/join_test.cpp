@@ -10,7 +10,7 @@
 
 #include <thrill/api/all_gather.hpp>
 #include <thrill/api/generate.hpp>
-#include <thrill/api/join.hpp>
+#include <thrill/api/inner_join.hpp>
 #include <thrill/api/sum.hpp>
 #include <thrill/common/logger.hpp>
 
@@ -52,7 +52,7 @@ TEST(Join, PairsUnique) {
                                                       input2.second);
                            };
 
-            auto joined = dia1.InnerJoinWith(dia2, key_ex, key_ex, join_fn);
+            auto joined = dia1.InnerJoin(dia2, key_ex, key_ex, join_fn);
             std::vector<intuple> out_vec = joined.AllGather();
 
             std::sort(out_vec.begin(), out_vec.end(), [](const intuple& in1,
@@ -95,7 +95,7 @@ TEST(Join, PairsSameKey) {
                                                      input2.second);
                            };
 
-            auto joined = dia1.InnerJoinWith(dia2, key_ex, key_ex, join_fn);
+            auto joined = dia1.InnerJoin(dia2, key_ex, key_ex, join_fn);
             std::vector<intpair> out_vec = joined.AllGather();
 
             std::sort(out_vec.begin(), out_vec.end(), [](const intpair& in1,
@@ -144,7 +144,7 @@ TEST(Join, PairsSameKeyDiffSizes) {
                                                      input2.second);
                            };
 
-            auto joined = dia1.InnerJoinWith(dia2, key_ex, key_ex, join_fn);
+            auto joined = dia1.InnerJoin(dia2, key_ex, key_ex, join_fn);
             std::vector<intpair> out_vec = joined.AllGather();
 
             std::sort(out_vec.begin(), out_vec.end(), [](const intpair& in1,
@@ -201,7 +201,7 @@ TEST(Join, DifferentTypes) {
                                                       std::get<2>(input2));
                            };
 
-            auto joined = dia1.InnerJoinWith(dia2, key_ex1, key_ex2, join_fn);
+            auto joined = dia1.InnerJoin(dia2, key_ex1, key_ex2, join_fn);
             std::vector<intuple5> out_vec = joined.AllGather();
 
             std::sort(out_vec.begin(), out_vec.end(), [](const intuple5& in1,

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/api/join.hpp
+ * thrill/api/inner_join.hpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #pragma once
-#ifndef THRILL_API_JOIN_HEADER
-#define THRILL_API_JOIN_HEADER
+#ifndef THRILL_API_INNER_JOIN_HEADER
+#define THRILL_API_INNER_JOIN_HEADER
 
 #include <thrill/api/dia.hpp>
 #include <thrill/api/dop_node.hpp>
@@ -23,9 +23,9 @@
 #include <thrill/data/file.hpp>
 
 #include <algorithm>
-#include <array>
+#include <deque>
 #include <functional>
-#include <tuple>
+#include <utility>
 #include <vector>
 
 namespace thrill {
@@ -685,11 +685,11 @@ template <const bool UseLocationDetection,
           typename JoinFunction,
           typename SecondDIA,
           typename HashFunction>
-auto DIA<ValueType, Stack>::InnerJoinWith(const SecondDIA &second_dia,
-                                          const KeyExtractor1 &key_extractor1,
-                                          const KeyExtractor2 &key_extractor2,
-                                          const JoinFunction &join_function,
-                                          const HashFunction &hash_function)
+auto DIA<ValueType, Stack>::InnerJoin(const SecondDIA &second_dia,
+                                      const KeyExtractor1 &key_extractor1,
+                                      const KeyExtractor2 &key_extractor2,
+                                      const JoinFunction &join_function,
+                                      const HashFunction &hash_function)
 const {
 
     assert(IsValid());
@@ -750,6 +750,6 @@ const {
 } // namespace api
 } // namespace thrill
 
-#endif // !THRILL_API_JOIN_HEADER
+#endif // !THRILL_API_INNER_JOIN_HEADER
 
 /******************************************************************************/

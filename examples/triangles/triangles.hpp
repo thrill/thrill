@@ -12,7 +12,7 @@
 #ifndef THRILL_EXAMPLES_TRIANGLES_TRIANGLES_HEADER
 #define THRILL_EXAMPLES_TRIANGLES_TRIANGLES_HEADER
 
-#include <thrill/api/join.hpp>
+#include <thrill/api/inner_join.hpp>
 #include <thrill/api/size.hpp>
 
 #include <x86intrin.h>
@@ -45,17 +45,18 @@ template <bool UseDetection = false, typename Stack>
 size_t CountTriangles(const DIA<Edge, Stack>& edges) {
 
     auto edges_length_2 =
-        edges.template InnerJoinWith<UseDetection>(edges, [](const Edge& e) {
-                                                       return e.second;
-                                                   }, [](const Edge& e) {
-                                                       return e.first;
-                                                   }, [](const Edge& e1, const Edge& e2) {
-                                                       assert(e1.second == e2.first);
-                                                       return std::make_pair(e1.first, e2.second);
-                                                   }, thrill::hash());
+        edges.template InnerJoin<UseDetection>(
+            edges, [](const Edge& e) {
+                return e.second;
+            }, [](const Edge& e) {
+                return e.first;
+            }, [](const Edge& e1, const Edge& e2) {
+                assert(e1.second == e2.first);
+                return std::make_pair(e1.first, e2.second);
+            }, thrill::hash());
 
     auto triangles =
-        edges_length_2.template InnerJoinWith<UseDetection>
+        edges_length_2.template InnerJoin<UseDetection>
             (edges, [](const Edge& e) {
                 return e;
             }, [](const Edge& e) {
