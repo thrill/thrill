@@ -396,31 +396,6 @@ DC3Recursive(const InputDIA& input_dia, size_t input_size, size_t K) {
 
     DIA<IndexRank> ranks_mod12;
 
-    // prepare triples for Zip(), this is lazily executed later.
-    auto triple_chars =
-        input_dia
-        // map (t_i) -> (t_i,t_{i+1},t_{i+2}) where i = 0 mod 3
-        .template FlatWindow<Chars>(
-            3,
-            [input_size](size_t index, const RingBuffer<Char>& rb, auto emit) {
-                if (index % 3 == 0)
-                    emit(Chars {
-                             { rb[0], rb[1], rb[2] }
-                         });
-            },
-            [input_size](size_t index, const RingBuffer<Char>& rb, auto emit) {
-                // emit sentinels
-                if (index % 3 == 0)
-                    emit(Chars {
-                             { rb.size() >= 1 ? rb[0] : Char(),
-                               rb.size() >= 2 ? rb[1] : Char(),
-                               Char() }
-                         });
-            });
-
-    if (debug_print)
-        triple_chars.Keep().Print("triple_chars");
-
     if (max_lexname + Index(1) != size_subp) {
 
         // some lexical name is not unique -> perform recursion on two
@@ -494,7 +469,7 @@ DC3Recursive(const InputDIA& input_dia, size_t input_size, size_t K) {
                 DisjointTag, 2,
                 [size_mod1](size_t, const std::vector<IndexRank>& ir) {
                     die_unless(ir[0].index < size_mod1);
-                    die_unless(ir[1].index >= size_mod1 || ir[1].rank == 0);
+                    die_unless(ir[1].index >= size_mod1 || ir[1].rank == Index(0));
                     return true;
                 })
             .Execute();
@@ -529,7 +504,7 @@ DC3Recursive(const InputDIA& input_dia, size_t input_size, size_t K) {
                 DisjointTag, 2,
                 [](size_t, const std::vector<IndexRank>& ir) {
                     die_unless(ir[0].index % 3 == 1);
-                    die_unless(ir[1].index % 3 != 1 || ir[1].rank == 0);
+                    die_unless(ir[1].index % 3 != 1 || ir[1].rank == Index(0));
                     return true;
                 })
             .Execute();

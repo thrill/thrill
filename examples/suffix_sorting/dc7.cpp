@@ -631,7 +631,7 @@ DC7Recursive(const InputDIA& input_dia, size_t input_size, size_t K) {
             .ZipWithIndex([](const RecStringFragment& sa, const size_t& i) {
                               // add one to ranks such that zero can be used as sentinel
                               // for suffixes beyond the end of the string.
-                              return IndexRank { sa.index, Index(i) + 1 };
+                              return IndexRank { sa.index, Index(i + 1) };
                           })
             .Sort([size_mod0, size_mod01](
                       const IndexRank& a, const IndexRank& b) {
@@ -676,7 +676,7 @@ DC7Recursive(const InputDIA& input_dia, size_t input_size, size_t K) {
                 [](const Index& sa, const size_t& i) {
                     // add one to ranks such that zero can be used as sentinel
                     // for suffixes beyond the end of the string.
-                    return IndexRank { sa, Index(i) + 1 };
+                    return IndexRank { sa, Index(i + 1) };
                 })
             .Sort([](const IndexRank& a, const IndexRank& b) {
                     // use sort order for better locality later.
