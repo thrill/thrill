@@ -203,65 +203,6 @@ template <typename T>
 using hash_crc32 = hash_crc32_fallback<T>;
 #endif
 
-
-namespace _detail {
-// HighwayHash needs unsigned long long for compatibility, not uint64_t...
-using u64 = unsigned long long;
-struct Highway_AVX2 {
-    static uint64_t hash_bytes(const u64(&)[4], const char*, const size_t);
-};
-struct Highway_SSE41 {
-    static uint64_t hash_bytes(const u64(&)[4], const char*, const size_t);
-};
-struct Highway_Scalar {
-    static uint64_t hash_bytes(const u64(&)[4], const char*, const size_t);
-};
-} // namespace _detail
-
-/**
- * HighwayHash, a fast strong hash function by Google
- *
- * See https://github.com/google/highwayhash
- *
- * Note that you need to provide specializations of hash_helper if you want to
- * hash types with heap storage.
- */
-template <typename ValueType>
-struct hash_highway {
-#if defined(THRILL_HAVE_AVX2)
-    using hasher = _detail::Highway_AVX2;
-#elif defined(THRILL_HAVE_SSE4_1)
-    using hasher = _detail::Highway_SSE41;
-#else
-    using hasher = _detail::Highway_Scalar;
-#endif
-
-    // Default key from highwayhash's sip_hash_main.cc
-    hash_highway() {
-        key_[0] = 0x0706050403020100ULL;
-        key_[1] = 0x0F0E0D0C0B0A0908ULL;
-        key_[2] = 0x1716151413121110ULL;
-        key_[3] = 0x1F1E1D1C1B1A1918ULL;
-    }
-
-    hash_highway(uint64_t key[4]) {
-        key_[0] = key[0];
-        key_[1] = key[1];
-        key_[2] = key[2];
-        key_[3] = key[3];
-    }
-
-    uint64_t operator()(const ValueType& val) {
-        const char *ptr = hash_helper<ValueType>::ptr(val);
-        size_t size = hash_helper<ValueType>::size(val);
-        return hasher::hash_bytes(key_, ptr, size);
-    }
-
-private:
-    unsigned long long key_[4];
-};
-
-
 /*!
  * Tabulation Hashing, see https://en.wikipedia.org/wiki/Tabulation_hashing
  *
