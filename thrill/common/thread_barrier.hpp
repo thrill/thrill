@@ -133,7 +133,7 @@ public:
         else {
             // FakeStatsTimerStart timer;
             // spin lock awaiting the last thread to increment the step counter.
-            while (step_.load(std::memory_order_relaxed) == this_step) {
+            while (step_.load(std::memory_order_acquire) == this_step) {
                 // std::this_thread::yield();
             }
             // wait_time_ += timer.Microseconds();

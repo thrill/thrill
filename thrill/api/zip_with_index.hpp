@@ -68,7 +68,11 @@ public:
 
     //! Receive a whole data::File of ValueType, but only if our stack is empty.
     bool OnPreOpFile(const data::File& file, size_t /* parent_index */) final {
-        if (!parent_stack_empty_) return false;
+        if (!parent_stack_empty_) {
+            LOGC(common::g_debug_push_file)
+                << "ZipWithIndex rejected File from parent due to Stack";
+            return false;
+        }
 
         // accept file
         assert(file_.num_items() == 0);

@@ -58,6 +58,7 @@ print "#include <$_>\n" foreach sort glob("thrill/api/"."*.hpp");
 #include <thrill/api/write_lines.hpp>
 #include <thrill/api/write_lines_one.hpp>
 #include <thrill/api/zip.hpp>
+#include <thrill/api/zip_window.hpp>
 #include <thrill/api/zip_with_index.hpp>
 // [[[end]]]
 

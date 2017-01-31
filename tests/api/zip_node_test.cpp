@@ -14,6 +14,7 @@
 #include <thrill/api/generate.hpp>
 #include <thrill/api/size.hpp>
 #include <thrill/api/zip.hpp>
+#include <thrill/api/zip_window.hpp>
 #include <thrill/api/zip_with_index.hpp>
 #include <thrill/common/string.hpp>
 
@@ -393,6 +394,74 @@ TEST(ZipNode, ThreeIntegerArraysPadded) {
                     ? static_cast<double>(i) / static_cast<double>(test_size)
                     : 42,
                     std::get<2>(res[i]));
+            }
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+/******************************************************************************/
+
+TEST(ZipWindowNode, TwoBalancedIntegerVectors) {
+
+    auto start_func =
+        [](Context& ctx) {
+
+            // numbers 0..999 (evenly distributed to workers)
+            auto zip_input1 = Generate(ctx, 2000);
+
+            // numbers 0..2999
+            auto zip_input2 = Generate(ctx, 3000);
+
+            // zip
+            auto zip_result = ZipWindow(
+                { 2, 3 },
+                [](const std::vector<size_t>& a, const std::vector<size_t>& b) -> long {
+                    die_unequal(2u, a.size());
+                    die_unequal(3u, b.size());
+                    return a[0] + 2 * a[1] + b[0] + 3 * b[1] + 7 * b[2];
+                }, zip_input1, zip_input2);
+
+            // check result
+            std::vector<long> res = zip_result.AllGather();
+
+            ASSERT_EQ(1000u, res.size());
+
+            for (size_t i = 0; i < res.size(); ++i) {
+                ASSERT_EQ(39 * i + 19, res[i]);
+            }
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+TEST(ZipWindowNode, TwoBalancedIntegerArrays) {
+
+    auto start_func =
+        [](Context& ctx) {
+
+            // numbers 0..999 (evenly distributed to workers)
+            auto zip_input1 = Generate(ctx, 2000);
+
+            // numbers 0..2999
+            auto zip_input2 = Generate(ctx, 3000);
+
+            // zip
+            auto zip_result = ZipWindow(
+                ArrayTag, PadTag, { 2, 3 },
+                [](const std::array<size_t, 2>& a, const std::array<size_t, 3>& b) -> long {
+                    die_unequal(2u, a.size());
+                    die_unequal(3u, b.size());
+                    return a[0] + 2 * a[1] + b[0] + 3 * b[1] + 7 * b[2];
+                }, zip_input1, zip_input2);
+
+            // check result
+            std::vector<long> res = zip_result.AllGather();
+
+            ASSERT_EQ(1000u, res.size());
+
+            for (size_t i = 0; i < res.size(); ++i) {
+                ASSERT_EQ(39 * i + 19, res[i]);
             }
         };
 

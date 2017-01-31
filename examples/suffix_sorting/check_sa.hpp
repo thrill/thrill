@@ -81,15 +81,13 @@ bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
 
     auto order_check =
         isa_pair
-        // extract ISA[i]
-        .Map([](const IndexRank& ir) { return ir.rank; })
         // build (ISA[i], ISA[i+1], T[i])
         .template FlatWindow<IndexPair>(
-            2, [input_size](size_t index, const RingBuffer<Index>& rb, auto emit) {
-                emit(IndexPair { rb[0], rb[1] });
+            2, [input_size](size_t index, const RingBuffer<IndexRank>& rb, auto emit) {
+                emit(IndexPair { rb[0].rank, rb[1].rank });
                 if (index == input_size - 2) {
                     // emit sentinel at end
-                    emit(IndexPair { rb[1], input_size });
+                    emit(IndexPair { rb[1].rank, input_size });
                 }
             })
         .Zip(input,

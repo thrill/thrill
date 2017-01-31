@@ -67,7 +67,12 @@ public:
     }
 
     bool OnPreOpFile(const data::File& file, size_t /* parent_index */) final {
-        if (!parent_stack_empty_) return false;
+        if (!parent_stack_empty_) {
+            LOGC(common::g_debug_push_file)
+                << "AllGather rejected File from parent "
+                << "due to non-empty function stack.";
+            return false;
+        }
         for (size_t i = 0; i < emitters_.size(); i++) {
             emitters_[i].AppendBlocks(file.blocks());
         }

@@ -16,6 +16,7 @@
 
 #include <thrill/common/config.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/common/porting.hpp>
 #include <thrill/io/error_handling.hpp>
 #include <thrill/io/file_base.hpp>
 #include <thrill/io/request_queue_impl_1q.hpp>
@@ -50,7 +51,7 @@ void RequestQueueImpl1Q::AddRequest(RequestPtr& req) {
 
 #if THRILL_CHECK_FOR_PENDING_REQUESTS_ON_SUBMISSION
     {
-        std::unique_lock<std::mutex> Lock(queue_mutex_);
+        std::unique_lock<std::mutex> lock(queue_mutex_);
         if (std::find_if(queue_.begin(), queue_.end(),
                          bind2nd(FileOffsetMatch(), req))
             != queue_.end())
@@ -59,7 +60,7 @@ void RequestQueueImpl1Q::AddRequest(RequestPtr& req) {
         }
     }
 #endif
-    std::unique_lock<std::mutex> Lock(queue_mutex_);
+    std::unique_lock<std::mutex> lock(queue_mutex_);
     queue_.push_back(req);
 
     sem_.signal();
@@ -75,7 +76,7 @@ bool RequestQueueImpl1Q::CancelRequest(Request* req) {
 
     bool was_still_in_queue = false;
     {
-        std::unique_lock<std::mutex> Lock(queue_mutex_);
+        std::unique_lock<std::mutex> lock(queue_mutex_);
         Queue::iterator pos
             = std::find(queue_.begin(), queue_.end(), req);
 
@@ -83,7 +84,7 @@ bool RequestQueueImpl1Q::CancelRequest(Request* req) {
         {
             queue_.erase(pos);
             was_still_in_queue = true;
-            Lock.unlock();
+            lock.unlock();
             sem_.wait();
         }
     }
@@ -97,26 +98,28 @@ RequestQueueImpl1Q::~RequestQueueImpl1Q() {
 
 void* RequestQueueImpl1Q::worker(void* arg) {
     RequestQueueImpl1Q* pthis = static_cast<RequestQueueImpl1Q*>(arg);
+    // pin I/O thread to last core
+    common::SetCpuAffinity(std::thread::hardware_concurrency() - 1);
 
     for ( ; ; )
     {
         pthis->sem_.wait();
 
         {
-            std::unique_lock<std::mutex> Lock(pthis->queue_mutex_);
+            std::unique_lock<std::mutex> lock(pthis->queue_mutex_);
             if (!pthis->queue_.empty())
             {
                 RequestPtr req = pthis->queue_.front();
                 pthis->queue_.pop_front();
 
-                Lock.unlock();
+                lock.unlock();
 
                 // assert(req->nref() > 1);
                 dynamic_cast<ServingRequest*>(req.get())->serve();
             }
             else
             {
-                Lock.unlock();
+                lock.unlock();
 
                 pthis->sem_.signal();
             }
