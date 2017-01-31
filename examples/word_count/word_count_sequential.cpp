@@ -1,5 +1,5 @@
 /*******************************************************************************
- * examples/word_count/word_count_seq.cpp
+ * examples/word_count/word_count_sequential.cpp
  *
  * A simple sequential word count implementation using std::unordered_map.
  *
