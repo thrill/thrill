@@ -8,13 +8,13 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <cmath>
-#include <random>
-
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/math.hpp>
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/core/dynamic_bitset.hpp>
+
+#include <cmath>
+#include <random>
 
 int main(int argc, char* argv[]) {
 
@@ -37,9 +37,8 @@ int main(int argc, char* argv[]) {
     clp.AddSizeT('d', "avg_dist", average_distance,
                  "Average distance between numbers, default: 10");
 
-    if (!clp.Process(argc, argv)) {
+    if (!clp.Process(argc, argv))
         return -1;
-    }
 
     size_t space_bound = num_elements *
                          (2 + thrill::common::IntegerLog2Ceil((size_t)fpr_parameter));

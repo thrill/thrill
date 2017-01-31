@@ -22,6 +22,8 @@
 
 #include <algorithm>
 #include <memory>
+#include <utility>
+#include <vector>
 
 namespace thrill {
 namespace core {
@@ -42,12 +44,11 @@ namespace core {
  */
 class DuplicateDetection
 {
-
 private:
     /*!
      * Sends all hashes in the range
      * [max_hash / num_workers * p, max_hash / num_workers * (p + 1)) to worker
-     * p. These hashes are encoded with a golomb encoder in core::DynamicBitset.
+     * p. These hashes are encoded with a Golomb encoder in core::DynamicBitset.
      *
      * \param stream_pointer Pointer to data stream
      * \param hashes Sorted vector of all hashes modulo max_hash
@@ -70,24 +71,24 @@ private:
         for (size_t i = 0; i < num_workers; ++i) {
             common::Range range_i = common::CalculateLocalRange(max_hash, num_workers, i);
 
-            // TODO: Lower bound.
-            core::DynamicBitset<size_t>
-            golomb_code(space_bound, false, b);
+            // TODO(an): Lower bound.
+            core::DynamicBitset<size_t> golomb_code(space_bound, false, b);
 
             golomb_code.seek();
 
             size_t delta = 0;
             size_t num_elements = 0;
 
-            //! Local duplicates are only sent once, this is detected by checking equivalence
-            //! to previous element. Thus we need a special case for the first element being 0
+            //! Local duplicates are only sent once, this is detected by
+            //! checking equivalence to previous element. Thus we need a special
+            //! case for the first element being 0
             if (j < hashes.size() && hashes[j] == 0) {
                 golomb_code.golomb_in(0);
                 ++num_elements;
                 ++j;
             }
 
-            for (            /*j is already set from previous workers*/
+            for (   /* j is already set from previous workers */
                 ; j < hashes.size() && hashes[j] < range_i.end; ++j) {
                 //! Send hash deltas to make the encoded bitset smaller.
                 if (hashes[j] != delta) {
@@ -107,8 +108,8 @@ private:
     }
 
     /*!
-     * Reads a golomb encoded bitset from a data stream and returns it's contents
-     * in form of a vector of hashes.
+     * Reads a golomb encoded bitset from a data stream and returns it's
+     * contents in form of a vector of hashes.
      *
      * \param stream_pointer Pointer to data stream
      * \param target_vec Target vector for hashes, should be empty beforehand

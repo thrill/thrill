@@ -26,6 +26,7 @@
 #include <cmath>
 #include <ctime>
 #include <functional>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -109,17 +110,23 @@ JoinedElement ConstructJoinedElement(const struct LineItem& li, const struct Ord
     je.ship = li.ship;
     je.commit = li.commit;
     je.receipt = li.receipt;
-    std::strcpy(je.shipinstruct, li.shipinstruct);
-    std::strcpy(je.shipmode, li.shipmode);
-    std::strcpy(je.lineitem_comment, li.comment);
+    snprintf(je.shipinstruct, sizeof(je.shipinstruct),
+             "%s", li.shipinstruct);
+    snprintf(je.shipmode, sizeof(je.shipmode),
+             "%s", li.shipmode);
+    snprintf(je.lineitem_comment, sizeof(je.lineitem_comment),
+             "%s", li.comment);
     je.custkey = o.custkey;
     je.orderstatus = o.orderstatus;
     je.totalprice = o.totalprice;
     je.ordertime = o.ordertime;
-    std::strcpy(je.orderpriority, o.orderpriority);
-    std::strcpy(je.clerk, o.clerk);
+    snprintf(je.orderpriority, sizeof(je.orderpriority),
+             "%s", o.orderpriority);
+    snprintf(je.clerk, sizeof(je.clerk),
+             "%s", o.clerk);
     je.priority = o.priority;
-    std::strcpy(je.order_comment, o.comment);
+    snprintf(je.order_comment, sizeof(je.order_comment),
+             "%s", o.comment);
     return je;
 }
 
@@ -188,9 +195,12 @@ static size_t JoinTPCH4(
 
                 li.ship = time_to_epoch(splitted[10]);
 
-                std::strcpy(li.shipinstruct, splitted[13].data());
-                std::strcpy(li.shipmode, splitted[14].data());
-                std::strcpy(li.comment, splitted[15].data());
+                snprintf(li.shipinstruct, sizeof(li.shipinstruct),
+                         "%s", splitted[13].data());
+                snprintf(li.shipmode, sizeof(li.shipmode),
+                         "%s", splitted[14].data());
+                snprintf(li.comment, sizeof(li.comment),
+                         "%s", splitted[15].data());
 
                 emit(li);
             }
@@ -215,10 +225,13 @@ static size_t JoinTPCH4(
                 o.custkey = std::strtoul(splitted[1].c_str(), &end, 10);
                 o.orderstatus = splitted[2][0];
                 o.totalprice = std::strtod(splitted[3].c_str(), &end);
-                std::strcpy(o.orderpriority, splitted[5].data());
-                std::strcpy(o.clerk, splitted[6].data());
+                snprintf(o.orderpriority, sizeof(o.orderpriority),
+                         "%s", splitted[5].data());
+                snprintf(o.clerk, sizeof(o.clerk),
+                         "%s", splitted[6].data());
                 o.priority = (splitted[7][0] != '0');
-                std::strcpy(o.comment, splitted[8].data());
+                snprintf(o.comment, sizeof(o.comment),
+                         "%s", splitted[8].data());
 
                 emit(o);
             }

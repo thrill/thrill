@@ -16,7 +16,8 @@
 #include <thrill/api/size.hpp>
 
 #include <x86intrin.h>
-// #include <functional>
+
+#include <utility>
 
 using Node = size_t;
 using Edge = std::pair<Node, Node>;

@@ -17,17 +17,19 @@
 #include <thrill/common/defines.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/math.hpp>
+#include <thrill/common/meta.hpp>
 
 #include <algorithm>
 #include <cmath>
+#include <vector>
 
-// TODO: Add Copyright of Sebastian Schlag& original author.
+// TODO(an): Add Copyright of Sebastian Schlag & original author.
 
 namespace thrill {
 namespace core {
 
 /*!
- * Dynamic bitset, which encodes values with a golomb encoder.
+ * Dynamic bitset, which encodes values with a Golomb encoder.
  *
  * \param BaseType integer type used in the encoder
  */
@@ -36,23 +38,28 @@ class DynamicBitset
 {
 private:
     //! Helper constants
-    const size_t bit_length = sizeof(BaseType) * 8, bit_length_doubled = 2 * bit_length, logbase = common::IntegerLog2Floor(bit_length);
-    const BaseType mask = (((BaseType)1) << logbase) - 1, all_set = ~((BaseType)0), msb_set = ((BaseType)1) << (bit_length - 1);
+    static const size_t bit_length = sizeof(BaseType) * 8,
+        bit_length_doubled = 2 * bit_length,
+        logbase = common::Log2Floor<bit_length>::value;
 
-    static constexpr bool debug = false;
+    static const BaseType mask = (((BaseType)1) << logbase) - 1,
+        all_set = ~((BaseType)0),
+        msb_set = ((BaseType)1) << (bit_length - 1);
+
+    static const bool debug = false;
     //! Used to compute total amount of entropy encoded
     std::vector<size_t> inserted_elements_;
 
-    const int alignment = 64;
+    static const int alignment = 64;
 
     using IndexType = size_t;
-    using byte = uint8_t;
+    using Byte = uint8_t;
 
     //! Maximum size of bitset
     IndexType bitset_size_bits_, bitset_size_base_;
 
     BaseType* data_;
-    byte* memory_;
+    Byte* memory_;
 
     //! true, when golomb_in was called already
     bool in_called_already_;
@@ -78,20 +85,23 @@ public:
      *
      * \param n bits of allocated memory
      * \param init true, when bits should be set
-     * \param b golomb parameter
+     * \param b Golomb parameter
      */
-    DynamicBitset(IndexType n, bool init = false, BaseType b = 1)
+    explicit DynamicBitset(IndexType n, bool init = false, BaseType b = 1)
         : b_(b),                               // Golomb tuning parameter
-          log2b_(common::IntegerLog2Ceil(b_)), // helper var for golomb in
+          log2b_(common::IntegerLog2Ceil(b_)), // helper var for Golomb in
           max_little_value_((((BaseType)1) << log2b_) - b_) {
         bitset_size_bits_ = n;
         bitset_size_base_ = bitset_size_bits_ / (sizeof(BaseType) * 8) + 3;
-        memory_ = new byte[sizeof(BaseType) * bitset_size_base_ + alignment];
+        memory_ = new Byte[sizeof(BaseType) * bitset_size_base_ + alignment];
         in_called_already_ = false;
         out_called_already_ = false;
         num_elements_ = 0;
 
-        data_ = new ((void*)((((ptrdiff_t)memory_) & ~((ptrdiff_t)alignment - 1)) + alignment))BaseType[bitset_size_base_];
+        void* ptr = reinterpret_cast<void*>(
+            (((ptrdiff_t)memory_) & ~((ptrdiff_t)alignment - 1)) + alignment);
+
+        data_ = new (ptr)BaseType[bitset_size_base_];
 
         if (init) {
             for (IndexType i = 0; i < bitset_size_base_; i++) {
@@ -119,7 +129,9 @@ public:
             for (size_t i = 1; i < inserted_elements_.size(); ++i) {
                 if (inserted_elements_[i] > inserted_elements_[i - 1]) {
                     size_t equal_elements = i - last;
-                    double probability = (double)equal_elements / (double)num_elements_;
+                    double probability =
+                        static_cast<double>(equal_elements)
+                        / static_cast<double>(num_elements_);
                     total_prob += probability;
                     double entropy_i = probability * std::log2(probability);
                     assert(entropy_i < 0);
@@ -127,18 +139,21 @@ public:
                     last = i;
                 }
             }
-            double last_prob = (double)(num_elements_ - last) / (double)num_elements_;
+            double last_prob = static_cast<double>(num_elements_ - last)
+                               / static_cast<double>(num_elements_);
             entropy_total -= last_prob * std::log2(last_prob);
             total_prob += last_prob;
 
             assert(std::fabs(total_prob - 1.0) <= 0.00001);
 
-            size_t total_inform = std::ceil(entropy_total * (double)num_elements_);
+            size_t total_inform = std::ceil(
+                entropy_total * static_cast<double>(num_elements_));
 
             sLOG1 << "Bitset: items:" << num_elements_
                   << "size(b):" << bit_size()
                   << "total_inform" << total_inform
-                  << "size_factor" << (double)bit_size() / (double)total_inform;
+                  << "size_factor"
+                  << static_cast<double>(bit_size()) / static_cast<double>(total_inform);
         }
 
         if (memory_ != nullptr) {
@@ -427,7 +442,7 @@ public:
     }
 
     /*!
-     * Returns the number of continuous 1 bits following the cursor. Used in golomb
+     * Returns the number of continuous 1 bits following the cursor. Used in Golomb
      * decoding.
      *
      * \return Number of continuous 1 bits following the cursor
@@ -474,7 +489,7 @@ public:
             BaseType r = (value - 1) - (q * b_);
 
             // d049672: golomb_in might fail on pathological sequences
-            // that push the golomb code to its maximum size.
+            // that push the Golomb code to its maximum size.
             // In these cases, it is possible that the unary sequence
             // of 1s is greater than bit_length, which is not
             // supported by the original implementation!

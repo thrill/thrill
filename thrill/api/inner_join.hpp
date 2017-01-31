@@ -685,12 +685,10 @@ template <const bool UseLocationDetection,
           typename JoinFunction,
           typename SecondDIA,
           typename HashFunction>
-auto DIA<ValueType, Stack>::InnerJoin(const SecondDIA &second_dia,
-                                      const KeyExtractor1 &key_extractor1,
-                                      const KeyExtractor2 &key_extractor2,
-                                      const JoinFunction &join_function,
-                                      const HashFunction &hash_function)
-const {
+auto DIA<ValueType, Stack>::InnerJoin(
+    const SecondDIA &second_dia,
+    const KeyExtractor1 &key_extractor1, const KeyExtractor2 &key_extractor2,
+    const JoinFunction &join_function, const HashFunction &hash_function) const {
 
     assert(IsValid());
     assert(second_dia.IsValid());

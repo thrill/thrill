@@ -25,6 +25,7 @@
 #include <thrill/data/file.hpp>
 
 #include <algorithm>
+#include <deque>
 #include <functional>
 #include <type_traits>
 #include <typeinfo>

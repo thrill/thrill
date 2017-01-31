@@ -18,13 +18,15 @@
 #include <utility>
 #include <vector>
 
+using namespace thrill;
+
 TEST(DynamicBitset, KnownData) {
     size_t elements = 1000;
     double fpr_parameter = 8;
     size_t space_bound = elements * (2 + std::log2(fpr_parameter));
     size_t b = (size_t)(std::log(2) * fpr_parameter);
 
-    thrill::core::DynamicBitset<size_t> golomb_coder(space_bound, false, b);
+    core::DynamicBitset<size_t> golomb_coder(space_bound, false, b);
 
     golomb_coder.golomb_in(0);
     for (size_t i = 0; i < elements; ++i) {
@@ -45,7 +47,7 @@ TEST(DynamicBitset, KnownRawData) {
     size_t space_bound = elements * (2 + std::log2(fpr_parameter));
     size_t b = (size_t)(std::log(2) * fpr_parameter);
 
-    thrill::core::DynamicBitset<size_t> golomb_coder(space_bound, false, b);
+    core::DynamicBitset<size_t> golomb_coder(space_bound, false, b);
 
     golomb_coder.golomb_in(0);
     for (size_t i = 0; i < elements; ++i) {
@@ -54,10 +56,8 @@ TEST(DynamicBitset, KnownRawData) {
 
     golomb_coder.seek();
 
-    thrill::core::DynamicBitset<size_t> out_coder(golomb_coder.GetGolombData(),
-                                                  golomb_coder.size(),
-                                                  b,
-                                                  elements);
+    core::DynamicBitset<size_t> out_coder(
+        golomb_coder.GetGolombData(), golomb_coder.size(), b, elements);
 
     for (size_t i = 0; i < golomb_coder.size(); i++) {
         ASSERT_EQ(golomb_coder.GetGolombData()[i], out_coder.GetGolombData()[i]);
@@ -81,7 +81,7 @@ TEST(DynamicBitset, RandomData) {
     size_t space_bound = elements * (2 + std::log2(fpr_parameter));
     size_t b = (size_t)(std::log(2) * fpr_parameter);
 
-    thrill::core::DynamicBitset<size_t> golomb_coder(space_bound, false, b);
+    core::DynamicBitset<size_t> golomb_coder(space_bound, false, b);
 
     std::vector<size_t> elements_vec;
     std::default_random_engine generator(std::random_device { } ());
@@ -105,10 +105,8 @@ TEST(DynamicBitset, RandomData) {
 
     // golomb_coder.seek();
 
-    thrill::core::DynamicBitset<size_t> out_coder(golomb_coder.GetGolombData(),
-                                                  golomb_coder.size(),
-                                                  b,
-                                                  uniques);
+    core::DynamicBitset<size_t> out_coder(
+        golomb_coder.GetGolombData(), golomb_coder.size(), b, uniques);
 
     out_coder.seek();
 

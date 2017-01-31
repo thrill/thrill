@@ -27,10 +27,14 @@
 #include <thrill/core/reduce_table.hpp>
 #include <thrill/data/cat_stream.hpp>
 
+#include <x86intrin.h>
+
+#include <algorithm>
 #include <functional>
 #include <unordered_map>
+#include <utility>
+#include <vector>
 
-#include <x86intrin.h>
 namespace thrill {
 
 struct hash {

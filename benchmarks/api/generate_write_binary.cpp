@@ -45,7 +45,6 @@ int main(int argc, char* argv[]) {
                  std::uniform_int_distribution<size_t> distribution(0, std::numeric_limits<size_t>::max());
 
                  std::vector<std::string> copy_enforcer;
-
                  Generate(ctx, elements,
                           [&distribution, &generator](size_t) {
                               return distribution(generator);

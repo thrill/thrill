@@ -76,8 +76,8 @@ template <typename TableItem, typename Key, typename Value,
 class ReduceProbingHashTable
     : public ReduceTable<TableItem, Key, Value,
                          KeyExtractor, ReduceFunction, Emitter,
-                         VolatileKey, ReduceConfig_, IndexFunction,
-                         KeyEqualFunction>
+                         VolatileKey, ReduceConfig_,
+                         IndexFunction, KeyEqualFunction>
 {
     using Super = ReduceTable<TableItem, Key, Value,
                               KeyExtractor, ReduceFunction, Emitter,

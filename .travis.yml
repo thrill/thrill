@@ -97,8 +97,8 @@ before_script:
 
 script:
   # build huge objects with only one thread
-  #- make -C examples/suffix_sorting dc3.o
-  #- make -C examples/suffix_sorting dc7.o
+  - make -C examples/suffix_sorting dc3.o
+  - make -C examples/suffix_sorting dc7.o
 
   - ctest
       -DCTEST_SITE:STRING="travis-$TRAVIS_REPO_SLUG"

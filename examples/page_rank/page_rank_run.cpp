@@ -230,8 +230,8 @@ static void RunPageRankGenerated(
         })
                  .Cache();
 
-    auto number_edges =
-        links.Keep().Map([](const OutgoingLinks& ol) { return ol.size(); }).Sum();
+    // auto number_edges =
+    //     links.Keep().Map([](const OutgoingLinks& ol) { return ol.size(); }).Sum();
 
     // perform actual page rank calculation iterations
 
@@ -333,8 +333,8 @@ int main(int argc, char* argv[]) {
     bool generate = false;
     clp.AddFlag('g', "generate", generate,
                 "generate graph data, set input = #pages");
-    bool useJoin = false;
-    clp.AddFlag('j', "join", useJoin,
+    bool use_join = false;
+    clp.AddFlag('j', "join", use_join,
                 "use Join() instead of *ByIndex()");
 
     // Graph Generator
@@ -377,16 +377,16 @@ int main(int argc, char* argv[]) {
 
     return api::Run(
         [&](api::Context& ctx) {
-            if (generate && !useJoin)
+            if (generate && !use_join)
                 return RunPageRankGenerated(
                     ctx, input_path[0], gg, output_path, iter);
-            else if (!generate && !useJoin)
+            else if (!generate && !use_join)
                 return RunPageRankEdgePerLine(
                     ctx, input_path, output_path, iter);
-            else if (generate && useJoin)
+            else if (generate && use_join)
                 return RunPageRankJoinGenerated(
                     ctx, input_path[0], gg, output_path, iter);
-            else if (!generate && useJoin)
+            else if (!generate && use_join)
                 return RunJoinPageRankEdgePerLine(
                     ctx, input_path, output_path, iter);
         });
