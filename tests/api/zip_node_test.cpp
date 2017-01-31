@@ -415,7 +415,7 @@ TEST(ZipWindowNode, TwoBalancedIntegerVectors) {
 
             // zip
             auto zip_result = ZipWindow(
-                { 2, 3 },
+                { { 2, 3 } },
                 [](const std::vector<size_t>& a, const std::vector<size_t>& b) -> long {
                     die_unequal(2u, a.size());
                     die_unequal(3u, b.size());
@@ -448,7 +448,7 @@ TEST(ZipWindowNode, TwoBalancedIntegerArrays) {
 
             // zip
             auto zip_result = ZipWindow(
-                ArrayTag, PadTag, { 2, 3 },
+                ArrayTag, PadTag, { { 2, 3 } },
                 [](const std::array<size_t, 2>& a, const std::array<size_t, 3>& b) -> long {
                     die_unequal(2u, a.size());
                     die_unequal(3u, b.size());
