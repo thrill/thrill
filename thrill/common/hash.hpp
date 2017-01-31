@@ -121,7 +121,7 @@ struct HashCrc32Sse42 {
     // Copyright 2008,2009,2010 Massachusetts Institute of Technology.
     // For constant sizes, this is neatly optimized away at higher optimization
     // levels - only a mov (for initialization) and crc32 instructions remain
-    uint32_t hash_bytes(const void* data, size_t length, uint32_t crc = 0xffffffff) {
+    uint32_t hash_bytes(const void* data, size_t length, uint32_t crc = 0xffffffff) const {
         const char* p_buf = (const char*)data;
         // The 64-bit crc32 instruction returns a 64-bit value (even though a
         // CRC32 hash has - well - 32 bits. Whatever.
@@ -226,7 +226,7 @@ public:
         prng_t rng { seed };
         for (size_t i = 0; i < size; ++i) {
             for (size_t j = 0; j < 256; ++j) {
-                table[i][j] = rng();
+                table_[i][j] = rng();
             }
         }
     }
@@ -239,18 +239,22 @@ public:
         hash_t hash = 0;
         const uint8_t* ptr = reinterpret_cast<const uint8_t*>(&x);
         for (size_t i = 0; i < size; ++i) {
-            hash ^= table[i][*(ptr + i)];
+            hash ^= table_[i][*(ptr + i)];
         }
         return hash;
     }
 
 protected:
-    Table table;
+    Table table_;
 };
 
 //! Tabulation hashing
 template <typename T>
 using HashTabulated = TabulationHashing<sizeof(T)>;
+
+//! Select a hashing method.
+template <typename T>
+using hash = HashCrc32<T>;
 
 } // namespace common
 } // namespace thrill
