@@ -324,9 +324,9 @@ public:
                        start_byte, byte_count) { }
 
     //! non-copyable: delete copy-constructor
-    S3ReadStream(const S3ReadStream &) = delete;
+    S3ReadStream(const S3ReadStream&) = delete;
     //! non-copyable: delete assignment operator
-    S3ReadStream & operator = (const S3ReadStream &) = delete;
+    S3ReadStream& operator = (const S3ReadStream&) = delete;
 
     virtual ~S3ReadStream() {
         close();

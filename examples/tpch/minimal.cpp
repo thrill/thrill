@@ -1,5 +1,5 @@
 /*******************************************************************************
- * examples/tpch/tpch_run.cpp
+ * examples/tpch/minimal.cpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -27,18 +27,15 @@
 
 using namespace thrill;              // NOLINT
 
-
-int main(int , char* []) {
+int main(int, char*[]) {
 
     return api::Run(
         [&](api::Context& ctx) {
             ctx.enable_consume();
 
-
             auto bla2 = api::ReadLines(ctx, "s3://thrill-data/tbl/partsupp.tbl");
             auto bla3 = api::ReadLines(ctx, "s3://thrill-data/tbl/part.tbl");
             auto bla = api::ReadLines(ctx, "s3://thrill-test/");
-
 
             size_t kaputt = bla3.Size() + bla2.Size() + bla.Size();
 

@@ -222,7 +222,6 @@ int main(int argc, char* argv[]) {
                 else
                     RunWordCount(ctx, input, output);
             }
-
         });
 }
 

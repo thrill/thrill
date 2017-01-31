@@ -263,7 +263,8 @@ public:
                                              deltas[proc]);
                     deltas[proc] = this_element.first;
                     element_counters[proc]++;
-                } else {
+                }
+                else {
                     size_t cmp = next_element.first;
                     while (puller.HasNext() &&
                            next_element.first == cmp) {

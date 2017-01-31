@@ -160,11 +160,7 @@ Additional environment variables used by VFS layer
 */
 
 /******************************************************************************/
-<<<<<<< HEAD
-/** \page start_profile Runtime Profile Plots
-=======
 /** \page start_profile Runtime Profile Plots and DIA Dataflow Graphs
->>>>>>> master
 
 ### Creating Runtime Profile Plots
 

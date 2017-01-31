@@ -108,7 +108,6 @@ class ReducePrePhase<TableItem, Key, Value,
                      KeyEqualFunction,
                      HashFunction,
                      false>
-
 {
     static constexpr bool debug = false;
 
@@ -215,23 +214,25 @@ template <typename TableItem, typename Key, typename Value,
           typename IndexFunction,
           typename EqualToFunction,
           typename HashFunction>
-class ReducePrePhase <TableItem, Key, Value,
-                      KeyExtractor,
-                      ReduceFunction,
-                      VolatileKey,
-                      ReduceConfig,
-                      IndexFunction,
-                      EqualToFunction,
-                      HashFunction,
-                      true> : public ReducePrePhase<TableItem, Key, Value,
-                                                    KeyExtractor,
-                                                    ReduceFunction,
-                                                    VolatileKey,
-                                                    ReduceConfig,
-                                                    IndexFunction,
-                                                    EqualToFunction,
-                                                    HashFunction,
-                                                    false> {
+class ReducePrePhase<TableItem, Key, Value,
+                     KeyExtractor,
+                     ReduceFunction,
+                     VolatileKey,
+                     ReduceConfig,
+                     IndexFunction,
+                     EqualToFunction,
+                     HashFunction,
+                     true>
+    : public ReducePrePhase<TableItem, Key, Value,
+                            KeyExtractor,
+                            ReduceFunction,
+                            VolatileKey,
+                            ReduceConfig,
+                            IndexFunction,
+                            EqualToFunction,
+                            HashFunction,
+                            false>
+{
 
 public:
     using Super = ReducePrePhase<TableItem, Key, Value, KeyExtractor,
@@ -239,7 +240,6 @@ public:
                                  IndexFunction, EqualToFunction, HashFunction,
                                  false>;
     using KeyValuePair = std::pair<Key, Value>;
-
 
     ReducePrePhase(Context& ctx, size_t dia_id,
                    size_t num_partitions,
@@ -261,7 +261,6 @@ public:
             hashes_.push_back(hash_function_(Super::key_extractor_(v)));
         }
     }
-
 
     //! Flush all partitions
     void FlushAll() {
@@ -288,7 +287,7 @@ public:
                     Super::emit_.Emit(partition_id, ti);
                 }
                 else {
-                   non_duplicate_elements_++;
+                    non_duplicate_elements_++;
                     Super::emit_.Emit(Super::table_.ctx().my_rank(), ti);
                 }
             });

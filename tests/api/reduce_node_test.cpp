@@ -127,7 +127,6 @@ public:
     }
 };
 
-
 TEST(ReduceNode, ReduceModuloPairsCorrectResults) {
     api::RunLocalTests(
         TestReduceModuloPairsCorrectResults<ReduceTableImpl::PROBING>());

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 ##########################################################################
-# run/ec2/benchmark_wordcount.py
+# run/ec2/benchmark_wordcountcc.py
 #
 # Part of Project Thrill - http://project-thrill.org
 #
