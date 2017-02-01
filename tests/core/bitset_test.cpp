@@ -57,15 +57,15 @@ TEST(DynamicBitset, KnownRawData) {
     golomb_coder.seek();
 
     core::DynamicBitset<size_t> out_coder(
-        golomb_coder.GetGolombData(), golomb_coder.size(), b, elements);
+        golomb_coder.data(), golomb_coder.size(), b, elements);
 
     for (size_t i = 0; i < golomb_coder.size(); i++) {
-        ASSERT_EQ(golomb_coder.GetGolombData()[i], out_coder.GetGolombData()[i]);
+        ASSERT_EQ(golomb_coder.data()[i], out_coder.data()[i]);
     }
 
     out_coder.seek();
 
-    ASSERT_EQ(out_coder.GetBuffer(), golomb_coder.GetBuffer());
+    ASSERT_EQ(out_coder.buffer(), golomb_coder.buffer());
 
     ASSERT_EQ(0, out_coder.golomb_out());
     for (size_t i = 0; i < elements; ++i) {
@@ -106,7 +106,7 @@ TEST(DynamicBitset, RandomData) {
     // golomb_coder.seek();
 
     core::DynamicBitset<size_t> out_coder(
-        golomb_coder.GetGolombData(), golomb_coder.size(), b, uniques);
+        golomb_coder.data(), golomb_coder.size(), b, uniques);
 
     out_coder.seek();
 

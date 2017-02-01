@@ -214,7 +214,7 @@ private:
             //! Send raw data through data stream.
             writers[i].Put(golomb_code.size());
             writers[i].Put(num_elements);
-            writers[i].Append(golomb_code.GetGolombData(),
+            writers[i].Append(golomb_code.data(),
                               golomb_code.size() * sizeof(size_t));
             writers[i].Close();
         }
@@ -400,7 +400,7 @@ public:
         for (size_t i = 0; i < duplicate_writers.size(); ++i) {
             duplicate_writers[i].Put(location_bitset.size());
             duplicate_writers[i].Put(num_elements);
-            duplicate_writers[i].Append(location_bitset.GetGolombData(),
+            duplicate_writers[i].Append(location_bitset.data(),
                                         location_bitset.size() *
                                         sizeof(size_t));
             duplicate_writers[i].Close();

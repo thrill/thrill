@@ -16,6 +16,8 @@
 #include <cmath>
 #include <random>
 
+using namespace thrill; // NOLINT
+
 int main(int argc, char* argv[]) {
 
     size_t golomb_param = 5;
@@ -23,7 +25,7 @@ int main(int argc, char* argv[]) {
     size_t num_elements = 1;
     size_t average_distance = 10;
 
-    thrill::common::CmdlineParser clp;
+    common::CmdlineParser clp;
 
     clp.AddSizeT('b', "golomb_param", golomb_param,
                  "Set Golomb Parameter, default: 5");
@@ -40,17 +42,15 @@ int main(int argc, char* argv[]) {
     if (!clp.Process(argc, argv))
         return -1;
 
-    size_t space_bound = num_elements *
-                         (2 + thrill::common::IntegerLog2Ceil((size_t)fpr_parameter));
+    size_t space_bound =
+        num_elements * (2 + common::IntegerLog2Ceil((size_t)fpr_parameter));
 
-    thrill::core::DynamicBitset<size_t>
-    golomb_code(space_bound,
-                false, golomb_param);
+    core::DynamicBitset<size_t> golomb_code(space_bound, false, golomb_param);
 
     std::default_random_engine generator(std::random_device { } ());
     std::uniform_int_distribution<int> distribution(1, (2 * average_distance) - 1);
 
-    thrill::common::StatsTimerStart timer;
+    common::StatsTimerStart timer;
 
     for (size_t i = 0; i < num_elements; ++i) {
         golomb_code.golomb_in(distribution(generator));
@@ -58,14 +58,16 @@ int main(int argc, char* argv[]) {
 
     timer.Stop();
 
-    LOG1 << "RESULT"
-         << " benchmark=golomb"
-         << " time=" << timer.Milliseconds()
-         << " bitsize=" << golomb_code.bit_size()
-         << " elements=" << num_elements
-         << " average_distance=" << average_distance
-         << " fpr_parameter=" << fpr_parameter
-         << " golomb_parameter=" << golomb_param;
+    std::cout
+        << "RESULT"
+        << " benchmark=golomb"
+        << " time=" << timer.Milliseconds()
+        << " bitsize=" << golomb_code.bit_size()
+        << " elements=" << num_elements
+        << " average_distance=" << average_distance
+        << " fpr_parameter=" << fpr_parameter
+        << " golomb_parameter=" << golomb_param
+        << std::endl;
 }
 
 /******************************************************************************/
