@@ -30,7 +30,7 @@ protected:
     enum : size_t { buffer_bits_ = sizeof(size_t) * 8 };
 
     //! modulo mask of number of bits in buffer for pos_ counter
-    enum : size_t { mask = (buffer_bits_ - 1) };
+    enum : size_t { mask = buffer_bits_ - 1 };
 
 public:
     explicit BitStreamWriter(BlockWriter& block_writer)
@@ -91,10 +91,11 @@ public:
      * Flush out buffered bits
      */
     void FlushBits() {
-        block_writer_.PutRaw(buffer_);
-
-        buffer_ = 0;
-        pos_ = 0;
+        if (pos_ != 0) {
+            block_writer_.PutRaw(buffer_);
+            buffer_ = 0;
+            pos_ = 0;
+        }
     }
 
 protected:
@@ -165,11 +166,25 @@ public:
         }
         else {
             // in single array element
-            res = (buffer_ >> (buffer_bits_ - bits));
+            res = buffer_ >> (buffer_bits_ - bits);
             pos_ += bits;
             buffer_ <<= bits;
         }
         return res;
+    }
+
+    //! Test if the buffer contains a zero or if another item can be read. This
+    //! test is used by the Golomb decoder to check if another value is
+    //! available.
+    bool HasNextZeroTest() {
+
+        if (pos_ == buffer_bits_ && block_reader_.HasNext()) {
+            pos_ = 0;
+            buffer_ = block_reader_.template GetRaw<size_t>();
+        }
+
+        // this buffer contains some zero or next available.
+        return (~buffer_ >> pos_) != 0 || block_reader_.HasNext();
     }
 
     /*!

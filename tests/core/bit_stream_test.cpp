@@ -96,7 +96,7 @@ TEST(GolombBitStreamWriter, Test) {
     const unsigned char file_bytes[] = {
         0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0xFE, 0xFF, 0xF7, 0xFF, 0x07, 0xFF, 0x0F, 0xD4,
-        0xE0, 0xFE, 0xFF, 0xF7, 0xFF, 0x07, 0xFF, 0xEF
+        0xEF, 0xFE, 0xFF, 0xF7, 0xFF, 0x07, 0xFF, 0xEF
     };
 
     std::string file_data(reinterpret_cast<const char*>(file_bytes),
@@ -112,15 +112,34 @@ TEST(GolombBitStreamWriter, Test) {
         data::File::Reader fr = file.GetReader(/* consume */ false);
         core::GolombBitStreamReader<data::File::Reader> gbsr(fr, 16);
 
+        ASSERT_TRUE(gbsr.HasNext());
+
         ASSERT_EQ(5u, gbsr.GetGolomb());
+        ASSERT_TRUE(gbsr.HasNext());
+
         ASSERT_EQ(42u, gbsr.GetGolomb());
+        ASSERT_TRUE(gbsr.HasNext());
+
         ASSERT_EQ(0u, gbsr.GetGolomb());
+        ASSERT_TRUE(gbsr.HasNext());
+
         ASSERT_EQ(0xC0, gbsr.GetGolomb());
+        ASSERT_TRUE(gbsr.HasNext());
+
         ASSERT_EQ(0xFF, gbsr.GetGolomb());
+        ASSERT_TRUE(gbsr.HasNext());
+
         ASSERT_EQ(0xEE, gbsr.GetGolomb());
+        ASSERT_TRUE(gbsr.HasNext());
+
         ASSERT_EQ(0xC0, gbsr.GetGolomb());
+        ASSERT_TRUE(gbsr.HasNext());
+
         ASSERT_EQ(0xFF, gbsr.GetGolomb());
+        ASSERT_TRUE(gbsr.HasNext());
+
         ASSERT_EQ(0xEE, gbsr.GetGolomb());
+        ASSERT_FALSE(gbsr.HasNext());
     }
 }
 

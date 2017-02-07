@@ -39,6 +39,14 @@ public:
         die_unless(block_writer.block_size() % sizeof(size_t) == 0);
     }
 
+    ~GolombBitStreamWriter() {
+        // fill currently remaining buffer item with ones. the decoder will
+        // detect that no zero follows these ones.
+        unsigned bits = buffer_bits_ - Super::pos_;
+        Super::PutBits(all_set >> (buffer_bits_ - bits), bits);
+        assert(Super::pos_ == 0);
+    }
+
     /*!
      * Append new Golomb-encoded value to bitset
      */
@@ -125,6 +133,13 @@ public:
           log2b_(common::IntegerLog2Ceil(b_)), // helper var for Golomb in
           max_little_value_((((size_t)1) << log2b_) - b_)
     { }
+
+    bool HasNext() {
+        if (THRILL_UNLIKELY(first_call_))
+            return Super::block_reader_.HasNext();
+
+        return Super::HasNextZeroTest();
+    }
 
     size_t GetGolomb() {
         if (THRILL_UNLIKELY(first_call_)) {
