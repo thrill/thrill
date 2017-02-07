@@ -130,6 +130,9 @@ public:
     //! Return whether an actual BlockSink is attached.
     bool IsValid() const { return sink_ != nullptr; }
 
+    //! Returns block_size_
+    size_t block_size() const { return block_size_; }
+
     //! Flush the current block (only really meaningful for a network sink).
     void Flush() {
         if (!bytes_) return;
