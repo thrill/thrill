@@ -154,18 +154,15 @@ std::vector<CatStream::Writer> CatStream::GetWriters() {
     return result;
 }
 
-std::vector<CatStream::BlockQueueReader> CatStream::GetReaders() {
+std::vector<CatStream::Reader> CatStream::GetReaders() {
     rx_timespan_.StartEventually();
 
     std::vector<BlockQueueReader> result;
     result.reserve(num_workers());
 
-    for (size_t host = 0; host < num_hosts(); ++host) {
-        for (size_t worker = 0; worker < workers_per_host(); ++worker) {
-            size_t worker_id = host * workers_per_host() + worker;
-            result.emplace_back(
-                BlockQueueSource(queues_[worker_id], local_worker_id_));
-        }
+    for (size_t worker = 0; worker < num_workers(); ++worker) {
+        result.emplace_back(
+            BlockQueueSource(queues_[worker], local_worker_id_));
     }
 
     assert(result.size() == num_workers());
