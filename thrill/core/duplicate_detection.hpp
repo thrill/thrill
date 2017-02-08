@@ -114,7 +114,8 @@ private:
                                    std::vector<bool>& non_duplicates,
                                    size_t golomb_param) {
 
-        auto readers = stream_pointer->GetReaders();
+        std::vector<data::CatStream::Reader> readers =
+            stream_pointer->GetReaders();
 
         for (data::CatStream::Reader& reader : readers)
         {
@@ -125,9 +126,9 @@ private:
             // Builds golomb encoded bitset from data received by the stream.
             while (delta_reader.HasNext()) {
                 // Golomb code contains deltas, we want the actual values
-                size_t new_elem = delta_reader.Next<size_t>();
-                assert(new_elem < non_duplicates.size());
-                non_duplicates[new_elem] = true;
+                size_t hash = delta_reader.Next<size_t>();
+                assert(hash < non_duplicates.size());
+                non_duplicates[hash] = true;
             }
         }
     }
@@ -182,9 +183,8 @@ public:
             golomb_data_stream->GetReaders();
 
         std::vector<GolombBitStreamReader> g_readers;
-        g_readers.reserve(context.num_workers());
-
         std::vector<GolumbDeltaReader> delta_readers;
+        g_readers.reserve(context.num_workers());
         delta_readers.reserve(context.num_workers());
 
         for (auto& reader : readers) {
