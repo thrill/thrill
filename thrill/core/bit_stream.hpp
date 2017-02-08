@@ -158,12 +158,6 @@ public:
             pos_ = (pos_ + bits) & mask;
             buffer_ <<= pos_;
         }
-        else if (pos_ + bits == buffer_bits_) {
-            // value ending at end of array element
-            res = buffer_ >> pos_;
-            pos_ = 0;
-            buffer_ = block_reader_.template GetRaw<size_t>();
-        }
         else {
             // in single array element
             res = buffer_ >> (buffer_bits_ - bits);
@@ -178,7 +172,10 @@ public:
     //! available.
     bool HasNextZeroTest() {
 
-        if (pos_ == buffer_bits_ && block_reader_.HasNext()) {
+        if (pos_ == buffer_bits_) {
+            if (!block_reader_.HasNext())
+                return false;
+
             pos_ = 0;
             buffer_ = block_reader_.template GetRaw<size_t>();
         }
@@ -188,10 +185,10 @@ public:
     }
 
     /*!
-     * Returns the number of continuous 1 bits at the cursor. Used in Golomb
-     * decoding.
+     * Returns the number of continuous 1 bits at the cursor, followed by a
+     * zero. Used in Golomb decoding.
      *
-     * \return Number of continuous 1 bits at the cursor
+     * \return Number of continuous 1 bits at the cursor, the zero is skipped.
      */
     unsigned GetNumberOfOnesUntilNextZero() {
         unsigned no_ones = 0;

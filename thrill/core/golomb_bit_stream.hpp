@@ -20,6 +20,9 @@
 namespace thrill {
 namespace core {
 
+/******************************************************************************/
+// GolombBitStreamWriter
+
 template <typename BlockWriter>
 class GolombBitStreamWriter : public BitStreamWriter<BlockWriter>
 {
@@ -39,12 +42,23 @@ public:
         die_unless(block_writer.block_size() % sizeof(size_t) == 0);
     }
 
+    //! non-copyable: delete copy-constructor
+    GolombBitStreamWriter(const GolombBitStreamWriter&) = delete;
+    //! non-copyable: delete assignment operator
+    GolombBitStreamWriter& operator = (const GolombBitStreamWriter&) = delete;
+    //! move-constructor: default
+    GolombBitStreamWriter(GolombBitStreamWriter&&) = default;
+    //! move-assignment operator: default
+    GolombBitStreamWriter& operator = (GolombBitStreamWriter&&) = default;
+
     ~GolombBitStreamWriter() {
-        // fill currently remaining buffer item with ones. the decoder will
-        // detect that no zero follows these ones.
-        unsigned bits = buffer_bits_ - Super::pos_;
-        Super::PutBits(all_set >> (buffer_bits_ - bits), bits);
-        assert(Super::pos_ == 0);
+        if (Super::pos_ != 0) {
+            // fill currently remaining buffer item with ones. the decoder will
+            // detect that no zero follows these ones.
+            unsigned bits = buffer_bits_ - Super::pos_;
+            Super::PutBits(all_set >> (buffer_bits_ - bits), bits);
+            assert(Super::pos_ == 0);
+        }
     }
 
     /*!
@@ -104,19 +118,26 @@ public:
         }
     }
 
+    void Put(size_t value) {
+        PutGolomb(value);
+    }
+
 private:
     //! Golomb code parameter
-    const size_t b_;
+    size_t b_;
 
     //! ceil(log2(b_))
-    const int log2b_;
+    int log2b_;
 
     //! escape value
-    const size_t max_little_value_;
+    size_t max_little_value_;
 
     //! false, when PutGolomb_in was called already
     bool first_call_ = true;
 };
+
+/******************************************************************************/
+// GolombBitStreamReader
 
 template <typename BlockReader>
 class GolombBitStreamReader : public BitStreamReader<BlockReader>
@@ -133,6 +154,15 @@ public:
           log2b_(common::IntegerLog2Ceil(b_)), // helper var for Golomb in
           max_little_value_((((size_t)1) << log2b_) - b_)
     { }
+
+    //! non-copyable: delete copy-constructor
+    GolombBitStreamReader(const GolombBitStreamReader&) = delete;
+    //! non-copyable: delete assignment operator
+    GolombBitStreamReader& operator = (const GolombBitStreamReader&) = delete;
+    //! move-constructor: default
+    GolombBitStreamReader(GolombBitStreamReader&&) = default;
+    //! move-assignment operator: default
+    GolombBitStreamReader& operator = (GolombBitStreamReader&&) = default;
 
     bool HasNext() {
         if (THRILL_UNLIKELY(first_call_))
@@ -156,19 +186,28 @@ public:
         return (q * b_) + r;
     }
 
+    template <typename Type2>
+    size_t Next() {
+        static_assert(
+            std::is_same<size_t, Type2>::value, "Invalid Next() call");
+        return GetGolomb();
+    }
+
 private:
     //! Golomb code parameter
-    const size_t b_;
+    size_t b_;
 
     //! ceil(log2(b_))
-    const int log2b_;
+    int log2b_;
 
     //! escape value
-    const size_t max_little_value_;
+    size_t max_little_value_;
 
     //! false, when PutGolomb_in was called already
     bool first_call_ = true;
 };
+
+/******************************************************************************/
 
 } // namespace core
 } // namespace thrill

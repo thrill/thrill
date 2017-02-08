@@ -6,6 +6,7 @@
  * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2016 Alexander Noe <aleexnoe@gmail.com>
+ * Copyright (C) 2017 Timo Bingmann <tb@panthema.net>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
@@ -16,8 +17,8 @@
 
 #include <thrill/api/context.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/core/dynamic_bitset.hpp>
-#include <thrill/core/golomb_reader.hpp>
+#include <thrill/core/delta_stream.hpp>
+#include <thrill/core/golomb_bit_stream.hpp>
 #include <thrill/core/multiway_merge.hpp>
 
 #include <algorithm>
@@ -44,66 +45,60 @@ namespace core {
  */
 class DuplicateDetection
 {
+    static constexpr bool debug = false;
+
 private:
+    using GolombBitStreamWriter =
+              core::GolombBitStreamWriter<data::CatStream::Writer>;
+
+    using GolombBitStreamReader =
+              core::GolombBitStreamReader<data::CatStream::Reader>;
+
+    using GolumbDeltaWriter =
+              core::DeltaStreamWriter<GolombBitStreamWriter, size_t, /* offset */ 1>;
+
+    using GolumbDeltaReader =
+              core::DeltaStreamReader<GolombBitStreamReader, size_t, /* offset */ 1>;
+
     /*!
      * Sends all hashes in the range
      * [max_hash / num_workers * p, max_hash / num_workers * (p + 1)) to worker
-     * p. These hashes are encoded with a Golomb encoder in core::DynamicBitset.
+     * p. These hashes are encoded with a Golomb encoder in core.
      *
      * \param stream_pointer Pointer to data stream
      * \param hashes Sorted vector of all hashes modulo max_hash
-     * \param b Golomb parameter
-     * \param space_bound Upper bound of used space for golomb codes
+     * \param golomb_param Golomb parameter
      * \param num_workers Number of workers in this Thrill process
      * \param max_hash Modulo for all hashes
      */
-    void WriteEncodedHashes(data::CatStreamPtr stream_pointer,
+    void WriteEncodedHashes(const data::CatStreamPtr& stream_pointer,
                             const std::vector<size_t>& hashes,
-                            size_t b,
-                            size_t space_bound,
+                            size_t golomb_param,
                             size_t num_workers,
                             size_t max_hash) {
 
         std::vector<data::CatStream::Writer> writers =
             stream_pointer->GetWriters();
 
-        size_t j = 0;
-        for (size_t i = 0; i < num_workers; ++i) {
-            common::Range range_i = common::CalculateLocalRange(max_hash, num_workers, i);
+        size_t prev_hash = size_t(-1);
 
-            // TODO(an): Lower bound.
-            core::DynamicBitset<size_t> golomb_code(space_bound, false, b);
+        for (size_t i = 0, j = 0; i < num_workers; ++i) {
+            common::Range range_i =
+                common::CalculateLocalRange(max_hash, num_workers, i);
 
-            golomb_code.seek();
-
-            size_t delta = 0;
-            size_t num_elements = 0;
-
-            //! Local duplicates are only sent once, this is detected by
-            //! checking equivalence to previous element. Thus we need a special
-            //! case for the first element being 0
-            if (j < hashes.size() && hashes[j] == 0) {
-                golomb_code.golomb_in(0);
-                ++num_elements;
-                ++j;
-            }
+            GolombBitStreamWriter golomb_writer(writers[i], golomb_param);
+            GolumbDeltaWriter delta_writer(
+                golomb_writer,
+                /* initial */ size_t(-1) /* cancels with +1 bias */);
 
             for (   /* j is already set from previous workers */
                 ; j < hashes.size() && hashes[j] < range_i.end; ++j) {
-                //! Send hash deltas to make the encoded bitset smaller.
-                if (hashes[j] != delta) {
-                    ++num_elements;
-                    golomb_code.golomb_in(hashes[j] - delta);
-                    delta = hashes[j];
-                }
+                // Send hash deltas to make the encoded bitset smaller.
+                if (hashes[j] == prev_hash)
+                    continue;
+                delta_writer.Put(hashes[j]);
+                prev_hash = hashes[j];
             }
-
-            //! Send raw data through data stream.
-            writers[i].Put(golomb_code.size());
-            writers[i].Put(num_elements);
-            writers[i].Append(golomb_code.data(),
-                              golomb_code.size() * sizeof(size_t));
-            writers[i].Close();
         }
     }
 
@@ -112,39 +107,27 @@ private:
      * contents in form of a vector of hashes.
      *
      * \param stream_pointer Pointer to data stream
-     * \param target_vec Target vector for hashes, should be empty beforehand
-     * \param b Golomb parameter
+     * \param non_duplicates Target vector for hashes, should be empty beforehand
+     * \param golomb_param Golomb parameter
      */
-    void ReadEncodedHashesToVector(data::CatStreamPtr stream_pointer,
-                                   std::vector<bool>& target_vec,
-                                   size_t b) {
+    void ReadEncodedHashesToVector(const data::CatStreamPtr& stream_pointer,
+                                   std::vector<bool>& non_duplicates,
+                                   size_t golomb_param) {
 
-        auto reader = stream_pointer->GetCatReader(/* consume */ true);
+        auto readers = stream_pointer->GetReaders();
 
-        while (reader.HasNext()) {
+        for (data::CatStream::Reader& reader : readers)
+        {
+            GolombBitStreamReader golomb_reader(reader, golomb_param);
+            GolumbDeltaReader delta_reader(
+                golomb_reader, /* initial */ size_t(-1) /* cancels at +1 */);
 
-            size_t data_size = reader.template Next<size_t>();
-            size_t num_elements = reader.template Next<size_t>();
-            if (num_elements) {
-                size_t* raw_data = new size_t[data_size];
-                reader.Read(raw_data, data_size * sizeof(size_t));
-
-                //! Builds golomb encoded bitset from data recieved by the stream.
-                core::DynamicBitset<size_t> golomb_code(raw_data,
-                                                        data_size,
-                                                        b, num_elements);
-                golomb_code.seek();
-
-                size_t last = 0;
-                for (size_t i = 0; i < num_elements; ++i) {
-                    //! Golomb code contains deltas, we want the actual values
-                    size_t new_elem = golomb_code.golomb_out() + last;
-                    target_vec[new_elem] = true;
-
-                    last = new_elem;
-                }
-
-                delete[] raw_data;
+            // Builds golomb encoded bitset from data received by the stream.
+            while (delta_reader.HasNext()) {
+                // Golomb code contains deltas, we want the actual values
+                size_t new_elem = delta_reader.Next<size_t>();
+                assert(new_elem < non_duplicates.size());
+                non_duplicates[new_elem] = true;
             }
         }
     }
@@ -169,17 +152,15 @@ public:
                              Context& context,
                              size_t dia_id) {
 
-        //! This bound could often be lowered when we have many duplicates.
-        //! This would however require a large amount of added communication.
+        // This bound could often be lowered when we have many duplicates.
+        // This would however require a large amount of added communication.
         size_t upper_bound_uniques = context.net.AllReduce(hashes.size());
 
-        //! Golomb Parameters taken from original paper (Sanders, Schlag, Müller)
+        // Golomb Parameters taken from original paper (Sanders, Schlag, Müller)
 
-        //! Parameter for false positive rate (FPR: 1/fpr_parameter)
+        // Parameter for false positive rate (FPR: 1/fpr_parameter)
         double fpr_parameter = 8;
-        size_t b = (size_t)fpr_parameter;  //(size_t)(std::log(2) * fpr_parameter);
-        size_t upper_space_bound = upper_bound_uniques *
-                                   (2 + std::log2(fpr_parameter));
+        size_t golomb_param = (size_t)fpr_parameter;  //(size_t)(std::log(2) * fpr_parameter);
         size_t max_hash = upper_bound_uniques * fpr_parameter;
 
         for (size_t i = 0; i < hashes.size(); ++i) {
@@ -191,112 +172,101 @@ public:
         data::CatStreamPtr golomb_data_stream = context.GetNewCatStream(dia_id);
 
         WriteEncodedHashes(golomb_data_stream,
-                           hashes, b,
-                           upper_space_bound,
+                           hashes, golomb_param,
                            context.num_workers(),
                            max_hash);
 
-        std::vector<data::BlockReader<data::ConsumeBlockQueueSource> > readers =
+        // get inbound Golomb/delta-encoded hash stream
+
+        std::vector<data::CatStream::Reader> readers =
             golomb_data_stream->GetReaders();
 
-        std::vector<GolombReader> g_readers;
-        std::vector<std::unique_ptr<size_t[]> > data_pointers;
+        std::vector<GolombBitStreamReader> g_readers;
+        g_readers.reserve(context.num_workers());
 
-        data_pointers.reserve(context.num_workers());
-
-        size_t total_elements = 0;
+        std::vector<GolumbDeltaReader> delta_readers;
+        delta_readers.reserve(context.num_workers());
 
         for (auto& reader : readers) {
-            assert(reader.HasNext());
-            size_t data_size = reader.template Next<size_t>();
-            size_t num_elements = reader.template Next<size_t>();
-            data_pointers.push_back(
-                std::make_unique<size_t[]>(data_size + 1));
-
-            reader.Read(data_pointers.back().get(), data_size * sizeof(size_t));
-
-            total_elements += num_elements;
-
-            g_readers.push_back(
-                GolombReader(data_size, data_pointers.back().get(), num_elements, b));
+            g_readers.emplace_back(reader, golomb_param);
+            delta_readers.emplace_back(
+                g_readers.back(),
+                /* initial */ size_t(-1) /* cancels with +1 bias */);
         }
 
-        auto puller = make_multiway_merge_tree<size_t>
-                          (g_readers.begin(), g_readers.end(),
-                          [](const size_t& hash1,
-                             const size_t& hash2) {
-                              return hash1 < hash2;
-                          });
+        // multi-way merge hash streams and detect duplicates/notify uniques
+
+        auto puller = make_multiway_merge_tree<size_t>(
+            delta_readers.begin(), delta_readers.end());
+
+        // create streams (delta/Golomb encoded) to notify workers of duplicates
 
         data::CatStreamPtr duplicates_stream = context.GetNewCatStream(dia_id);
 
-        std::vector<data::CatStream::Writer> duplicate_writers =
+        std::vector<data::CatStream::Writer> duplicates_writers =
             duplicates_stream->GetWriters();
 
-        std::vector<core::DynamicBitset<size_t>*> bitsets;
-        std::vector<size_t> deltas(context.num_workers(), 0);
-        std::vector<size_t> element_counters(context.num_workers(), 0);
+        std::vector<GolombBitStreamWriter> duplicates_gbsw;
+        std::vector<GolumbDeltaWriter> duplicates_dw;
+        duplicates_gbsw.reserve(context.num_workers());
+        duplicates_dw.reserve(context.num_workers());
 
         for (size_t i = 0; i < context.num_workers(); ++i) {
-            bitsets.emplace_back(new core::DynamicBitset<size_t>(
-                                     upper_space_bound, false, b));
+            duplicates_gbsw.emplace_back(duplicates_writers[i], golomb_param);
+            duplicates_dw.emplace_back(
+                duplicates_gbsw.back(),
+                /* initial */ size_t(-1) /* cancels with +1 bias */);
         }
 
-        std::pair<size_t, size_t> this_element;
-        std::pair<size_t, size_t> next_element;
+        // find all keys only occuring on a single worker and insert to
+        // according bitset
 
-        size_t ctr = 0;
+        if (puller.HasNext())
+        {
+            std::pair<size_t, size_t> this_item;
+            std::pair<size_t, size_t> next_item = puller.NextWithSource();
 
-        if (total_elements > 0) {
-            next_element = puller.NextWithSource();
+            while (puller.HasNext())
+            {
+                this_item = next_item;
+                next_item = puller.NextWithSource();
 
-            while (ctr < total_elements - 1) {
-
-                this_element = next_element;
-                next_element = puller.NextWithSource();
-                ctr++;
-                //! find all keys only occuring on a single worker and insert
-                //! to according bitset
-
-                if (this_element.first != next_element.first) {
-                    size_t proc = this_element.second;
-                    bitsets[proc]->golomb_in(this_element.first -
-                                             deltas[proc]);
-                    deltas[proc] = this_element.first;
-                    element_counters[proc]++;
+                if (this_item.first != next_item.first) {
+                    // this_item is a unique
+                    sLOG << "!" << this_item.first << "->" << this_item.second;
+                    duplicates_dw[this_item.second].Put(this_item.first);
                 }
                 else {
-                    size_t cmp = next_element.first;
+                    // this_item is a duplicate with next_item
+                    sLOG << "=" << this_item.first << "-" << this_item.second;
+
+                    // read more items into next_item until the key mismatches
                     while (puller.HasNext() &&
-                           next_element.first == cmp) {
-                        next_element = puller.NextWithSource();
-                        ctr++;
+                           (next_item = puller.NextWithSource(),
+                            next_item.first == this_item.first))
+                    {
+                        sLOG << "." << next_item.first << "-" << next_item.second;
                     }
                 }
             }
+
+            if (this_item.first != next_item.first) {
+                // last item (next_item) is a unique
+                sLOG << "!" << next_item.first << "->" << next_item.second;
+                duplicates_dw[next_item.second].Put(next_item.first);
+            }
         }
 
-        if (this_element.first != next_element.first) {
-            bitsets[next_element.second]->golomb_in(next_element.first -
-                                                    deltas[next_element.second]);
-            element_counters[next_element.second]++;
-        }
+        // close duplicate delta writers
+        duplicates_dw.clear();
+        duplicates_gbsw.clear();
+        duplicates_writers.clear();
 
-        assert(!puller.HasNext());
-
-        for (size_t i = 0; i < context.num_workers(); ++i) {
-            duplicate_writers[i].Put(bitsets[i]->size());
-            duplicate_writers[i].Put(element_counters[i]);
-            duplicate_writers[i].Append(bitsets[i]->data(),
-                                        bitsets[i]->size() * sizeof(size_t));
-            duplicate_writers[i].Close();
-            delete bitsets[i];
-        }
-
-        assert(!non_duplicates.size());
+        // read inbound duplicate hash bits into non_duplicates hash table
+        assert(non_duplicates.size() == 0);
         non_duplicates.resize(max_hash);
-        ReadEncodedHashesToVector(duplicates_stream,
-                                  non_duplicates, b);
+        ReadEncodedHashesToVector(
+            duplicates_stream, non_duplicates, golomb_param);
 
         return max_hash;
     }
