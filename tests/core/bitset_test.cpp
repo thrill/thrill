@@ -11,7 +11,9 @@
 #include <gtest/gtest.h>
 
 #include <thrill/common/logger.hpp>
+#include <thrill/core/bit_stream.hpp>
 #include <thrill/core/dynamic_bitset.hpp>
+#include <thrill/data/file.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -19,6 +21,72 @@
 #include <vector>
 
 using namespace thrill;
+
+#define PRINT(x) LOG1 << x;
+
+TEST(DynamicBitset, DISABLED_ABC) {
+    std::vector<uint64_t> hashes;
+    hashes.reserve(100);
+
+    uint64_t B = 6399;
+    uint64_t m = 100;
+    uint64_t b = 44;
+    uint64_t upper_space_bound = m * (2 + common::IntegerLog2Ceil((B / m) + 1));
+    core::DynamicBitset<uint64_t> golomb_code(upper_space_bound, false, b);
+    PRINT("golomb parameters:");
+    PRINT("B = " << B);
+    PRINT("m = " << m);
+    PRINT("b = " << b);
+    PRINT("w.c. size = " << upper_space_bound << " bits "
+          "[" << upper_space_bound / 8.0 << " Bytes]");
+    PRINT("exp. size = " << m * (1.5 + common::IntegerLog2Ceil((B / m) + 1)) << "\tbits [" << (m * (1.5 + common::IntegerLog2Ceil((B / m) + 1))) / 8.0 << " Bytes]");
+
+    uint64_t val;
+    golomb_code.seek(0);
+    hashes.clear();
+    for (int i = 1; i < 100; ++i) {
+        golomb_code.golomb_in((uint64_t)21);
+        hashes.push_back(21);
+    }
+    golomb_code.golomb_in((uint64_t)4320);
+    hashes.push_back(4320);
+
+    PRINT("RAW GOLOMB DATA:");
+    uint64_t* data = golomb_code.data();
+    for (int i = 0; i < golomb_code.size(); ++i) {
+        PRINT(data[i]);
+    }
+
+    uint64_t golomb_size = golomb_code.byte_size();
+
+    PRINT("Result:");
+    PRINT(hashes.size() * 8.0 << " Bytes compressed to " << golomb_size << " Bytes - compression factor: " << (hashes.size() * 8.0) / golomb_size);
+    PRINT("min. delta: " << 21);
+    PRINT("max. delta: " << 4320);
+    PRINT("Code size [bits] (experimental, byte-aligned): " << (golomb_size * 8.0));
+    PRINT("Code size [bits] (experimental, raw)         : " << golomb_code.pos() * 64 + golomb_code.bits());
+    PRINT("Code size [bits] (optimal lower bound)       : " << (100 * log2(B / m)));
+    PRINT("bits/hash (experimental, byte-aligned): " << (golomb_size * 8.0) / 100);
+    PRINT("bits/hash (experimental, raw)         : " << (golomb_code.pos() * 64.0 + golomb_code.bits()) / 100);
+    PRINT("bits/hash (optimal lower bound)       : " << (100.0 * log2(B / m)) / 100);
+
+    std::vector<uint64_t> decoded_hashes;
+    val = 0;
+    golomb_code.seek(0);
+    for (std::vector<uint64_t>::size_type i = 0; i < hashes.size(); ++i) {
+        val = golomb_code.golomb_out();
+        decoded_hashes.push_back(val);
+    }
+
+    // PRINT("maxpos" << golomb_code.GetMaxPos());
+    // PRINT("pos" << golomb_code.pos());
+    // PRINT("bits" << golomb_code.bits());
+    ASSERT_EQ(golomb_code.pos() * 64 + golomb_code.bits(), 797 // , "FAILED: wrong golomb code size"
+              );
+    ASSERT_EQ(hashes, decoded_hashes                           // , "FAILED: encoded values != decoded values"
+              );
+    PRINT("--------------------> SUCCESS!");
+}
 
 TEST(DynamicBitset, KnownData) {
     size_t elements = 1000;

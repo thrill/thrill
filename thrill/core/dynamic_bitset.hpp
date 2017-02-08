@@ -94,14 +94,19 @@ public:
           max_little_value_((((BaseType)1) << log2b_) - b_) {
 
         bitset_size_bits_ = n;
-        bitset_size_base_ = bitset_size_bits_ / (sizeof(BaseType) * 8) + 3;
+        bitset_size_base_ = bitset_size_bits_ / (sizeof(BaseType) * 8) + sizeof(BaseType);
         memory_ = new Byte[sizeof(BaseType) * bitset_size_base_ + alignment];
         in_called_already_ = false;
         out_called_already_ = false;
         num_elements_ = 0;
 
-        void* ptr = reinterpret_cast<void*>(
-            (((ptrdiff_t)memory_) & ~((ptrdiff_t)alignment - 1)) + alignment);
+        // align ptr in memory_ to alignment
+        void* ptr = reinterpret_cast<void*>(memory_);
+        size_t memory_size = sizeof(BaseType) * bitset_size_base_ + alignment;
+        ptr = std::align(alignment, sizeof(BaseType) * bitset_size_base_,
+                         ptr, memory_size);
+
+        // sLOG1 << "memory_size" << memory_size;
 
         data_ = new (ptr)BaseType[bitset_size_base_];
 
@@ -119,6 +124,31 @@ public:
         pos_ = maxpos_ = 0;
         bits_ = 0;
         buffer_ = 0;
+    }
+
+    /*!
+     * Create bitset with pre-existing data.
+     *
+     * \param data Pointer to bitset data
+     * \param bitsize Size of data in BaseType elements
+     * \param b Golomb parameter
+     * \param num_elements Number of elements in bitset
+     */
+    DynamicBitset(BaseType* data, IndexType size, BaseType b, size_t num_elements)
+        : bitset_size_bits_(0),
+          bitset_size_base_(size),
+          data_(data),
+          b_(b),
+          log2b_(common::IntegerLog2Ceil(b_)),
+          max_little_value_((((BaseType)1) << log2b_) - b_),
+          num_elements_(num_elements) {
+        memory_ = nullptr;
+        pos_ = 0;
+        maxpos_ = size;
+        bits_ = 0;
+        buffer_ = 0;
+        in_called_already_ = (size > 0);
+        out_called_already_ = false;
     }
 
     ~DynamicBitset() {
@@ -152,41 +182,15 @@ public:
                 entropy_total * static_cast<double>(num_elements_));
 
             sLOG1 << "Bitset: items:" << num_elements_
+                  << "pos_" << pos_
                   << "size(b):" << bit_size()
                   << "total_inform" << total_inform
-                  << "size_factor"
-                  << (static_cast<double>(bit_size())
-                / static_cast<double>(total_inform));
+                  << "size_factor" << (static_cast<double>(bit_size())
+                                 / static_cast<double>(total_inform));
         }
 
-        if (memory_ != nullptr) {
+        if (memory_ != nullptr)
             delete[] memory_;
-        }
-    }
-
-    /*!
-     * Create bitset with pre-existing data.
-     *
-     * \param data Pointer to bitset data
-     * \param bitsize Size of data in BaseType elements
-     * \param b Golomb parameter
-     * \param num_elements Number of elements in bitset
-     */
-    DynamicBitset(BaseType* data, IndexType size, BaseType b, size_t num_elements)
-        : bitset_size_bits_(0),
-          bitset_size_base_(size),
-          data_(data),
-          b_(b),
-          log2b_(common::IntegerLog2Ceil(b_)),
-          max_little_value_((((BaseType)1) << log2b_) - b_),
-          num_elements_(num_elements) {
-        memory_ = nullptr;
-        pos_ = 0;
-        maxpos_ = size;
-        bits_ = 0;
-        buffer_ = 0;
-        in_called_already_ = (size > 0);
-        out_called_already_ = false;
     }
 
     void clear() {
@@ -228,8 +232,8 @@ public:
 
     size_t byte_size() const {
         if (maxpos_ > 0) {
-            return (maxpos_ * bit_length / 8) +
-                   common::IntegerDivRoundUp(bits_, (size_t)8);
+            return (maxpos_ * bit_length / 8)
+                   + common::IntegerDivRoundUp(bits_, (size_t)8);
         }
         else {
             return common::IntegerDivRoundUp(bits_, (size_t)8);
@@ -241,107 +245,6 @@ public:
     }
 
     /* -----------------------------------------------------------------------*/
-
-    //! \name Setters
-
-    void set(IndexType pos) {
-        data_[pos >> logbase] |= (msb_set >> (pos & mask));
-    }
-
-    void set(IndexType pos, bool value) {
-        if (value)
-            set(pos);
-        else
-            reset(pos);
-    }
-
-    // PRECONDITION: length < bit_length
-    void set(IndexType pos, int length, BaseType value) {
-        // cout << pos << " " << length << endl;
-
-        IndexType block = pos >> logbase;      // / bit_length
-        int bit_start = pos & mask;            // % bit_length
-        // bit_start < bit_length
-        assert(block < bitset_size_base_);
-
-        // equality to avoid problems with shifts of more than word-length
-        if (bit_start + length > bit_length) {
-            // use two block, even more are unsupported
-            int length_first = bit_length - bit_start,
-                length_second = length - length_first;
-            // length_second < bit_length
-            data_[block] = (
-                data_[block] & ~(all_set >> bit_start)) |
-                           (value >> length_second);
-            data_[block + 1] = (
-                data_[block + 1] & (all_set >> length_second)) |
-                               (value << (bit_length - length_second));
-        }
-        else if (bit_start + length == bit_length) {
-            data_[block] = (
-                data_[block] & ~(all_set >> bit_start)) |
-                           (value << (bit_length - (bit_start + length)));
-        }
-        else {
-            data_[block] = (
-                data_[block] & (~(all_set >> bit_start) |
-                                (all_set >> (bit_start + length)))) |
-                           (value << (bit_length - (bit_start + length)));
-        }
-    }
-
-    void reset(IndexType pos) {
-        data_[pos >> logbase] &= ~(msb_set >> (pos & mask));
-    }
-
-    //! \name Getters
-
-    bool operator [] (IndexType pos) const {
-        return (data_[pos >> logbase] & (msb_set >> (pos & mask))) != 0;
-    }
-
-    BaseType get(IndexType pos) const {
-        return (data_[pos >> logbase] & (msb_set >> (pos & mask))) >> (~pos & mask);
-    }
-
-    // PRECONDITION: length < bit_length
-    BaseType get(IndexType pos, int length) const {
-        BaseType res;
-
-        // cout << pos << " " << length << endl;
-
-        IndexType block = pos >> logbase;       // / bit_length
-        int bit_start = pos & mask;             // % bit_length
-
-        // equality to avoid problems with shifts of more than word-length
-        if (bit_start + length >= bit_length) {
-            // use two block, even more are unsupported
-            int length_first = bit_length - bit_start,
-                length_second = length - length_first;
-            res = ((data_[block] & (all_set >> bit_start)) << length_second) |
-                  ((data_[block + 1] & ~(all_set >> length_second))
-                   >> (bit_length - length_second));
-            // length_second == 0 does not hurt here, since 0 anyways
-        }
-        else {
-            res = (
-                data_[block] & (all_set >> bit_start) &
-                ~(all_set >> (bit_start + length)))
-                  >> ((~(pos + length - 1)) & mask);
-        }
-        return res;
-    }
-
-    long long get_signed(IndexType pos, int length) const {
-        long long res = get(pos, length);
-
-        // sign extension
-
-        if (res >> (length - 1) == 1)
-            res |= (all_set << length);
-
-        return res;
-    }
 
     // streaming functions
 
@@ -379,7 +282,7 @@ public:
      * \param value new value
      */
     void stream_in(uint8_t length, BaseType value) {
-        assert(pos_ * 8 < bitset_size_bits_ + alignment);
+        assert(pos_ < bitset_size_base_);
 
         if (bits_ + length > bit_length) {
             // buffer overflown
