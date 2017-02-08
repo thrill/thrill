@@ -164,7 +164,6 @@ thrill_build_test(data/multiplexer_test)
 thrill_build_test(data/serialization_cereal_test)
 thrill_build_test(data/serialization_test)
 
-thrill_build_test(core/bitset_test)
 thrill_build_test(core/bit_stream_test)
 thrill_build_test(core/duplicate_detection_test)
 thrill_build_test(core/duplicates_speedup_test)

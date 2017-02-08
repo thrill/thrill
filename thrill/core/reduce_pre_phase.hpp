@@ -20,7 +20,6 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/common/math.hpp>
 #include <thrill/core/duplicate_detection.hpp>
-#include <thrill/core/golomb_reader.hpp>
 #include <thrill/core/reduce_bucket_hash_table.hpp>
 #include <thrill/core/reduce_functional.hpp>
 #include <thrill/core/reduce_old_probing_hash_table.hpp>
