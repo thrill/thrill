@@ -85,6 +85,16 @@ struct LocalStorageTag {
 //! global const LocalStorageTag instance
 const struct LocalStorageTag LocalStorageTag;
 
+//! tag structure for GroupByKey(), and InnerJoin()
+template <bool Value>
+struct LocationDetectionTag {
+    LocationDetectionTag() { }
+    static const bool value = Value;
+};
+
+//! global const UseLocationDetectionTag instance
+const struct LocationDetectionTag<true> UseLocationDetectionTag;
+
 /*!
  * DIA is the interface between the user and the Thrill framework. A DIA can be
  * imagined as an immutable array, even though the data does not need to be
@@ -1581,6 +1591,12 @@ using api::PadTag;
 
 //! imported from api namespace
 using api::NoRebalanceTag;
+
+//! imported from api namespace
+using api::LocationDetectionTag;
+
+//! imported from api namespace
+using api::UseLocationDetectionTag;
 
 } // namespace thrill
 

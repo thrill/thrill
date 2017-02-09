@@ -58,7 +58,7 @@ namespace api {
 template <typename ValueType, typename FirstDIA, typename SecondDIA,
           typename KeyExtractor1, typename KeyExtractor2,
           typename JoinFunction, typename HashFunction,
-          const bool UseLocationDetection>
+          bool UseLocationDetection>
 class JoinNode final : public DOpNode<ValueType>
 {
     static constexpr bool debug = false;
@@ -738,7 +738,7 @@ private:
  * \ingroup dia_dops
  */
 template <
-    bool UseLocationDetection = true,
+    typename LocationDetectionTag,
     typename FirstDIA,
     typename SecondDIA,
     typename KeyExtractor1,
@@ -747,6 +747,7 @@ template <
     typename HashFunction =
         std::hash<typename common::FunctionTraits<KeyExtractor1>::result_type> >
 auto InnerJoin(
+    const LocationDetectionTag &,
     const FirstDIA &first_dia, const SecondDIA &second_dia,
     const KeyExtractor1 &key_extractor1, const KeyExtractor2 &key_extractor2,
     const JoinFunction &join_function,
@@ -793,16 +794,64 @@ auto InnerJoin(
     using JoinResult
               = typename common::FunctionTraits<JoinFunction>::result_type;
 
-    using JoinNode = api::JoinNode<JoinResult, FirstDIA, SecondDIA,
-                                   KeyExtractor1, KeyExtractor2,
-                                   JoinFunction,
-                                   HashFunction, UseLocationDetection>;
+    using JoinNode = api::JoinNode<
+              JoinResult, FirstDIA, SecondDIA, KeyExtractor1, KeyExtractor2,
+              JoinFunction, HashFunction, LocationDetectionTag::value>;
 
     auto node = common::MakeCounting<JoinNode>(
         first_dia, second_dia, key_extractor1, key_extractor2, join_function,
         hash_function);
 
     return DIA<JoinResult>(node);
+}
+
+/*!
+ * Performs an inner join between this DIA and the DIA given in the first
+ * parameter. The  key from each DIA element is hereby extracted with a key
+ * extractor function. All pairs of elements with equal keys from both DIAs are
+ * then joined with the join function.
+ *
+ * \tparam KeyExtractor1 Type of the key_extractor1 function. This is a function
+ * from FirstDIA::ValueType to the key type.
+ *
+ * \tparam KeyExtractor2 Type of the key_extractor2 function. This is a function
+ * from SecondDIA::ValueType to the key type.
+ *
+ * \tparam JoinFunction Type of the join_function. This is a function from
+ * ValueType and SecondDIA::ValueType to the type of the output DIA.
+ *
+ * \param first_dia First DIA to join.
+ *
+ * \param second_dia Second DIA to join.
+ *
+ * \param key_extractor1 Key extractor for this DIA
+ *
+ * \param key_extractor2 Key extractor for second DIA
+ *
+ * \param join_function Join function applied to all equal key pairs
+ *
+ * \param hash_function If necessary a hash funtion for Key
+ *
+ * \ingroup dia_dops
+ */
+template <
+    typename FirstDIA,
+    typename SecondDIA,
+    typename KeyExtractor1,
+    typename KeyExtractor2,
+    typename JoinFunction,
+    typename HashFunction =
+        std::hash<typename common::FunctionTraits<KeyExtractor1>::result_type> >
+auto InnerJoin(
+    const FirstDIA &first_dia, const SecondDIA &second_dia,
+    const KeyExtractor1 &key_extractor1, const KeyExtractor2 &key_extractor2,
+    const JoinFunction &join_function,
+    const HashFunction& hash_function = HashFunction()) {
+    // forward to method _with_ location detection on
+    return InnerJoin(
+        UseLocationDetectionTag,
+        first_dia, second_dia, key_extractor1, key_extractor2,
+        join_function, hash_function);
 }
 
 //! \}

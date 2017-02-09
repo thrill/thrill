@@ -46,7 +46,8 @@ template <bool UseDetection = false, typename Stack>
 size_t CountTriangles(const DIA<Edge, Stack>& edges) {
 
     auto edges_length_2 =
-        InnerJoin<UseDetection>(
+        InnerJoin(
+            LocationDetectionTag<UseDetection>(),
             edges, edges,
             [](const Edge& e) { return e.second; },
             [](const Edge& e) { return e.first; },
@@ -56,7 +57,8 @@ size_t CountTriangles(const DIA<Edge, Stack>& edges) {
             }, thrill::hash());
 
     auto triangles =
-        InnerJoin<UseDetection>(
+        InnerJoin(
+            LocationDetectionTag<UseDetection>(),
             edges_length_2, edges,
             [](const Edge& e) { return e; },
             [](const Edge& e) { return e; },

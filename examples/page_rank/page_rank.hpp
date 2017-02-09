@@ -164,7 +164,8 @@ auto PageRankJoin(const DIA<LinkedPage, InStack>&links, size_t num_pages,
         // 2) compute rank contribution for each linked_url: (FlatMap)
         // (linked_url, rank / outgoing.size)
 
-        auto outs_rank = InnerJoin<UseLocationDetection>(
+        auto outs_rank = InnerJoin(
+            LocationDetectionTag<UseLocationDetection>(),
             links, ranks,
             [](const LinkedPage& lp) { return lp.first; },
             [](const RankedPage& rp) { return rp.first; },
