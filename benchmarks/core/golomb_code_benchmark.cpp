@@ -1,5 +1,5 @@
 /*******************************************************************************
- * benchmarks/duplicates/bench_golomb.cpp
+ * benchmarks/core/golomb_code_benchmark.cpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *

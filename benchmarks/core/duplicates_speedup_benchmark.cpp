@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/core/duplicates_speedup_test.cpp
+ * benchmarks/core/duplicates_speedup_benchmark.cpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
