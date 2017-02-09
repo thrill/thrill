@@ -61,6 +61,7 @@ template <typename ValueType, typename FirstDIA, typename SecondDIA,
           bool UseLocationDetection>
 class JoinNode final : public DOpNode<ValueType>
 {
+private:
     static constexpr bool debug = false;
 
     using Super = DOpNode<ValueType>;
@@ -69,33 +70,35 @@ class JoinNode final : public DOpNode<ValueType>
     using InputTypeFirst = typename FirstDIA::ValueType;
     using InputTypeSecond = typename SecondDIA::ValueType;
 
+    //! Key type of join. must be equal to the other key extractor
     using Key = typename common::FunctionTraits<KeyExtractor1>::result_type;
 
+    //! hash counter used by LocationDetection
     class HashCount
     {
     public:
         using HashType = size_t;
-        using CounterType = uint16_t;
+        using CounterType = uint8_t;
         using DIAIdxType = uint8_t;
 
         size_t hash;
         CounterType count;
         DIAIdxType dia_mask;
 
-        static const size_t counter_bits_ = 8;
+        static constexpr size_t counter_bits_ = 8 * sizeof(CounterType);
 
         HashCount operator + (const HashCount& b) const {
             assert(hash == b.hash);
             return HashCount {
                        hash,
-                       static_cast<CounterType>(count + b.count),
+                       common::AddTruncToType(count, b.count),
                        static_cast<DIAIdxType>(dia_mask | b.dia_mask)
             };
         }
 
         HashCount& operator += (const HashCount& b) {
             assert(hash == b.hash);
-            count += b.count;
+            count = common::AddTruncToType(count, b.count);
             dia_mask |= b.dia_mask;
             return *this;
         }
@@ -119,9 +122,7 @@ class JoinNode final : public DOpNode<ValueType>
         //! Write count and dia_mask to BitWriter
         template <typename BitWriter>
         void WriteBits(BitWriter& writer) const {
-            writer.PutBits(
-                std::min((CounterType)((1 << counter_bits_) - 1), count),
-                counter_bits_);
+            writer.PutBits(count, counter_bits_);
             writer.PutBits(dia_mask, 2);
         }
     };
@@ -141,15 +142,7 @@ public:
           key_extractor1_(key_extractor1),
           key_extractor2_(key_extractor2),
           join_function_(join_function),
-          hash_function_(hash_function),
-          hash_stream1_(parent1.ctx().GetNewMixStream(this)),
-          hash_writers1_(hash_stream1_->GetWriters()),
-          hash_stream2_(parent2.ctx().GetNewMixStream(this)),
-          hash_writers2_(hash_stream2_->GetWriters()),
-          pre_file1_(context_.GetFilePtr(this)),
-          pre_file2_(context_.GetFilePtr(this)),
-          location_detection_(parent1.ctx(), Super::id()),
-          location_detection_initialized_(false)
+          hash_function_(hash_function)
     {
         auto pre_op_fn1 = [this](const InputTypeFirst& input) {
                               PreOp1(input);
@@ -171,7 +164,7 @@ public:
             std::unordered_map<size_t, size_t> target_processors;
             size_t max_hash = location_detection_.Flush(target_processors);
 
-            auto file1reader = pre_file1_->GetConsumeReader();
+            auto file1reader = pre_file1_.GetConsumeReader();
             while (file1reader.HasNext()) {
                 InputTypeFirst in1 = file1reader.template Next<InputTypeFirst>();
                 auto target_processor =
@@ -182,7 +175,7 @@ public:
                 }
             }
 
-            auto file2reader = pre_file2_->GetConsumeReader();
+            auto file2reader = pre_file2_.GetConsumeReader();
             while (file2reader.HasNext()) {
                 InputTypeSecond in2 = file2reader.template Next<InputTypeSecond>();
                 auto target_processor =
@@ -194,11 +187,27 @@ public:
             }
         }
 
-        for (size_t i = 0; i < hash_writers1_.size(); ++i) {
-            hash_writers1_[i].Close();
-            hash_writers2_[i].Close();
-        }
+        hash_writers1_.clear();
+        hash_writers2_.clear();
+
         MainOp();
+    }
+
+    template <typename ElementType, typename CompareFunction>
+    auto MakePuller(std::deque<data::File>&files,
+                    std::vector<data::File::Reader>&seq,
+                    CompareFunction compare_function, bool consume) {
+
+        size_t merge_degree, prefetch;
+        std::tie(merge_degree, prefetch) = MaxMergeDegreePrefetch(files);
+        // construct output merger of remaining Files
+        seq.reserve(files.size());
+        for (size_t t = 0; t < files.size(); ++t)
+            seq.emplace_back(files[t].GetReader(consume, 0));
+        StartPrefetch(seq, prefetch);
+
+        return core::make_buffered_multiway_merge_tree<ElementType>(
+            seq.begin(), seq.end(), compare_function);
     }
 
     void PushData(bool consume) final {
@@ -214,9 +223,8 @@ public:
             };
 
         // no possible join results when at least one data set is empty
-        if (!files1_.size() || !files2_.size()) {
+        if (!files1_.size() || !files2_.size())
             return;
-        }
 
         //! Merge files when there are too many for the merge tree.
         MergeFiles<InputTypeFirst>(files1_, compare_function_1);
@@ -295,53 +303,19 @@ private:
     HashFunction hash_function_;
 
     //! data streams for inter-worker communication of DIA elements
-    data::MixStreamPtr hash_stream1_;
-    std::vector<data::Stream::Writer> hash_writers1_;
-    data::MixStreamPtr hash_stream2_;
-    std::vector<data::Stream::Writer> hash_writers2_;
+    data::MixStreamPtr hash_stream1_ { context_.GetNewMixStream(this) };
+    std::vector<data::Stream::Writer> hash_writers1_ { hash_stream1_->GetWriters() };
+    data::MixStreamPtr hash_stream2_ { context_.GetNewMixStream(this) };
+    std::vector<data::Stream::Writer> hash_writers2_ { hash_stream2_->GetWriters() };
 
     //! location detection and associated files
-    data::FilePtr pre_file1_;
+    data::File pre_file1_ { context_.GetFile(this) };
     data::File::Writer pre_writer1_;
-    data::FilePtr pre_file2_;
+    data::File pre_file2_ { context_.GetFile(this) };
     data::File::Writer pre_writer2_;
 
-    core::LocationDetection<HashCount> location_detection_;
-    bool location_detection_initialized_;
-
-    template <typename ElementType, typename CompareFunction>
-    auto MakePuller(std::deque<data::File>&files,
-                    std::vector<data::File::Reader>&seq,
-                    CompareFunction compare_function, bool consume) {
-
-        size_t merge_degree, prefetch;
-        std::tie(merge_degree, prefetch) = MaxMergeDegreePrefetch(files);
-        // construct output merger of remaining Files
-        seq.reserve(files.size());
-        for (size_t t = 0; t < files.size(); ++t)
-            seq.emplace_back(files[t].GetReader(consume, 0));
-        StartPrefetch(seq, prefetch);
-
-        return core::make_buffered_multiway_merge_tree<ElementType>(
-            seq.begin(), seq.end(), compare_function);
-    }
-
-    //! Receive elements from other workers, create pre-sorted files
-    void MainOp() {
-        data::MixStream::MixReader reader1_ =
-            hash_stream1_->GetMixReader(/* consume */ true);
-
-        size_t capacity = DIABase::mem_limit_ / sizeof(InputTypeFirst) / 2;
-
-        ReceiveItems<InputTypeFirst>(capacity, reader1_, files1_, key_extractor1_);
-
-        data::MixStream::MixReader reader2_ =
-            hash_stream2_->GetMixReader(/* consume */ true);
-
-        capacity = DIABase::mem_limit_ / sizeof(InputTypeSecond) / 2;
-
-        ReceiveItems<InputTypeSecond>(capacity, reader2_, files2_, key_extractor2_);
-    }
+    core::LocationDetection<HashCount> location_detection_ { context_, Super::id() };
+    bool location_detection_initialized_ = false;
 
     void PreOp1(const InputTypeFirst& input) {
         size_t hash = hash_function_(key_extractor1_(input));
@@ -365,6 +339,23 @@ private:
         }
     }
 
+    //! Receive elements from other workers, create pre-sorted files
+    void MainOp() {
+        data::MixStream::MixReader reader1_ =
+            hash_stream1_->GetMixReader(/* consume */ true);
+
+        size_t capacity = DIABase::mem_limit_ / sizeof(InputTypeFirst) / 2;
+
+        ReceiveItems<InputTypeFirst>(capacity, reader1_, files1_, key_extractor1_);
+
+        data::MixStream::MixReader reader2_ =
+            hash_stream2_->GetMixReader(/* consume */ true);
+
+        capacity = DIABase::mem_limit_ / sizeof(InputTypeSecond) / 2;
+
+        ReceiveItems<InputTypeSecond>(capacity, reader2_, files2_, key_extractor2_);
+    }
+
     template <typename ItemType>
     size_t JoinCapacity() {
         return DIABase::mem_limit_ / sizeof(ItemType) / 4;
@@ -386,10 +377,9 @@ private:
      * emptied, second bool indicates whether external memory was needed.
      */
     template <typename ItemType, typename KeyExtractor, typename MergeTree>
-    std::pair<bool, bool> AddEqualKeysToVec(std::vector<ItemType>& vec,
-                                            MergeTree& puller,
-                                            const KeyExtractor& key_extractor,
-                                            data::FilePtr& file_ptr) {
+    std::pair<bool, bool> AddEqualKeysToVec(
+        std::vector<ItemType>& vec, MergeTree& puller,
+        const KeyExtractor& key_extractor, data::FilePtr& file_ptr) {
 
         vec.push_back(puller.Top());
         Key key = key_extractor(puller.Top());
@@ -442,10 +432,9 @@ private:
      * this method was called).
      */
     template <typename KeyExtractor, typename MergeTree>
-    std::pair<bool, bool> AddEqualKeysToFile(MergeTree& puller,
-                                             const KeyExtractor& key_extractor,
-                                             data::File::Writer& writer,
-                                             const Key& key) {
+    std::pair<bool, bool> AddEqualKeysToFile(
+        MergeTree& puller, const KeyExtractor& key_extractor,
+        data::File::Writer& writer, const Key& key) {
         if (!puller.Update()) {
             return std::make_pair(true, true);
         }
@@ -473,10 +462,10 @@ private:
         auto ids = this->parent_ids();
 
         if (id == 0) {
-            pre_writer1_ = pre_file1_->GetWriter();
+            pre_writer1_ = pre_file1_.GetWriter();
         }
         if (id == 1) {
-            pre_writer2_ = pre_file2_->GetWriter();
+            pre_writer2_ = pre_file2_.GetWriter();
         }
     }
 
@@ -503,8 +492,9 @@ private:
      * Recieve all elements from a stream and write them to files sorted by key.
      */
     template <typename ItemType, typename KeyExtractor>
-    void ReceiveItems(size_t capacity, data::MixStream::MixReader& reader,
-                      std::deque<data::File>& files, const KeyExtractor& key_extractor) {
+    void ReceiveItems(
+        size_t capacity, data::MixStream::MixReader& reader,
+        std::deque<data::File>& files, const KeyExtractor& key_extractor) {
 
         std::vector<ItemType> vec;
         vec.reserve(capacity);
@@ -596,23 +586,23 @@ private:
      * one of the data sets is too large to fit in memory. (indicated by
      * 'external' bools)
      */
-    void JoinAllElements(const std::vector<InputTypeFirst>& vec1, bool external1,
-                         const std::vector<InputTypeSecond>& vec2, bool external2) {
+    void JoinAllElements(
+        const std::vector<InputTypeFirst>& vec1, bool external1,
+        const std::vector<InputTypeSecond>& vec2, bool external2) {
 
         if (!external1 && !external2) {
-            for (auto const& join1 : vec1) {
-                for (auto const& join2 : vec2) {
+            for (const InputTypeFirst& join1 : vec1) {
+                for (const InputTypeSecond& join2 : vec2) {
                     assert(key_extractor1_(join1) == key_extractor2_(join2));
                     this->PushItem(join_function_(join1, join2));
                 }
             }
-            return;
         }
-        if (external1 && !external2) {
+        else if (external1 && !external2) {
             LOG1 << "Thrill: Warning: Too many equal keys for main memory "
                  << "in first DIA";
 
-            data::File::Reader reader = join_file1_->GetReader(/*consume*/ true);
+            data::File::ConsumeReader reader = join_file1_->GetConsumeReader();
 
             while (reader.HasNext()) {
                 InputTypeFirst join1 = reader.template Next<InputTypeFirst>();
@@ -621,28 +611,22 @@ private:
                     this->PushItem(join_function_(join1, join2));
                 }
             }
-
-            return;
         }
-
-        if (!external1 && external2) {
+        else if (!external1 && external2) {
             LOG1 << "Thrill: Warning: Too many equal keys for main memory "
                  << "in second DIA";
 
-            data::File::Reader reader = join_file2_->GetReader(/*consume*/ true);
+            data::File::ConsumeReader reader = join_file2_->GetConsumeReader();
 
             while (reader.HasNext()) {
                 InputTypeSecond join2 = reader.template Next<InputTypeSecond>();
-                for (auto const& join1 : vec1) {
+                for (const InputTypeFirst& join1 : vec1) {
                     assert(key_extractor1_(join1) == key_extractor2_(join2));
                     this->PushItem(join_function_(join1, join2));
                 }
             }
-
-            return;
         }
-
-        if (external1 && external2) {
+        else if (external1 && external2) {
             LOG1 << "Thrill: Warning: Too many equal keys for main memory "
                  << "in both DIAs. This is very slow.";
 
@@ -652,7 +636,7 @@ private:
             temp_vec.reserve(capacity);
 
             //! file 2 needs to be read multiple times
-            data::File::Reader reader1 = join_file1_->GetReader(/*consume*/ true);
+            data::File::ConsumeReader reader1 = join_file1_->GetConsumeReader();
 
             while (reader1.HasNext()) {
 
@@ -661,13 +645,11 @@ private:
                     temp_vec.push_back(reader1.template Next<InputTypeFirst>());
                 }
 
-                data::File::Reader reader2 = join_file2_->GetReader(/*consume*/ false);
+                data::File::Reader reader2 = join_file2_->GetReader(/* consume */ false);
 
-                size_t test = 0;
                 while (reader2.HasNext()) {
-                    ++test;
                     InputTypeSecond join2 = reader2.template Next<InputTypeSecond>();
-                    for (auto const& join1 : temp_vec) {
+                    for (const InputTypeFirst& join1 : temp_vec) {
                         assert(key_extractor1_(join1) == key_extractor2_(join2));
                         this->PushItem(join_function_(join1, join2));
                     }
@@ -677,8 +659,6 @@ private:
 
             //! non-consuming reader, need to clear now
             join_file2_->Clear();
-
-            return;
         }
     }
 
@@ -689,11 +669,12 @@ private:
     void SortAndWriteToFile(
         std::vector<ItemType>& vec, std::deque<data::File>& files,
         const KeyExtractor& key_extractor) {
+
         // advise block pool to write out data if necessary
         context_.block_pool().AdviseFree(vec.size() * sizeof(ValueType));
 
-        std::sort(vec.begin(), vec.end(), [&key_extractor](const ItemType& i1,
-                                                           const ItemType& i2) {
+        std::sort(vec.begin(), vec.end(),
+                  [&key_extractor](const ItemType& i1, const ItemType& i2) {
                       return key_extractor(i1) < key_extractor(i2);
                   });
 

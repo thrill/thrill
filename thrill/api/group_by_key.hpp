@@ -44,6 +44,7 @@ template <typename ValueType,
           bool UseLocationDetection>
 class GroupByNode final : public DOpNode<ValueType>
 {
+private:
     static constexpr bool debug = false;
 
     using Super = DOpNode<ValueType>;
@@ -53,7 +54,6 @@ class GroupByNode final : public DOpNode<ValueType>
     using ValueOut = ValueType;
     using ValueIn =
               typename common::FunctionTraits<KeyExtractor>::template arg_plain<0>;
-    using CounterType = size_t;
 
     struct ValueComparator {
     public:
@@ -71,24 +71,21 @@ class GroupByNode final : public DOpNode<ValueType>
     {
     public:
         using HashType = size_t;
-        using CounterType = uint16_t;
+        using CounterType = uint8_t;
 
         size_t hash;
         CounterType count;
 
-        static const size_t counter_bits_ = 8;
+        static constexpr size_t counter_bits_ = 8 * sizeof(CounterType);
 
         HashCount operator + (const HashCount& b) const {
             assert(hash == b.hash);
-            return HashCount {
-                       hash,
-                       static_cast<CounterType>(count + b.count),
-            };
+            return HashCount { hash, common::AddTruncToType(count, b.count) };
         }
 
         HashCount& operator += (const HashCount& b) {
             assert(hash == b.hash);
-            count += b.count;
+            count = common::AddTruncToType(count, b.count);
             return *this;
         }
 
@@ -109,9 +106,7 @@ class GroupByNode final : public DOpNode<ValueType>
         //! Write count and dia_mask to BitWriter
         template <typename BitWriter>
         void WriteBits(BitWriter& writer) const {
-            writer.PutBits(
-                std::min((CounterType)((1 << counter_bits_) - 1), count),
-                counter_bits_);
+            writer.PutBits(count, counter_bits_);
         }
     };
 
@@ -130,7 +125,7 @@ public:
           groupby_function_(groupby_function),
           hash_function_(hash_function),
           location_detection_(parent.ctx(), Super::id()),
-          pre_file_(context_.GetFilePtr(this))
+          pre_file_(context_.GetFile(this))
     {
         // Hook PreOp
         auto pre_op_fn = [=](const ValueIn& input) {
@@ -144,7 +139,7 @@ public:
 
     void StartPreOp(size_t /* id */) final {
         emitter_ = stream_->GetWriters();
-        pre_writer_ = pre_file_->GetWriter();
+        pre_writer_ = pre_file_.GetWriter();
         if (UseLocationDetection)
             location_detection_.Initialize(DIABase::mem_limit_);
     }
@@ -189,7 +184,7 @@ public:
         if (UseLocationDetection) {
             std::unordered_map<size_t, size_t> target_processors;
             size_t max_hash = location_detection_.Flush(target_processors);
-            auto file_reader = pre_file_->GetConsumeReader();
+            auto file_reader = pre_file_.GetConsumeReader();
             while (file_reader.HasNext()) {
                 ValueIn in = file_reader.template Next<ValueIn>();
                 Key key = key_extractor_(in);
@@ -307,7 +302,7 @@ private:
     size_t totalsize_ = 0;
 
     //! location detection and associated files
-    data::FilePtr pre_file_;
+    data::File pre_file_;
     data::File::Writer pre_writer_;
 
     void RunUserFunc(data::File& f, bool consume) {
