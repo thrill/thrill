@@ -20,8 +20,7 @@ ec2 = boto3.resource('ec2')
 with open('config.json') as data_file:
     data = json.load(data_file)
 
-filters = [{'Name': 'instance-state-name', 'Values': ['running']},
-           {'Name':'key-name', 'Values': ['ec2_anoe']}]
+filters = [{'Name': 'instance-state-name', 'Values': ['running']}]
 if 'filters' in data:
     filters += data['filters']
 

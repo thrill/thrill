@@ -13,8 +13,6 @@ set -e
 
 scriptdir="`dirname "$0"`"
 
-export THRILL_LOG=logfile.loglog
-
 ENV=$($scriptdir/make_env.py)
 eval $ENV
 

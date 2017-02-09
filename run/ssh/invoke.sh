@@ -18,12 +18,11 @@ OPTIND=1
 copy=0
 verbose=1
 dir=
-#user=$(whoami)
-user=
+user=$(whoami)
 with_perf=0
 with_perf_graph=0
 
-while getopts "u:h:H:cvCw:pPQ" opt; do
+while getopts "u:h:H:cvCw:pP" opt; do
     case "$opt" in
     h)  # this overrides the user environment variable
         THRILL_SSHLIST=$OPTARG
@@ -40,8 +39,6 @@ while getopts "u:h:H:cvCw:pPQ" opt; do
         dir=/tmp/
         ;;
     C)  dir=$OPTARG
-        ;;
-    Q)  dir=/home/$user/
         ;;
     p)  with_perf=1
         ;;
@@ -68,13 +65,13 @@ if [ -z "$cmd" ]; then
     echo "More Options:"
     echo "  -c         copy program to hosts and execute"
     echo "  -C <path>  remote directory to change into (else: exe's dir)"
+    echo "  -p         run with perf"
+    echo "  -P         run with perf -g (profile callgraph)"
     echo "  -h <list>  space-delimited list of nodes"
     echo "  -H <list>  list of internal IPs passed to Thrill exe (else: -h list)"
     echo "  -u <name>  ssh user name"
     echo "  -w <num>   set thrill workers per host variable"
     echo "  -v         verbose output"
-    echo "  -p         run with perf"
-    echo "  -P         run with perf -g (profile callgraph)"
     exit 1
 fi
 
@@ -139,7 +136,6 @@ for hostport in $THRILL_SSHLIST; do
   fi
   THRILL_EXPORTS=$(env | awk -F= '/^THRILL_/ { printf("%s", $1 "=\"" $2 "\" ") }')
   THRILL_EXPORTS="${THRILL_EXPORTS}THRILL_RANK=\"$rank\" THRILL_DIE_WITH_PARENT=1"
-  #REMOTEPID="/tmp/$cmdbase.$hostport.$$.pid"
   RUN_PREFIX="exec"
   if [ "$with_perf" == "1" ]; then
       # run with perf
@@ -151,7 +147,7 @@ for hostport in $THRILL_SSHLIST; do
   fi
 
   if [ "$copy" == "1" ]; then
-      REMOTENAME="/tmp/$cmdbase.$hostport"
+      REMOTENAME="/tmp/$cmdbase.$hostport.$$"
       echo "HOSTPORT: $hostport"
       echo "REMOTENAME: $REMOTENAME"
       THRILL_EXPORTS="$THRILL_EXPORTS THRILL_UNLINK_BINARY=\"$REMOTENAME\""
