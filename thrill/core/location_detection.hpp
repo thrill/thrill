@@ -53,103 +53,33 @@ namespace core {
  * Emitter for a ReduceTable, which emits all of its data into a vector of
  * hash-counter-pairs.
  */
-template <bool Join, typename Key, typename ResultTablePair,
-          typename HashFunction, typename DataType>
-class ToVectorEmitter;
-
-template <typename Key, typename ResultTablePair,
-          typename HashFunction, typename DataType>
-class ToVectorEmitter<true, Key, ResultTablePair, HashFunction, DataType>
+template <typename HashCount>
+class ToVectorEmitter
 {
 public:
-    using HashResult = typename common::FunctionTraits<HashFunction>::result_type;
-    using TableType = std::pair<Key, DataType>;
-
-    ToVectorEmitter(HashFunction hash_function,
-                    std::vector<ResultTablePair>& vec)
-        : vec_(vec),
-          hash_function_(hash_function) { }
-
-    static void Put(const TableType& /* p */,
-                    data::DynBlockWriter& /* writer */) {
-        /* Should not be called */
-        assert(0);
-    }
+    explicit ToVectorEmitter(std::vector<HashCount>& vec)
+        : vec_(vec) { }
 
     void SetModulo(size_t modulo) {
         modulo_ = modulo;
     }
 
-    void Emit(const size_t& /* partition_id */, const TableType& p) {
+    void Emit(const size_t& /* partition_id */, const HashCount& p) {
         assert(modulo_ > 1);
-        vec_.emplace_back(ResultTablePair {
-                              hash_function_(p.first) % modulo_,
-                              p.second.first, /* dia_mask */ p.second.second
-                          });
+        vec_.emplace_back(p);
+        vec_.back().hash %= modulo_;
     }
 
-    std::vector<ResultTablePair>& vec_;
+private:
+    std::vector<HashCount>& vec_;
     size_t modulo_ = 1;
-    HashFunction hash_function_;
 };
 
-template <typename Key, typename ResultTablePair,
-          typename HashFunction, typename DataType>
-class ToVectorEmitter<false, Key, ResultTablePair, HashFunction, DataType>
-{
-public:
-    using HashResult = typename common::FunctionTraits<HashFunction>::result_type;
-    using TableType = std::pair<Key, DataType>;
-
-    ToVectorEmitter(HashFunction hash_function,
-                    std::vector<ResultTablePair>& vec)
-        : vec_(vec),
-          hash_function_(hash_function) { }
-
-    static void Put(const TableType& /* p */,
-                    data::DynBlockWriter& /* writer */) {
-        /* Should not be called */
-        assert(0);
-    }
-
-    void SetModulo(size_t modulo) {
-        modulo_ = modulo;
-    }
-
-    void Emit(const size_t& /* partition_id */, const TableType& p) {
-        assert(modulo_ > 1);
-        vec_.emplace_back(ResultTablePair {
-                              hash_function_(p.first) % modulo_,
-                              p.second, /* dia_mask */ 0
-                          });
-    }
-
-    std::vector<ResultTablePair>& vec_;
-    size_t modulo_ = 1;
-    HashFunction hash_function_;
-};
-
-template <typename ValueType, typename Key, bool UseLocationDetection,
-          typename CounterType, typename DIAIdxType, typename HashFunction,
-          typename IndexFunction, typename AddFunction, bool Join>
+template <typename HashCount>
 class LocationDetection
 {
 private:
     static constexpr bool debug = false;
-
-    using HashResult = typename common::FunctionTraits<HashFunction>::result_type;
-    using TableType = typename common::FunctionTraits<AddFunction>::result_type;
-    using KeyValuePair = std::pair<Key, TableType>;
-
-    struct ResultTablePair {
-        size_t      hash;
-        CounterType count;
-        uint8_t     dia_mask;
-
-        bool operator < (const ResultTablePair& b) const {
-            return hash < b.hash;
-        }
-    };
 
     using GolombBitStreamWriter =
               core::GolombBitStreamWriter<data::CatStream::Writer>;
@@ -163,6 +93,8 @@ private:
     using GolumbDeltaReader =
               core::DeltaStreamReader<GolombBitStreamReader, size_t, /* offset */ 1>;
 
+    using CounterType = typename HashCount::CounterType;
+
     class GolombPairReader
     {
     public:
@@ -175,31 +107,31 @@ private:
         }
 
         template <typename Type>
-        ResultTablePair Next() {
-            size_t hash = delta_reader_.Next<size_t>();
-            CounterType count = bit_reader_.GetBits(bitsize_);
-            uint8_t dia_mask = bit_reader_.GetBits(2);
-            return ResultTablePair { hash, count, dia_mask };
+        HashCount Next() {
+            HashCount hc;
+            hc.hash = delta_reader_.Next<size_t>();
+            hc.ReadBits(bit_reader_);
+            return hc;
         }
 
     private:
         GolombBitStreamReader& bit_reader_;
         GolumbDeltaReader& delta_reader_;
-        static const size_t bitsize_ = 8;
+    };
+
+    struct ExtractHash {
+        size_t operator () (const HashCount& hc) const { return hc.hash; }
     };
 
 private:
     void WriteOccurenceCounts(const data::CatStreamPtr& stream_pointer,
-                              const std::vector<ResultTablePair>& hash_occ,
+                              const std::vector<HashCount>& hash_occ,
                               size_t golomb_param,
                               size_t num_workers,
                               size_t max_hash) {
 
         std::vector<data::CatStream::Writer> writers =
             stream_pointer->GetWriters();
-
-        // length of counter in bits
-        size_t bitsize = 8;
 
         for (size_t i = 0, j = 0; i < num_workers; ++i) {
             common::Range range_i =
@@ -210,64 +142,42 @@ private:
                 golomb_writer,
                 /* initial */ size_t(-1) /* cancels with +1 bias */);
 
-            uint8_t dia_mask;
-            for (   /* j is already set from previous workers */
-                ; j < hash_occ.size() && hash_occ[j].hash < range_i.end; ++j) {
-                // Send hash deltas to make the encoded bitset smaller.
-                if (Join) {
-                    dia_mask = 0;
-                    dia_mask |= hash_occ[j].dia_mask;
-                }
-
+            while (j < hash_occ.size() && hash_occ[j].hash < range_i.end)
+            {
                 // accumulate counters hashing to same value
-                size_t total_count = hash_occ[j].count;
-                size_t k = j + 1;
-                while (k < hash_occ.size() &&
-                       hash_occ[k].hash == hash_occ[j].hash)
+                HashCount total_hash = hash_occ[j++];
+                while (j < hash_occ.size() &&
+                       hash_occ[j].hash == total_hash.hash)
                 {
-                    total_count += hash_occ[k].count;
-                    if (Join) {
-                        dia_mask |= hash_occ[k].dia_mask;
-                    }
-                    k++;
+                    total_hash += hash_occ[j++];
                 }
 
                 // write counter of all values hashing to hash_occ[j].hash
                 // in next bitsize bits
-                delta_writer.Put(hash_occ[j].hash);
-                golomb_writer.PutBits(
-                    std::min((CounterType)((1 << bitsize) - 1),
-                             hash_occ[j].count),
-                    bitsize);
-                golomb_writer.PutBits(Join ? dia_mask : 3, 2);
-
-                j = k - 1;
+                delta_writer.Put(total_hash.hash);
+                total_hash.WriteBits(golomb_writer);
             }
         }
     }
 
 public:
     using ReduceConfig = DefaultReduceConfig;
-    using Emitter = ToVectorEmitter<Join, Key, ResultTablePair, HashFunction, TableType>;
+    using Emitter = ToVectorEmitter<HashCount>;
+
     using Table = typename ReduceTableSelect<
-              ReduceConfig::table_impl_, KeyValuePair, Key, TableType,
-              std::function<void()>, AddFunction, Emitter,
-              true, ReduceConfig, IndexFunction>::type;
+              ReduceConfig::table_impl_,
+              HashCount, typename HashCount::HashType, HashCount,
+              ExtractHash, std::plus<HashCount>, Emitter,
+              /* VolatileKey */ false, ReduceConfig>::type;
 
-    // we don't need the key_extractor function here
-    std::function<void()> void_fn = []() { };
-
-    LocationDetection(Context& ctx, size_t dia_id, AddFunction add_function,
-                      const HashFunction& hash_function = HashFunction(),
-                      const IndexFunction& index_function = IndexFunction(),
+    LocationDetection(Context& ctx, size_t dia_id,
                       const ReduceConfig& config = ReduceConfig())
-        : emit_(hash_function, hash_occ_),
+        : emit_(hash_occ_),
           context_(ctx),
           dia_id_(dia_id),
           config_(config),
-          hash_function_(hash_function),
-          table_(ctx, dia_id, void_fn, add_function, emit_,
-                 1, config, false, index_function, std::equal_to<Key>()) {
+          table_(ctx, dia_id, ExtractHash(), std::plus<HashCount>(),
+                 emit_, 1, config) {
         sLOG << "creating LocationDetection";
     }
 
@@ -285,8 +195,8 @@ public:
      *
      * \param key Key to insert.
      */
-    void Insert(const Key& key, const TableType& element) {
-        table_.Insert(std::make_pair(key, element));
+    void Insert(const HashCount& item) {
+        table_.Insert(item);
     }
 
     /*!
@@ -314,20 +224,21 @@ public:
                 table_.partition_files()[0].GetReader(true);
 
             while (reader.HasNext()) {
-                emit_.Emit(0, reader.Next<KeyValuePair>());
+                emit_.Emit(0, reader.Next<HashCount>());
             }
         }
 
         std::sort(hash_occ_.begin(), hash_occ_.end());
 
-        data::CatStreamPtr golomb_data_stream = context_.GetNewCatStream(dia_id_);
+        data::CatStreamPtr golomb_data_stream =
+            context_.GetNewCatStream(dia_id_);
 
         WriteOccurenceCounts(golomb_data_stream,
                              hash_occ_, golomb_param,
                              context_.num_workers(),
                              max_hash);
 
-        std::vector<ResultTablePair>().swap(hash_occ_);
+        std::vector<HashCount>().swap(hash_occ_);
 
         // get inbound Golomb/delta-encoded hash stream
 
@@ -356,7 +267,7 @@ public:
 
         // multi-way merge hash streams and detect hosts with most items per key
 
-        auto puller = make_multiway_merge_tree<ResultTablePair>(
+        auto puller = make_multiway_merge_tree<HashCount>(
             pair_readers.begin(), pair_readers.end());
 
         // create streams (delta/Golomb encoded) to notify workers of location
@@ -378,26 +289,29 @@ public:
                 /* initial */ size_t(-1) /* cancels with +1 bias */);
         }
 
-        std::pair<ResultTablePair, size_t> next;
-
-        bool finished = !puller.HasNext();
-
-        if (!finished)
-            next = puller.NextWithSource();
-
+        std::pair<HashCount, size_t> next;
         std::vector<size_t> workers;
 
-        while (!finished) {
-            uint8_t dia_mask = 0;
-            size_t max_worker = 0;
-            CounterType max_count = 0;
-            HashResult next_hash = next.first.hash;
+        bool not_finished = puller.HasNext();
 
-            while (next.first.hash == next_hash && !finished) {
-                dia_mask |= next.first.dia_mask;
-                assert(next.first.dia_mask == 1 ||
-                       next.first.dia_mask == 2 ||
-                       next.first.dia_mask == 3);
+        if (not_finished)
+            next = puller.NextWithSource();
+
+        while (not_finished) {
+            // set up aggregation values from first item with equal hash
+            HashCount sum = next.first;
+            workers.push_back(next.second);
+
+            size_t max_worker = next.second;
+            CounterType max_count = sum.count;
+
+            // check if another item is available, and if it has the same hash
+            while ((not_finished = puller.HasNext()) &&
+                   (next = puller.NextWithSource(),
+                    next.first.hash == sum.hash))
+            {
+                // summarize items (this sums dia_masks and counts)
+                sum += next.first;
 
                 // check if count is higher
                 if (next.first.count > max_count) {
@@ -406,22 +320,15 @@ public:
                 }
                 // store all workers to notify
                 workers.push_back(next.second);
-
-                if (puller.HasNext()) {
-                    next = puller.NextWithSource();
-                }
-                else {
-                    finished = true;
-                }
             }
 
             // for dia_mask == 3 -> notify all participating workers (this is
             // for InnerJoin, since only they need the items)
-            if (dia_mask == 3) {
+            if (sum.NeedBroadcast()) {
                 for (const size_t& w : workers) {
-                    location_dw[w].Put(next_hash);
+                    location_dw[w].Put(sum.hash);
                     location_gbsw[w].PutBits(max_worker, worker_bitsize);
-                    LOG << "Put: " << next_hash << " @ " << max_worker
+                    LOG << "Put: " << sum.hash << " @ " << max_worker
                         << " -> " << w;
                 }
             }
@@ -462,7 +369,7 @@ public:
     }
 
     //! Target vector for vector emitter
-    std::vector<ResultTablePair> hash_occ_;
+    std::vector<HashCount> hash_occ_;
     //! Emitter to vector
     Emitter emit_;
     //! Thrill context
@@ -470,8 +377,6 @@ public:
     size_t dia_id_;
     //! Reduce configuration used
     ReduceConfig config_;
-    //! Hash function used in table and location detection (default: std::hash<Key>)
-    HashFunction hash_function_;
     //! Reduce table used to count keys
     Table table_;
 };

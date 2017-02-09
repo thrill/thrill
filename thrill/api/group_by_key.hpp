@@ -67,6 +67,54 @@ class GroupByNode final : public DOpNode<ValueType>
         const GroupByNode& node_;
     };
 
+    class HashCount
+    {
+    public:
+        using HashType = size_t;
+        using CounterType = uint16_t;
+
+        size_t hash;
+        CounterType count;
+
+        static const size_t counter_bits_ = 8;
+
+        HashCount operator + (const HashCount& b) const {
+            assert(hash == b.hash);
+            return HashCount {
+                       hash,
+                       static_cast<CounterType>(count + b.count),
+            };
+        }
+
+        HashCount& operator += (const HashCount& b) {
+            assert(hash == b.hash);
+            count += b.count;
+            return *this;
+        }
+
+        bool operator < (const HashCount& b) const { return hash < b.hash; }
+
+        //! method to check if this hash count should be broadcasted to all
+        //! workers interested -- for GroupByKey -> always.
+        bool NeedBroadcast() const {
+            return true;
+        }
+
+        //! Read count from BitReader
+        template <typename BitReader>
+        void ReadBits(BitReader& reader) {
+            count = reader.GetBits(counter_bits_);
+        }
+
+        //! Write count and dia_mask to BitWriter
+        template <typename BitWriter>
+        void WriteBits(BitWriter& writer) const {
+            writer.PutBits(
+                std::min((CounterType)((1 << counter_bits_) - 1), count),
+                counter_bits_);
+        }
+    };
+
 public:
     /*!
      * Constructor for a GroupByNode. Sets the DataManager, parent, stack,
@@ -81,8 +129,7 @@ public:
           key_extractor_(key_extractor),
           groupby_function_(groupby_function),
           hash_function_(hash_function),
-          location_detection_(parent.ctx(), Super::id(),
-                              std::plus<CounterType>(), hash_function),
+          location_detection_(parent.ctx(), Super::id()),
           pre_file_(context_.GetFilePtr(this))
     {
         // Hook PreOp
@@ -104,13 +151,13 @@ public:
 
     //! Send all elements to their designated PEs
     void PreOp(const ValueIn& v) {
+        size_t hash = hash_function_(key_extractor_(v));
         if (UseLocationDetection) {
             pre_writer_.Put(v);
-            location_detection_.Insert(key_extractor_(v), (CounterType)1);
+            location_detection_.Insert(HashCount { hash, 1 });
         }
         else {
-            const Key k = key_extractor_(v);
-            const size_t recipient = hash_function_(k) % emitter_.size();
+            const size_t recipient = hash % emitter_.size();
             emitter_[recipient].Put(v);
         }
     }
@@ -251,9 +298,7 @@ private:
     GroupFunction groupby_function_;
     HashFunction hash_function_;
 
-    core::LocationDetection<ValueType, Key, UseLocationDetection, CounterType, uint8_t,
-                            HashFunction, core::ReduceByHash<Key>,
-                            std::plus<CounterType>, false> location_detection_;
+    core::LocationDetection<HashCount> location_detection_;
 
     data::CatStreamPtr stream_ { context_.GetNewCatStream(this) };
     std::vector<data::Stream::Writer> emitter_;

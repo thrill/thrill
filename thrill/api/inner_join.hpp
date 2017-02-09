@@ -71,9 +71,60 @@ class JoinNode final : public DOpNode<ValueType>
 
     using Key = typename common::FunctionTraits<KeyExtractor1>::result_type;
 
-    using CounterType = uint16_t;
-    using DIAIdxType = uint8_t;
-    using CounterLocation = std::pair<CounterType, DIAIdxType>;
+    class HashCount
+    {
+    public:
+        using HashType = size_t;
+        using CounterType = uint16_t;
+        using DIAIdxType = uint8_t;
+
+        size_t hash;
+        CounterType count;
+        DIAIdxType dia_mask;
+
+        static const size_t counter_bits_ = 8;
+
+        HashCount operator + (const HashCount& b) const {
+            assert(hash == b.hash);
+            return HashCount {
+                       hash,
+                       static_cast<CounterType>(count + b.count),
+                       static_cast<DIAIdxType>(dia_mask | b.dia_mask)
+            };
+        }
+
+        HashCount& operator += (const HashCount& b) {
+            assert(hash == b.hash);
+            count += b.count;
+            dia_mask |= b.dia_mask;
+            return *this;
+        }
+
+        bool operator < (const HashCount& b) const { return hash < b.hash; }
+
+        //! method to check if this hash count should be broadcasted to all
+        //! workers interested -- for InnerJoin this check if the dia_mask == 3
+        //! -> hash was in both DIAs on some worker.
+        bool NeedBroadcast() const {
+            return dia_mask == 3;
+        }
+
+        //! Read count and dia_mask from BitReader
+        template <typename BitReader>
+        void ReadBits(BitReader& reader) {
+            count = reader.GetBits(counter_bits_);
+            dia_mask = reader.GetBits(2);
+        }
+
+        //! Write count and dia_mask to BitWriter
+        template <typename BitWriter>
+        void WriteBits(BitWriter& writer) const {
+            writer.PutBits(
+                std::min((CounterType)((1 << counter_bits_) - 1), count),
+                counter_bits_);
+            writer.PutBits(dia_mask, 2);
+        }
+    };
 
 public:
     /*!
@@ -97,16 +148,9 @@ public:
           hash_writers2_(hash_stream2_->GetWriters()),
           pre_file1_(context_.GetFilePtr(this)),
           pre_file2_(context_.GetFilePtr(this)),
-          location_detection_(parent1.ctx(), Super::id(),
-                              [](const CounterLocation& cl1,
-                                 const CounterLocation& cl2) {
-                                  return std::make_pair(cl1.first + cl2.first,
-                                                        cl1.second |
-                                                        cl2.second);
-                              }, hash_function),
+          location_detection_(parent1.ctx(), Super::id()),
           location_detection_initialized_(false)
     {
-
         auto pre_op_fn1 = [this](const InputTypeFirst& input) {
                               PreOp1(input);
                           };
@@ -126,12 +170,13 @@ public:
         if (UseLocationDetection) {
             std::unordered_map<size_t, size_t> target_processors;
             size_t max_hash = location_detection_.Flush(target_processors);
+
             auto file1reader = pre_file1_->GetConsumeReader();
             while (file1reader.HasNext()) {
                 InputTypeFirst in1 = file1reader.template Next<InputTypeFirst>();
                 auto target_processor =
-                    target_processors.find(hash_function_(key_extractor1_(in1))
-                                           % max_hash);
+                    target_processors.find(
+                        hash_function_(key_extractor1_(in1)) % max_hash);
                 if (target_processor != target_processors.end()) {
                     hash_writers1_[target_processor->second].Put(in1);
                 }
@@ -141,8 +186,8 @@ public:
             while (file2reader.HasNext()) {
                 InputTypeSecond in2 = file2reader.template Next<InputTypeSecond>();
                 auto target_processor =
-                    target_processors.find(hash_function_(key_extractor2_(in2))
-                                           % max_hash);
+                    target_processors.find(
+                        hash_function_(key_extractor2_(in2)) % max_hash);
                 if (target_processor != target_processors.end()) {
                     hash_writers2_[target_processor->second].Put(in2);
                 }
@@ -183,10 +228,10 @@ public:
         std::vector<data::File::Reader> seq2;
 
         // construct output merger of remaining Files
-        auto puller1 = MakePuller<InputTypeFirst>
-                           (files1_, seq1, compare_function_1, consume);
-        auto puller2 = MakePuller<InputTypeSecond>
-                           (files2_, seq2, compare_function_2, consume);
+        auto puller1 = MakePuller<InputTypeFirst>(
+            files1_, seq1, compare_function_1, consume);
+        auto puller2 = MakePuller<InputTypeSecond>(
+            files2_, seq2, compare_function_2, consume);
 
         bool puller1_done = false;
         if (!puller1.HasNext())
@@ -263,12 +308,7 @@ private:
     data::FilePtr pre_file2_;
     data::File::Writer pre_writer2_;
 
-    core::LocationDetection<ValueType, Key, UseLocationDetection, CounterType,
-                            DIAIdxType, HashFunction, core::ReduceByHash<Key>,
-                            std::function<CounterLocation(CounterLocation,
-                                                          CounterLocation)>,
-                            true>
-    location_detection_;
+    core::LocationDetection<HashCount> location_detection_;
     bool location_detection_initialized_;
 
     template <typename ElementType, typename CompareFunction>
@@ -284,8 +324,8 @@ private:
             seq.emplace_back(files[t].GetReader(consume, 0));
         StartPrefetch(seq, prefetch);
 
-        return core::make_buffered_multiway_merge_tree<ElementType>
-                   (seq.begin(), seq.end(), compare_function);
+        return core::make_buffered_multiway_merge_tree<ElementType>(
+            seq.begin(), seq.end(), compare_function);
     }
 
     //! Receive elements from other workers, create pre-sorted files
@@ -295,39 +335,35 @@ private:
 
         size_t capacity = DIABase::mem_limit_ / sizeof(InputTypeFirst) / 2;
 
-        RecieveItems<InputTypeFirst>(capacity, reader1_, files1_, key_extractor1_);
+        ReceiveItems<InputTypeFirst>(capacity, reader1_, files1_, key_extractor1_);
 
         data::MixStream::MixReader reader2_ =
             hash_stream2_->GetMixReader(/* consume */ true);
 
         capacity = DIABase::mem_limit_ / sizeof(InputTypeSecond) / 2;
 
-        RecieveItems<InputTypeSecond>(capacity, reader2_, files2_, key_extractor2_);
+        ReceiveItems<InputTypeSecond>(capacity, reader2_, files2_, key_extractor2_);
     }
 
     void PreOp1(const InputTypeFirst& input) {
+        size_t hash = hash_function_(key_extractor1_(input));
         if (UseLocationDetection) {
             pre_writer1_.Put(input);
-            location_detection_.Insert(key_extractor1_(input),
-                                       std::make_pair((CounterType)1,
-                                                      (DIAIdxType)1));
+            location_detection_.Insert(HashCount { hash, 1, /* dia_mask */ 1 });
         }
         else {
-            hash_writers1_[hash_function_(key_extractor1_(input)) %
-                           context_.num_workers()].Put(input);
+            hash_writers1_[hash % context_.num_workers()].Put(input);
         }
     }
 
     void PreOp2(const InputTypeSecond& input) {
+        size_t hash = hash_function_(key_extractor2_(input));
         if (UseLocationDetection) {
             pre_writer2_.Put(input);
-            location_detection_.Insert(key_extractor2_(input),
-                                       std::make_pair((CounterType)1,
-                                                      (DIAIdxType)2));
+            location_detection_.Insert(HashCount { hash, 1, /* dia_mask */ 2 });
         }
         else {
-            hash_writers2_[hash_function_(key_extractor2_(input)) %
-                           context_.num_workers()].Put(input);
+            hash_writers2_[hash % context_.num_workers()].Put(input);
         }
     }
 
@@ -473,7 +509,7 @@ private:
      * Recieve all elements from a stream and write them to files sorted by key.
      */
     template <typename ItemType, typename KeyExtractor>
-    void RecieveItems(size_t capacity, data::MixStream::MixReader& reader,
+    void ReceiveItems(size_t capacity, data::MixStream::MixReader& reader,
                       std::deque<data::File>& files, const KeyExtractor& key_extractor) {
 
         std::vector<ItemType> vec;
