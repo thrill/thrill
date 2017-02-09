@@ -167,8 +167,8 @@ static void RunJoinPageRankEdgePerLine(
 
     // perform actual page rank calculation iterations
 
-    auto ranks = PageRankJoin<UseLocationDetection>
-                     (links, num_pages, iterations);
+    auto ranks = PageRankJoin<UseLocationDetection>(
+        links, num_pages, iterations);
 
     // construct output as "pageid: rank"
 
@@ -291,8 +291,8 @@ static void RunPageRankJoinGenerated(
 
     // perform actual page rank calculation iterations
 
-    auto ranks = PageRankJoin<UseLocationDetection>
-                     (links, num_pages, iterations);
+    auto ranks = PageRankJoin<UseLocationDetection>(
+        links, num_pages, iterations);
 
     // construct output as "pageid: rank"
 

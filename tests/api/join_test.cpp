@@ -54,7 +54,7 @@ TEST(Join, PairsUnique) {
                                                       input2.second);
                            };
 
-            auto joined = dia1.InnerJoin(dia2, key_ex, key_ex, join_fn);
+            auto joined = InnerJoin(dia1, dia2, key_ex, key_ex, join_fn);
             std::vector<IntTuple> out_vec = joined.AllGather();
 
             std::sort(out_vec.begin(), out_vec.end(),
@@ -97,7 +97,7 @@ TEST(Join, PairsSameKey) {
                                                      input2.second);
                            };
 
-            auto joined = dia1.InnerJoin(dia2, key_ex, key_ex, join_fn);
+            auto joined = InnerJoin(dia1, dia2, key_ex, key_ex, join_fn);
             std::vector<IntPair> out_vec = joined.AllGather();
 
             std::sort(out_vec.begin(), out_vec.end(),
@@ -146,7 +146,7 @@ TEST(Join, PairsSameKeyDiffSizes) {
                                                      input2.second);
                            };
 
-            auto joined = dia1.InnerJoin(dia2, key_ex, key_ex, join_fn);
+            auto joined = InnerJoin(dia1, dia2, key_ex, key_ex, join_fn);
             std::vector<IntPair> out_vec = joined.AllGather();
 
             std::sort(out_vec.begin(), out_vec.end(),
@@ -202,7 +202,7 @@ TEST(Join, DifferentTypes) {
                         std::get<0>(input2), std::get<1>(input2), std::get<2>(input2));
                 };
 
-            auto joined = dia1.InnerJoin(dia2, key_ex1, key_ex2, join_fn);
+            auto joined = InnerJoin(dia1, dia2, key_ex1, key_ex2, join_fn);
             std::vector<intuple5> out_vec = joined.AllGather();
 
             std::sort(out_vec.begin(), out_vec.end(),

@@ -243,19 +243,12 @@ static size_t JoinTPCH4(
 
     const bool use_detection = false;
     auto joined =
-        lineitems.
-        template InnerJoin<use_detection>(
-            orders,
-            [](const LineItem& li) {
-                return li.orderkey;
-            },
-            [](const Order& o) {
-                return o.orderkey;
-            },
-            [](const LineItem& li,
-               const Order& o) {
-                return ConstructJoinedElement(
-                    li, o);
+        InnerJoin<use_detection>(
+            lineitems, orders,
+            [](const LineItem& li) { return li.orderkey; },
+            [](const Order& o) { return o.orderkey; },
+            [](const LineItem& li, const Order& o) {
+                return ConstructJoinedElement(li, o);
             }, thrill::hash()).Size();
 
     ctx.net.Barrier();

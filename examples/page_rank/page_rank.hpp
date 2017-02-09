@@ -164,16 +164,12 @@ auto PageRankJoin(const DIA<LinkedPage, InStack>&links, size_t num_pages,
         // 2) compute rank contribution for each linked_url: (FlatMap)
         // (linked_url, rank / outgoing.size)
 
-        auto outs_rank = links.template InnerJoin<UseLocationDetection>(
-            ranks,
-            [](const LinkedPage& lp) {
-                return lp.first;
-            },
-            [](const RankedPage& r) {
-                return r.first;
-            },
-            [](const LinkedPage& lp, const RankedPage& r) {
-                return std::make_pair(lp.second, r.second);
+        auto outs_rank = InnerJoin<UseLocationDetection>(
+            links, ranks,
+            [](const LinkedPage& lp) { return lp.first; },
+            [](const RankedPage& rp) { return rp.first; },
+            [](const LinkedPage& lp, const RankedPage& rp) {
+                return std::make_pair(lp.second, rp.second);
             }, thrill::hash());
 
         if (debug) {
@@ -207,7 +203,9 @@ auto PageRankJoin(const DIA<LinkedPage, InStack>&links, size_t num_pages,
                      return std::make_pair(
                          p.first,
                          dampening * p.second + (1 - dampening) / num_pages_d);
-                 }).Execute();
+                 }).Collapse();
+
+        ranks.Execute();
     }
 
     return ranks;

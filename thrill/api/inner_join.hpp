@@ -203,17 +203,15 @@ public:
 
     void PushData(bool consume) final {
 
-        auto compare_function_1 = [this](const InputTypeFirst& in1,
-                                         const InputTypeFirst& in2) {
-                                      return key_extractor1_(in1)
-                                             < key_extractor1_(in2);
-                                  };
+        auto compare_function_1 =
+            [this](const InputTypeFirst& in1, const InputTypeFirst& in2) {
+                return key_extractor1_(in1) < key_extractor1_(in2);
+            };
 
-        auto compare_function_2 = [this](const InputTypeSecond& in1,
-                                         const InputTypeSecond& in2) {
-                                      return key_extractor2_(in1) <
-                                             key_extractor2_(in2);
-                                  };
+        auto compare_function_2 =
+            [this](const InputTypeSecond& in1, const InputTypeSecond& in2) {
+                return key_extractor2_(in1) < key_extractor2_(in2);
+            };
 
         // no possible join results when at least one data set is empty
         if (!files1_.size() || !files2_.size()) {
@@ -380,8 +378,6 @@ private:
      *
      * \param puller Input merge tree
      *
-     * \param first_element First element with target key
-     *
      * \param key_extractor Key extractor function
      *
      * \param file_ptr Pointer to a data::File
@@ -435,13 +431,11 @@ private:
      *
      * \param puller Input merge tree
      *
-     * \param first_element First element with target key
-     *
      * \param key_extractor Key extractor function
      *
      * \param writer File writer
      *
-     * \param Key target key
+     * \param key target key
      *
      * \return Pair of bools, first bool indicates whether the merge tree is
      * emptied, second bool indicates whether external memory was needed (always true, when
@@ -451,7 +445,7 @@ private:
     std::pair<bool, bool> AddEqualKeysToFile(MergeTree& puller,
                                              const KeyExtractor& key_extractor,
                                              data::File::Writer& writer,
-                                             Key key) {
+                                             const Key& key) {
         if (!puller.Update()) {
             return std::make_pair(true, true);
         }
@@ -714,24 +708,56 @@ private:
     }
 };
 
-template <typename ValueType, typename Stack>
-template <const bool UseLocationDetection,
-          typename KeyExtractor1,
-          typename KeyExtractor2,
-          typename JoinFunction,
-          typename SecondDIA,
-          typename HashFunction>
-auto DIA<ValueType, Stack>::InnerJoin(
-    const SecondDIA &second_dia,
+/*!
+ * Performs an inner join between this DIA and the DIA given in the first
+ * parameter. The  key from each DIA element is hereby extracted with a key
+ * extractor function. All pairs of elements with equal keys from both DIAs are
+ * then joined with the join function.
+ *
+ * \tparam KeyExtractor1 Type of the key_extractor1 function. This is a function
+ * from FirstDIA::ValueType to the key type.
+ *
+ * \tparam KeyExtractor2 Type of the key_extractor2 function. This is a function
+ * from SecondDIA::ValueType to the key type.
+ *
+ * \tparam JoinFunction Type of the join_function. This is a function from
+ * ValueType and SecondDIA::ValueType to the type of the output DIA.
+ *
+ * \param first_dia First DIA to join.
+ *
+ * \param second_dia Second DIA to join.
+ *
+ * \param key_extractor1 Key extractor for this DIA
+ *
+ * \param key_extractor2 Key extractor for second DIA
+ *
+ * \param join_function Join function applied to all equal key pairs
+ *
+ * \param hash_function If necessary a hash funtion for Key
+ *
+ * \ingroup dia_dops
+ */
+template <
+    bool UseLocationDetection = true,
+    typename FirstDIA,
+    typename SecondDIA,
+    typename KeyExtractor1,
+    typename KeyExtractor2,
+    typename JoinFunction,
+    typename HashFunction =
+        std::hash<typename common::FunctionTraits<KeyExtractor1>::result_type> >
+auto InnerJoin(
+    const FirstDIA &first_dia, const SecondDIA &second_dia,
     const KeyExtractor1 &key_extractor1, const KeyExtractor2 &key_extractor2,
-    const JoinFunction &join_function, const HashFunction &hash_function) const {
+    const JoinFunction &join_function,
+    const HashFunction& hash_function = HashFunction()) {
 
-    assert(IsValid());
+    assert(first_dia.IsValid());
     assert(second_dia.IsValid());
 
     static_assert(
         std::is_convertible<
-            ValueType,
+            typename FirstDIA::ValueType,
             typename common::FunctionTraits<KeyExtractor1>::template arg<0>
             >::value,
         "Key Extractor 1 has the wrong input type");
@@ -752,7 +778,7 @@ auto DIA<ValueType, Stack>::InnerJoin(
 
     static_assert(
         std::is_convertible<
-            ValueType,
+            typename FirstDIA::ValueType,
             typename common::FunctionTraits<JoinFunction>::template arg<0>
             >::value,
         "Join Function has wrong input type in argument 0");
@@ -767,13 +793,13 @@ auto DIA<ValueType, Stack>::InnerJoin(
     using JoinResult
               = typename common::FunctionTraits<JoinFunction>::result_type;
 
-    using JoinNode = api::JoinNode<JoinResult, DIA, SecondDIA,
+    using JoinNode = api::JoinNode<JoinResult, FirstDIA, SecondDIA,
                                    KeyExtractor1, KeyExtractor2,
                                    JoinFunction,
                                    HashFunction, UseLocationDetection>;
 
     auto node = common::MakeCounting<JoinNode>(
-        *this, second_dia, key_extractor1, key_extractor2, join_function,
+        first_dia, second_dia, key_extractor1, key_extractor2, join_function,
         hash_function);
 
     return DIA<JoinResult>(node);
@@ -782,6 +808,10 @@ auto DIA<ValueType, Stack>::InnerJoin(
 //! \}
 
 } // namespace api
+
+//! imported from api namespace
+using api::InnerJoin;
+
 } // namespace thrill
 
 #endif // !THRILL_API_INNER_JOIN_HEADER

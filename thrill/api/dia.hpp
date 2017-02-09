@@ -1296,27 +1296,27 @@ public:
              const ZipFunction &zip_function) const;
 
     /*!
- * Zips two DIAs in style of functional programming by applying zip_function
- * to the i-th elements of both input DIAs to form the i-th element of the
- * output DIA. The type of the output DIA can be inferred from the
- * zip_function.
- *
- * In this variant, the DIA partitions on all PEs must have matching
- * length. No rebalancing is performed, and the program will die if any
- * partition mismatches. This enables Zip to proceed without any
- * communication.
- *
- * \tparam ZipFunction Type of the zip_function. This is a function with two
- * input elements, both of the local type, and one output element, which is
- * the type of the Zip node.
- *
- * \param zip_function Zip function, which zips two elements together
- *
- * \param second_dia DIA, which is zipped together with the original
- * DIA.
- *
- * \ingroup dia_dops
- */
+     * Zips two DIAs in style of functional programming by applying zip_function
+     * to the i-th elements of both input DIAs to form the i-th element of the
+     * output DIA. The type of the output DIA can be inferred from the
+     * zip_function.
+     *
+     * In this variant, the DIA partitions on all PEs must have matching
+     * length. No rebalancing is performed, and the program will die if any
+     * partition mismatches. This enables Zip to proceed without any
+     * communication.
+     *
+     * \tparam ZipFunction Type of the zip_function. This is a function with two
+     * input elements, both of the local type, and one output element, which is
+     * the type of the Zip node.
+     *
+     * \param zip_function Zip function, which zips two elements together
+     *
+     * \param second_dia DIA, which is zipped together with the original
+     * DIA.
+     *
+     * \ingroup dia_dops
+     */
     template <typename ZipFunction, typename SecondDIA>
     auto Zip(struct NoRebalanceTag const &, const SecondDIA &second_dia,
              const ZipFunction &zip_function) const;
@@ -1333,44 +1333,6 @@ public:
      */
     template <typename ZipFunction>
     auto ZipWithIndex(const ZipFunction &zip_function) const;
-
-    /*!
-     * Performs an inner join between this DIA and the DIA given in the first
-     * parameter. The key from each DIA element is hereby extracted with a key
-     * extractor function. All pairs of elements with equal keys from both
-     * DIAs are then joined with the join function.
-     *
-     * \tparam KeyExtractor1 Type of the key_extractor1 function. This is a
-     * function from ValueType to the key type.
-     *
-     * \tparam KeyExtractor2 Type of the key_extractor2 function. This is a
-     * function from SecondDIA::ValueType to the key type.
-     *
-     * \tparam JoinFunction Type of the join_function. This is a function
-     * from ValueType and SecondDIA::ValueType to the type of the output DIA.
-     *
-     * \param SecondDIA Other DIA joined with this DIA.
-     *
-     * \param key_extractor1 Key extractor for this DIA
-     *
-     * \param key_extractor2 Key extractor for second DIA
-     *
-     * \param join_function Join function applied to all equal key pairs
-     *
-     * \ingroup dia_dops
-     */
-    template <const bool UseLocationDetection = true,
-              typename KeyExtractor1, typename KeyExtractor2,
-              typename JoinFunction, typename SecondDIA, typename HashFunction =
-                  std::hash<typename common::FunctionTraits<KeyExtractor1>::result_type> >
-    auto InnerJoin(const SecondDIA &second_dia,
-                   const KeyExtractor1 &key_extractor1,
-                   const KeyExtractor2 &key_extractor2,
-                   const JoinFunction &join_function,
-                   const HashFunction& hash_function =
-                       std::hash<typename
-                                 common::FunctionTraits<KeyExtractor1>::
-                                 result_type>()) const;
 
     /*!
      * Sort is a DOp, which sorts a given DIA according to the given compare_function.

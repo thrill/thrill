@@ -191,9 +191,7 @@ public:
     }
 
     /*!
-     * Inserts a pair of key and 1 to the table.
-     *
-     * \param key Key to insert.
+     * Inserts a HashCount item into the table.
      */
     void Insert(const HashCount& item) {
         table_.Insert(item);
