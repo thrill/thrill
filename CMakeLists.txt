@@ -77,13 +77,11 @@ if(NOT MSVC)
   # enable more warnings
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wpedantic")
 
-  # enable -march=native on Release builds
-  if(CMAKE_BUILD_TYPE STREQUAL "Release")
-    include(CheckCXXCompilerFlag)
-    check_cxx_compiler_flag(-march=native THRILL_HAS_MARCH_NATIVE)
-    if(THRILL_HAS_MARCH_NATIVE)
-      set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native")
-    endif()
+  # enable -march=native on Debug and Release builds
+  include(CheckCXXCompilerFlag)
+  check_cxx_compiler_flag("-march=native" THRILL_HAS_MARCH_NATIVE)
+  if(THRILL_HAS_MARCH_NATIVE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
   endif()
 
   # warn on conversions
