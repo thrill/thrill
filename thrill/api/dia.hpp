@@ -92,8 +92,11 @@ struct LocationDetectionTag {
     static const bool value = Value;
 };
 
-//! global const UseLocationDetectionTag instance
+//! global const LocationDetectionTag instance
 const struct LocationDetectionTag<true> UseLocationDetectionTag;
+
+//! global const LocationDetectionTag instance
+const struct LocationDetectionTag<false> NoLocationDetectionTag;
 
 /*!
  * DIA is the interface between the user and the Thrill framework. A DIA can be
@@ -1179,12 +1182,92 @@ public:
      * buckets are grouped and processed.
      *      input param: api::GroupByReader with functions HasNext() and Next()
      *
+     * \param hash_function Hash method for Keys
+     *
      * \ingroup dia_dops
      */
-    template <typename ValueOut, const bool UseLocationDetection = false,
-              typename KeyExtractor,
-              typename GroupByFunction, typename HashFunction =
-                  std::hash<typename FunctionTraits<KeyExtractor>::result_type> >
+    template <typename ValueOut, bool TagValue,
+              typename KeyExtractor, typename GroupByFunction,
+              typename HashFunction =
+                  std::hash<typename FunctionTraits<KeyExtractor>::result_type>
+              >
+    auto GroupByKey(const LocationDetectionTag<TagValue>&,
+                    const KeyExtractor &key_extractor,
+                    const GroupByFunction &groupby_function,
+                    const HashFunction& hash_function = HashFunction()) const;
+
+    /*!
+     * GroupByKey is a DOp, which groups elements of the DIA by its key.
+     * After having grouped all elements of one key, all elements of one key
+     * will be processed according to the GroupByFunction and returns an output
+     * Contrary to Reduce, GroupBy allows usage of functions that require all
+     * elements of one key at once as GroupByFunction will be applied _after_
+     * all elements with the same key have been grouped. However because of this
+     * reason, the communication overhead is also higher. If possible, usage of
+     * Reduce is therefore recommended.
+     *
+     * As GroupBy is a DOp, it creates a new DIANode. The DIA returned by
+     * Reduce links to this newly created DIANode. The stack_ of the returned
+     * DIA consists of the PostOp of Reduce, as a reduced element can
+     * directly be chained to the following LOps.
+     *
+     * \tparam KeyExtractor Type of the key_extractor function.
+     * The key_extractor function is equal to a map function.
+     *
+     * \param key_extractor Key extractor function, which maps each element to a
+     * key of possibly different type.
+     *
+     * \tparam GroupByFunction Type of the groupby_function. This is a function
+     * taking an iterator for all elements of the same key as input.
+     *
+     * \param groupby_function Reduce function, which defines how the key
+     * buckets are grouped and processed.
+     *      input param: api::GroupByReader with functions HasNext() and Next()
+     *
+     * \param hash_function Hash method for Keys
+     *
+     * \ingroup dia_dops
+     */
+    template <typename ValueOut, typename KeyExtractor,
+              typename GroupByFunction, typename HashFunction>
+    auto GroupByKey(const KeyExtractor &key_extractor,
+                    const GroupByFunction &groupby_function,
+                    const HashFunction &hash_function) const;
+
+    /*!
+     * GroupByKey is a DOp, which groups elements of the DIA by its key.
+     * After having grouped all elements of one key, all elements of one key
+     * will be processed according to the GroupByFunction and returns an output
+     * Contrary to Reduce, GroupBy allows usage of functions that require all
+     * elements of one key at once as GroupByFunction will be applied _after_
+     * all elements with the same key have been grouped. However because of this
+     * reason, the communication overhead is also higher. If possible, usage of
+     * Reduce is therefore recommended.
+     *
+     * As GroupBy is a DOp, it creates a new DIANode. The DIA returned by
+     * Reduce links to this newly created DIANode. The stack_ of the returned
+     * DIA consists of the PostOp of Reduce, as a reduced element can
+     * directly be chained to the following LOps.
+     *
+     * \tparam KeyExtractor Type of the key_extractor function.
+     * The key_extractor function is equal to a map function.
+     *
+     * \param key_extractor Key extractor function, which maps each element to a
+     * key of possibly different type.
+     *
+     * \tparam GroupByFunction Type of the groupby_function. This is a function
+     * taking an iterator for all elements of the same key as input.
+     *
+     * \param groupby_function Reduce function, which defines how the key
+     * buckets are grouped and processed.
+     *      input param: api::GroupByReader with functions HasNext() and Next()
+     *
+     * \param hash_function Hash method for Keys
+     *
+     * \ingroup dia_dops
+     */
+    template <typename ValueOut, typename KeyExtractor,
+              typename GroupByFunction>
     auto GroupByKey(const KeyExtractor &key_extractor,
                     const GroupByFunction &groupby_function) const;
 
@@ -1597,6 +1680,9 @@ using api::LocationDetectionTag;
 
 //! imported from api namespace
 using api::UseLocationDetectionTag;
+
+//! imported from api namespace
+using api::NoLocationDetectionTag;
 
 } // namespace thrill
 

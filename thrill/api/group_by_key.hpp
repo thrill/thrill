@@ -396,14 +396,13 @@ private:
 /******************************************************************************/
 
 template <typename ValueType, typename Stack>
-template <typename ValueOut,
-          const bool UseLocationDetection, typename KeyExtractor,
-          typename GroupFunction, typename HashFunction>
+template <typename ValueOut, bool TagValue,
+          typename KeyExtractor, typename GroupFunction, typename HashFunction>
 auto DIA<ValueType, Stack>::GroupByKey(
+    const LocationDetectionTag<TagValue>&,
     const KeyExtractor &key_extractor,
-    const GroupFunction &groupby_function) const {
-
-    using DOpResult = ValueOut;
+    const GroupFunction &groupby_function,
+    const HashFunction &hash_function) const {
 
     static_assert(
         std::is_same<
@@ -413,13 +412,35 @@ auto DIA<ValueType, Stack>::GroupByKey(
         "KeyExtractor has the wrong input type");
 
     using GroupByNode = api::GroupByNode<
-              DOpResult, KeyExtractor, GroupFunction, HashFunction,
-              UseLocationDetection>;
+              ValueOut, KeyExtractor, GroupFunction, HashFunction, TagValue>;
 
     auto node = common::MakeCounting<GroupByNode>(
-        *this, key_extractor, groupby_function);
+        *this, key_extractor, groupby_function, hash_function);
 
-    return DIA<DOpResult>(node);
+    return DIA<ValueOut>(node);
+}
+
+template <typename ValueType, typename Stack>
+template <typename ValueOut, typename KeyExtractor,
+          typename GroupFunction, typename HashFunction>
+auto DIA<ValueType, Stack>::GroupByKey(
+    const KeyExtractor &key_extractor,
+    const GroupFunction &groupby_function,
+    const HashFunction &hash_function) const {
+    // forward to other method _without_ location detection
+    return GroupByKey<ValueOut>(
+        NoLocationDetectionTag, key_extractor, groupby_function, hash_function);
+}
+
+template <typename ValueType, typename Stack>
+template <typename ValueOut, typename KeyExtractor, typename GroupFunction>
+auto DIA<ValueType, Stack>::GroupByKey(
+    const KeyExtractor &key_extractor,
+    const GroupFunction &groupby_function) const {
+    // forward to other method _without_ location detection
+    return GroupByKey<ValueOut>(
+        NoLocationDetectionTag, key_extractor, groupby_function,
+        std::hash<typename FunctionTraits<KeyExtractor>::result_type>());
 }
 
 } // namespace api

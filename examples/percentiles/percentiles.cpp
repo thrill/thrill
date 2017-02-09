@@ -68,7 +68,8 @@ void Percentiles(api::Context& ctx, const std::string& input_path) {
     // group by to compute median
     ctx.net.Barrier();
     thrill::common::StatsTimerStart timer;
-    temps.GroupByKey<std::pair<size_t, double>, use_detection>(
+    temps.GroupByKey<std::pair<size_t, double> >(
+        LocationDetectionTag<use_detection>(),
         time_keyfn, median_fn).Size();
 
     ctx.net.Barrier();
