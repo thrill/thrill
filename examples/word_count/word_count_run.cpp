@@ -38,13 +38,11 @@ static void RunWordCount(
     const std::vector<std::string>& input_filelist, const std::string& output) {
     ctx.enable_consume();
 
-    const bool UseDuplicateDetection = true;
-
     common::StatsTimerStart timer;
 
     auto lines = ReadLines(ctx, input_filelist);
 
-    auto word_pairs = WordCount<UseDuplicateDetection>(lines);
+    auto word_pairs = WordCount(lines);
 
     if (output.size()) {
         word_pairs
@@ -58,20 +56,12 @@ static void RunWordCount(
         ctx.net.Barrier();
         if (ctx.my_rank() == 0) {
             auto traffic = ctx.net_manager().Traffic();
-            if (UseDuplicateDetection) {
-                LOG1 << "RESULT benchmark=wordcount detection=ON"
-                     << " time=" << timer.Milliseconds()
-                     << " files=" << input_filelist.size()
-                     << " traffic=" << traffic.first + traffic.second
-                     << " machines=" << ctx.num_hosts();
-            }
-            else {
-                LOG1 << "RESULT benchmark=wordcount detection=OFF"
-                     << " time=" << timer.Milliseconds()
-                     << " files=" << input_filelist.size()
-                     << " traffic=" << traffic.first + traffic.second
-                     << " machines=" << ctx.num_hosts();
-            }
+            LOG1 << "RESULT"
+                 << " benchmark=wordcount"
+                 << " time=" << timer.Milliseconds()
+                 << " files=" << input_filelist.size()
+                 << " traffic=" << traffic.first + traffic.second
+                 << " machines=" << ctx.num_hosts();
         }
     }
 }
@@ -82,11 +72,10 @@ static void RunHashWordCount(
     ctx.enable_consume();
 
     common::StatsTimerStart timer;
-    const bool UseDuplicateDetection = false;
 
     auto lines = ReadLines(ctx, input_filelist);
 
-    auto word_pairs = HashWordCountExample<UseDuplicateDetection>(lines);
+    auto word_pairs = HashWordCountExample(lines);
 
     if (output.size()) {
         word_pairs
@@ -100,20 +89,12 @@ static void RunHashWordCount(
         ctx.net.Barrier();
         if (ctx.my_rank() == 0) {
             auto traffic = ctx.net_manager().Traffic();
-            if (UseDuplicateDetection) {
-                LOG1 << "RESULT benchmark=wordcount_hash detection=ON"
-                     << " time=" << timer.Milliseconds()
-                     << " files=" << input_filelist.size()
-                     << " traffic= " << traffic.first + traffic.second
-                     << " machines=" << ctx.num_hosts();
-            }
-            else {
-                LOG1 << "RESULT benchmark=wordcount_hash detection=OFF"
-                     << " time=" << timer.Milliseconds()
-                     << " files=" << input_filelist.size()
-                     << " traffic=" << traffic.first + traffic.second
-                     << " machines=" << ctx.num_hosts();
-            }
+            LOG1 << "RESULT"
+                 << " benchmark=wordcount_hash"
+                 << " time=" << timer.Milliseconds()
+                 << " files=" << input_filelist.size()
+                 << " traffic= " << traffic.first + traffic.second
+                 << " machines=" << ctx.num_hosts();
         }
     }
 }

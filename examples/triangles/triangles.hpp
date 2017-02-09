@@ -47,7 +47,7 @@ size_t CountTriangles(const DIA<Edge, Stack>& edges) {
 
     auto edges_length_2 =
         InnerJoin(
-            LocationDetectionTag<UseDetection>(),
+            LocationDetectionFlag<UseDetection>(),
             edges, edges,
             [](const Edge& e) { return e.second; },
             [](const Edge& e) { return e.first; },
@@ -58,7 +58,7 @@ size_t CountTriangles(const DIA<Edge, Stack>& edges) {
 
     auto triangles =
         InnerJoin(
-            LocationDetectionTag<UseDetection>(),
+            LocationDetectionFlag<UseDetection>(),
             edges_length_2, edges,
             [](const Edge& e) { return e; },
             [](const Edge& e) { return e; },

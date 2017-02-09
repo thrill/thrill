@@ -830,7 +830,7 @@ auto InnerJoin(
     const HashFunction& hash_function = HashFunction()) {
     // forward to method _with_ location detection on
     return InnerJoin(
-        UseLocationDetectionTag,
+        LocationDetectionTag,
         first_dia, second_dia, key_extractor1, key_extractor2,
         join_function, hash_function);
 }

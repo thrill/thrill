@@ -230,8 +230,8 @@ static void RunPageRankGenerated(
         })
                  .Cache();
 
-    // auto number_edges =
-    //     links.Keep().Map([](const OutgoingLinks& ol) { return ol.size(); }).Sum();
+    auto number_edges =
+        links.Keep().Map([](const OutgoingLinks& ol) { return ol.size(); }).Sum();
 
     // perform actual page rank calculation iterations
 
@@ -253,17 +253,13 @@ static void RunPageRankGenerated(
 
     timer.Stop();
 
-    /*if (ctx.my_rank() == 0) {
-        LOG1 << "FINISHED PAGERANK COMPUTATION";
-        LOG1 << "#pages: " << num_pages;
-        LOG1 << "#edges: " << number_edges;
-        LOG1 << "#iterations: " << iterations;
-        LOG1 << "time: " << timer << "s";
-    }*/
-
     if (ctx.my_rank() == 0) {
-        LOG1 << "RESULT " << "benchmark=pagerank_gen " << "detection=OFF "
-             << "time=" << timer.Milliseconds()
+        LOG1 << "RESULT"
+             << " benchmark=pagerank_gen"
+             << " pages=" << num_pages
+             << " edges=" << number_edges
+             << " iterations=" << iterations
+             << " time=" << timer.Milliseconds()
              << " machines=" << ctx.num_hosts();
     }
 }

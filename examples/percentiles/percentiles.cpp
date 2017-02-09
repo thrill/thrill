@@ -69,7 +69,7 @@ void Percentiles(api::Context& ctx, const std::string& input_path) {
     ctx.net.Barrier();
     thrill::common::StatsTimerStart timer;
     temps.GroupByKey<std::pair<size_t, double> >(
-        LocationDetectionTag<use_detection>(),
+        LocationDetectionFlag<use_detection>(),
         time_keyfn, median_fn).Size();
 
     ctx.net.Barrier();

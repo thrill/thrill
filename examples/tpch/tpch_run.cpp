@@ -244,7 +244,7 @@ static size_t JoinTPCH4(
     const bool use_detection = false;
     auto joined =
         InnerJoin(
-            LocationDetectionTag<use_detection>(),
+            LocationDetectionFlag<use_detection>(),
             lineitems, orders,
             [](const LineItem& li) { return li.orderkey; },
             [](const Order& o) { return o.orderkey; },
