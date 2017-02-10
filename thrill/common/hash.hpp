@@ -12,6 +12,8 @@
 #ifndef THRILL_COMMON_HASH_HEADER
 #define THRILL_COMMON_HASH_HEADER
 
+#include <thrill/common/config.hpp>
+
 #include <array>
 #include <cassert>
 #include <cstdint>
@@ -19,8 +21,6 @@
 #include <random>
 #include <string>
 #include <type_traits>
-
-#include <thrill/common/config.hpp>
 
 #ifdef THRILL_HAVE_SSE4_2
 #include <smmintrin.h> // crc32 instructions
@@ -219,7 +219,7 @@ public:
     using Subtable = std::array<hash_type, 256>;
     using Table = std::array<Subtable, size>;
 
-    TabulationHashing(size_t seed = 0) { init(seed); }
+    explicit TabulationHashing(size_t seed = 0) { init(seed); }
 
     //! (re-)initialize the table by filling it with random values
     void init(const size_t seed) {

@@ -18,8 +18,6 @@
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/common/string_view.hpp>
 
-#include <gtest/gtest.h>
-
 #include <algorithm>
 #include <array>
 #include <string>
