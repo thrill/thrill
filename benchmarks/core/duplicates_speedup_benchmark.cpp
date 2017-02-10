@@ -14,6 +14,7 @@
 #include <thrill/api/reduce_by_key.hpp>
 #include <thrill/api/size.hpp>
 #include <thrill/common/cmdline_parser.hpp>
+#include <thrill/common/die.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/common/string_view.hpp>
@@ -60,13 +61,13 @@ void SpeedupTest(api::Context& ctx, size_t equal, size_t elements) {
                   });
         if (ctx.my_rank() == 0) {
             LOG1 << "Checking results!";
-            ASSERT_EQ(elements / equal, vec.size());
+            die_unequal(elements / equal, vec.size());
             for (size_t i = 0; i < vec.size(); ++i) {
                 for (size_t j = 0; j < 128; ++j) {
-                    ASSERT_EQ(vec[i].second[j],
-                              equal * (equal - 1) / 2
-                              + equal * j
-                              + equal * equal * i);
+                    die_unequal(vec[i].second[j],
+                                equal * (equal - 1) / 2
+                                + equal * j
+                                + equal * equal * i);
                 }
             }
             LOG1 << "Result checking successful.";
