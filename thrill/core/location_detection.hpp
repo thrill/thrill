@@ -27,8 +27,6 @@
 #include <thrill/core/reduce_table.hpp>
 #include <thrill/data/cat_stream.hpp>
 
-#include <x86intrin.h>
-
 #include <algorithm>
 #include <functional>
 #include <unordered_map>
@@ -36,17 +34,6 @@
 #include <vector>
 
 namespace thrill {
-
-struct hash {
-
-    inline size_t operator () (const size_t& n) const {
-        size_t hash = _mm_crc32_u32((size_t)28475421, n);
-        hash = hash << 32;
-        hash += _mm_crc32_u32((size_t)52150599, n);
-        return hash;
-    }
-};
-
 namespace core {
 
 /*!

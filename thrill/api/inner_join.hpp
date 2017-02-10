@@ -719,7 +719,7 @@ private:
  * \ingroup dia_dops
  */
 template <
-    typename LocationDetectionTag,
+    bool LocationDetectionValue,
     typename FirstDIA,
     typename SecondDIA,
     typename KeyExtractor1,
@@ -728,7 +728,7 @@ template <
     typename HashFunction =
         std::hash<typename common::FunctionTraits<KeyExtractor1>::result_type> >
 auto InnerJoin(
-    const LocationDetectionTag &,
+    const LocationDetectionFlag<LocationDetectionValue>&,
     const FirstDIA &first_dia, const SecondDIA &second_dia,
     const KeyExtractor1 &key_extractor1, const KeyExtractor2 &key_extractor2,
     const JoinFunction &join_function,
@@ -777,7 +777,7 @@ auto InnerJoin(
 
     using JoinNode = api::JoinNode<
               JoinResult, FirstDIA, SecondDIA, KeyExtractor1, KeyExtractor2,
-              JoinFunction, HashFunction, LocationDetectionTag::value>;
+              JoinFunction, HashFunction, LocationDetectionValue>;
 
     auto node = common::MakeCounting<JoinNode>(
         first_dia, second_dia, key_extractor1, key_extractor2, join_function,
@@ -828,7 +828,7 @@ auto InnerJoin(
     const KeyExtractor1 &key_extractor1, const KeyExtractor2 &key_extractor2,
     const JoinFunction &join_function,
     const HashFunction& hash_function = HashFunction()) {
-    // forward to method _with_ location detection on
+    // forward to method _with_ location detection ON
     return InnerJoin(
         LocationDetectionTag,
         first_dia, second_dia, key_extractor1, key_extractor2,

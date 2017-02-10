@@ -250,7 +250,7 @@ static size_t JoinTPCH4(
             [](const Order& o) { return o.orderkey; },
             [](const LineItem& li, const Order& o) {
                 return ConstructJoinedElement(li, o);
-            }, thrill::hash()).Size();
+            }).Size();
 
     ctx.net.Barrier();
 

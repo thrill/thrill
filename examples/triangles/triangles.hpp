@@ -15,8 +15,6 @@
 #include <thrill/api/inner_join.hpp>
 #include <thrill/api/size.hpp>
 
-#include <x86intrin.h>
-
 #include <utility>
 
 using Node = size_t;
@@ -31,8 +29,10 @@ struct hash<Edge>{
     size_t operator () (const Edge& v) const {
 
         size_t seed = 0;
-        seed ^= thrill::hash()(v.first) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-        seed ^= thrill::hash()(v.second) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        seed ^= std::hash<size_t>()(
+            v.first) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        seed ^= std::hash<size_t>()(
+            v.second) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
         return seed;
     }
 };
@@ -54,7 +54,7 @@ size_t CountTriangles(const DIA<Edge, Stack>& edges) {
             [](const Edge& e1, const Edge& e2) {
                 assert(e1.second == e2.first);
                 return std::make_pair(e1.first, e2.second);
-            }, thrill::hash());
+            });
 
     auto triangles =
         InnerJoin(
@@ -64,7 +64,7 @@ size_t CountTriangles(const DIA<Edge, Stack>& edges) {
             [](const Edge& e) { return e; },
             [](const Edge& /* e1 */, const Edge& /* e2 */) {
                 return (size_t)1;
-            }, std::hash<Edge>());
+            });
 
     return triangles.Size();
 }

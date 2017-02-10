@@ -171,7 +171,7 @@ auto PageRankJoin(const DIA<LinkedPage, InStack>&links, size_t num_pages,
             [](const RankedPage& rp) { return rp.first; },
             [](const LinkedPage& lp, const RankedPage& rp) {
                 return std::make_pair(lp.second, rp.second);
-            }, thrill::hash());
+            });
 
         if (debug) {
             outs_rank
