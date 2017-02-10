@@ -32,6 +32,20 @@
 using namespace thrill;              // NOLINT
 using namespace examples::page_rank; // NOLINT
 
+struct PageRankLineParser {
+    PagePageLink operator () (const std::string& input) const {
+        // parse "source\ttarget\n" lines
+        char* endptr;
+        unsigned long src = std::strtoul(input.c_str(), &endptr, 10);
+        die_unless(endptr && *endptr == '\t' &&
+                   "Could not parse src tgt line");
+        unsigned long tgt = std::strtoul(endptr + 1, &endptr, 10);
+        die_unless(endptr && *endptr == 0 &&
+                   "Could not parse src tgt line");
+        return PagePageLink { src, tgt };
+    }
+};
+
 static void RunPageRankEdgePerLine(
     api::Context& ctx,
     const std::vector<std::string>& input_path, const std::string& output_path,
@@ -48,17 +62,7 @@ static void RunPageRankEdgePerLine(
     // ...
     auto input =
         ReadLines(ctx, input_path)
-        .Map([](const std::string& input) {
-                 // parse "source\ttarget\n" lines
-                 char* endptr;
-                 unsigned long src = std::strtoul(input.c_str(), &endptr, 10);
-                 die_unless(endptr && *endptr == '\t' &&
-                            "Could not parse src tgt line");
-                 unsigned long tgt = std::strtoul(endptr + 1, &endptr, 10);
-                 die_unless(endptr && *endptr == 0 &&
-                            "Could not parse src tgt line");
-                 return PagePageLink { src, tgt };
-             });
+        .Map(PageRankLineParser());
 
     size_t num_pages =
         input.Keep()
@@ -134,17 +138,7 @@ static void RunJoinPageRankEdgePerLine(
     // ...
     auto input =
         ReadLines(ctx, input_path)
-        .Map([](const std::string& input) {
-                 // parse "source\ttarget\n" lines
-                 char* endptr;
-                 unsigned long src = std::strtoul(input.c_str(), &endptr, 10);
-                 die_unless(endptr && *endptr == '\t' &&
-                            "Could not parse src tgt line");
-                 unsigned long tgt = std::strtoul(endptr + 1, &endptr, 10);
-                 die_unless(endptr && *endptr == 0 &&
-                            "Could not parse src tgt line");
-                 return PagePageLink { src, tgt };
-             });
+        .Map(PageRankLineParser());
 
     size_t num_pages =
         input.Keep()
@@ -183,19 +177,13 @@ static void RunJoinPageRankEdgePerLine(
 
     timer.Stop();
 
-    /*if (ctx.my_rank() == 0) {
-        LOG1 << "FINISHED PAGERANK COMPUTATION";
-        LOG1 << "#pages: " << num_pages;
-        LOG1 << "#iterations: " << iterations;
-        LOG1 << "time: " << timer << "s";
-        }*/
-
     if (ctx.my_rank() == 0) {
         auto traffic = ctx.net_manager().Traffic();
         if (UseLocationDetection) {
             LOG1 << "RESULT benchmark=pagerank_gen detection=ON"
                  << " time=" << timer.Milliseconds()
                  << " pages=" << num_pages
+                 << " iterations=" << iterations
                  << " traffic= " << traffic.first + traffic.second
                  << " machines=" << ctx.num_hosts();
         }
@@ -203,6 +191,7 @@ static void RunJoinPageRankEdgePerLine(
             LOG1 << "RESULT benchmark=pagerank_gen detection=OFF"
                  << " time=" << timer.Milliseconds()
                  << " pages=" << num_pages
+                 << " iterations=" << iterations
                  << " traffic=" << traffic.first + traffic.second
                  << " machines=" << ctx.num_hosts();
         }
