@@ -90,8 +90,8 @@ public:
 
     //! Creates a BlockReader for each worker. The BlockReaders are attached to
     //! the BlockQueues in the Stream and wait for further Blocks to arrive or
-    //! the Stream's remote close.
-    std::vector<BlockQueueReader> GetReaders();
+    //! the Stream's remote close. These Readers _always_ consume!
+    std::vector<Reader> GetReaders();
 
     //! Gets a CatBlockSource which includes all incoming queues of this stream.
     CatBlockSource GetCatBlockSource(bool consume);

@@ -250,59 +250,17 @@ auto DIA<ValueType, Stack>::ReduceToIndex(
     size_t size,
     const ValueType &neutral_element,
     const ReduceConfig &reduce_config) const {
-    assert(IsValid());
-
-    using DOpResult
-              = typename common::FunctionTraits<ReduceFunction>::result_type;
-
-    static_assert(
-        std::is_convertible<
-            ValueType,
-            typename common::FunctionTraits<ReduceFunction>::template arg<0>
-            >::value,
-        "ReduceFunction has the wrong input type");
-
-    static_assert(
-        std::is_convertible<
-            ValueType,
-            typename common::FunctionTraits<ReduceFunction>::template arg<1>
-            >::value,
-        "ReduceFunction has the wrong input type");
-
-    static_assert(
-        std::is_same<
-            DOpResult,
-            ValueType>::value,
-        "ReduceFunction has the wrong output type");
-
-    static_assert(
-        std::is_same<
-            typename std::decay<typename common::FunctionTraits<KeyExtractor>::
-                                template arg<0> >::type,
-            ValueType>::value,
-        "KeyExtractor has the wrong input type");
-
-    static_assert(
-        std::is_same<
-            typename common::FunctionTraits<KeyExtractor>::result_type,
-            size_t>::value,
-        "The key has to be an unsigned long int (aka. size_t).");
-
-    using ReduceNode = ReduceToIndexNode<
-              DOpResult, KeyExtractor, ReduceFunction,
-              ReduceConfig, /* VolatileKey */ false>;
-
-    auto node = common::MakeCounting<ReduceNode>(
-        *this, "ReduceToIndex", key_extractor, reduce_function,
-        size, neutral_element, reduce_config);
-
-    return DIA<DOpResult>(node);
+    // forward to main function
+    return ReduceToIndex(
+        NoVolatileKeyTag,
+        key_extractor, reduce_function, size, neutral_element, reduce_config);
 }
 
 template <typename ValueType, typename Stack>
-template <typename KeyExtractor, typename ReduceFunction, typename ReduceConfig>
+template <bool VolatileKeyValue,
+          typename KeyExtractor, typename ReduceFunction, typename ReduceConfig>
 auto DIA<ValueType, Stack>::ReduceToIndex(
-    struct VolatileKeyTag const &,
+    const VolatileKeyFlag<VolatileKeyValue>&,
     const KeyExtractor &key_extractor,
     const ReduceFunction &reduce_function,
     size_t size,
@@ -348,7 +306,7 @@ auto DIA<ValueType, Stack>::ReduceToIndex(
 
     using ReduceNode = ReduceToIndexNode<
               DOpResult, KeyExtractor, ReduceFunction,
-              ReduceConfig, /* VolatileKey */ true>;
+              ReduceConfig, VolatileKeyValue>;
 
     auto node = common::MakeCounting<ReduceNode>(
         *this, "ReduceToIndex", key_extractor, reduce_function,

@@ -4,6 +4,7 @@
  * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2016 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2016 Alexander Noe <aleexnoe@gmail.com>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
@@ -12,6 +13,7 @@
 #include <examples/page_rank/zipf_graph_gen.hpp>
 
 #include <thrill/api/cache.hpp>
+#include <thrill/api/group_by_key.hpp>
 #include <thrill/api/group_to_index.hpp>
 #include <thrill/api/max.hpp>
 #include <thrill/api/read_lines.hpp>
@@ -30,6 +32,20 @@
 using namespace thrill;              // NOLINT
 using namespace examples::page_rank; // NOLINT
 
+struct PageRankLineParser {
+    PagePageLink operator () (const std::string& input) const {
+        // parse "source\ttarget\n" lines
+        char* endptr;
+        unsigned long src = std::strtoul(input.c_str(), &endptr, 10);
+        die_unless(endptr && *endptr == '\t' &&
+                   "Could not parse src tgt line");
+        unsigned long tgt = std::strtoul(endptr + 1, &endptr, 10);
+        die_unless(endptr && *endptr == 0 &&
+                   "Could not parse src tgt line");
+        return PagePageLink { src, tgt };
+    }
+};
+
 static void RunPageRankEdgePerLine(
     api::Context& ctx,
     const std::vector<std::string>& input_path, const std::string& output_path,
@@ -46,17 +62,7 @@ static void RunPageRankEdgePerLine(
     // ...
     auto input =
         ReadLines(ctx, input_path)
-        .Map([](const std::string& input) {
-                 // parse "source\ttarget\n" lines
-                 char* endptr;
-                 unsigned long src = std::strtoul(input.c_str(), &endptr, 10);
-                 die_unless(endptr && *endptr == '\t' &&
-                            "Could not parse src tgt line");
-                 unsigned long tgt = std::strtoul(endptr + 1, &endptr, 10);
-                 die_unless(endptr && *endptr == 0 &&
-                            "Could not parse src tgt line");
-                 return PagePageLink { src, tgt };
-             });
+        .Map(PageRankLineParser());
 
     size_t num_pages =
         input.Keep()
@@ -114,6 +120,84 @@ static void RunPageRankEdgePerLine(
     }
 }
 
+static void RunJoinPageRankEdgePerLine(
+    api::Context& ctx,
+    const std::vector<std::string>& input_path, const std::string& output_path,
+    size_t iterations) {
+    ctx.enable_consume();
+
+    common::StatsTimerStart timer;
+
+    const bool UseLocationDetection = true;
+
+    // read input file and create links in this format:
+    //
+    // url linked_url
+    // url linked_url
+    // url linked_url
+    // ...
+    auto input =
+        ReadLines(ctx, input_path)
+        .Map(PageRankLineParser());
+
+    size_t num_pages =
+        input.Keep()
+        .Map([](const PagePageLink& ppl) { return std::max(ppl.src, ppl.tgt); })
+        .Max() + 1;
+    // aggregate all outgoing links of a page in this format: by index
+    // ([linked_url, linked_url, ...])
+
+    // group outgoing links from input file
+
+    auto links = input.GroupByKey<LinkedPage>(
+        [](const PagePageLink& p) { return p.src; },
+        [all = std::vector < PageId > ()](auto& r, const PageId& pid) mutable {
+            all.clear();
+            while (r.HasNext()) {
+                all.push_back(r.Next().tgt);
+            }
+            return std::make_pair(pid, all);
+        }).Cache().KeepForever();
+
+    // perform actual page rank calculation iterations
+
+    auto ranks = PageRankJoin<UseLocationDetection>(
+        links, num_pages, iterations);
+
+    // construct output as "pageid: rank"
+
+    if (output_path.size()) {
+        ranks.Map([](const RankedPage& rp) {
+                      return common::str_sprintf("%zu: %g", rp.first, rp.second);
+                  }).WriteLines(output_path);
+    }
+    else {
+        ranks.Execute();
+    }
+
+    timer.Stop();
+
+    if (ctx.my_rank() == 0) {
+        auto traffic = ctx.net_manager().Traffic();
+        if (UseLocationDetection) {
+            LOG1 << "RESULT benchmark=pagerank_gen detection=ON"
+                 << " time=" << timer.Milliseconds()
+                 << " pages=" << num_pages
+                 << " iterations=" << iterations
+                 << " traffic= " << traffic.first + traffic.second
+                 << " machines=" << ctx.num_hosts();
+        }
+        else {
+            LOG1 << "RESULT benchmark=pagerank_gen detection=OFF"
+                 << " time=" << timer.Milliseconds()
+                 << " pages=" << num_pages
+                 << " iterations=" << iterations
+                 << " traffic=" << traffic.first + traffic.second
+                 << " machines=" << ctx.num_hosts();
+        }
+    }
+}
+
 static void RunPageRankGenerated(
     api::Context& ctx,
     const std::string& input_path, const ZipfGraphGen& base_graph_gen,
@@ -159,11 +243,71 @@ static void RunPageRankGenerated(
     timer.Stop();
 
     if (ctx.my_rank() == 0) {
-        LOG1 << "FINISHED PAGERANK COMPUTATION";
-        LOG1 << "#pages: " << num_pages;
-        LOG1 << "#edges: " << number_edges;
-        LOG1 << "#iterations: " << iterations;
-        LOG1 << "time: " << timer << "s";
+        LOG1 << "RESULT"
+             << " benchmark=pagerank_gen"
+             << " pages=" << num_pages
+             << " edges=" << number_edges
+             << " iterations=" << iterations
+             << " time=" << timer.Milliseconds()
+             << " machines=" << ctx.num_hosts();
+    }
+}
+
+static void RunPageRankJoinGenerated(
+    api::Context& ctx,
+    const std::string& input_path, const ZipfGraphGen& base_graph_gen,
+    const std::string& output_path, size_t iterations) {
+    ctx.enable_consume();
+
+    common::StatsTimerStart timer;
+    const bool UseLocationDetection = true;
+
+    size_t num_pages;
+    if (!common::from_str<size_t>(input_path, num_pages))
+        die("For generated graph data, set input_path to the number of pages.");
+
+    auto links = Generate(
+        ctx, num_pages,
+        [graph_gen = ZipfGraphGen(base_graph_gen, num_pages),
+         rng = std::default_random_engine(std::random_device { } ())](
+            size_t index) mutable {
+            return std::make_pair(index, graph_gen.GenerateOutgoing(rng));
+        }).Cache().KeepForever();
+
+    // perform actual page rank calculation iterations
+
+    auto ranks = PageRankJoin<UseLocationDetection>(
+        links, num_pages, iterations);
+
+    // construct output as "pageid: rank"
+
+    if (output_path.size()) {
+        ranks.Map([](const RankedPage& rp) {
+                      return common::str_sprintf("%zu: %g", rp.first, rp.second);
+                  }).WriteLines(output_path);
+    }
+    else {
+        ranks.Execute();
+    }
+
+    timer.Stop();
+
+    if (ctx.my_rank() == 0) {
+        auto traffic = ctx.net_manager().Traffic();
+        if (UseLocationDetection) {
+            LOG1 << "RESULT benchmark=pagerank_gen detection=ON"
+                 << " time=" << timer.Milliseconds()
+                 << " pages=" << num_pages
+                 << " traffic= " << traffic.first + traffic.second
+                 << " machines=" << ctx.num_hosts();
+        }
+        else {
+            LOG1 << "RESULT benchmark=pagerank_gen detection=OFF"
+                 << " time=" << timer.Milliseconds()
+                 << " pages=" << num_pages
+                 << " traffic=" << traffic.first + traffic.second
+                 << " machines=" << ctx.num_hosts();
+        }
     }
 }
 
@@ -174,6 +318,9 @@ int main(int argc, char* argv[]) {
     bool generate = false;
     clp.AddFlag('g', "generate", generate,
                 "generate graph data, set input = #pages");
+    bool use_join = false;
+    clp.AddFlag('j', "join", use_join,
+                "use Join() instead of *ByIndex()");
 
     // Graph Generator
     ZipfGraphGen gg(1);
@@ -215,11 +362,17 @@ int main(int argc, char* argv[]) {
 
     return api::Run(
         [&](api::Context& ctx) {
-            if (generate)
+            if (generate && !use_join)
                 return RunPageRankGenerated(
                     ctx, input_path[0], gg, output_path, iter);
-            else
+            else if (!generate && !use_join)
                 return RunPageRankEdgePerLine(
+                    ctx, input_path, output_path, iter);
+            else if (generate && use_join)
+                return RunPageRankJoinGenerated(
+                    ctx, input_path[0], gg, output_path, iter);
+            else if (!generate && use_join)
+                return RunJoinPageRankEdgePerLine(
                     ctx, input_path, output_path, iter);
         });
 }

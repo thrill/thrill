@@ -182,9 +182,7 @@ public:
     }
 
     //! Returns true if the File is empty.
-    bool empty() const {
-        return blocks_.empty();
-    }
+    bool empty() const { return blocks_.empty(); }
 
     //! Return the number of bytes of user data in this file.
     size_t size_bytes() const { return size_bytes_; }

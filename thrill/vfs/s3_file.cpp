@@ -286,9 +286,14 @@ void S3Glob(const std::string& _path, const GlobType& gtype,
 class S3ReadStream : public ReadStream
 {
 public:
-    S3ReadStream(const S3BucketContext* bucket_context, const char* key,
+    S3ReadStream(const std::string& bucket, const std::string& key,
                  const S3GetConditions* get_conditions,
-                 uint64_t start_byte, uint64_t byte_count) {
+                 uint64_t start_byte, uint64_t byte_count)
+        : bucket_(bucket), key_(key) {
+
+        // construct bucket
+        S3BucketContext bucket_context;
+        FillS3BucketContext(bucket_context, bucket_.c_str());
 
         // construct handlers
         S3GetObjectHandler handler;
@@ -302,26 +307,34 @@ public:
 
         // create request context
         S3Status status = S3_create_request_context(&req_ctx_);
-        if (status != S3StatusOK)
+        if (status != S3StatusOK || req_ctx_ == nullptr)
             die("S3_create_request_context() failed.");
 
         // issue request but do not wait for data
         S3_get_object(
-            bucket_context, key, get_conditions, start_byte, byte_count,
+            &bucket_context, key_.c_str(), get_conditions,
+            start_byte, byte_count,
             /* request_context */ req_ctx_, &handler, this);
     }
 
     //! simpler constructor
-    S3ReadStream(const S3BucketContext* bucket_context, const char* key,
+    S3ReadStream(const std::string& bucket, const std::string& key,
                  uint64_t start_byte = 0, uint64_t byte_count = 0)
-        : S3ReadStream(bucket_context, key, /* get_conditions */ nullptr,
+        : S3ReadStream(bucket, key, /* get_conditions */ nullptr,
                        start_byte, byte_count) { }
 
-    ~S3ReadStream() {
+    //! non-copyable: delete copy-constructor
+    S3ReadStream(const S3ReadStream&) = delete;
+    //! non-copyable: delete assignment operator
+    S3ReadStream& operator = (const S3ReadStream&) = delete;
+
+    virtual ~S3ReadStream() {
         close();
     }
 
     ssize_t read(void* data, size_t size) final {
+        assert(req_ctx_);
+
         if (status_ != S3StatusOK)
             die("S3-ERROR during read: " << S3_get_status_name(status_));
 
@@ -353,8 +366,10 @@ public:
             die_unless(status == S3StatusOK);
 
             if (max_fd != -1) {
+                int64_t timeout = S3_get_request_context_timeout(req_ctx_);
+                struct timeval tv = { timeout / 1000, (timeout % 1000) * 1000 };
                 int r = select(max_fd + 1, &read_fds, &write_fds, &except_fds,
-                               /* timeout */ nullptr);
+                               /* timeout */ (timeout == -1) ? 0 : &tv);
                 die_unless(r >= 0);
             }
 
@@ -374,10 +389,16 @@ public:
 
 private:
     //! request context for waiting on more data
-    S3RequestContext* req_ctx_;
+    S3RequestContext* req_ctx_ = nullptr;
 
     //! status of request
     S3Status status_ = S3StatusOK;
+
+    //! bucket for upload
+    std::string bucket_;
+
+    //! bucket key for upload
+    std::string key_;
 
     //! reception buffer containing unneeded bytes from callback
     std::vector<uint8_t> buffer_;
@@ -395,7 +416,7 @@ private:
         S3Status status, const S3ErrorDetails* error) {
         status_ = status;
 
-        if (status != S3StatusOK)
+        if (status != S3StatusOK && status != S3StatusInterrupted)
             LibS3LogError(status, error);
     }
 
@@ -446,13 +467,10 @@ ReadStreamPtr S3OpenReadStream(
     // split uri into host/path
     std::vector<std::string> splitted = common::Split(path, '/', 2);
 
-    // construct bucket
-    S3BucketContext bkt;
-    FillS3BucketContext(bkt, splitted[0]);
-
     return common::MakeCounting<S3ReadStream>(
-        &bkt, splitted[1].c_str(),
-        /* start_byte */ range.begin, /* byte_count */ range.size());
+        splitted[0], splitted[1],
+        /* start_byte */ range.begin,
+        /* byte_count */ range.end == 0 ? 0 : range.size());
 }
 
 /******************************************************************************/

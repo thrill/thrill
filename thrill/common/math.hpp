@@ -105,6 +105,17 @@ T abs_diff(const T& a, const T& b) {
     return a > b ? a - b : b - a;
 }
 
+//! Add x + y but truncate result upwards such that it fits into original
+//! datatype
+template <typename IntegerType, unsigned bits = (8* sizeof(IntegerType))>
+static inline
+IntegerType AddTruncToType(const IntegerType& a, const IntegerType& b) {
+    size_t s = static_cast<size_t>(a) + static_cast<size_t>(b);
+    if (s >= (size_t(1) << bits))
+        s = (size_t(1) << bits) - 1;
+    return static_cast<IntegerType>(s);
+}
+
 /******************************************************************************/
 
 //! calculate n div k with rounding up

@@ -163,8 +163,10 @@ public:
      * fill ratio per partition is reached.
      *
      * \param kv Value to be inserted into the table.
+         *
+         * \return true if a new key was inserted to the table
      */
-    void Insert(const TableItem& kv) {
+    bool Insert(const TableItem& kv) {
 
         while (THRILL_UNLIKELY(mem::memory_exceeded && num_items_ != 0))
             SpillAnyPartition();
@@ -193,7 +195,7 @@ public:
             while (items_per_partition_[h.partition_id] > limit_items_per_partition_)
                 SpillPartition(h.partition_id);
 
-            return;
+            return false;
         }
 
         size_t local_index = h.local_index(num_buckets_per_partition_);
@@ -210,7 +212,7 @@ public:
             if (key_equal_function_(key(*iter), key(kv)))
             {
                 *iter = reduce(*iter, kv);
-                return;
+                return false;
             }
 
             ++iter;
@@ -229,7 +231,8 @@ public:
                 // increase counter for partition
                 ++items_per_partition_[h.partition_id];
                 ++num_items_;
-                return;
+
+                return true;
             }
         }
 
@@ -242,6 +245,8 @@ public:
 
         while (items_per_partition_[h.partition_id] > limit_items_per_partition_)
             SpillPartition(h.partition_id);
+
+        return true;
     }
 
     //! Deallocate memory

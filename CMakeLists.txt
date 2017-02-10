@@ -102,9 +102,9 @@ if(NOT MSVC)
 
   # enable -march=native on Debug and Release builds
   include(CheckCXXCompilerFlag)
-  check_cxx_compiler_flag(-march=native THRILL_HAS_MARCH_NATIVE)
+  check_cxx_compiler_flag("-march=native" THRILL_HAS_MARCH_NATIVE)
   if(THRILL_HAS_MARCH_NATIVE)
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
   endif()
 
   # remove -rdynamic from linker flags (smaller binaries which cannot be loaded

@@ -235,6 +235,10 @@ public:
         return false;
     }
 
+    bool has_spilled_data_on_partition(size_t partition_id) {
+        return partition_files_[partition_id].num_items() != 0;
+    }
+
     //! \}
 
     //! \name Switches for VolatileKey
