@@ -15,6 +15,8 @@
 #include <thrill/core/golomb_bit_stream.hpp>
 #include <thrill/data/file.hpp>
 
+#include <tlx/string/hexdump.hpp>
+
 #include <algorithm>
 #include <cmath>
 #include <string>
@@ -53,7 +55,7 @@ TEST(BitStreamWriter, Test) {
 
     // compare frozen byte data with File contents
     if (file_data != file.ReadComplete())
-        std::cout << common::Hexdump(file.ReadComplete()) << std::endl;
+        std::cout << tlx::hexdump(file.ReadComplete()) << std::endl;
 
     ASSERT_EQ(file_data, file.ReadComplete());
 
@@ -104,7 +106,7 @@ TEST(GolombBitStreamWriter, Test) {
 
     // compare frozen byte data with File contents
     if (file_data != file.ReadComplete())
-        std::cout << common::Hexdump(file.ReadComplete()) << std::endl;
+        std::cout << tlx::hexdump(file.ReadComplete()) << std::endl;
 
     ASSERT_EQ(file_data, file.ReadComplete());
 

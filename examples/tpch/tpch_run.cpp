@@ -22,6 +22,8 @@
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/common/string.hpp>
 
+#include <tlx/string/split.hpp>
+
 #include <algorithm>
 #include <cmath>
 #include <ctime>
@@ -175,7 +177,7 @@ static size_t JoinTPCH4(
 
             LineItem li;
             char* end;
-            common::SplitRef(input, '|', splitted);
+            tlx::split(&splitted, '|', input);
 
             li.commit = time_to_epoch(splitted[11]);
             li.receipt = time_to_epoch(splitted[12]);
@@ -217,7 +219,7 @@ static size_t JoinTPCH4(
             Order o;
 
             char* end;
-            common::SplitRef(input, '|', splitted);
+            tlx::split(&splitted, '|', input);
 
             o.ordertime = time_to_epoch(splitted[4]);
             if (o.ordertime >= starttime && o.ordertime < stoptime) {

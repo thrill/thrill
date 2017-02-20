@@ -15,6 +15,8 @@
 #include <thrill/data/multiplexer.hpp>
 #include <thrill/data/multiplexer_header.hpp>
 
+#include <tlx/string/hexdump.hpp>
+
 #include <algorithm>
 #include <vector>
 
@@ -252,7 +254,7 @@ void CatStream::OnStreamBlock(size_t from, PinnedBlock&& b) {
 
     if (debug_data) {
         sLOG << "stream" << id_ << "receive from" << from << ":"
-             << common::Hexdump(b.ToString());
+             << tlx::hexdump(b.ToString());
     }
 
     queues_[from].AppendPinnedBlock(std::move(b), /* is_last_block */ false);

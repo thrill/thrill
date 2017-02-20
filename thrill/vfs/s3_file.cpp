@@ -14,6 +14,9 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/common/string.hpp>
 
+#include <tlx/string/split.hpp>
+#include <tlx/string/starts_with.hpp>
+
 #if THRILL_HAVE_LIBS3
 #include <libs3.h>
 #endif
@@ -249,11 +252,11 @@ void S3Glob(const std::string& _path, const GlobType& gtype,
 
     std::string path = _path;
     // crop off s3://
-    die_unless(common::StartsWith(path, "s3://"));
+    die_unless(tlx::starts_with(path, "s3://"));
     path = path.substr(5);
 
     // split uri into host/path
-    std::vector<std::string> splitted = common::Split(path, '/', 2);
+    std::vector<std::string> splitted = tlx::split('/', path, 2);
 
     // construct bucket
     S3BucketContext bkt;
@@ -461,11 +464,11 @@ ReadStreamPtr S3OpenReadStream(
 
     std::string path = _path;
     // crop off s3://
-    die_unless(common::StartsWith(path, "s3://"));
+    die_unless(tlx::starts_with(path, "s3://"));
     path = path.substr(5);
 
     // split uri into host/path
-    std::vector<std::string> splitted = common::Split(path, '/', 2);
+    std::vector<std::string> splitted = tlx::split('/', path, 2);
 
     return common::MakeCounting<S3ReadStream>(
         splitted[0], splitted[1],
@@ -710,11 +713,11 @@ WriteStreamPtr S3OpenWriteStream(const std::string& _path) {
 
     std::string path = _path;
     // crop off s3://
-    die_unless(common::StartsWith(path, "s3://"));
+    die_unless(tlx::starts_with(path, "s3://"));
     path = path.substr(5);
 
     // split uri into host/path
-    std::vector<std::string> splitted = common::Split(path, '/', 2);
+    std::vector<std::string> splitted = tlx::split('/', path, 2);
 
     return common::MakeCounting<S3WriteStream>(splitted[0], splitted[1]);
 }

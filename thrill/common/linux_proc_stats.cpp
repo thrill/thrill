@@ -21,6 +21,9 @@
 #include <thrill/common/string.hpp>
 #include <thrill/common/string_view.hpp>
 
+#include <tlx/string/starts_with.hpp>
+#include <tlx/string/trim.hpp>
+
 #include <cstring>
 #include <fstream>
 #include <limits>
@@ -267,7 +270,7 @@ void LinuxProcStats::read_stat(JsonLine& out) {
 
     std::string line;
     while (std::getline(file_stat_, line)) {
-        if (common::StartsWith(line, "cpu  ")) {
+        if (tlx::starts_with(line, "cpu  ")) {
 
             CpuStat curr;
             int ret = sscanf(
@@ -324,7 +327,7 @@ void LinuxProcStats::read_stat(JsonLine& out) {
 
             prev = curr;
         }
-        else if (common::StartsWith(line, "cpu")) {
+        else if (tlx::starts_with(line, "cpu")) {
 
             unsigned core_id;
             CpuStat curr;
@@ -515,7 +518,7 @@ void LinuxProcStats::read_net_dev(
         if (colonpos == std::string::npos) continue;
 
         std::string if_name = line.substr(0, colonpos);
-        common::Trim(if_name);
+        tlx::trim(&if_name);
 
         NetDevStat curr;
         int ret = sscanf(line.data() + colonpos + 1,
@@ -584,11 +587,11 @@ void LinuxProcStats::read_pid_io(const steady_clock::time_point& tp, JsonLine& o
 
     std::string line;
     while (std::getline(file_stat_, line)) {
-        if (common::StartsWith(line, "read_bytes: ")) {
+        if (tlx::starts_with(line, "read_bytes: ")) {
             int ret = sscanf(line.data() + 12, "%llu", &curr.read_bytes);
             die_unequal(1, ret);
         }
-        else if (common::StartsWith(line, "write_bytes: ")) {
+        else if (tlx::starts_with(line, "write_bytes: ")) {
             int ret = sscanf(line.data() + 13, "%llu", &curr.write_bytes);
             die_unequal(1, ret);
         }

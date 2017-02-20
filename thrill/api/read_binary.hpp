@@ -24,6 +24,8 @@
 #include <thrill/net/buffer_builder.hpp>
 #include <thrill/vfs/file_io.hpp>
 
+#include <tlx/string/join.hpp>
+
 #include <algorithm>
 #include <limits>
 #include <string>
@@ -78,7 +80,7 @@ public:
         vfs::FileList files = vfs::Glob(globlist, vfs::GlobType::File);
 
         if (files.size() == 0)
-            die("ReadBinary: no files found in globs: " + common::Join(" ", globlist));
+            die("ReadBinary: no files found in globs: " + tlx::join(' ', globlist));
 
         if (size_limit != no_size_limit_)
             files.total_size = std::min(files.total_size, size_limit);

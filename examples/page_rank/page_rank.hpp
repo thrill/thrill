@@ -23,6 +23,8 @@
 #include <thrill/api/zip.hpp>
 #include <thrill/common/logger.hpp>
 
+#include <tlx/string/join_generic.hpp>
+
 #include <algorithm>
 #include <string>
 #include <utility>
@@ -101,7 +103,7 @@ auto PageRank(const DIA<OutgoingLinks, InStack>&links,
         if (debug) {
             outs_rank
             .Map([](const OutgoingLinksRank& ol) {
-                     return common::Join(',', ol.first)
+                     return tlx::join(',', ol.first)
                      + " <- " + std::to_string(ol.second);
                  })
             .Print("outs_rank");
@@ -176,7 +178,7 @@ auto PageRankJoin(const DIA<LinkedPage, InStack>&links, size_t num_pages,
         if (debug) {
             outs_rank
             .Map([](const OutgoingLinksRank& ol) {
-                     return common::Join(',', ol.first)
+                     return tlx::join(',', ol.first)
                      + " <- " + std::to_string(ol.second);
                  })
             .Print("outs_rank");

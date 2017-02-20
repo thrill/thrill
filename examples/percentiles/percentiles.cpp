@@ -18,6 +18,8 @@
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/string.hpp>
 
+#include <tlx/string/split.hpp>
+
 #include <algorithm>
 #include <ctime>
 #include <string>
@@ -36,7 +38,7 @@ void Percentiles(api::Context& ctx, const std::string& input_path) {
         ReadLines(ctx, input_path)
         .FlatMap<std::pair<time_t, double> >(
             [&splitted](const std::string& input, auto emit) {
-                common::SplitRef(input, ',', splitted);
+                tlx::split(&splitted, ',', input);
                 if (splitted[0] != "time") {
                     time_t timet = std::stod(splitted[0]);
                     struct tm* tmstr = std::localtime(&timet);

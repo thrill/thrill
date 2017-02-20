@@ -182,7 +182,7 @@ void MixStream::OnStreamBlock(size_t from, PinnedBlock&& b) {
     sLOG << "OnMixStreamBlock" << b;
 
     sLOG0 << "stream" << id_ << "receive from" << from << ":"
-          << common::Hexdump(b.ToString());
+          << tlx::hexdump(b.ToString());
 
     queue_.AppendBlock(from, std::move(b).MoveToBlock());
 }

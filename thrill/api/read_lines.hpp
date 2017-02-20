@@ -23,6 +23,8 @@
 #include <thrill/net/buffer_builder.hpp>
 #include <thrill/vfs/file_io.hpp>
 
+#include <tlx/string/join.hpp>
+
 #include <string>
 #include <utility>
 #include <vector>
@@ -53,7 +55,7 @@ public:
         filelist_ = vfs::Glob(globlist, vfs::GlobType::File);
 
         if (filelist_.size() == 0)
-            die("ReadLines: no files found in globs: " + common::Join(" ", globlist));
+            die("ReadLines: no files found in globs: " + tlx::join(' ', globlist));
 
         sLOG << "ReadLines: creating for" << globlist.size() << "globs"
              << "matching" << filelist_.size() << "files";

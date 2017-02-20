@@ -16,6 +16,8 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/common/string.hpp>
 
+#include <tlx/string/hexdump.hpp>
+
 #include <algorithm>
 #include <random>
 #include <string>
@@ -32,7 +34,7 @@ struct Record {
         return std::lexicographical_compare(key, key + 10, b.key, b.key + 10);
     }
     friend std::ostream& operator << (std::ostream& os, const Record& c) {
-        return os << common::Hexdump(c.key, 10);
+        return os << tlx::hexdump(c.key, 10);
     }
 } THRILL_ATTRIBUTE_PACKED;
 
@@ -48,7 +50,7 @@ struct RecordSigned {
         return std::lexicographical_compare(key, key + 10, b.key, b.key + 10);
     }
     friend std::ostream& operator << (std::ostream& os, const RecordSigned& c) {
-        return os << common::Hexdump(c.key, 10);
+        return os << tlx::hexdump(c.key, 10);
     }
 } THRILL_ATTRIBUTE_PACKED;
 

@@ -20,6 +20,8 @@
 #include <thrill/data/block.hpp>
 #include <thrill/data/serialization.hpp>
 
+#include <tlx/string/hexdump.hpp>
+
 #include <algorithm>
 #include <string>
 #include <vector>
@@ -95,8 +97,8 @@ public:
             if (code != typeid(T).hash_code()) {
                 die("BlockReader::Next() attempted to retrieve item "
                     "with different typeid! - expected "
-                    << common::HexdumpItem(typeid(T).hash_code())
-                    << " got " << common::HexdumpItem(code));
+                    << tlx::hexdump_type(typeid(T).hash_code())
+                    << " got " << tlx::hexdump_type(code));
             }
         }
         return Serialization<BlockReader, T>::Deserialize(*this);

@@ -19,6 +19,9 @@
 #include <thrill/vfs/s3_file.hpp>
 #include <thrill/vfs/sys_file.hpp>
 
+#include <tlx/string/ends_with.hpp>
+#include <tlx/string/starts_with.hpp>
+
 #include <algorithm>
 #include <string>
 #include <vector>
@@ -41,16 +44,16 @@ void Deinitialize() {
 /******************************************************************************/
 
 bool IsCompressed(const std::string& path) {
-    return common::EndsWith(path, ".gz") ||
-           common::EndsWith(path, ".bz2") ||
-           common::EndsWith(path, ".xz") ||
-           common::EndsWith(path, ".lzo") ||
-           common::EndsWith(path, ".lz4");
+    return tlx::ends_with(path, ".gz") ||
+           tlx::ends_with(path, ".bz2") ||
+           tlx::ends_with(path, ".xz") ||
+           tlx::ends_with(path, ".lzo") ||
+           tlx::ends_with(path, ".lz4");
 }
 
 bool IsRemoteUri(const std::string& path) {
-    return common::StartsWith(path, "s3://") ||
-           common::StartsWith(path, "hdfs://");
+    return tlx::starts_with(path, "s3://") ||
+           tlx::starts_with(path, "hdfs://");
 }
 
 std::ostream& operator << (std::ostream& os, const Type& t) {
@@ -129,14 +132,14 @@ FileList Glob(const std::vector<std::string>& globlist, const GlobType& gtype) {
     // calculated afterwards.
     for (const std::string& path : globlist)
     {
-        if (common::StartsWith(path, "file://")) {
+        if (tlx::starts_with(path, "file://")) {
             // remove the file:// prefix
             SysGlob(path.substr(7), gtype, filelist);
         }
-        else if (common::StartsWith(path, "s3://")) {
+        else if (tlx::starts_with(path, "s3://")) {
             S3Glob(path, gtype, filelist);
         }
-        else if (common::StartsWith(path, "hdfs://")) {
+        else if (tlx::starts_with(path, "hdfs://")) {
             Hdfs3Glob(path, gtype, filelist);
         }
         else {
@@ -177,24 +180,24 @@ ReadStreamPtr OpenReadStream(
     const std::string& path, const common::Range& range) {
 
     ReadStreamPtr p;
-    if (common::StartsWith(path, "file://")) {
+    if (tlx::starts_with(path, "file://")) {
         p = SysOpenReadStream(path.substr(7), range);
     }
-    else if (common::StartsWith(path, "s3://")) {
+    else if (tlx::starts_with(path, "s3://")) {
         p = S3OpenReadStream(path, range);
     }
-    else if (common::StartsWith(path, "hdfs://")) {
+    else if (tlx::starts_with(path, "hdfs://")) {
         p = Hdfs3OpenReadStream(path, range);
     }
     else {
         p = SysOpenReadStream(path, range);
     }
 
-    if (common::EndsWith(path, ".gz")) {
+    if (tlx::ends_with(path, ".gz")) {
         p = MakeGZipReadFilter(p);
         die_unless(range.begin == 0 || "Cannot seek in compressed streams.");
     }
-    else if (common::EndsWith(path, ".bz2")) {
+    else if (tlx::ends_with(path, ".bz2")) {
         p = MakeBZip2ReadFilter(p);
         die_unless(range.begin == 0 || "Cannot seek in compressed streams.");
     }
@@ -207,23 +210,23 @@ WriteStream::~WriteStream() { }
 WriteStreamPtr OpenWriteStream(const std::string& path) {
 
     WriteStreamPtr p;
-    if (common::StartsWith(path, "file://")) {
+    if (tlx::starts_with(path, "file://")) {
         p = SysOpenWriteStream(path.substr(7));
     }
-    else if (common::StartsWith(path, "s3://")) {
+    else if (tlx::starts_with(path, "s3://")) {
         p = S3OpenWriteStream(path);
     }
-    else if (common::StartsWith(path, "hdfs://")) {
+    else if (tlx::starts_with(path, "hdfs://")) {
         p = Hdfs3OpenWriteStream(path);
     }
     else {
         p = SysOpenWriteStream(path);
     }
 
-    if (common::EndsWith(path, ".gz")) {
+    if (tlx::ends_with(path, ".gz")) {
         p = MakeGZipWriteFilter(p);
     }
-    else if (common::EndsWith(path, ".bz2")) {
+    else if (tlx::ends_with(path, ".bz2")) {
         p = MakeBZip2WriteFilter(p);
     }
 

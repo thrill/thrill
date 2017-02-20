@@ -23,6 +23,8 @@
 #include <thrill/io/iostats.hpp>
 #include <thrill/vfs/file_io.hpp>
 
+#include <tlx/string/split.hpp>
+
 // mock net backend is always available -tb :)
 #include <thrill/net/mock/group.hpp>
 
@@ -427,10 +429,10 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
 
     if (env_hostlist && *env_hostlist) {
         // first try to split by spaces, then by commas
-        std::vector<std::string> list = common::Split(env_hostlist, ' ');
+        std::vector<std::string> list = tlx::split(' ', env_hostlist);
 
         if (list.size() == 1) {
-            list = common::Split(env_hostlist, ',');
+            tlx::split(&list, ',', env_hostlist);
         }
 
         for (const std::string& host : list) {

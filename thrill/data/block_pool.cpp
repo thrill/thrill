@@ -19,6 +19,8 @@
 #include <thrill/mem/aligned_allocator.hpp>
 #include <thrill/mem/pool.hpp>
 
+#include <tlx/string/join_generic.hpp>
+
 #include <algorithm>
 #include <functional>
 #include <limits>
@@ -204,8 +206,8 @@ void BlockPool::PinCount::AssertZero() const {
 std::ostream& operator << (std::ostream& os, const BlockPool::PinCount& p) {
     os << " total_pins_=" << p.total_pins_
        << " total_pinned_bytes_=" << p.total_pinned_bytes_
-       << " pin_count_=[" << common::Join(',', p.pin_count_) << "]"
-       << " pinned_bytes_=[" << common::Join(',', p.pinned_bytes_) << "]"
+       << " pin_count_=[" << tlx::join(',', p.pin_count_) << "]"
+       << " pinned_bytes_=[" << tlx::join(',', p.pinned_bytes_) << "]"
        << " max_pin=" << p.max_pins
        << " max_pinned_bytes=" << p.max_pinned_bytes;
     return os;

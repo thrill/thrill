@@ -382,6 +382,11 @@ list(APPEND THRILL_LINK_LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
 
 list(APPEND THRILL_LINK_LIBRARIES ${CMAKE_DL_LIBS})
 
+# use tlx
+
+add_subdirectory(extlib/tlx)
+list(APPEND THRILL_LINK_LIBRARIES tlx)
+
 # try to find jemalloc (optional)
 
 if(THRILL_USE_JEMALLOC)

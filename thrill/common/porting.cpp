@@ -15,6 +15,8 @@
 #include <thrill/common/string.hpp>
 #include <thrill/common/system_exception.hpp>
 
+#include <tlx/string/replace.hpp>
+
 #include <fcntl.h>
 
 #include <fstream>
@@ -90,7 +92,7 @@ void LogCmdlineParams(JsonLogger& logger) {
         arg = args[i];
         // escape " -> \"
         if (arg.find('"') != std::string::npos)
-            common::ReplaceAll(arg, "\"", "\\\"");
+            tlx::replace_all(arg, "\"", "\\\"");
         cmdline << arg;
     }
 
