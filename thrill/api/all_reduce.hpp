@@ -109,7 +109,7 @@ ValueType DIA<ValueType, Stack>::AllReduce(
             ValueType>::value,
         "ReduceFunction has the wrong input type");
 
-    auto node = common::MakeCounting<AllReduceNode>(
+    auto node = tlx::make_counting<AllReduceNode>(
         *this, "AllReduce", initial_value, sum_function);
 
     node->RunScope();
@@ -143,7 +143,7 @@ Future<ValueType> DIA<ValueType, Stack>::AllReduceFuture(
             ValueType>::value,
         "ReduceFunction has the wrong input type");
 
-    auto node = common::MakeCounting<AllReduceNode>(
+    auto node = tlx::make_counting<AllReduceNode>(
         *this, "AllReduce", initial_value, sum_function);
 
     return Future<ValueType>(node);

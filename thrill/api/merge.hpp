@@ -725,7 +725,7 @@ auto Merge(const Comparator &comparator,
         "Comparator must return bool");
 
     auto merge_node =
-        common::MakeCounting<MergeNode>(comparator, first_dia, dias ...);
+        tlx::make_counting<MergeNode>(comparator, first_dia, dias ...);
 
     return DIA<ValueType>(merge_node);
 }

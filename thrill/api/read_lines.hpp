@@ -451,7 +451,7 @@ private:
  */
 DIA<std::string> ReadLines(Context& ctx, const std::string& filepath) {
     return DIA<std::string>(
-        common::MakeCounting<ReadLinesNode>(
+        tlx::make_counting<ReadLinesNode>(
             ctx, filepath, /* local_storage */ false));
 }
 
@@ -467,21 +467,21 @@ DIA<std::string> ReadLines(Context& ctx, const std::string& filepath) {
 DIA<std::string> ReadLines(
     Context& ctx, const std::vector<std::string>& filepaths) {
     return DIA<std::string>(
-        common::MakeCounting<ReadLinesNode>(
+        tlx::make_counting<ReadLinesNode>(
             ctx, filepaths, /* local_storage */ false));
 }
 
 DIA<std::string> ReadLines(struct LocalStorageTag, Context& ctx,
                            const std::string& filepath) {
     return DIA<std::string>(
-        common::MakeCounting<ReadLinesNode>(
+        tlx::make_counting<ReadLinesNode>(
             ctx, filepath, /* local_storage */ true));
 }
 
 DIA<std::string> ReadLines(struct LocalStorageTag, Context& ctx,
                            const std::vector<std::string>& filepaths) {
     return DIA<std::string>(
-        common::MakeCounting<ReadLinesNode>(
+        tlx::make_counting<ReadLinesNode>(
             ctx, filepaths, /* local_storage */ true));
 }
 

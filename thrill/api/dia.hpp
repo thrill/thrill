@@ -157,7 +157,7 @@ public:
     //! base item type StackInput which is transformed by the function stack
     //! lambdas further. But even pushing more lambdas does not change the stack
     //! input type.
-    using DIANodePtr = common::CountingPtr<DIANode<StackInput> >;
+    using DIANodePtr = tlx::CountingPtr<DIANode<StackInput> >;
 
     //! default-constructor: invalid DIA
     DIA() = default;

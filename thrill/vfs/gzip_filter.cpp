@@ -159,7 +159,7 @@ private:
 
 WriteStreamPtr MakeGZipWriteFilter(const WriteStreamPtr& stream) {
     die_unless(stream);
-    return common::MakeCounting<GZipWriteFilter>(stream);
+    return tlx::make_counting<GZipWriteFilter>(stream);
 }
 
 /******************************************************************************/
@@ -256,7 +256,7 @@ private:
 
 ReadStreamPtr MakeGZipReadFilter(const ReadStreamPtr& stream) {
     die_unless(stream);
-    return common::MakeCounting<GZipReadFilter>(stream);
+    return tlx::make_counting<GZipReadFilter>(stream);
 }
 
 /******************************************************************************/

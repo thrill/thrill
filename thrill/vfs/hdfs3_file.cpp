@@ -225,7 +225,7 @@ ReadStreamPtr Hdfs3OpenReadStream(
     if (!file)
         die("Could not open HDFS file \"" << _path << "\": " << hdfsGetLastError());
 
-    return common::MakeCounting<Hdfs3ReadStream>(
+    return tlx::make_counting<Hdfs3ReadStream>(
         fs, file, /* start_byte */ range.begin, /* byte_count */ range.size());
 }
 
@@ -283,7 +283,7 @@ WriteStreamPtr Hdfs3OpenWriteStream(const std::string& _path) {
     if (!file)
         die("Could not open HDFS file \"" << _path << "\": " << hdfsGetLastError());
 
-    return common::MakeCounting<Hdfs3WriteStream>(fs, file);
+    return tlx::make_counting<Hdfs3WriteStream>(fs, file);
 }
 
 #else   // !THRILL_HAVE_LIBHDFS3

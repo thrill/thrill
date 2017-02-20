@@ -340,7 +340,7 @@ auto Concat(const FirstDIA &first_dia, const DIAs &... dias) {
 
     using ConcatNode = api::ConcatNode<ValueType>;
 
-    return DIA<ValueType>(common::MakeCounting<ConcatNode>(first_dia, dias ...));
+    return DIA<ValueType>(tlx::make_counting<ConcatNode>(first_dia, dias ...));
 }
 
 /*!
@@ -362,7 +362,7 @@ auto Concat(const std::initializer_list<DIA<ValueType> >&dias) {
 
     using ConcatNode = api::ConcatNode<ValueType>;
 
-    return DIA<ValueType>(common::MakeCounting<ConcatNode>(dias));
+    return DIA<ValueType>(tlx::make_counting<ConcatNode>(dias));
 }
 
 /*!
@@ -384,7 +384,7 @@ auto Concat(const std::vector<DIA<ValueType> >&dias) {
 
     using ConcatNode = api::ConcatNode<ValueType>;
 
-    return DIA<ValueType>(common::MakeCounting<ConcatNode>(dias));
+    return DIA<ValueType>(tlx::make_counting<ConcatNode>(dias));
 }
 
 template <typename ValueType, typename Stack>

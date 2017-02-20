@@ -328,7 +328,7 @@ auto Union(const FirstDIA &first_dia, const DIAs &... dias) {
 
     using UnionNode = api::UnionNode<ValueType>;
 
-    return DIA<ValueType>(common::MakeCounting<UnionNode>(first_dia, dias ...));
+    return DIA<ValueType>(tlx::make_counting<UnionNode>(first_dia, dias ...));
 }
 
 /*!
@@ -351,7 +351,7 @@ auto Union(const std::initializer_list<DIA<ValueType> >&dias) {
 
     using UnionNode = api::UnionNode<ValueType>;
 
-    return DIA<ValueType>(common::MakeCounting<UnionNode>(dias));
+    return DIA<ValueType>(tlx::make_counting<UnionNode>(dias));
 }
 
 /*!
@@ -374,7 +374,7 @@ auto Union(const std::vector<DIA<ValueType> >&dias) {
 
     using UnionNode = api::UnionNode<ValueType>;
 
-    return DIA<ValueType>(common::MakeCounting<UnionNode>(dias));
+    return DIA<ValueType>(tlx::make_counting<UnionNode>(dias));
 }
 
 template <typename ValueType, typename Stack>

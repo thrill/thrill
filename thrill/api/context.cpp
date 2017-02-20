@@ -1022,7 +1022,7 @@ data::File Context::GetFile(DIABase* dia) {
 }
 
 data::FilePtr Context::GetFilePtr(size_t dia_id) {
-    return common::MakeCounting<data::File>(
+    return tlx::make_counting<data::File>(
         block_pool_, local_worker_id_, dia_id);
 }
 
@@ -1047,13 +1047,13 @@ data::MixStreamPtr Context::GetNewMixStream(DIABase* dia) {
 }
 
 template <>
-common::CountingPtr<data::CatStream>
+tlx::CountingPtr<data::CatStream>
 Context::GetNewStream<data::CatStream>(size_t dia_id) {
     return GetNewCatStream(dia_id);
 }
 
 template <>
-common::CountingPtr<data::MixStream>
+tlx::CountingPtr<data::MixStream>
 Context::GetNewStream<data::MixStream>(size_t dia_id) {
     return GetNewMixStream(dia_id);
 }

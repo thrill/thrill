@@ -348,7 +348,7 @@ auto DIA<ValueType, Stack>::ReduceByKey(
               KeyHashFunction, KeyEqualFunction,
               VolatileKeyValue, DuplicateDetectionValue>;
 
-    auto node = common::MakeCounting<ReduceNode>(
+    auto node = tlx::make_counting<ReduceNode>(
         *this, "ReduceByKey",
         key_extractor, reduce_function, reduce_config,
         key_hash_function, key_equal_funtion);
@@ -448,7 +448,7 @@ auto DIA<ValueType, Stack>::ReducePair(
               ReduceConfig, KeyHashFunction, KeyEqualFunction,
               /* VolatileKey */ false, DuplicateDetectionValue>;
 
-    auto node = common::MakeCounting<ReduceNode>(
+    auto node = tlx::make_counting<ReduceNode>(
         *this, "ReducePair",
         key_extractor, reduce_pair_function, reduce_config,
         key_hash_function, key_equal_funtion);

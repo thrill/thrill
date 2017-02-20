@@ -202,7 +202,7 @@ void DIA<ValueType, Stack>::WriteBinary(
 
     using WriteBinaryNode = api::WriteBinaryNode<ValueType>;
 
-    auto node = common::MakeCounting<WriteBinaryNode>(
+    auto node = tlx::make_counting<WriteBinaryNode>(
         *this, filepath, max_file_size);
 
     node->RunScope();
@@ -214,7 +214,7 @@ Future<void> DIA<ValueType, Stack>::WriteBinaryFuture(
 
     using WriteBinaryNode = api::WriteBinaryNode<ValueType>;
 
-    auto node = common::MakeCounting<WriteBinaryNode>(
+    auto node = tlx::make_counting<WriteBinaryNode>(
         *this, filepath, max_file_size);
 
     return Future<void>(node);

@@ -131,7 +131,7 @@ private:
 
 WriteStreamPtr MakeBZip2WriteFilter(const WriteStreamPtr& stream) {
     die_unless(stream);
-    return common::MakeCounting<BZip2WriteFilter>(stream);
+    return tlx::make_counting<BZip2WriteFilter>(stream);
 }
 
 /******************************************************************************/
@@ -218,7 +218,7 @@ private:
 
 ReadStreamPtr MakeBZip2ReadFilter(const ReadStreamPtr& stream) {
     die_unless(stream);
-    return common::MakeCounting<BZip2ReadFilter>(stream);
+    return tlx::make_counting<BZip2ReadFilter>(stream);
 }
 
 /******************************************************************************/

@@ -263,7 +263,7 @@ ReadStreamPtr SysOpenReadStream(
             ::lseek(fd, range.begin, SEEK_CUR);
         }
 
-        return common::MakeCounting<SysFile>(fd);
+        return tlx::make_counting<SysFile>(fd);
     }
 
 #if defined(_MSC_VER)
@@ -314,7 +314,7 @@ ReadStreamPtr SysOpenReadStream(
         ::lseek(pipefd[0], range.begin, SEEK_CUR);
     }
 
-    return common::MakeCounting<SysFile>(pipefd[0], pid);
+    return tlx::make_counting<SysFile>(pipefd[0], pid);
 #endif
 }
 
@@ -348,7 +348,7 @@ WriteStreamPtr SysOpenWriteStream(const std::string& path) {
 
         sLOG << "SysFile::OpenForWrite(): filefd" << fd;
 
-        return common::MakeCounting<SysFile>(fd);
+        return tlx::make_counting<SysFile>(fd);
     }
 
 #if defined(_MSC_VER)
@@ -394,7 +394,7 @@ WriteStreamPtr SysOpenWriteStream(const std::string& path) {
     // close file descriptor (it is used by the fork)
     ::close(fd);
 
-    return common::MakeCounting<SysFile>(pipefd[1], pid);
+    return tlx::make_counting<SysFile>(pipefd[1], pid);
 #endif
 }
 

@@ -258,7 +258,7 @@ auto DIA<ValueType, Stack>::FlatWindow(
     // cannot check WindowFunction's arguments, since it is a template methods
     // due to the auto emitter.
 
-    auto node = common::MakeCounting<WindowNode>(
+    auto node = tlx::make_counting<WindowNode>(
         *this, "FlatWindow", window_size,
         window_function, partial_window_function);
 
@@ -320,7 +320,7 @@ auto DIA<ValueType, Stack>::Window(
               Result, ValueType,
               decltype(flatwindow_function), decltype(no_operation_function)>;
 
-    auto node = common::MakeCounting<WindowNode>(
+    auto node = tlx::make_counting<WindowNode>(
         *this, "Window", window_size,
         flatwindow_function, no_operation_function);
 
@@ -371,7 +371,7 @@ auto DIA<ValueType, Stack>::Window(
               Result, ValueType,
               decltype(flatwindow_function), decltype(flatwindow_partial_function)>;
 
-    auto node = common::MakeCounting<WindowNode>(
+    auto node = tlx::make_counting<WindowNode>(
         *this, "Window", window_size,
         flatwindow_function, flatwindow_partial_function);
 
@@ -513,7 +513,7 @@ auto DIA<ValueType, Stack>::FlatWindow(
     // cannot check WindowFunction's arguments, since it is a template methods
     // due to the auto emitter.
 
-    auto node = common::MakeCounting<WindowNode>(
+    auto node = tlx::make_counting<WindowNode>(
         *this, "FlatWindow", window_size, window_function, window_function);
 
     return DIA<ValueOut>(node);
@@ -555,7 +555,7 @@ auto DIA<ValueType, Stack>::Window(
               Result, ValueType,
               decltype(flatwindow_function), decltype(flatwindow_function)>;
 
-    auto node = common::MakeCounting<WindowNode>(
+    auto node = tlx::make_counting<WindowNode>(
         *this, "Window", window_size, flatwindow_function, flatwindow_function);
 
     return DIA<Result>(node);

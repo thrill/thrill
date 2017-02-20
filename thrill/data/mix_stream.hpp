@@ -111,10 +111,10 @@ private:
     MixBlockQueueSink * loopback_queue(size_t from_worker_id);
 };
 
-using MixStreamPtr = common::CountingPtr<MixStream>;
+using MixStreamPtr = tlx::CountingPtr<MixStream>;
 
 using MixStreamSet = StreamSet<MixStream>;
-using MixStreamSetPtr = common::CountingPtr<MixStreamSet>;
+using MixStreamSetPtr = tlx::CountingPtr<MixStreamSet>;
 
 //! \}
 

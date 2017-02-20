@@ -446,7 +446,7 @@ auto Zip(const ZipFunction &zip_function,
               /* Pad */ false, /* UnequalCheck */ true, /* NoRebalance */ false,
               1 + sizeof ... (DIAs)>;
 
-    auto node = common::MakeCounting<ZipNode>(
+    auto node = tlx::make_counting<ZipNode>(
         zip_function, ZipArgsTuple(), first_dia, dias ...);
 
     return DIA<ZipResult>(node);
@@ -505,7 +505,7 @@ auto Zip(struct CutTag,
               /* Pad */ false, /* UnequalCheck */ false, /* NoRebalance */ false,
               1 + sizeof ... (DIAs)>;
 
-    auto node = common::MakeCounting<ZipNode>(
+    auto node = tlx::make_counting<ZipNode>(
         zip_function, ZipArgsTuple(), first_dia, dias ...);
 
     return DIA<ZipResult>(node);
@@ -564,7 +564,7 @@ auto Zip(struct PadTag,
               /* Pad */ true, /* UnequalCheck */ false, /* NoRebalance */ false,
               1 + sizeof ... (DIAs)>;
 
-    auto node = common::MakeCounting<ZipNode>(
+    auto node = tlx::make_counting<ZipNode>(
         zip_function, ZipArgsTuple(), first_dia, dias ...);
 
     return DIA<ZipResult>(node);
@@ -625,7 +625,7 @@ auto Zip(
               /* Pad */ true, /* UnequalCheck */ false, /* NoRebalance */ false,
               1 + sizeof ... (DIAs)>;
 
-    auto node = common::MakeCounting<ZipNode>(
+    auto node = tlx::make_counting<ZipNode>(
         zip_function, padding, first_dia, dias ...);
 
     return DIA<ZipResult>(node);
@@ -686,7 +686,7 @@ auto Zip(
               /* Pad */ false, /* UnequalCheck */ false, /* NoRebalance */ true,
               1 + sizeof ... (DIAs)>;
 
-    auto node = common::MakeCounting<ZipNode>(
+    auto node = tlx::make_counting<ZipNode>(
         zip_function, ZipArgsTuple(), first_dia, dias ...);
 
     return DIA<ZipResult>(node);

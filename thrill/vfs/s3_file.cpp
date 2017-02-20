@@ -470,7 +470,7 @@ ReadStreamPtr S3OpenReadStream(
     // split uri into host/path
     std::vector<std::string> splitted = tlx::split('/', path, 2);
 
-    return common::MakeCounting<S3ReadStream>(
+    return tlx::make_counting<S3ReadStream>(
         splitted[0], splitted[1],
         /* start_byte */ range.begin,
         /* byte_count */ range.end == 0 ? 0 : range.size());
@@ -719,7 +719,7 @@ WriteStreamPtr S3OpenWriteStream(const std::string& _path) {
     // split uri into host/path
     std::vector<std::string> splitted = tlx::split('/', path, 2);
 
-    return common::MakeCounting<S3WriteStream>(splitted[0], splitted[1]);
+    return tlx::make_counting<S3WriteStream>(splitted[0], splitted[1]);
 }
 
 #else   // !THRILL_HAVE_LIBS3

@@ -19,11 +19,11 @@
 #define THRILL_IO_FILE_BASE_HEADER
 
 #include <thrill/common/config.hpp>
-#include <thrill/common/counting_ptr.hpp>
 #include <thrill/common/defines.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/io/bid.hpp>
 #include <thrill/io/request.hpp>
+#include <tlx/counting_ptr.hpp>
 
 #if __linux__
  #define THRILL_CHECK_BLOCK_ALIGNING
@@ -48,7 +48,7 @@ namespace io {
 //!
 //! It is a base class for different implementations that might
 //! base on various file systems or even remote storage interfaces
-class FileBase : public common::ReferenceCount
+class FileBase : public tlx::ReferenceCounter
 {
 public:
     static constexpr bool debug = false;
@@ -195,7 +195,7 @@ public:
     //! \}
 };
 
-using FileBasePtr = common::CountingPtr<FileBase>;
+using FileBasePtr = tlx::CountingPtr<FileBase>;
 
 // implementation here due to forward declaration of file.
 template <size_t Size>

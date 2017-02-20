@@ -409,7 +409,7 @@ auto DIA<ValueType, Stack>::GroupByKey(
               ValueOut, KeyExtractor, GroupFunction, HashFunction,
               LocationDetectionValue>;
 
-    auto node = common::MakeCounting<GroupByNode>(
+    auto node = tlx::make_counting<GroupByNode>(
         *this, key_extractor, groupby_function, hash_function);
 
     return DIA<ValueOut>(node);

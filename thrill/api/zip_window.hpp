@@ -643,7 +643,7 @@ auto ZipWindow(const std::array<size_t, 1 + sizeof ... (DIAs)>&window_size,
               /* UseStdArray */ false,
               1 + sizeof ... (DIAs)>;
 
-    auto node = common::MakeCounting<ZipWindowNode>(
+    auto node = tlx::make_counting<ZipWindowNode>(
         window_size, zip_function, ZipArgsTuple(), first_dia, dias ...);
 
     return DIA<ZipResult>(node);
@@ -695,7 +695,7 @@ auto ZipWindow(struct CutTag,
               /* UseStdArray */ false,
               1 + sizeof ... (DIAs)>;
 
-    auto node = common::MakeCounting<ZipWindowNode>(
+    auto node = tlx::make_counting<ZipWindowNode>(
         window_size, zip_function, ZipArgsTuple(), first_dia, dias ...);
 
     return DIA<ZipResult>(node);
@@ -746,7 +746,7 @@ auto ZipWindow(
               /* UseStdArray */ false,
               1 + sizeof ... (DIAs)>;
 
-    auto node = common::MakeCounting<ZipWindowNode>(
+    auto node = tlx::make_counting<ZipWindowNode>(
         window_size, zip_function, padding, first_dia, dias ...);
 
     return DIA<ZipResult>(node);
@@ -827,7 +827,7 @@ auto ZipWindow(
               /* UseStdArray */ true,
               1 + sizeof ... (DIAs)>;
 
-    auto node = common::MakeCounting<ZipWindowNode>(
+    auto node = tlx::make_counting<ZipWindowNode>(
         window_size, zip_function, padding, first_dia, dias ...);
 
     return DIA<ZipResult>(node);

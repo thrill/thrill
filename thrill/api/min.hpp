@@ -23,7 +23,7 @@ ValueType DIA<ValueType, Stack>::Min(const ValueType& initial_value) const {
     assert(IsValid());
 
     using MinNode = api::AllReduceNode<ValueType, common::minimum<ValueType> >;
-    auto node = common::MakeCounting<MinNode>(*this, "Min", initial_value);
+    auto node = tlx::make_counting<MinNode>(*this, "Min", initial_value);
     node->RunScope();
     return node->result();
 }
@@ -34,7 +34,7 @@ Future<ValueType> DIA<ValueType, Stack>::MinFuture(
     assert(IsValid());
 
     using MinNode = api::AllReduceNode<ValueType, common::minimum<ValueType> >;
-    auto node = common::MakeCounting<MinNode>(*this, "Min", initial_value);
+    auto node = tlx::make_counting<MinNode>(*this, "Min", initial_value);
     return Future<ValueType>(node);
 }
 

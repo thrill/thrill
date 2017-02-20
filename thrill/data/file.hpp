@@ -51,7 +51,7 @@ class ConsumeFileBlockSource;
  * block contained any item offset in log_2(Blocks) time, though seeking within
  * the Block goes sequentially.
  */
-class File : public virtual BlockSink, public common::ReferenceCount
+class File : public virtual BlockSink, public tlx::ReferenceCounter
 {
 public:
     using Writer = BlockWriter<File>;
@@ -282,7 +282,7 @@ private:
     friend class ConsumeFileBlockSource;
 };
 
-using FilePtr = common::CountingPtr<File>;
+using FilePtr = tlx::CountingPtr<File>;
 
 /*!
  * A BlockSource to read Blocks from a File. The KeepFileBlockSource mainly

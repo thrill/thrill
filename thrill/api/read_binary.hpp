@@ -350,7 +350,7 @@ DIA<ValueType> ReadBinary(
     Context& ctx, const std::vector<std::string>& filepath,
     uint64_t size_limit = ReadBinaryNode<ValueType>::no_size_limit_) {
 
-    auto node = common::MakeCounting<ReadBinaryNode<ValueType> >(
+    auto node = tlx::make_counting<ReadBinaryNode<ValueType> >(
         ctx, filepath, size_limit, /* local_storage */ false);
 
     return DIA<ValueType>(node);
@@ -362,7 +362,7 @@ DIA<ValueType> ReadBinary(
     const std::vector<std::string>& filepath,
     uint64_t size_limit = ReadBinaryNode<ValueType>::no_size_limit_) {
 
-    auto node = common::MakeCounting<ReadBinaryNode<ValueType> >(
+    auto node = tlx::make_counting<ReadBinaryNode<ValueType> >(
         ctx, filepath, size_limit, /* local_storage */ true);
 
     return DIA<ValueType>(node);
@@ -384,7 +384,7 @@ DIA<ValueType> ReadBinary(
     Context& ctx, const std::string& filepath,
     uint64_t size_limit = ReadBinaryNode<ValueType>::no_size_limit_) {
 
-    auto node = common::MakeCounting<ReadBinaryNode<ValueType> >(
+    auto node = tlx::make_counting<ReadBinaryNode<ValueType> >(
         ctx, filepath, size_limit, /* local_storage */ false);
 
     return DIA<ValueType>(node);
@@ -395,7 +395,7 @@ DIA<ValueType> ReadBinary(
     struct LocalStorageTag, Context& ctx, const std::string& filepath,
     uint64_t size_limit = ReadBinaryNode<ValueType>::no_size_limit_) {
 
-    auto node = common::MakeCounting<ReadBinaryNode<ValueType> >(
+    auto node = tlx::make_counting<ReadBinaryNode<ValueType> >(
         ctx, filepath, size_limit, /* local_storage */ true);
 
     return DIA<ValueType>(node);

@@ -792,7 +792,7 @@ auto DIA<ValueType, Stack>::Sort(const CompareFunction &compare_function) const 
             bool>::value,
         "CompareFunction has the wrong output type (should be bool)");
 
-    auto node = common::MakeCounting<SortNode>(*this, compare_function);
+    auto node = tlx::make_counting<SortNode>(*this, compare_function);
 
     return DIA<ValueType>(node);
 }
@@ -824,7 +824,7 @@ auto DIA<ValueType, Stack>::Sort(const CompareFunction &compare_function,
             bool>::value,
         "CompareFunction has the wrong output type (should be bool)");
 
-    auto node = common::MakeCounting<SortNode>(
+    auto node = tlx::make_counting<SortNode>(
         *this, compare_function, sort_algorithm);
 
     return DIA<ValueType>(node);

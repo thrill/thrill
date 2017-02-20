@@ -308,7 +308,7 @@ auto DIA<ValueType, Stack>::ReduceToIndex(
               DOpResult, KeyExtractor, ReduceFunction,
               ReduceConfig, VolatileKeyValue>;
 
-    auto node = common::MakeCounting<ReduceNode>(
+    auto node = tlx::make_counting<ReduceNode>(
         *this, "ReduceToIndex", key_extractor, reduce_function,
         size, neutral_element, reduce_config);
 

@@ -44,7 +44,7 @@ ValueType DIA<ValueType, Stack>::Sum(
             ValueType>::value,
         "SumFunction has the wrong input type");
 
-    auto node = common::MakeCounting<SumNode>(
+    auto node = tlx::make_counting<SumNode>(
         *this, "Sum", initial_value, sum_function);
 
     node->RunScope();
@@ -78,7 +78,7 @@ Future<ValueType> DIA<ValueType, Stack>::SumFuture(
             ValueType>::value,
         "SumFunction has the wrong input type");
 
-    auto node = common::MakeCounting<SumNode>(
+    auto node = tlx::make_counting<SumNode>(
         *this, "Sum", initial_value, sum_function);
 
     return Future<ValueType>(node);

@@ -38,7 +38,7 @@ class Repository
 {
 public:
     using Id = size_t;
-    using ObjectPtr = common::CountingPtr<Object>;
+    using ObjectPtr = tlx::CountingPtr<Object>;
 
     //! construct with initial ids 0.
     explicit Repository(size_t num_workers_per_node)
@@ -56,18 +56,18 @@ public:
     //! \param object_id of the object
     //! \param construction parameters forwards to constructor
     template <typename Subclass = Object, typename ... Types>
-    common::CountingPtr<Subclass>
+    tlx::CountingPtr<Subclass>
     GetOrCreate(Id object_id, Types&& ... construction) {
         auto it = map_.find(object_id);
 
         if (it != map_.end()) {
             die_unless(dynamic_cast<Subclass*>(it->second.get()));
-            return common::CountingPtr<Subclass>(
+            return tlx::CountingPtr<Subclass>(
                 dynamic_cast<Subclass*>(it->second.get()));
         }
 
         // construct new object
-        common::CountingPtr<Subclass> value = common::MakeCounting<Subclass>(
+        tlx::CountingPtr<Subclass> value = tlx::make_counting<Subclass>(
             std::forward<Types>(construction) ...);
 
         map_.insert(std::make_pair(object_id, ObjectPtr(value)));
@@ -75,12 +75,12 @@ public:
     }
 
     template <typename Subclass = Object>
-    common::CountingPtr<Subclass> GetOrDie(Id object_id) {
+    tlx::CountingPtr<Subclass> GetOrDie(Id object_id) {
         auto it = map_.find(object_id);
 
         if (it != map_.end()) {
             die_unless(dynamic_cast<Subclass*>(it->second.get()));
-            return common::CountingPtr<Subclass>(
+            return tlx::CountingPtr<Subclass>(
                 dynamic_cast<Subclass*>(it->second.get()));
         }
 

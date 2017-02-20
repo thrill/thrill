@@ -488,7 +488,7 @@ BlockPool::AllocateByteBlock(size_t size, size_t local_worker_id) {
     Byte* data = d_->aligned_alloc_.allocate(size);
     lock.lock();
 
-    // create common::CountingPtr, no need for special make_shared()-equivalent
+    // create tlx::CountingPtr, no need for special make_shared()-equivalent
     PinnedByteBlockPtr block_ptr(
         mem::GPool().make<ByteBlock>(this, data, size), local_worker_id);
     ++d_->total_byte_blocks_;
@@ -513,7 +513,7 @@ BlockPool::AllocateByteBlock(size_t size, size_t local_worker_id) {
 ByteBlockPtr BlockPool::MapExternalBlock(
     const io::FileBasePtr& file, int64_t offset, size_t size) {
     std::unique_lock<std::mutex> lock(mutex_);
-    // create common::CountingPtr, no need for special make_shared()-equivalent
+    // create tlx::CountingPtr, no need for special make_shared()-equivalent
     ByteBlockPtr block_ptr(
         mem::GPool().make<ByteBlock>(this, file, offset, size));
     ++d_->total_byte_blocks_;

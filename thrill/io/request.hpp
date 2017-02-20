@@ -17,11 +17,11 @@
 #ifndef THRILL_IO_REQUEST_HEADER
 #define THRILL_IO_REQUEST_HEADER
 
-#include <thrill/common/counting_ptr.hpp>
 #include <thrill/common/delegate.hpp>
 #include <thrill/common/shared_state.hpp>
 #include <thrill/io/exceptions.hpp>
 #include <thrill/mem/pool.hpp>
+#include <tlx/counting_ptr.hpp>
 
 #include <cassert>
 #include <memory>
@@ -36,12 +36,12 @@ namespace io {
 
 class Request;
 class FileBase;
-using FileBasePtr = common::CountingPtr<FileBase>;
+using FileBasePtr = tlx::CountingPtr<FileBase>;
 
 using CompletionHandler = common::Delegate<void(Request*, bool)>;
 
 //! Request object encapsulating basic properties like file and offset.
-class Request : public common::ReferenceCount
+class Request : public tlx::ReferenceCounter
 {
     friend class LinuxaioQueue;
 
@@ -195,7 +195,7 @@ public:
 };
 
 //! A reference counting pointer for \c request.
-using RequestPtr = common::CountingPtr<Request, RequestDeleter>;
+using RequestPtr = tlx::CountingPtr<Request, RequestDeleter>;
 
 //! \}
 
