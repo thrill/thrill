@@ -11,6 +11,7 @@
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/json_logger.hpp>
 #include <thrill/common/logger.hpp>
+#include <tlx/string/format_si_iec_units.hpp>
 
 #include <cereal/external/rapidjson/document.h>
 #include <cereal/external/rapidjson/stringbuffer.h>
@@ -1085,13 +1086,13 @@ std::string PageMain() {
 
     auto two_cells_IEC =
         [&oss](const auto& v) {
-            oss << "<td>" << common::FormatIecUnits(v) << "B</td>";
+            oss << "<td>" << tlx::format_iec_units(v) << "B</td>";
             oss << "<td>" << std::fixed << v << " B</td>";
         };
 
     auto two_cells_IEC_per_sec =
         [&oss](const auto& v) {
-            oss << "<td>" << common::FormatIecUnits(v) << "B/s</td>";
+            oss << "<td>" << tlx::format_iec_units(v) << "B/s</td>";
             oss << "<td>" << std::fixed << v << " B/s</td>";
         };
 

@@ -16,6 +16,7 @@
 #include <thrill/io/iostats.hpp>
 
 #include <thrill/common/string.hpp>
+#include <tlx/string/format_si_iec_units.hpp>
 
 #include <iomanip>
 #include <sstream>
@@ -225,7 +226,7 @@ void Stats::wait_finished(WaitOp wait_op) {
 #endif
 
 std::ostream& operator << (std::ostream& o, const StatsData& s) {
-#define hr common::FormatIecUnits
+#define hr tlx::format_iec_units
     o << "Thrill I/O statistics" << std::endl;
     o << " total number of reads                      : "
       << hr(s.read_ops()) << std::endl;

@@ -17,6 +17,7 @@
 #include <thrill/common/string.hpp>
 
 #include <tlx/string/hexdump.hpp>
+#include <tlx/string/parse_si_iec_units.hpp>
 
 #include <algorithm>
 #include <random>
@@ -154,7 +155,7 @@ int main(int argc, char* argv[]) {
                 die_unequal(input.size(), 1u);
                 // parse first argument like "100mib" size
                 uint64_t size;
-                die_unless(common::ParseSiIecUnits(input[0].c_str(), size));
+                die_unless(tlx::parse_si_iec_units(input[0].c_str(), &size));
                 die_unless(!use_signed_char);
 
                 Generate(ctx, size / sizeof(Record), GenerateRecord())
@@ -164,7 +165,7 @@ int main(int argc, char* argv[]) {
                 die_unequal(input.size(), 1u);
                 // parse first argument like "100mib" size
                 uint64_t size;
-                die_unless(common::ParseSiIecUnits(input[0].c_str(), size));
+                die_unless(tlx::parse_si_iec_units(input[0].c_str(), &size));
                 die_unless(!use_signed_char);
 
                 auto r =

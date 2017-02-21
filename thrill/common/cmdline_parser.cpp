@@ -11,6 +11,7 @@
 #include <thrill/common/cmdline_parser.hpp>
 
 #include <thrill/common/string.hpp>
+#include <tlx/string/parse_si_iec_units.hpp>
 
 #include <algorithm>
 #include <cstdlib>
@@ -264,7 +265,7 @@ struct CmdlineParser::ArgumentBytes32 final : public Argument {
     bool Process(int& argc, const char* const*& argv) final {
         if (argc == 0) return false;
         uint64_t dest;
-        if (ParseSiIecUnits(argv[0], dest) &&
+        if (tlx::parse_si_iec_units(argv[0], &dest) &&
             (uint64_t)(dest_ = (uint32_t)dest) == dest) {
             --argc, ++argv;
             return true;
@@ -297,7 +298,7 @@ struct CmdlineParser::ArgumentBytes64 final : public Argument {
     //! parse byte size using SI/IEC parser.
     bool Process(int& argc, const char* const*& argv) final {
         if (argc == 0) return false;
-        if (ParseSiIecUnits(argv[0], dest_)) {
+        if (tlx::parse_si_iec_units(argv[0], &dest_)) {
             --argc, ++argv;
             return true;
         }

@@ -23,6 +23,7 @@
 #include <thrill/io/request_operations.hpp>
 #include <thrill/io/typed_block.hpp>
 #include <thrill/mem/aligned_allocator.hpp>
+#include <tlx/string/format_si_iec_units.hpp>
 
 #include <algorithm>
 #include <iomanip>
@@ -90,9 +91,9 @@ int BenchmarkDisksBlocksizeAlloc(
     uint64_t totalsizeread = 0, totalsizewrite = 0;
 
     std::cout << "# Batch size: "
-              << common::FormatIecUnits(batch_size) << " ("
+              << tlx::format_iec_units(batch_size) << " ("
               << num_blocks_per_batch << " blocks of "
-              << common::FormatIecUnits(raw_block_size) << ")"
+              << tlx::format_iec_units(raw_block_size) << ")"
               << " using " << AllocStrategy().name()
               << std::endl;
 

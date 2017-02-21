@@ -20,6 +20,7 @@
 #include <thrill/io/request_operations.hpp>
 #include <thrill/io/typed_block.hpp>
 #include <thrill/mem/aligned_allocator.hpp>
+#include <tlx/string/format_si_iec_units.hpp>
 
 #include <algorithm>
 #include <ctime>
@@ -79,14 +80,14 @@ void RunTest(int64_t span, int64_t worksize,
         io::BlockManager::GetInstance()->new_blocks(alloc, bids.begin(), bids.end());
 
         std::cout << "# Span size: "
-                  << common::FormatIecUnits(span) << " ("
+                  << tlx::format_iec_units(span) << " ("
                   << num_blocks_in_span << " blocks of "
-                  << common::FormatIecUnits(raw_block_size) << ")" << std::endl;
+                  << tlx::format_iec_units(raw_block_size) << ")" << std::endl;
 
         std::cout << "# Work size: "
-                  << common::FormatIecUnits(worksize) << " ("
+                  << tlx::format_iec_units(worksize) << " ("
                   << num_blocks << " blocks of "
-                  << common::FormatIecUnits(raw_block_size) << ")" << std::endl;
+                  << tlx::format_iec_units(raw_block_size) << ")" << std::endl;
 
         double elapsed = 0;
 

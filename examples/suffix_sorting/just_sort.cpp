@@ -13,6 +13,7 @@
 #include <thrill/common/defines.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/qsort.hpp>
+#include <tlx/string/format_si_iec_units.hpp>
 
 #include <algorithm>
 #include <limits>
@@ -108,7 +109,7 @@ int main(int argc, char* argv[]) {
     }
 
     LOG1 << "Sorting " << input_size << " DC7 tuples, total size = "
-         << common::FormatIecUnits(input_size * sizeof(IndexChars)) << 'B';
+         << tlx::format_iec_units(input_size * sizeof(IndexChars)) << 'B';
 
     return Run(
         [&](Context& ctx) {

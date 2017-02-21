@@ -21,6 +21,7 @@
 #include <thrill/io/file_base.hpp>
 
 #include <tlx/string/split.hpp>
+#include <tlx/string/parse_si_iec_units.hpp>
 
 #include <fstream>
 #include <iostream>
@@ -298,7 +299,7 @@ void DiskConfig::parse_line(const std::string& line) {
     }
 
     // size: (default unit MiB)
-    if (!common::ParseSiIecUnits(cmfield[1].c_str(), size, 'M')) {
+    if (!tlx::parse_si_iec_units(cmfield[1].c_str(), &size, 'M')) {
         THRILL_THROW(std::runtime_error,
                      "Invalid disk size '" << cmfield[1] << "' in disk configuration file.");
     }

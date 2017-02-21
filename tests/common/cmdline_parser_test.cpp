@@ -47,13 +47,4 @@ TEST(CmdlineParser, Test1) {
     ASSERT_FALSE(cp.Process(5, cmdline2, os2));
 }
 
-TEST(CmdlineParser, ParseSiIecUnits) {
-
-    uint64_t size;
-    ASSERT_TRUE(ParseSiIecUnits(" 33 GiB ", size));
-    ASSERT_EQ(33 * 1024 * 1024 * 1024LLU, size);
-
-    ASSERT_FALSE(ParseSiIecUnits(" 33 GiBX ", size));
-}
-
 /******************************************************************************/

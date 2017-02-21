@@ -24,6 +24,8 @@
 #include <thrill/vfs/file_io.hpp>
 
 #include <tlx/string/split.hpp>
+#include <tlx/string/parse_si_iec_units.hpp>
+#include <tlx/string/format_si_iec_units.hpp>
 
 // mock net backend is always available -tb :)
 #include <thrill/net/mock/group.hpp>
@@ -875,7 +877,7 @@ int MemoryConfig::setup_detect() {
 
     if (env_ram && *env_ram) {
         uint64_t ram64;
-        if (!common::ParseSiIecUnits(env_ram, ram64)) {
+        if (!tlx::parse_si_iec_units(env_ram, &ram64)) {
             std::cerr << "Thrill: environment variable"
                       << " THRILL_RAM=" << env_ram
                       << " is not a valid amount of RAM memory."
@@ -956,11 +958,11 @@ void MemoryConfig::print(size_t workers_per_host) const {
 
     std::cerr
         << "Thrill: using "
-        << common::FormatIecUnits(ram_) << "B RAM total,"
-        << " BlockPool=" << common::FormatIecUnits(ram_block_pool_hard_) << "B,"
+        << tlx::format_iec_units(ram_) << "B RAM total,"
+        << " BlockPool=" << tlx::format_iec_units(ram_block_pool_hard_) << "B,"
         << " workers="
-        << common::FormatIecUnits(ram_workers_ / workers_per_host) << "B,"
-        << " floating=" << common::FormatIecUnits(ram_floating_) << "B."
+        << tlx::format_iec_units(ram_workers_ / workers_per_host) << "B,"
+        << " floating=" << tlx::format_iec_units(ram_floating_) << "B."
         << std::endl;
 }
 
@@ -1160,7 +1162,7 @@ void Context::Launch(const std::function<void(Context&)>& job_startpoint) {
     stats = net.Reduce(stats);
 
     if (my_rank() == 0) {
-        using common::FormatIecUnits;
+        using tlx::format_iec_units;
 
         if (stats.net_traffic_rx != stats.net_traffic_tx)
             LOG1 << "Manager::Traffic() tx/rx asymmetry = "
@@ -1170,10 +1172,10 @@ void Context::Launch(const std::function<void(Context&)>& job_startpoint) {
             std::cerr
                 << "Thrill:"
                 << " ran " << stats.runtime << "s with max "
-                << FormatIecUnits(stats.max_block_bytes) << "B in DIA Blocks, "
-                << FormatIecUnits(stats.net_traffic_tx) << "B network traffic, "
-                << FormatIecUnits(stats.io_volume) << "B disk I/O, and "
-                << FormatIecUnits(stats.io_max_allocation) << "B max disk use."
+                << format_iec_units(stats.max_block_bytes) << "B in DIA Blocks, "
+                << format_iec_units(stats.net_traffic_tx) << "B network traffic, "
+                << format_iec_units(stats.io_volume) << "B disk I/O, and "
+                << format_iec_units(stats.io_max_allocation) << "B max disk use."
                 << std::endl;
         }
 
