@@ -654,29 +654,28 @@ add_subdirectory(misc)
 
 if(THRILL_TRY_COMPILE_HEADERS)
 
-  include(CheckCXXSourceCompiles)
-  set(CMAKE_REQUIRED_FLAGS ${CMAKE_CXX_FLAGS})
-  set(CMAKE_REQUIRED_INCLUDES ${CMAKE_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/extlib/cereal/include)
-  set(CMAKE_REQUIRED_LIBRARIES
-    ${CMAKE_BINARY_DIR}/thrill/libthrill.a ${THRILL_LINK_LIBRARIES})
+  file(MAKE_DIRECTORY "${PROJECT_BINARY_DIR}/try_compile")
 
-  file(GLOB_RECURSE header_files FOLLOW_SYMLINKS "thrill/*.hpp")
-  list(SORT header_files)
+  file(GLOB_RECURSE header_files
+    RELATIVE "${PROJECT_SOURCE_DIR}" FOLLOW_SYMLINKS "thrill/*.hpp")
 
-  foreach(file ${header_files})
-    # replace / to _ to fix warnings
-    string(REPLACE "/" "_" compilename "${file}")
-    string(REPLACE "." "_" compilename "${compilename}")
+  foreach(header_file ${header_files})
+    # replace / and . with _ to get a valid target and file name
+    string(REPLACE "/" "_" compile_name "${header_file}")
+    string(REPLACE "." "_" compile_name "${compile_name}")
 
-    check_cxx_source_compiles(
-      "#include \"${file}\"
-      int main() { return 0; }" IsSelfContained${compilename})
+    set(target_name "thrill_try_compile_${compile_name}")
+    set(source_name "${PROJECT_BINARY_DIR}/try_compile/${target_name}.cpp")
 
-    if(NOT IsSelfContained${compilename})
-      message(FATAL
-        "Compilation FAILED for ${file}\n\nCompiler output:\n${OUTPUT}")
-    endif()
+    file(WRITE ${source_name}
+      "#include <${header_file}>
+       int main() { return 0; }")
+
+    add_executable(${target_name} ${source_name})
+    target_link_libraries(${target_name} thrill)
+    set_property(TARGET ${target_name}
+      PROPERTY RUNTIME_OUTPUT_DIRECTORY "try_compile/")
+
   endforeach()
 
 endif(THRILL_TRY_COMPILE_HEADERS)
