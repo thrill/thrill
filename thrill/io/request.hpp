@@ -17,11 +17,11 @@
 #ifndef THRILL_IO_REQUEST_HEADER
 #define THRILL_IO_REQUEST_HEADER
 
-#include <thrill/common/delegate.hpp>
 #include <thrill/common/shared_state.hpp>
 #include <thrill/io/exceptions.hpp>
 #include <thrill/mem/pool.hpp>
 #include <tlx/counting_ptr.hpp>
+#include <tlx/delegate.hpp>
 
 #include <cassert>
 #include <memory>
@@ -38,7 +38,7 @@ class Request;
 class FileBase;
 using FileBasePtr = tlx::CountingPtr<FileBase>;
 
-using CompletionHandler = common::Delegate<void(Request*, bool)>;
+using CompletionHandler = tlx::delegate<void(Request*, bool)>;
 
 //! Request object encapsulating basic properties like file and offset.
 class Request : public tlx::ReferenceCounter

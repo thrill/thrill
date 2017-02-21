@@ -86,7 +86,6 @@ thrill_build_test_group(common/tests
   common/cmdline_parser_test.cpp
   common/concurrent_bounded_queue_test.cpp
   common/concurrent_queue_test.cpp
-  common/delegate_test.cpp
   common/function_traits_test.cpp
   common/hash_test.cpp
   common/json_logger_test.cpp

@@ -14,7 +14,7 @@
 #ifndef THRILL_COMMON_THREAD_POOL_HEADER
 #define THRILL_COMMON_THREAD_POOL_HEADER
 
-#include <thrill/common/delegate.hpp>
+#include <tlx/delegate.hpp>
 
 #include <atomic>
 #include <cassert>
@@ -40,7 +40,7 @@ namespace common {
  *
  * 2. until Terminate() is called when run with LoopUntilTerminate().
  *
- * Jobs are plain std::function<void()> objects (actually: common::delegate),
+ * Jobs are plain std::function<void()> objects (actually: tlx::delegate),
  * hence the pool user must pass in ALL CONTEXT himself. The best method to pass
  * parameters to Jobs is to use lambda captures. Alternatively, old-school
  * objects implementing operator(), or std::binds can be used.
@@ -83,7 +83,7 @@ pool.LoopUntilEmpty();
 class ThreadPool
 {
 public:
-    using Job = Delegate<void()>;
+    using Job = tlx::delegate<void()>;
 
 private:
     //! Deque of scheduled jobs.

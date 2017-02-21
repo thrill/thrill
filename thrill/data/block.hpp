@@ -340,7 +340,7 @@ public:
     ByteBlockPtr& byte_block() { return block_.byte_block(); }
 
 private:
-    //! calls BlockPool::OnReadComplete used to common::delegate
+    //! calls BlockPool::OnReadComplete used to tlx::delegate
     void OnComplete(io::Request* req, bool success);
 
     PinRequest(BlockPool* block_pool, PinnedBlock&& block, bool ready = true)

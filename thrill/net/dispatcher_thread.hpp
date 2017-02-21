@@ -16,12 +16,11 @@
 #define THRILL_NET_DISPATCHER_THREAD_HEADER
 
 #include <thrill/common/concurrent_queue.hpp>
-#include <thrill/common/delegate.hpp>
-#include <thrill/common/thread_pool.hpp>
 #include <thrill/data/block.hpp>
 #include <thrill/mem/allocator.hpp>
 #include <thrill/net/buffer.hpp>
 #include <thrill/net/connection.hpp>
+#include <tlx/delegate.hpp>
 
 #include <string>
 
@@ -32,22 +31,22 @@ namespace net {
 //! \{
 
 //! Signature of timer callbacks.
-using TimerCallback = common::Delegate<bool(), mem::GPoolAllocator<char> >;
+using TimerCallback = tlx::delegate<bool(), mem::GPoolAllocator<char> >;
 
 //! Signature of async connection readability/writability callbacks.
-using AsyncCallback = common::Delegate<bool(), mem::GPoolAllocator<char> >;
+using AsyncCallback = tlx::delegate<bool(), mem::GPoolAllocator<char> >;
 
 //! Signature of async read callbacks.
-using AsyncReadCallback = common::Delegate<
+using AsyncReadCallback = tlx::delegate<
           void(Connection& c, Buffer&& buffer), mem::GPoolAllocator<char> >;
 
 //! Signature of async read ByteBlock callbacks.
-using AsyncReadByteBlockCallback = common::Delegate<
+using AsyncReadByteBlockCallback = tlx::delegate<
           void(Connection& c, data::PinnedByteBlockPtr&& block),
           mem::GPoolAllocator<char> >;
 
 //! Signature of async write callbacks.
-using AsyncWriteCallback = common::Delegate<
+using AsyncWriteCallback = tlx::delegate<
           void(Connection&), mem::GPoolAllocator<char> >;
 
 /*!
@@ -60,7 +59,7 @@ class DispatcherThread
 
 public:
     //! Signature of async jobs to be run by the dispatcher thread.
-    using Job = common::Delegate<void(), mem::GPoolAllocator<char> >;
+    using Job = tlx::delegate<void(), mem::GPoolAllocator<char> >;
 
     DispatcherThread(
         mem::Manager& mem_manager,
