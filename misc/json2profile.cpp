@@ -12,6 +12,7 @@
 #include <thrill/common/json_logger.hpp>
 #include <thrill/common/logger.hpp>
 #include <tlx/string/format_si_iec_units.hpp>
+#include <tlx/string/escape_html.hpp>
 
 #include <cereal/external/rapidjson/document.h>
 #include <cereal/external/rapidjson/stringbuffer.h>
@@ -27,7 +28,7 @@
 #include <vector>
 
 using namespace thrill; // NOLINT
-using common::EscapeHtml;
+using tlx::escape_html;
 
 static inline uint32_t GetUint32(const rapidjson::Document& d, const char* key) {
     if (!d[key].IsUint()) return 0;
@@ -253,7 +254,7 @@ public:
     }
 
     friend std::ostream& operator << (std::ostream& os, const CDIABase& c) {
-        return os << EscapeHtml(c.label) << '.' << c.id;
+        return os << escape_html(c.label) << '.' << c.id;
     }
 };
 
@@ -773,7 +774,7 @@ std::string PageMain() {
     oss << "    <script src=\"https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.min.js\"></script>\n";
     oss << "    <![endif]-->\n";
     oss << "    \n";
-    oss << "    <title>" << EscapeHtml(GetProgramName()) << "</title>\n";
+    oss << "    <title>" << escape_html(GetProgramName()) << "</title>\n";
     oss << "  </head>\n";
     oss << "\n";
     oss << "<body>\n";

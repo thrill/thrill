@@ -230,9 +230,6 @@ RandomString(std::string::size_type size, RandomEngine rng,
     return out;
 }
 
-//! Escape string using HTML entities
-std::string EscapeHtml(const std::string& str);
-
 } // namespace common
 } // namespace thrill
 
