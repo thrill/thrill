@@ -20,8 +20,8 @@
 #include <thrill/io/error_handling.hpp>
 #include <thrill/io/file_base.hpp>
 
-#include <tlx/string/split.hpp>
 #include <tlx/string/parse_si_iec_units.hpp>
+#include <tlx/string/split.hpp>
 
 #include <fstream>
 #include <iostream>

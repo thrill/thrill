@@ -1055,7 +1055,7 @@ file_multiway_merge_loser_tree(RandomAccessIteratorIterator seqs_begin,
 
     for (Source t = 0; t < k; ++t)
     {
-        if (THRILL_UNLIKELY(seqs_begin[t].first == seqs_begin[t].second))
+        if (TLX_UNLIKELY(seqs_begin[t].first == seqs_begin[t].second))
             lt.insert_start(*arbitrary_element, t, true);
         else
             lt.insert_start(*seqs_begin[t].first, t, false);
@@ -1123,7 +1123,7 @@ multiway_merge_loser_tree(RandomAccessIteratorIterator seqs_begin,
 
     for (Source t = 0; t < k; ++t)
     {
-        if (THRILL_UNLIKELY(seqs_begin[t].first == seqs_begin[t].second))
+        if (TLX_UNLIKELY(seqs_begin[t].first == seqs_begin[t].second))
             lt.insert_start(nullptr, t, true);
         else
             lt.insert_start(&*seqs_begin[t].first, t, false);

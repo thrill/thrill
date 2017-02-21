@@ -33,7 +33,7 @@ void Stats::write_started(size_t size, double now) {
     if (now == 0.0)
         now = timestamp();
 #else
-    common::UNUSED(now);
+    tlx::unused(now);
 #endif
     {
         std::unique_lock<std::mutex> write_lock(write_mutex_);
@@ -101,7 +101,7 @@ void Stats::read_started(size_t size, double now) {
     if (now == 0.0)
         now = timestamp();
 #else
-    common::UNUSED(now);
+    tlx::unused(now);
 #endif
     {
         std::unique_lock<std::mutex> read_lock(read_mutex_);

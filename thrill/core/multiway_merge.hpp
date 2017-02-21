@@ -41,7 +41,7 @@ public:
 
         for (unsigned t = 0; t < num_inputs_; ++t)
         {
-            if (THRILL_LIKELY(readers_[t].HasNext())) {
+            if (TLX_LIKELY(readers_[t].HasNext())) {
                 current_[t].first = true;
                 current_[t].second = readers_[t].template Next<ValueType>();
                 lt_.insert_start(&current_[t].second, t, false);
@@ -66,7 +66,7 @@ public:
         unsigned top = lt_.min_source();
         ValueType res = std::move(current_[top].second);
 
-        if (THRILL_LIKELY(readers_[top].HasNext())) {
+        if (TLX_LIKELY(readers_[top].HasNext())) {
             current_[top].first = true;
             current_[top].second = readers_[top].template Next<ValueType>();
             lt_.delete_min_insert(&current_[top].second, false);
@@ -87,7 +87,7 @@ public:
         unsigned top = lt_.min_source();
         ValueType res = std::move(current_[top].second);
 
-        if (THRILL_LIKELY(readers_[top].HasNext())) {
+        if (TLX_LIKELY(readers_[top].HasNext())) {
             current_[top].first = true;
             current_[top].second = readers_[top].template Next<ValueType>();
             lt_.delete_min_insert(&current_[top].second, false);

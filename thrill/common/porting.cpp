@@ -16,6 +16,7 @@
 #include <thrill/common/system_exception.hpp>
 
 #include <tlx/string/replace.hpp>
+#include <tlx/unused.hpp>
 
 #include <fcntl.h>
 
@@ -43,7 +44,7 @@ void PortSetCloseOnExec(int fd) {
         throw ErrnoException("Error setting FD_CLOEXEC on file descriptor");
     }
 #else
-    UNUSED(fd);
+    tlx::unused(fd);
 #endif
 }
 
@@ -102,7 +103,7 @@ void LogCmdlineParams(JsonLogger& logger) {
            << "argv" << args
            << "cmdline" << cmdline.str();
 #else
-    UNUSED(logger);
+    tlx::unused(logger);
 #endif
 }
 
@@ -118,8 +119,8 @@ void SetCpuAffinity(std::thread& thread, size_t cpu_id) {
              << rc << ": " << strerror(errno);
     }
 #else
-    UNUSED(thread);
-    UNUSED(cpu_id);
+    tlx::unused(thread);
+    tlx::unused(cpu_id);
 #endif
 }
 
@@ -134,7 +135,7 @@ void SetCpuAffinity(size_t cpu_id) {
              << rc << ": " << strerror(errno);
     }
 #else
-    UNUSED(cpu_id);
+    tlx::unused(cpu_id);
 #endif
 }
 

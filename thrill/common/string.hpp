@@ -14,7 +14,8 @@
 #ifndef THRILL_COMMON_STRING_HEADER
 #define THRILL_COMMON_STRING_HEADER
 
-#include <thrill/common/defines.hpp>
+#include <tlx/define.hpp>
+#include <tlx/unused.hpp>
 
 #include <array>
 #include <cstdarg>
@@ -37,7 +38,7 @@ namespace common {
  */
 template <typename String = std::string>
 String str_snprintf(size_t max_size, const char* fmt, ...)
-THRILL_ATTRIBUTE_FORMAT_PRINTF(2, 3);
+TLX_ATTRIBUTE_FORMAT_PRINTF(2, 3);
 
 template <typename String>
 String str_snprintf(size_t max_size, const char* fmt, ...) {
@@ -62,7 +63,7 @@ String str_snprintf(size_t max_size, const char* fmt, ...) {
  */
 template <typename String = std::string>
 String str_sprintf(const char* fmt, ...)
-THRILL_ATTRIBUTE_FORMAT_PRINTF(1, 2);
+TLX_ATTRIBUTE_FORMAT_PRINTF(1, 2);
 
 template <typename String>
 String str_sprintf(const char* fmt, ...) {

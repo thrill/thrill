@@ -52,7 +52,7 @@ struct IndexRank {
     friend std::ostream& operator << (std::ostream& os, const IndexRank& ri) {
         return os << '(' << ri.index << '|' << ri.rank << ')';
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 //! A pair (index, rank)
 template <typename Index>
@@ -81,7 +81,7 @@ struct IndexQuadRank {
         return os << '(' << ri.index << '|' << ri.rank[0] << '|' << ri.rank[1]
                   << '|' << ri.rank[2] << '|' << ri.rank[3] << ')';
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 template <typename AlphabetType, typename Index>
 struct QuadCharIndex {
@@ -102,7 +102,7 @@ struct QuadCharIndex {
         return os << '[' << chars.index << ": " << chars.ch[0] << ',' << chars.ch[1]
                   << ',' << chars.ch[2] << ',' << chars.ch[3] << ']';
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 enum class Status : uint8_t {
     UNDECIDED = 0,
@@ -134,7 +134,7 @@ struct IndexRankStatus {
         return os << "(i: " << irs.index << "| r: " << irs.rank << "| s: "
                   << static_cast<uint8_t>(irs.status) << ")";
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 //! A triple (index, rank [4], status)
 template <typename Index>
@@ -148,7 +148,7 @@ struct IndexQuadRankStatus {
                   << iqrs.rank[1] << "| r3: " << iqrs.rank[2] << "| r4: "
                   << iqrs.rank[3] << "| s: " << static_cast<uint8_t>(iqrs.status) << ")";
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 //! A triple with index (index, rank_1, rank_2, rank_3)
 template <typename Index>
@@ -162,7 +162,7 @@ struct Index3Rank {
         return os << "( i: " << irrr.index << "| r1: " << irrr.rank1
                   << "| r2: " << irrr.rank2 << "| r3: " << irrr.rank3 << ")";
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 template <typename Index, typename InputDIA>
 DIA<Index> PrefixQuadruplingDiscarding(const InputDIA& input_dia, size_t input_size, bool packed) {

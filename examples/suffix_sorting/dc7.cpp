@@ -82,7 +82,7 @@ struct Chars {
                    }
         };
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 //! A tuple with index (i,t_i,t_{i+1},t_{i+2}).
 template <typename Index, typename AlphabetType>
@@ -95,7 +95,7 @@ struct IndexChars {
     friend std::ostream& operator << (std::ostream& os, const IndexChars& tc) {
         return os << '[' << tc.index << '|' << tc.chars << ']';
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 //! A pair (index, rank)
 template <typename Index>
@@ -106,7 +106,7 @@ struct IndexRank {
     friend std::ostream& operator << (std::ostream& os, const IndexRank& tr) {
         return os << '(' << tr.index << '|' << tr.rank << ')';
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 //! fragments at string positions i = 0 mod 7.
 template <typename Index, typename AlphabetType>
@@ -125,7 +125,7 @@ struct StringFragmentMod0 {
                   << " t0=" << sf.t[0] << " t1=" << sf.t[1] << " t2=" << sf.t[2]
                   << " r0=" << sf.r0 << " r1=" << sf.r1 << " r3=" << sf.r3;
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 //! fragments at string positions i = 1 mod 7.
 template <typename Index, typename AlphabetType>
@@ -145,7 +145,7 @@ struct StringFragmentMod1 {
                   << " t3=" << sf.t[3] << " t4=" << sf.t[4] << " t5=" << sf.t[5]
                   << " r0=" << sf.r0 << " r2=" << sf.r2 << " r6=" << sf.r6;
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 //! fragments at string positions i = 2 mod 7.
 template <typename Index, typename AlphabetType>
@@ -165,7 +165,7 @@ struct StringFragmentMod2 {
                   << " t3=" << sf.t[3] << " t4=" << sf.t[4] << " t5=" << sf.t[5]
                   << " r1=" << sf.r1 << " r5=" << sf.r5 << " r6=" << sf.r6;
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 //! fragments at string positions i = 3 mod 7.
 template <typename Index, typename AlphabetType>
@@ -186,7 +186,7 @@ struct StringFragmentMod3 {
                   << " t3=" << sf.t[3] << " t4=" << sf.t[4]
                   << " r0=" << sf.r0 << " r4=" << sf.r4 << " r5=" << sf.r5;
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 //! fragments at string positions i = 4 mod 7.
 template <typename Index, typename AlphabetType>
@@ -206,7 +206,7 @@ struct StringFragmentMod4 {
                   << " t3=" << sf.t[3] << " t4=" << sf.t[4] << " t5=" << sf.t[5]
                   << " r3=" << sf.r3 << " r4=" << sf.r4 << " r6=" << sf.r6;
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 //! fragments at string positions i = 5 mod 7.
 template <typename Index, typename AlphabetType>
@@ -226,7 +226,7 @@ struct StringFragmentMod5 {
                   << " t3=" << sf.t[3] << " t4=" << sf.t[4]
                   << " r2=" << sf.r2 << " r3=" << sf.r3 << " r5=" << sf.r5;
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 //! fragments at string positions i = 6 mod 7.
 template <typename Index, typename AlphabetType>
@@ -246,7 +246,7 @@ struct StringFragmentMod6 {
                   << " t3=" << sf.t[3]
                   << " r1=" << sf.r1 << " r2=" << sf.r2 << " r4=" << sf.r4;
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 //! Union of String Fragments with Index
 template <typename Index, typename AlphabetType>
@@ -255,7 +255,7 @@ struct StringFragment {
     struct Common {
         Index        index;
         AlphabetType t[6];
-    } THRILL_ATTRIBUTE_PACKED;
+    } TLX_ATTRIBUTE_PACKED;
 
     union {
         Index                                   index;
@@ -267,7 +267,7 @@ struct StringFragment {
         StringFragmentMod4<Index, AlphabetType> mod4;
         StringFragmentMod5<Index, AlphabetType> mod5;
         StringFragmentMod6<Index, AlphabetType> mod6;
-    } THRILL_ATTRIBUTE_PACKED;
+    } TLX_ATTRIBUTE_PACKED;
 
     StringFragment() = default;
 
@@ -335,7 +335,7 @@ struct StringFragment {
     const Index * ranks() const {
         return ranks(index % 7);
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 static constexpr size_t fragment_comparator_params[7][7][3] =
 {
@@ -401,14 +401,14 @@ struct CharsRanks013 {
                   << " r0=" << c.rank0 << " r1=" << c.rank1
                   << " r3=" << c.rank3 << ")";
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 template <typename Index, typename Char>
 struct IndexCR013Pair {
     Index                      index;
     CharsRanks013<Index, Char> cr0;
     CharsRanks013<Index, Char> cr1;
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 template <typename Type, size_t MaxDepth>
 class RadixSortFragment

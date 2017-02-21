@@ -53,7 +53,7 @@ public:
     }
 
     void PreOp(const ValueType& input) {
-        if (THRILL_UNLIKELY(first_)) {
+        if (TLX_UNLIKELY(first_)) {
             first_ = false;
             sum_ = input;
         }

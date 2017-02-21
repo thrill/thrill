@@ -283,7 +283,7 @@ public:
         LOG << "[" << static_cast<void*>(this)
             << "] TypedBlock is copy constructed from "
             << "[" << static_cast<void*>(&tb) << "]";
-        UNUSED(tb);
+        tlx::UNUSED(tb);
     }
 #endif
 

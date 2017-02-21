@@ -80,8 +80,8 @@ public:
     void PreOp(const std::string& input) {
         stats_total_elements_++;
 
-        if (THRILL_UNLIKELY(current_buffer_size_ + input.size() + 1
-                            >= max_buffer_size_)) {
+        if (TLX_UNLIKELY(current_buffer_size_ + input.size() + 1
+                         >= max_buffer_size_)) {
             stats_total_writes_++;
             stats_total_bytes_ += current_buffer_size_;
             timer.Start();
@@ -90,7 +90,7 @@ public:
             write_buffer_.set_size(0);
             current_file_size_ += current_buffer_size_;
             current_buffer_size_ = 0;
-            if (THRILL_UNLIKELY(current_file_size_ >= target_file_size_)) {
+            if (TLX_UNLIKELY(current_file_size_ >= target_file_size_)) {
                 LOG << "Closing file" << out_serial_;
                 stream_->close();
                 std::string new_path = vfs::FillFilePattern(
@@ -101,7 +101,7 @@ public:
             }
             // String is too long to fit into buffer, write directly, add '\n' to
             // start of next buffer.
-            if (THRILL_UNLIKELY(input.size() >= max_buffer_size_)) {
+            if (TLX_UNLIKELY(input.size() >= max_buffer_size_)) {
                 stats_total_writes_++;
                 stats_total_bytes_ += input.size();
                 current_file_size_ += input.size() + 1;

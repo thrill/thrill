@@ -215,7 +215,7 @@ private:
                 // worker already covers it
                 while (!found_n) {
                     while (current_ < buffer_.end()) {
-                        if (THRILL_UNLIKELY(*current_++ == '\n')) {
+                        if (TLX_UNLIKELY(*current_++ == '\n')) {
                             found_n = true;
                             break;
                         }
@@ -240,8 +240,8 @@ private:
             total_elements_++;
             data_.clear();
             while (true) {
-                while (THRILL_LIKELY(current_ < buffer_.end())) {
-                    if (THRILL_UNLIKELY(*current_ == '\n')) {
+                while (TLX_LIKELY(current_ < buffer_.end())) {
+                    if (TLX_UNLIKELY(*current_ == '\n')) {
                         current_++;
                         return data_;
                     }
@@ -363,7 +363,7 @@ private:
             data_.clear();
             while (true) {
                 while (current_ < buffer_.end()) {
-                    if (THRILL_UNLIKELY(*current_ == '\n')) {
+                    if (TLX_UNLIKELY(*current_ == '\n')) {
                         current_++;
                         return data_;
                     }

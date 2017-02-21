@@ -23,9 +23,9 @@
 #include <thrill/io/iostats.hpp>
 #include <thrill/vfs/file_io.hpp>
 
-#include <tlx/string/split.hpp>
-#include <tlx/string/parse_si_iec_units.hpp>
 #include <tlx/string/format_si_iec_units.hpp>
+#include <tlx/string/parse_si_iec_units.hpp>
+#include <tlx/string/split.hpp>
 
 // mock net backend is always available -tb :)
 #include <thrill/net/mock/group.hpp>

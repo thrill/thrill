@@ -27,6 +27,8 @@
 
 #include <thrill/common/defines.hpp>
 #include <thrill/common/math.hpp>
+#include <tlx/define/likely.hpp>
+#include <tlx/unused.hpp>
 
 #include <algorithm>
 #include <functional>
@@ -136,7 +138,7 @@ public:
         losers_[pos].sup = sup;
         losers_[pos].source = source;
 
-        if (THRILL_UNLIKELY(first_insert_))
+        if (TLX_UNLIKELY(first_insert_))
         {
             // copy construct all keys from this first key
             for (Source i = 0; i < 2 * k_; ++i) {
@@ -383,7 +385,7 @@ public:
         assert(sup == (keyp == nullptr));
         losers_[pos].source = source;
         losers_[pos].keyp = keyp;
-        common::UNUSED(sup);
+        tlx::unused(sup);
     }
 
     /*!
@@ -463,7 +465,7 @@ public:
 
         losers_[0].source = source;
         losers_[0].keyp = keyp;
-        common::UNUSED(sup);
+        tlx::unused(sup);
     }
 };
 
@@ -515,7 +517,7 @@ public:
 
         losers_[0].source = source;
         losers_[0].keyp = keyp;
-        common::UNUSED(sup);
+        tlx::unused(sup);
     }
 };
 

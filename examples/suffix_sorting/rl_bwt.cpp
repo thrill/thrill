@@ -44,7 +44,7 @@ struct IndexChar {
         std::ostream& os, const IndexChar& ri) {
         return os << '(' << ri.index << '|' << ri.c << ')';
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 template <typename InputDIA>
 auto ConstructRLBWT(const InputDIA &input_dia) {

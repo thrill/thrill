@@ -37,7 +37,7 @@ struct Record {
     friend std::ostream& operator << (std::ostream& os, const Record& c) {
         return os << tlx::hexdump(c.key, 10);
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 static_assert(sizeof(Record) == 100, "struct Record packing incorrect.");
 
@@ -53,7 +53,7 @@ struct RecordSigned {
     friend std::ostream& operator << (std::ostream& os, const RecordSigned& c) {
         return os << tlx::hexdump(c.key, 10);
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 /*!
  * Generate a Record in a similar way as the "binary" version of Hadoop's

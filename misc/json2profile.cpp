@@ -11,8 +11,8 @@
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/json_logger.hpp>
 #include <thrill/common/logger.hpp>
-#include <tlx/string/format_si_iec_units.hpp>
 #include <tlx/string/escape_html.hpp>
+#include <tlx/string/format_si_iec_units.hpp>
 
 #include <cereal/external/rapidjson/document.h>
 #include <cereal/external/rapidjson/stringbuffer.h>

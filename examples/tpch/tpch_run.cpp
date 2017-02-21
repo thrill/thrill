@@ -51,7 +51,7 @@ struct LineItem {
     char   shipinstruct[25];
     char   shipmode[10];
     char   comment[44];
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 struct Order {
     size_t orderkey;
@@ -68,7 +68,7 @@ struct Order {
         os << '(' << o.orderpriority << "|" << o.clerk << "|" << o.comment;
         return os << ')';
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 struct JoinedElement {
     size_t orderkey;
@@ -95,7 +95,7 @@ struct JoinedElement {
     char   clerk[16];
     bool   priority;
     char   order_comment[79];
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 JoinedElement ConstructJoinedElement(const struct LineItem& li, const struct Order& o) {
     JoinedElement je;

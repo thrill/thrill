@@ -150,8 +150,8 @@ public:
     //! Discard a region of the file (mark it unused).
     //! Some specialized file types may need to know freed regions
     virtual void discard(offset_type offset, offset_type size) {
-        common::UNUSED(offset);
-        common::UNUSED(size);
+        tlx::unused(offset);
+        tlx::unused(size);
     }
 
     //! close and remove file

@@ -13,13 +13,13 @@
 #define THRILL_DATA_BLOCK_READER_HEADER
 
 #include <thrill/common/config.hpp>
-#include <thrill/common/defines.hpp>
 #include <thrill/common/die.hpp>
 #include <thrill/common/item_serialization_tools.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/data/block.hpp>
 #include <thrill/data/serialization.hpp>
 
+#include <tlx/define.hpp>
 #include <tlx/string/hexdump.hpp>
 
 #include <algorithm>
@@ -85,7 +85,7 @@ public:
 
     //! Next() reads a complete item T
     template <typename T>
-    THRILL_ATTRIBUTE_ALWAYS_INLINE
+    TLX_ATTRIBUTE_ALWAYS_INLINE
     T Next() {
         assert(HasNext());
         assert(num_items_ > 0);
@@ -107,14 +107,14 @@ public:
     //! Next() reads a complete item T, without item counter or self
     //! verification
     template <typename T>
-    THRILL_ATTRIBUTE_ALWAYS_INLINE
+    TLX_ATTRIBUTE_ALWAYS_INLINE
     T NextNoSelfVerify() {
         assert(HasNext());
         return Serialization<BlockReader, T>::Deserialize(*this);
     }
 
     //! HasNext() returns true if at least one more item is available.
-    THRILL_ATTRIBUTE_ALWAYS_INLINE
+    TLX_ATTRIBUTE_ALWAYS_INLINE
     bool HasNext() {
         while (current_ == end_) {
             if (!NextBlock()) {
@@ -269,7 +269,7 @@ public:
 
         Byte* cdata = reinterpret_cast<Byte*>(outdata);
 
-        while (THRILL_UNLIKELY(current_ + size > end_)) {
+        while (TLX_UNLIKELY(current_ + size > end_)) {
             // partial copy of remainder of block
             size_t partial_size = end_ - current_;
             std::copy(current_, current_ + partial_size, cdata);
@@ -298,7 +298,7 @@ public:
 
     //! Advance the cursor given number of bytes without reading them.
     BlockReader& Skip(size_t items, size_t bytes) {
-        while (THRILL_UNLIKELY(current_ + bytes > end_)) {
+        while (TLX_UNLIKELY(current_ + bytes > end_)) {
             bytes -= end_ - current_;
             // deduct number of remaining items in skipped block from item skip
             // counter.
@@ -315,7 +315,7 @@ public:
     //! Fetch a single byte from the current block, advancing the cursor.
     Byte GetByte() {
         // loop, since blocks can actually be empty.
-        while (THRILL_UNLIKELY(current_ == end_)) {
+        while (TLX_UNLIKELY(current_ == end_)) {
             if (!NextBlock())
                 throw std::runtime_error("Data underflow in BlockReader.");
         }
@@ -332,7 +332,7 @@ public:
         Type ret;
 
         // fast path for reading item from block if it fits.
-        if (THRILL_LIKELY(current_ + sizeof(Type) <= end_)) {
+        if (TLX_LIKELY(current_ + sizeof(Type) <= end_)) {
             ret = *reinterpret_cast<const Type*>(current_);
             current_ += sizeof(Type);
         }

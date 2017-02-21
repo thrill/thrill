@@ -26,6 +26,8 @@
 #include <thrill/common/defines.hpp>
 #include <thrill/common/singleton.hpp>
 
+#include <tlx/unused.hpp>
+
 #include <chrono>
 #include <mutex>
 #include <ostream>
@@ -208,7 +210,7 @@ public:
             if (measure_time)
                 Start();
 #if THRILL_DO_NOT_COUNT_WAIT_TIME
-            common::UNUSED(wait_op);
+            tlx::unused(wait_op);
 #endif
         }
 

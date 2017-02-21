@@ -16,6 +16,7 @@
 #include <thrill/common/porting.hpp>
 #include <thrill/common/profile_thread.hpp>
 #include <thrill/mem/malloc_tracker.hpp>
+#include <tlx/define.hpp>
 
 #if __linux__ || __APPLE__ || __FreeBSD__
 
@@ -655,7 +656,7 @@ static void preinit_free(void* ptr) {
 ATTRIBUTE_NO_SANITIZE
 void * malloc(size_t size) NOEXCEPT {
 
-    if (THRILL_UNLIKELY(!real_malloc))
+    if (TLX_UNLIKELY(!real_malloc))
         return preinit_malloc(size);
 
     //! call real malloc procedure in libc
@@ -709,14 +710,14 @@ void free(void* ptr) NOEXCEPT {
 
     if (!ptr) return;   //! free(nullptr) is no operation
 
-    if (THRILL_UNLIKELY(
+    if (TLX_UNLIKELY(
             static_cast<char*>(ptr) >= init_heap &&
             static_cast<char*>(ptr) <= init_heap + get(init_heap_use)))
     {
         return preinit_free(ptr);
     }
 
-    if (THRILL_UNLIKELY(!real_free)) {
+    if (TLX_UNLIKELY(!real_free)) {
         fprintf(stderr, PPREFIX
                 "free(%p) outside init heap and without real_free !!!\n", ptr);
         return;

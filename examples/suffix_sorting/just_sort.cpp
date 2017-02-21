@@ -60,7 +60,7 @@ struct Chars {
                    }
         };
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 //! A tuple with index (i,t_i,t_{i+1},t_{i+2}).
 template <typename Index, typename AlphabetType>
@@ -71,7 +71,7 @@ struct IndexChars {
     friend std::ostream& operator << (std::ostream& os, const IndexChars& tc) {
         return os << '[' << tc.index << '|' << tc.chars << ']';
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 int main(int argc, char* argv[]) {
 

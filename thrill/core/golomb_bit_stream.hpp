@@ -66,7 +66,7 @@ public:
      */
     void PutGolomb(const size_t& value) {
 
-        if (THRILL_UNLIKELY(first_call_)) {
+        if (TLX_UNLIKELY(first_call_)) {
             // First value can be very large. It is therefore not encoded.
             Super::block_writer_.PutRaw(value);
             first_call_ = false;
@@ -89,7 +89,7 @@ public:
             Super::PutBits(all_set, buffer_bits_);
         }
 
-        if (THRILL_UNLIKELY(q + 1 + log2b_ > buffer_bits_)) {
+        if (TLX_UNLIKELY(q + 1 + log2b_ > buffer_bits_)) {
             // When we need more than buffer_bits_ bits to encode a value, q
             // and r have to be inserted separately, as PutBits can only
             // handle up to buffer_bits_ bits at once
@@ -165,14 +165,14 @@ public:
     GolombBitStreamReader& operator = (GolombBitStreamReader&&) = default;
 
     bool HasNext() {
-        if (THRILL_UNLIKELY(first_call_))
+        if (TLX_UNLIKELY(first_call_))
             return Super::block_reader_.HasNext();
 
         return Super::HasNextZeroTest();
     }
 
     size_t GetGolomb() {
-        if (THRILL_UNLIKELY(first_call_)) {
+        if (TLX_UNLIKELY(first_call_)) {
             first_call_ = false;
             return Super::block_reader_.template GetRaw<size_t>();
         }
