@@ -12,7 +12,6 @@
 #include <thrill/api/context.hpp>
 
 #include <thrill/api/dia_base.hpp>
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/linux_proc_stats.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/math.hpp>
@@ -70,6 +69,7 @@
 
 #include <algorithm>
 #include <csignal>
+#include <iostream>
 #include <memory>
 #include <string>
 #include <thread>

@@ -17,10 +17,10 @@
 #include <thrill/api/inner_join.hpp>
 #include <thrill/api/read_lines.hpp>
 #include <thrill/api/size.hpp>
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/common/string.hpp>
+#include <tlx/cmdline_parser.hpp>
 
 #include <tlx/string/split.hpp>
 
@@ -279,19 +279,19 @@ static size_t JoinTPCH4(
 
 int main(int argc, char* argv[]) {
 
-    common::CmdlineParser clp;
+    tlx::CmdlineParser clp;
 
     std::vector<std::string> input_path;
-    clp.AddParamStringlist("input", input_path,
-                           "input file pattern");
+    clp.add_param_stringlist("input", input_path,
+                             "input file pattern");
 
-    if (!clp.Process(argc, argv)) {
+    if (!clp.process(argc, argv)) {
         return -1;
     }
 
     die_unless(input_path.size() == 1);
 
-    clp.PrintResult();
+    clp.print_result();
 
     return api::Run(
         [&](api::Context& ctx) {

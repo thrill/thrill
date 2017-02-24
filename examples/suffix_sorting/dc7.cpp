@@ -27,9 +27,9 @@
 #include <thrill/api/window.hpp>
 #include <thrill/api/zip_window.hpp>
 #include <thrill/api/zip_with_index.hpp>
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/radix_sort.hpp>
 #include <thrill/common/uint_types.hpp>
+#include <tlx/cmdline_parser.hpp>
 
 #include <algorithm>
 #include <iomanip>

@@ -12,9 +12,9 @@
 #include <thrill/api/read_binary.hpp>
 #include <thrill/api/sort.hpp>
 #include <thrill/api/write_binary.hpp>
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/string.hpp>
+#include <tlx/cmdline_parser.hpp>
 
 #include <tlx/string/hexdump.hpp>
 #include <tlx/string/parse_si_iec_units.hpp>
@@ -118,35 +118,35 @@ private:
 
 int main(int argc, char* argv[]) {
 
-    common::CmdlineParser clp;
+    tlx::CmdlineParser clp;
 
     bool use_signed_char = false;
-    clp.AddFlag('s', "signed_char", use_signed_char,
-                "compare with signed chars to compare with broken Java "
-                "implementations, default: false");
+    clp.add_bool('s', "signed_char", use_signed_char,
+                 "compare with signed chars to compare with broken Java "
+                 "implementations, default: false");
 
     bool generate = false;
-    clp.AddFlag('g', "generate", generate,
-                "generate binary record on-the-fly for testing."
-                " size: first input pattern, default: false");
+    clp.add_bool('g', "generate", generate,
+                 "generate binary record on-the-fly for testing."
+                 " size: first input pattern, default: false");
 
     bool generate_only = false;
-    clp.AddFlag('G', "generate-only", generate_only,
-                "write unsorted generated binary records to output.");
+    clp.add_bool('G', "generate-only", generate_only,
+                 "write unsorted generated binary records to output.");
 
     std::string output;
-    clp.AddString('o', "output", output,
-                  "output file pattern");
+    clp.add_string('o', "output", output,
+                   "output file pattern");
 
     std::vector<std::string> input;
-    clp.AddParamStringlist("input", input,
-                           "input file pattern(s)");
+    clp.add_param_stringlist("input", input,
+                             "input file pattern(s)");
 
-    if (!clp.Process(argc, argv)) {
+    if (!clp.process(argc, argv)) {
         return -1;
     }
 
-    clp.PrintResult();
+    clp.print_result();
 
     return api::Run(
         [&](api::Context& ctx) {

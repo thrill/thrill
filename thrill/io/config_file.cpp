@@ -14,7 +14,6 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/config.hpp>
 #include <thrill/io/config_file.hpp>
 #include <thrill/io/error_handling.hpp>

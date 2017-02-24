@@ -8,10 +8,10 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/die.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/vfs/file_io.hpp>
+#include <tlx/cmdline_parser.hpp>
 
 #include <iostream>
 #include <string>
@@ -21,17 +21,17 @@ using namespace thrill; // NOLINT
 
 int main(int argc, char* argv[]) {
 
-    common::CmdlineParser clp;
+    tlx::CmdlineParser clp;
 
-    clp.SetDescription("Simple VFS tool for Thrill");
+    clp.set_description("Simple VFS tool for Thrill");
 
     std::string op;
-    clp.AddParamString("op", op, "operation: glob|read|write");
+    clp.add_param_string("op", op, "operation: glob|read|write");
 
     std::vector<std::string> paths;
-    clp.AddParamStringlist("paths", paths, "file path(s)");
+    clp.add_param_stringlist("paths", paths, "file path(s)");
 
-    if (!clp.Process(argc, argv)) {
+    if (!clp.process(argc, argv)) {
         return -1;
     }
 

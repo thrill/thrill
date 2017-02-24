@@ -13,11 +13,11 @@
 #include <thrill/api/generate.hpp>
 #include <thrill/api/reduce_by_key.hpp>
 #include <thrill/api/size.hpp>
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/die.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/common/string_view.hpp>
+#include <tlx/cmdline_parser.hpp>
 
 #include <algorithm>
 #include <array>
@@ -85,19 +85,19 @@ void SpeedupTest(api::Context& ctx, size_t equal, size_t elements) {
 
 int main(int argc, char* argv[]) {
 
-    common::CmdlineParser clp;
+    tlx::CmdlineParser clp;
 
     size_t equal = 5;
-    clp.AddOptParamSizeT("e", equal, "Number of equal elements reduced together");
+    clp.add_opt_param_size_t("e", equal, "Number of equal elements reduced together");
 
     size_t elements = 1000;
-    clp.AddOptParamSizeT("n", elements, "Number of elements in total.");
+    clp.add_opt_param_size_t("n", elements, "Number of elements in total.");
 
-    if (!clp.Process(argc, argv)) {
+    if (!clp.process(argc, argv)) {
         return -1;
     }
 
-    clp.PrintResult();
+    clp.print_result();
 
     api::Run([&](api::Context& ctx) {
                  return SpeedupTest(ctx, equal, elements);

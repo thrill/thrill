@@ -14,9 +14,9 @@
 #include <thrill/api/gather.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/read_lines.hpp>
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/string.hpp>
+#include <tlx/cmdline_parser.hpp>
 
 #include <algorithm>
 #include <iomanip>
@@ -178,40 +178,40 @@ static void RunKMeansFile(
 
 int main(int argc, char* argv[]) {
 
-    thrill::common::CmdlineParser clp;
+    tlx::CmdlineParser clp;
 
     bool generate = false;
-    clp.AddFlag('g', "generate", generate,
-                "generate random data, set input = #points");
+    clp.add_bool('g', "generate", generate,
+                 "generate random data, set input = #points");
 
     size_t iterations = 10;
-    clp.AddSizeT('n', "iterations", iterations,
-                 "iterations, default: 10");
+    clp.add_size_t('n', "iterations", iterations,
+                   "iterations, default: 10");
 
     size_t dimensions = 2;
-    clp.AddParamSizeT("dim", dimensions,
-                      "dimensions of points 2-10, default: 2");
+    clp.add_param_size_t("dim", dimensions,
+                         "dimensions of points 2-10, default: 2");
 
     size_t num_clusters;
-    clp.AddParamSizeT("clusters", num_clusters, "Number of clusters");
+    clp.add_param_size_t("clusters", num_clusters, "Number of clusters");
 
     std::string svg_path;
-    clp.AddString('s', "svg", svg_path,
-                  "output path for svg drawing (only for dim = 2)");
+    clp.add_string('s', "svg", svg_path,
+                   "output path for svg drawing (only for dim = 2)");
 
     double svg_scale = 1;
-    clp.AddDouble('S', "svg-scale", svg_scale,
-                  "scale coordinates for svg output, default: 1");
+    clp.add_double('S', "svg-scale", svg_scale,
+                   "scale coordinates for svg output, default: 1");
 
     std::vector<std::string> input_paths;
-    clp.AddParamStringlist("input", input_paths,
-                           "input file pattern(s)");
+    clp.add_param_stringlist("input", input_paths,
+                             "input file pattern(s)");
 
-    if (!clp.Process(argc, argv)) {
+    if (!clp.process(argc, argv)) {
         return -1;
     }
 
-    clp.PrintResult();
+    clp.print_result();
 
     auto start_func =
         [&](thrill::Context& ctx) {

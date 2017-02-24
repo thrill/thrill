@@ -8,9 +8,9 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/json_logger.hpp>
 #include <thrill/common/logger.hpp>
+#include <tlx/cmdline_parser.hpp>
 #include <tlx/string/escape_html.hpp>
 #include <tlx/string/format_si_iec_units.hpp>
 
@@ -20,6 +20,7 @@
 
 #include <algorithm>
 #include <fstream>
+#include <iostream>
 #include <limits>
 #include <map>
 #include <string>
@@ -1372,24 +1373,24 @@ std::string ResultLines() {
 /******************************************************************************/
 
 int main(int argc, char* argv[]) {
-    common::CmdlineParser clp;
-    clp.SetDescription("Thrill Json Profile Parser");
+    tlx::CmdlineParser clp;
+    clp.set_description("Thrill Json Profile Parser");
 
     std::vector<std::string> inputs;
-    clp.AddOptParamStringlist("inputs", inputs, "json inputs");
+    clp.add_opt_param_stringlist("inputs", inputs, "json inputs");
 
-    clp.AddString('t', "title", s_title, "override title");
+    clp.add_string('t', "title", s_title, "override title");
 
-    clp.AddFlag('d', "detail", s_detail_tables, "show detail tables");
+    clp.add_bool('d', "detail", s_detail_tables, "show detail tables");
 
     bool output_RESULT_lines = false;
-    clp.AddFlag('r', "result", output_RESULT_lines,
-                "output data as RESULT lines");
+    clp.add_bool('r', "result", output_RESULT_lines,
+                 "output data as RESULT lines");
 
-    if (!clp.Process(argc, argv)) return -1;
+    if (!clp.process(argc, argv)) return -1;
 
     if (inputs.size() == 0) {
-        clp.PrintUsage(std::cerr);
+        clp.print_usage(std::cerr);
         std::cerr << "No paths given, reading json from stdin." << std::endl;
         inputs.push_back("stdin");
         LoadJsonProfile(std::cin);

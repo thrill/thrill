@@ -18,8 +18,8 @@
 #include <thrill/api/sort.hpp>
 #include <thrill/api/window.hpp>
 #include <thrill/api/write_binary.hpp>
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
+#include <tlx/cmdline_parser.hpp>
 
 #include <algorithm>
 #include <limits>
@@ -84,17 +84,17 @@ auto ConstructWaveletTree(const InputDIA &input_dia) {
 }
 
 int main(int argc, char* argv[]) {
-    common::CmdlineParser cp;
+    tlx::CmdlineParser cp;
 
-    cp.SetAuthor("Timo Bingmann <tb@panthema.net>");
-    cp.SetAuthor("Simon Gog <gog@kit.edu>");
+    cp.set_author("Timo Bingmann <tb@panthema.net>");
+    cp.set_author("Simon Gog <gog@kit.edu>");
 
     std::string input_path;
 
-    cp.AddOptParamString("input", input_path,
-                         "Path to input file.");
+    cp.add_opt_param_string("input", input_path,
+                            "Path to input file.");
 
-    if (!cp.Process(argc, argv))
+    if (!cp.process(argc, argv))
         return -1;
 
     return Run(

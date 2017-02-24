@@ -16,10 +16,10 @@
 #include <thrill/api/size.hpp>
 #include <thrill/api/sort.hpp>
 #include <thrill/api/sum.hpp>
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/common/string.hpp>
+#include <tlx/cmdline_parser.hpp>
 
 #include <algorithm>
 #include <random>
@@ -67,16 +67,16 @@ void merge_test(thrill::api::Context& ctx) {
 
 int main(int argc, char** argv) {
 
-    thrill::common::CmdlineParser clp;
+    tlx::CmdlineParser clp;
 
-    clp.AddUInt('n', "size", size,
-                "Count of elements to merge");
+    clp.add_unsigned('n', "size", size,
+                     "Count of elements to merge");
 
-    if (!clp.Process(argc, argv)) {
+    if (!clp.process(argc, argv)) {
         return -1;
     }
 
-    clp.PrintResult();
+    clp.print_result();
 
     return thrill::api::Run(merge_test);
 }

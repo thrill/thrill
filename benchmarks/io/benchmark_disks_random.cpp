@@ -13,18 +13,19 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/math.hpp>
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/io/block_manager.hpp>
 #include <thrill/io/request_operations.hpp>
 #include <thrill/io/typed_block.hpp>
 #include <thrill/mem/aligned_allocator.hpp>
+#include <tlx/cmdline_parser.hpp>
 #include <tlx/string/format_si_iec_units.hpp>
 
 #include <algorithm>
 #include <ctime>
 #include <iomanip>
+#include <iostream>
 #include <string>
 #include <vector>
 
@@ -207,35 +208,35 @@ int BenchmarkDisksRandomAlloc(uint64_t span, uint64_t block_size, uint64_t works
 int main(int argc, char* argv[]) {
     // parse command line
 
-    common::CmdlineParser cp;
+    tlx::CmdlineParser cp;
 
     uint64_t span, block_size = 8 * MiB, worksize = 0;
     std::string optirw = "irw", allocstr;
 
-    cp.AddParamBytes(
+    cp.add_param_bytes(
         "span", span,
         "Span of external memory to write/read to (e.g. 10GiB).");
-    cp.AddOptParamBytes(
+    cp.add_opt_param_bytes(
         "block_size", block_size,
         "Size of blocks to randomly write/read (default: 8MiB).");
-    cp.AddOptParamBytes(
+    cp.add_opt_param_bytes(
         "size", worksize,
         "Amount of data to operate on (e.g. 2GiB), default: whole span.");
-    cp.AddOptParamString(
+    cp.add_opt_param_string(
         "i|r|w", optirw,
         "Operations: [i]nitialize, [r]ead, and/or [w]rite (default: all).");
-    cp.AddOptParamString(
+    cp.add_opt_param_string(
         "alloc", allocstr,
         "Block allocation strategy: RC, SR, FR, S (default: RC).");
 
-    cp.SetDescription(
+    cp.set_description(
         "This program will benchmark _random_ block access on the disks "
         "configured by the standard .thrill disk configuration files mechanism. "
         "Available block sizes are power of two from 4 KiB to 128 MiB. "
         "A set of three operations can be performed: sequential initialization, "
         "random reading and random writing.");
 
-    if (!cp.Process(argc, argv))
+    if (!cp.process(argc, argv))
         return -1;
 
 #define RunAlloc(Alloc) BenchmarkDisksRandomAlloc<Alloc>( \
@@ -253,7 +254,7 @@ int main(int argc, char* argv[]) {
             return RunAlloc(io::Striping);
 
         std::cout << "Unknown allocation strategy '" << allocstr << "'" << std::endl;
-        cp.PrintUsage();
+        cp.print_usage();
         return -1;
     }
 

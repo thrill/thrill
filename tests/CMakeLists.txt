@@ -79,11 +79,9 @@ endmacro(thrill_build_test_group)
 
 ### list of tests in subdirectories
 
-thrill_build_plain(common/cmdline_parser_example)
 thrill_build_test_group(common/tests
   common/aggregate_test
   common/binary_heap_test.cpp
-  common/cmdline_parser_test.cpp
   common/concurrent_bounded_queue_test.cpp
   common/concurrent_queue_test.cpp
   common/function_traits_test.cpp

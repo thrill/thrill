@@ -14,9 +14,9 @@
 #include <thrill/api/reduce_by_key.hpp>
 #include <thrill/api/size.hpp>
 #include <thrill/api/sort.hpp>
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/stats_timer.hpp>
+#include <tlx/cmdline_parser.hpp>
 
 #include <string>
 #include <utility>
@@ -25,20 +25,20 @@ using namespace thrill; // NOLINT
 
 int main(int argc, char* argv[]) {
 
-    common::CmdlineParser clp;
+    tlx::CmdlineParser clp;
 
     int iterations;
-    clp.AddParamInt("n", iterations, "Iterations");
+    clp.add_param_int("n", iterations, "Iterations");
 
     std::string input;
-    clp.AddParamString("input", input,
-                       "input file pattern");
+    clp.add_param_string("input", input,
+                         "input file pattern");
 
-    if (!clp.Process(argc, argv)) {
+    if (!clp.process(argc, argv)) {
         return -1;
     }
 
-    clp.PrintResult();
+    clp.print_result();
 
     api::Run([&input, &iterations](api::Context& ctx) {
 

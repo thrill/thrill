@@ -15,9 +15,10 @@
 #include <examples/word_count/random_text_writer.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/write_lines.hpp>
-#include <thrill/common/cmdline_parser.hpp>
+#include <tlx/cmdline_parser.hpp>
 
 #include <fstream>
+#include <iostream>
 #include <random>
 #include <string>
 #include <vector>
@@ -103,39 +104,39 @@ static void Parallel(api::Context& ctx, const std::string& output) {
 
 int main(int argc, char* argv[]) {
 
-    common::CmdlineParser cp;
+    tlx::CmdlineParser cp;
 
-    cp.AddUInt('k', "min_words_key", "<N>", min_words_key,
-               "minimum words in a key");
-    cp.AddUInt('K', "max_words_key", "<N>", max_words_key,
-               "maximum words in a key");
+    cp.add_unsigned('k', "min_words_key", "<N>", min_words_key,
+                    "minimum words in a key");
+    cp.add_unsigned('K', "max_words_key", "<N>", max_words_key,
+                    "maximum words in a key");
 
-    cp.AddUInt('v', "min_words_value", "<N>", min_words_value,
-               "minimum words in a value");
-    cp.AddUInt('V', "max_words_value", "<N>", max_words_value,
-               "maximum words in a value");
+    cp.add_unsigned('v', "min_words_value", "<N>", min_words_value,
+                    "minimum words in a value");
+    cp.add_unsigned('V', "max_words_value", "<N>", max_words_value,
+                    "maximum words in a value");
 
-    cp.AddUInt('s', "seed", "<N>", seed,
-               "random seed (default: 123456)");
+    cp.add_unsigned('s', "seed", "<N>", seed,
+                    "random seed (default: 123456)");
 
-    cp.AddFlag(0, "tab-separator", tab_separator,
-               "add TAB as separator of key/value (for compatbility)");
+    cp.add_bool(0, "tab-separator", tab_separator,
+                "add TAB as separator of key/value (for compatbility)");
 
-    cp.AddParamBytes("totalbytes", totalbytes,
-                     "total number of bytes to generate (approximately)");
+    cp.add_param_bytes("totalbytes", totalbytes,
+                       "total number of bytes to generate (approximately)");
 
     bool parallel = false;
-    cp.AddFlag(1, "parallel", parallel,
-               "run as Thrill parallel/distributed program");
+    cp.add_bool(1, "parallel", parallel,
+                "run as Thrill parallel/distributed program");
 
     std::string output;
-    cp.AddString('o', "output", "<path>", output, "output path");
+    cp.add_string('o', "output", "<path>", output, "output path");
 
-    if (!cp.Process(argc, argv)) {
+    if (!cp.process(argc, argv)) {
         return -1;
     }
 
-    cp.PrintResult(std::cerr);
+    cp.print_result(std::cerr);
 
     // calculate range of words
     range_words_key = max_words_key - min_words_key;

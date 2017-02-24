@@ -11,13 +11,14 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/io/create_file.hpp>
 #include <thrill/io/file_base.hpp>
 #include <thrill/io/iostats.hpp>
 #include <thrill/io/request_operations.hpp>
 #include <thrill/mem/aligned_allocator.hpp>
 #include <tlx/string/format_si_iec_units.hpp>
+
+#include <iostream>
 
 static constexpr bool debug = false;
 

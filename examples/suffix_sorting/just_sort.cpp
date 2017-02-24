@@ -9,10 +9,10 @@
  ******************************************************************************/
 
 #include <thrill/api/context.hpp>
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/defines.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/qsort.hpp>
+#include <tlx/cmdline_parser.hpp>
 #include <tlx/string/format_si_iec_units.hpp>
 
 #include <algorithm>
@@ -77,19 +77,19 @@ int main(int argc, char* argv[]) {
 
     using namespace thrill; // NOLINT
 
-    common::CmdlineParser cp;
+    tlx::CmdlineParser cp;
 
-    cp.SetAuthor("Timo Bingmann <tb@panthema.net>");
+    cp.set_author("Timo Bingmann <tb@panthema.net>");
 
     uint64_t input_size = 50000000;
-    cp.AddBytes('s', "input_size", input_size,
-                "Number of DC7 tuples to sort.");
+    cp.add_bytes('s', "input_size", input_size,
+                 "Number of DC7 tuples to sort.");
 
     std::string algo = "1";
-    cp.AddString('a', "algo", algo,
-                 "select sort algo: '1' pivot, '2' pivots, '3' pivots");
+    cp.add_string('a', "algo", algo,
+                  "select sort algo: '1' pivot, '2' pivots, '3' pivots");
 
-    if (!cp.Process(argc, argv))
+    if (!cp.process(argc, argv))
         return -1;
 
     using IndexChars = ::IndexChars<uint32_t, uint8_t>;
