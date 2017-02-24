@@ -593,7 +593,7 @@ public:
         // register read callback
         AsyncReadBuffer& arb = async_read_.back();
         AddRead(c, AsyncCallback::make<
-                    AsyncReadBuffer, & AsyncReadBuffer::operator ()>(&arb));
+                    AsyncReadBuffer, &AsyncReadBuffer::operator ()>(&arb));
     }
 
     //! asynchronously read the full ByteBlock and deliver it to the callback
@@ -614,7 +614,7 @@ public:
         // register read callback
         AsyncReadByteBlock& arbb = async_read_block_.back();
         AddRead(c, AsyncCallback::make<
-                    AsyncReadByteBlock, & AsyncReadByteBlock::operator ()>(&arbb));
+                    AsyncReadByteBlock, &AsyncReadByteBlock::operator ()>(&arbb));
     }
 
     //! asynchronously write buffer and callback when delivered. The buffer is
@@ -635,7 +635,7 @@ public:
         // register write callback
         AsyncWriteBuffer& awb = async_write_.back();
         AddWrite(c, AsyncCallback::make<
-                     AsyncWriteBuffer, & AsyncWriteBuffer::operator ()>(&awb));
+                     AsyncWriteBuffer, &AsyncWriteBuffer::operator ()>(&awb));
     }
 
     //! asynchronously write buffer and callback when delivered. The buffer is
@@ -656,7 +656,7 @@ public:
         // register write callback
         AsyncWriteBlock& awb = async_write_block_.back();
         AddWrite(c, AsyncCallback::make<
-                     AsyncWriteBlock, & AsyncWriteBlock::operator ()>(&awb));
+                     AsyncWriteBlock, &AsyncWriteBlock::operator ()>(&awb));
     }
 
     //! asynchronously write buffer and callback when delivered. COPIES the data

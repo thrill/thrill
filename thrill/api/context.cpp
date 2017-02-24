@@ -132,7 +132,7 @@ RunLoopbackThreads(
             host_mem_config, num_hosts, workers_per_host);
 
     // launch thread for each of the workers on this host.
-    std::vector<std::thread> threads(num_hosts * workers_per_host);
+    std::vector<std::thread> threads(num_hosts* workers_per_host);
 
     for (size_t host = 0; host < num_hosts; ++host) {
         mem::by_string log_prefix = "host " + mem::to_string(host);

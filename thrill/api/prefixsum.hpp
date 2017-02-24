@@ -129,7 +129,7 @@ private:
 template <typename ValueType, typename Stack>
 template <typename SumFunction>
 auto DIA<ValueType, Stack>::PrefixSum(
-    const SumFunction &sum_function, const ValueType &initial_element) const {
+    const SumFunction& sum_function, const ValueType& initial_element) const {
     assert(IsValid());
 
     using PrefixSumNode = api::PrefixSumNode<ValueType, SumFunction>;

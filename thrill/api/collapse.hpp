@@ -55,7 +55,7 @@ public:
     void Execute() final { abort(); }
 
     void StartPreOp(size_t /* id */) final {
-        for (typename Super::Child & child : Super::children_)
+        for (typename Super::Child& child : Super::children_)
             child.node->StartPreOp(child.parent_index);
     }
 
@@ -75,7 +75,7 @@ public:
     }
 
     void StopPreOp(size_t /* id */) final {
-        for (typename Super::Child & child : Super::children_)
+        for (typename Super::Child& child : Super::children_)
             child.node->StopPreOp(child.parent_index);
     }
 

@@ -727,7 +727,7 @@ void AddStageLines(common::JsonLine& xAxis) {
 /******************************************************************************/
 
 template <typename Stats, typename Select>
-auto CalcSum(const std::vector<Stats>&c_Stats, const Select &select)
+auto CalcSum(const std::vector<Stats>& c_Stats, const Select& select)
 ->decltype(select(c_Stats[0])) {
     if (c_Stats.size() == 0) return 0;
 
@@ -739,7 +739,7 @@ auto CalcSum(const std::vector<Stats>&c_Stats, const Select &select)
 }
 
 template <typename Stats, typename Select>
-auto CalcAverage(const std::vector<Stats>&c_Stats, const Select &select)
+auto CalcAverage(const std::vector<Stats>& c_Stats, const Select& select)
 ->decltype(select(c_Stats[0])) {
     if (c_Stats.size() == 0) return 0;
 

@@ -678,7 +678,7 @@ PinRequestPtr BlockPool::PinBlock(const Block& block, size_t local_worker_id) {
             data, block_ptr->em_bid_.offset, block_ptr->size(),
             // construct an immediate CompletionHandler callback
             io::CompletionHandler::make<
-                PinRequest, & PinRequest::OnComplete>(*read));
+                PinRequest, &PinRequest::OnComplete>(*read));
 
     d_->reading_bytes_ += block_ptr->size();
 
@@ -1214,7 +1214,7 @@ io::RequestPtr BlockPool::Data::IntEvictBlock(ByteBlock* block_ptr) {
             block_ptr->data_, block_ptr->em_bid_.offset, block_ptr->size(),
             // construct an immediate CompletionHandler callback
             io::CompletionHandler::make<
-                ByteBlock, & ByteBlock::OnWriteComplete>(block_ptr));
+                ByteBlock, &ByteBlock::OnWriteComplete>(block_ptr));
 
     return (writing_[block_ptr] = std::move(req));
 }

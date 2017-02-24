@@ -768,7 +768,7 @@ public:
 
 template <typename ValueType, typename Stack>
 template <typename CompareFunction>
-auto DIA<ValueType, Stack>::Sort(const CompareFunction &compare_function) const {
+auto DIA<ValueType, Stack>::Sort(const CompareFunction& compare_function) const {
     assert(IsValid());
 
     using SortNode = api::SortNode<
@@ -799,8 +799,8 @@ auto DIA<ValueType, Stack>::Sort(const CompareFunction &compare_function) const 
 
 template <typename ValueType, typename Stack>
 template <typename CompareFunction, typename SortAlgorithm>
-auto DIA<ValueType, Stack>::Sort(const CompareFunction &compare_function,
-                                 const SortAlgorithm &sort_algorithm) const {
+auto DIA<ValueType, Stack>::Sort(const CompareFunction& compare_function,
+                                 const SortAlgorithm& sort_algorithm) const {
     assert(IsValid());
 
     using SortNode = api::SortNode<

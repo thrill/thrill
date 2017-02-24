@@ -71,8 +71,8 @@ private:
  * \ingroup dia_sources
  */
 template <typename ValueType>
-auto ConcatToDIA(Context & ctx,
-                 const std::vector<ValueType>&in_vector) {
+auto ConcatToDIA(Context& ctx,
+                 const std::vector<ValueType>& in_vector) {
 
     using ConcatToDIANode = api::ConcatToDIANode<ValueType>;
 
@@ -90,7 +90,7 @@ auto ConcatToDIA(Context & ctx,
  * the DIANode.
  */
 template <typename ValueType>
-auto ConcatToDIA(Context & ctx,
+auto ConcatToDIA(Context& ctx,
                  std::vector<ValueType>&& in_vector) {
 
     using ConcatToDIANode = api::ConcatToDIANode<ValueType>;

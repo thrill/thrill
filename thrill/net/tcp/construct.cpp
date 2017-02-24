@@ -405,7 +405,7 @@ private:
         dispatcher_.AsyncWriteCopy(
             tcp, &hello, sizeof(hello),
             AsyncWriteCallback::make<
-                Construction, & Construction::OnHelloSent>(this));
+                Construction, &Construction::OnHelloSent>(this));
 
         LOG << "Client " << my_rank_ << " sent active hello to "
             << "client " << tcp.peer_id() << " group id " << tcp.group_id();
@@ -413,7 +413,7 @@ private:
         dispatcher_.AsyncRead(
             tcp, sizeof(hello),
             AsyncReadBufferCallback::make<
-                Construction, & Construction::OnIncomingWelcome>(this));
+                Construction, &Construction::OnIncomingWelcome>(this));
 
         return false;
     }
@@ -496,7 +496,7 @@ private:
         dispatcher_.AsyncWriteCopy(
             c, &msg_out, sizeof(msg_out),
             AsyncWriteCallback::make<
-                Construction, & Construction::OnHelloSent>(this));
+                Construction, &Construction::OnHelloSent>(this));
 
         LOG << "Client " << my_rank_
             << " sent passive hello to client " << msg_in->id;
@@ -526,7 +526,7 @@ private:
         dispatcher_.AsyncRead(
             connections_.back(), sizeof(WelcomeMsg),
             AsyncReadBufferCallback::make<
-                Construction, & Construction::OnIncomingWelcomeAndReply>(this));
+                Construction, &Construction::OnIncomingWelcomeAndReply>(this));
 
         // wait for more connections.
         return true;

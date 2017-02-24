@@ -39,7 +39,7 @@ using DataObject = std::pair<bool, Element>;
 #define LOGM LOGC(debug && ctx.my_rank() == 0)
 
 template <typename Input>
-static auto ReadInputFile(api::Context & ctx, const Input &input_path) {
+static auto ReadInputFile(api::Context& ctx, const Input& input_path) {
     return ReadLines(ctx, input_path)
            .Map([](const std::string& line) {
                     // parse "value,dim_1,dim_2,...,dim_n" lines
@@ -63,7 +63,7 @@ static auto ReadInputFile(api::Context & ctx, const Input &input_path) {
            .Cache();
 }
 
-static auto GenerateInput(api::Context & ctx, size_t size) {
+static auto GenerateInput(api::Context& ctx, size_t size) {
 
     std::default_random_engine rng(std::random_device { } ());
     std::normal_distribution<double> norm_dist(0.0, 1.0);
@@ -86,7 +86,7 @@ static auto GenerateInput(api::Context & ctx, size_t size) {
            .Cache();
 }
 
-static auto GenerateTestData(api::Context & ctx, size_t size) {
+static auto GenerateTestData(api::Context& ctx, size_t size) {
 
     std::default_random_engine rng(std::random_device { } ());
     std::normal_distribution<double> norm_dist(0.0, 1.0);
@@ -108,8 +108,8 @@ static auto GenerateTestData(api::Context & ctx, size_t size) {
 }
 
 template <typename InputDIA>
-auto TrainLogit(api::Context & ctx,
-                const InputDIA &input_dia,
+auto TrainLogit(api::Context& ctx,
+                const InputDIA& input_dia,
                 size_t max_iterations, double gamma, double epsilon) {
 
     Element weights;

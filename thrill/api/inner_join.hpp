@@ -194,8 +194,8 @@ public:
     }
 
     template <typename ElementType, typename CompareFunction>
-    auto MakePuller(std::deque<data::File>&files,
-                    std::vector<data::File::Reader>&seq,
+    auto MakePuller(std::deque<data::File>& files,
+                    std::vector<data::File::Reader>& seq,
                     CompareFunction compare_function, bool consume) {
 
         size_t merge_degree, prefetch;
@@ -729,9 +729,9 @@ template <
         std::hash<typename common::FunctionTraits<KeyExtractor1>::result_type> >
 auto InnerJoin(
     const LocationDetectionFlag<LocationDetectionValue>&,
-    const FirstDIA &first_dia, const SecondDIA &second_dia,
-    const KeyExtractor1 &key_extractor1, const KeyExtractor2 &key_extractor2,
-    const JoinFunction &join_function,
+    const FirstDIA& first_dia, const SecondDIA& second_dia,
+    const KeyExtractor1& key_extractor1, const KeyExtractor2& key_extractor2,
+    const JoinFunction& join_function,
     const HashFunction& hash_function = HashFunction()) {
 
     assert(first_dia.IsValid());
@@ -824,9 +824,9 @@ template <
     typename HashFunction =
         std::hash<typename common::FunctionTraits<KeyExtractor1>::result_type> >
 auto InnerJoin(
-    const FirstDIA &first_dia, const SecondDIA &second_dia,
-    const KeyExtractor1 &key_extractor1, const KeyExtractor2 &key_extractor2,
-    const JoinFunction &join_function,
+    const FirstDIA& first_dia, const SecondDIA& second_dia,
+    const KeyExtractor1& key_extractor1, const KeyExtractor2& key_extractor2,
+    const JoinFunction& join_function,
     const HashFunction& hash_function = HashFunction()) {
     // forward to method _with_ location detection ON
     return InnerJoin(
