@@ -659,6 +659,21 @@ if(THRILL_TRY_COMPILE_HEADERS)
   file(GLOB_RECURSE header_files
     RELATIVE "${PROJECT_SOURCE_DIR}" FOLLOW_SYMLINKS "thrill/*.hpp")
 
+  # Define function to FILTER lists
+  function(GetFilteredList resultVar filter)
+    set(result)
+    foreach(ITR ${ARGN})
+      if(NOT (ITR MATCHES ${filter}))
+        list(APPEND result ${ITR})
+      endif()
+    endforeach()
+    set(${resultVar} ${result} PARENT_SCOPE)
+  endfunction()
+
+  if(NOT MPI_FOUND)
+    GetFilteredList(header_files "^thrill/net/mpi/" ${header_files})
+  endif()
+
   foreach(header_file ${header_files})
     # replace / and . with _ to get a valid target and file name
     string(REPLACE "/" "_" compile_name "${header_file}")
