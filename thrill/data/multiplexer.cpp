@@ -217,7 +217,7 @@ void Multiplexer::AsyncReadMultiplexerHeader(Connection& s) {
     dispatcher_.AsyncRead(
         s, MultiplexerHeader::total_size,
         net::AsyncReadCallback::make<
-            Multiplexer, & Multiplexer::OnMultiplexerHeader>(this));
+            Multiplexer, &Multiplexer::OnMultiplexerHeader>(this));
 }
 
 void Multiplexer::OnMultiplexerHeader(Connection& s, net::Buffer&& buffer) {

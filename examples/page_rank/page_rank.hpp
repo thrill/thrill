@@ -66,7 +66,7 @@ using LinkedPage = std::pair<PageId, OutgoingLinks>;
 using RankedPage = std::pair<PageId, Rank>;
 
 template <typename InStack>
-auto PageRank(const DIA<OutgoingLinks, InStack>&links,
+auto PageRank(const DIA<OutgoingLinks, InStack>& links,
               size_t num_pages, size_t iterations) {
 
     api::Context& ctx = links.context();
@@ -136,7 +136,7 @@ auto PageRank(const DIA<OutgoingLinks, InStack>&links,
 }
 
 template <const bool UseLocationDetection = false, typename InStack>
-auto PageRankJoin(const DIA<LinkedPage, InStack>&links, size_t num_pages,
+auto PageRankJoin(const DIA<LinkedPage, InStack>& links, size_t num_pages,
                   size_t iterations) {
 
     api::Context& ctx = links.context();

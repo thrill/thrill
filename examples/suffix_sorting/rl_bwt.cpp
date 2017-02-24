@@ -47,7 +47,7 @@ struct IndexChar {
 } THRILL_ATTRIBUTE_PACKED;
 
 template <typename InputDIA>
-auto ConstructRLBWT(const InputDIA &input_dia) {
+auto ConstructRLBWT(const InputDIA& input_dia) {
 
     Context& ctx = input_dia.ctx();
 

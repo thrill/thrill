@@ -166,13 +166,13 @@ public:
     }
 
     template <typename KeyExtractor>
-    static auto GetKey(const TableItem &t, KeyExtractor & key_extractor) {
+    static auto GetKey(const TableItem& t, KeyExtractor& key_extractor) {
         return key_extractor(t);
     }
 
     template <typename ReduceFunction>
-    static auto Reduce(const TableItem &a, const TableItem &b,
-                       ReduceFunction & reduce_function) {
+    static auto Reduce(const TableItem& a, const TableItem& b,
+                       ReduceFunction& reduce_function) {
         return reduce_function(a, b);
     }
 
@@ -192,13 +192,13 @@ public:
     }
 
     template <typename KeyExtractor>
-    static auto GetKey(const TableItem &t, KeyExtractor & /* key_extractor */) {
+    static auto GetKey(const TableItem& t, KeyExtractor& /* key_extractor */) {
         return t.first;
     }
 
     template <typename ReduceFunction>
-    static auto Reduce(const TableItem &a, const TableItem &b,
-                       ReduceFunction & reduce_function) {
+    static auto Reduce(const TableItem& a, const TableItem& b,
+                       ReduceFunction& reduce_function) {
         return TableItem(a.first, reduce_function(a.second, b.second));
     }
 

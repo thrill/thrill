@@ -36,11 +36,10 @@ namespace api {
  * \param lambda Lambda function that represents the chain end.
  */
 template <typename Lambda>
-auto RunEmitter(const Lambda &lambda)
-{
+auto RunEmitter(const Lambda& lambda) {
     // lambda is captured by non-const copy so that we can use functors with
     // non-const operator(), i.e. stateful functors (e.g. for sampling)
-    return [ =, lambda = lambda](const auto & input) mutable->void {
+    return [ =, lambda = lambda](const auto& input) mutable->void {
                lambda(input);
     };
 }
@@ -56,11 +55,10 @@ auto RunEmitter(const Lambda &lambda)
  * \param rest Remaining lambda functions.
  */
 template <typename Lambda, typename ... MoreLambdas>
-auto RunEmitter(const Lambda &lambda, const MoreLambdas &... rest)
-{
+auto RunEmitter(const Lambda& lambda, const MoreLambdas& ... rest) {
     // lambda is captured by non-const copy so that we can use functors with
     // non-const operator(), i.e. stateful functors (e.g. for sampling)
-    return [ =, lambda = lambda](const auto & input) mutable->void {
+    return [ =, lambda = lambda](const auto& input) mutable->void {
                lambda(input, RunEmitter(rest ...));
     };
 }
@@ -101,8 +99,7 @@ public:
      * \return New chain containing the previous and new lambda function(s).
      */
     template <typename Function>
-    auto push(const Function &append_func) const
-    {
+    auto push(const Function& append_func) const {
         // append to function stack's type the new function: we prepend it to
         // the type line because later we will
         std::tuple<Lambdas ..., Function> new_stack
@@ -143,7 +140,7 @@ private:
 };
 
 template <typename Input, typename Lambda>
-static inline auto MakeFunctionStack(const Lambda &lambda) {
+static inline auto MakeFunctionStack(const Lambda& lambda) {
     return FunctionStack<Input, Lambda>(std::make_tuple(lambda));
 }
 

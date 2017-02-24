@@ -612,10 +612,10 @@ private:
  */
 template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
           typename ... DIAs>
-auto ZipWindow(const std::array<size_t, 1 + sizeof ... (DIAs)>&window_size,
-               const ZipFunction &zip_function,
-               const DIA<FirstDIAType, FirstDIAStack>&first_dia,
-               const DIAs &... dias) {
+auto ZipWindow(const std::array<size_t, 1 + sizeof ... (DIAs)>& window_size,
+               const ZipFunction& zip_function,
+               const DIA<FirstDIAType, FirstDIAStack>& first_dia,
+               const DIAs& ... dias) {
 
     using VarForeachExpander = int[];
 
@@ -664,10 +664,10 @@ auto ZipWindow(const std::array<size_t, 1 + sizeof ... (DIAs)>&window_size,
 template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
           typename ... DIAs>
 auto ZipWindow(struct CutTag,
-               const std::array<size_t, 1 + sizeof ... (DIAs)>&window_size,
-               const ZipFunction &zip_function,
-               const DIA<FirstDIAType, FirstDIAStack>&first_dia,
-               const DIAs &... dias) {
+               const std::array<size_t, 1 + sizeof ... (DIAs)>& window_size,
+               const ZipFunction& zip_function,
+               const DIA<FirstDIAType, FirstDIAStack>& first_dia,
+               const DIAs& ... dias) {
 
     using VarForeachExpander = int[];
 
@@ -717,11 +717,11 @@ template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
           typename ... DIAs>
 auto ZipWindow(
     struct PadTag,
-    const std::array<size_t, 1 + sizeof ... (DIAs)>&window_size,
-    const ZipFunction &zip_function,
-    const typename ZipWindowTraits<ZipFunction>::value_type_tuple_plain & padding,
-    const DIA<FirstDIAType, FirstDIAStack>&first_dia,
-    const DIAs &... dias) {
+    const std::array<size_t, 1 + sizeof ... (DIAs)>& window_size,
+    const ZipFunction& zip_function,
+    const typename ZipWindowTraits<ZipFunction>::value_type_tuple_plain& padding,
+    const DIA<FirstDIAType, FirstDIAStack>& first_dia,
+    const DIAs& ... dias) {
 
     using VarForeachExpander = int[];
 
@@ -767,10 +767,10 @@ auto ZipWindow(
 template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
           typename ... DIAs>
 auto ZipWindow(struct PadTag,
-               const std::array<size_t, 1 + sizeof ... (DIAs)>&window_size,
-               const ZipFunction &zip_function,
-               const DIA<FirstDIAType, FirstDIAStack>&first_dia,
-               const DIAs &... dias) {
+               const std::array<size_t, 1 + sizeof ... (DIAs)>& window_size,
+               const ZipFunction& zip_function,
+               const DIA<FirstDIAType, FirstDIAStack>& first_dia,
+               const DIAs& ... dias) {
 
     using ZipArgsTuple =
               typename ZipWindowTraits<ZipFunction>::value_type_tuple_plain;
@@ -798,11 +798,11 @@ template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
 auto ZipWindow(
     struct ArrayTag,
     struct PadTag,
-    const std::array<size_t, 1 + sizeof ... (DIAs)>&window_size,
-    const ZipFunction &zip_function,
-    const typename ZipWindowTraits<ZipFunction>::value_type_tuple_plain & padding,
-    const DIA<FirstDIAType, FirstDIAStack>&first_dia,
-    const DIAs &... dias) {
+    const std::array<size_t, 1 + sizeof ... (DIAs)>& window_size,
+    const ZipFunction& zip_function,
+    const typename ZipWindowTraits<ZipFunction>::value_type_tuple_plain& padding,
+    const DIA<FirstDIAType, FirstDIAStack>& first_dia,
+    const DIAs& ... dias) {
 
     using VarForeachExpander = int[];
 
@@ -850,10 +850,10 @@ template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
 auto ZipWindow(
     struct ArrayTag,
     struct PadTag,
-    const std::array<size_t, 1 + sizeof ... (DIAs)>&window_size,
-    const ZipFunction &zip_function,
-    const DIA<FirstDIAType, FirstDIAStack>&first_dia,
-    const DIAs &... dias) {
+    const std::array<size_t, 1 + sizeof ... (DIAs)>& window_size,
+    const ZipFunction& zip_function,
+    const DIA<FirstDIAType, FirstDIAStack>& first_dia,
+    const DIAs& ... dias) {
 
     using ZipArgsTuple =
               typename ZipWindowTraits<ZipFunction>::value_type_tuple_plain;

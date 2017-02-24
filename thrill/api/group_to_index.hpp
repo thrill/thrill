@@ -251,10 +251,10 @@ template <typename ValueOut,
           typename KeyExtractor,
           typename GroupFunction>
 auto DIA<ValueType, Stack>::GroupToIndex(
-    const KeyExtractor &key_extractor,
-    const GroupFunction &groupby_function,
+    const KeyExtractor& key_extractor,
+    const GroupFunction& groupby_function,
     const size_t result_size,
-    const ValueOut &neutral_element) const {
+    const ValueOut& neutral_element) const {
 
     using DOpResult
               = ValueOut;

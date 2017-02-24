@@ -51,8 +51,8 @@ T calc_norm(const std::array<T, dim>& weights,
 }
 
 template <typename T, size_t dim>
-auto gradient(const bool& y, const std::array<T, dim>&x,
-              const std::array<T, dim>&w) {
+auto gradient(const bool& y, const std::array<T, dim>& x,
+              const std::array<T, dim>& w) {
     std::array<T, dim> grad;
     T dot_product = std::inner_product(w.begin(), w.end(), x.begin(), T { 0.0 });
     T s = sigmoid(dot_product) - y;
@@ -64,10 +64,9 @@ auto gradient(const bool& y, const std::array<T, dim>&x,
 
 template <typename T, size_t dim, typename InStack,
           typename Element = std::array<T, dim> >
-auto logit_train(const DIA<std::pair<bool, Element>, InStack>&data,
+auto logit_train(const DIA<std::pair<bool, Element>, InStack>& data,
                  size_t max_iterations, double gamma = 0.002,
-                 double epsilon = 0.0001)
-{
+                 double epsilon = 0.0001) {
     // weights, initialized to zero
     Element weights, new_weights;
     weights[0] = weights[1] = weights[2] = 0;
@@ -104,9 +103,8 @@ auto logit_train(const DIA<std::pair<bool, Element>, InStack>&data,
 
 template <typename T, size_t dim, typename InStack,
           typename Element = std::array<T, dim> >
-auto logit_test(const DIA<std::pair<bool, Element>, InStack>&data,
-                const Element &weights)
-{
+auto logit_test(const DIA<std::pair<bool, Element>, InStack>& data,
+                const Element& weights) {
     size_t expected_true =
         data.Keep()
         .Filter([](const std::pair<T, Element>& elem) -> bool {

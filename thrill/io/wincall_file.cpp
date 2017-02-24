@@ -45,11 +45,11 @@ void WincallFile::serve(void* buffer, offset_type offset, size_type bytes,
         THRILL_THROW_WIN_LASTERROR(
             IoError,
             "SetFilePointerEx in wincall_request::serve()" <<
-            " offset=" << offset <<
-            " this=" << this <<
-            " buffer=" << buffer <<
-            " bytes=" << bytes <<
-            " type=" << ((type == Request::READ) ? "READ" : "WRITE"));
+                " offset=" << offset <<
+                " this=" << this <<
+                " buffer=" << buffer <<
+                " bytes=" << bytes <<
+                " type=" << ((type == Request::READ) ? "READ" : "WRITE"));
     }
     else
     {
@@ -64,18 +64,18 @@ void WincallFile::serve(void* buffer, offset_type offset, size_type bytes,
                 THRILL_THROW_WIN_LASTERROR(
                     IoError,
                     "ReadFile" <<
-                    " this=" << this <<
-                    " offset=" << offset <<
-                    " buffer=" << buffer <<
-                    " bytes=" << bytes <<
-                    " type=" << ((type == Request::READ) ? "READ" : "WRITE") <<
-                    " NumberOfBytesRead= " << NumberOfBytesRead);
+                        " this=" << this <<
+                        " offset=" << offset <<
+                        " buffer=" << buffer <<
+                        " bytes=" << bytes <<
+                        " type=" << ((type == Request::READ) ? "READ" : "WRITE") <<
+                        " NumberOfBytesRead= " << NumberOfBytesRead);
             }
             else if (NumberOfBytesRead != bytes) {
                 THRILL_THROW_WIN_LASTERROR(
                     IoError, " partial read: missing " <<
                     (bytes - NumberOfBytesRead) << " out of " <<
-                    bytes << " bytes");
+                        bytes << " bytes");
             }
         }
         else
@@ -87,18 +87,18 @@ void WincallFile::serve(void* buffer, offset_type offset, size_type bytes,
                 THRILL_THROW_WIN_LASTERROR(
                     IoError,
                     "WriteFile" <<
-                    " this=" << this <<
-                    " offset=" << offset <<
-                    " buffer=" << buffer <<
-                    " bytes=" << bytes <<
-                    " type=" << ((type == Request::READ) ? "READ" : "WRITE") <<
-                    " NumberOfBytesWritten= " << NumberOfBytesWritten);
+                        " this=" << this <<
+                        " offset=" << offset <<
+                        " buffer=" << buffer <<
+                        " bytes=" << bytes <<
+                        " type=" << ((type == Request::READ) ? "READ" : "WRITE") <<
+                        " NumberOfBytesWritten= " << NumberOfBytesWritten);
             }
             else if (NumberOfBytesWritten != bytes) {
                 THRILL_THROW_WIN_LASTERROR(
                     IoError, " partial write: missing " <<
                     (bytes - NumberOfBytesWritten) << " out of " <<
-                    bytes << " bytes");
+                        bytes << " bytes");
             }
         }
     }
