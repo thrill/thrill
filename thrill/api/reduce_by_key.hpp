@@ -24,6 +24,7 @@
 #include <thrill/common/porting.hpp>
 #include <thrill/core/reduce_by_hash_post_phase.hpp>
 #include <thrill/core/reduce_pre_phase.hpp>
+#include <tlx/meta/if.hpp>
 
 #include <functional>
 #include <thread>
@@ -72,7 +73,7 @@ private:
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
 
     using TableItem =
-              typename common::If<
+              typename tlx::If<
                   VolatileKey, std::pair<Key, ValueType>, ValueType>::type;
 
     using HashIndexFunction = core::ReduceByHash<Key, KeyHashFunction>;
