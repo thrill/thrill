@@ -19,6 +19,7 @@
 #include <thrill/api/reduce_by_key.hpp>
 #include <thrill/api/sample.hpp>
 #include <thrill/api/sum.hpp>
+#include <thrill/common/vector.hpp>
 
 #include <cereal/types/vector.hpp>
 #include <thrill/data/serialization_cereal.hpp>
@@ -33,137 +34,12 @@ namespace k_means {
 
 using thrill::DIA;
 
-/******************************************************************************/
-// Compile-Time Fixed-Dimensional Points
-
-//! A D-dimensional point with double precision
+//! Compile-Time Fixed-Dimensional Points
 template <size_t D>
-class Point
-{
-public:
-    //! coordinates array
-    double x[D];
+using Point = thrill::common::Vector<D, double>;
 
-    static size_t dim() { return D; }
-
-    static Point Make(size_t D_) {
-        die_unless(D_ == D);
-        return Point();
-    }
-    static Point Origin() {
-        Point p;
-        std::fill(p.x, p.x + D, 0.0);
-        return p;
-    }
-    template <typename Distribution, typename Generator>
-    static Point Random(size_t dim, Distribution& dist, Generator& gen) {
-        die_unless(dim == D);
-        Point p;
-        for (size_t i = 0; i < D; ++i) p.x[i] = dist(gen);
-        return p;
-    }
-    double DistanceSquare(const Point& b) const {
-        double sum = 0.0;
-        for (size_t i = 0; i < D; ++i) sum += (x[i] - b.x[i]) * (x[i] - b.x[i]);
-        return sum;
-    }
-    double Distance(const Point& b) const {
-        return std::sqrt(DistanceSquare(b));
-    }
-    Point operator + (const Point& b) const {
-        Point p;
-        for (size_t i = 0; i < D; ++i) p.x[i] = x[i] + b.x[i];
-        return p;
-    }
-    Point& operator += (const Point& b) {
-        for (size_t i = 0; i < D; ++i) x[i] += b.x[i];
-        return *this;
-    }
-    Point operator / (double s) const {
-        Point p;
-        for (size_t i = 0; i < D; ++i) p.x[i] = x[i] / s;
-        return p;
-    }
-    Point& operator /= (double s) {
-        for (size_t i = 0; i < D; ++i) x[i] /= s;
-        return *this;
-    }
-    friend std::ostream& operator << (std::ostream& os, const Point& a) {
-        os << '(' << a.x[0];
-        for (size_t i = 1; i != D; ++i) os << ',' << a.x[i];
-        return os << ')';
-    }
-};
-
-/******************************************************************************/
-// Variable-Dimensional Points
-
-//! A D-dimensional point with double precision
-class VPoint
-{
-public:
-    using Vector = std::vector<double>;
-
-    //! coordinates array
-    Vector x;
-
-    explicit VPoint(size_t D = 0) : x(D) { }
-    explicit VPoint(Vector&& v) : x(std::move(v)) { }
-
-    size_t dim() const { return x.size(); }
-
-    static VPoint Make(size_t D) {
-        return VPoint(D);
-    }
-    template <typename Distribution, typename Generator>
-    static VPoint Random(size_t D, Distribution& dist, Generator& gen) {
-        VPoint p(D);
-        for (size_t i = 0; i < D; ++i) p.x[i] = dist(gen);
-        return p;
-    }
-    double DistanceSquare(const VPoint& b) const {
-        assert(x.size() == b.x.size());
-        double sum = 0.0;
-        for (size_t i = 0; i < x.size(); ++i)
-            sum += (x[i] - b.x[i]) * (x[i] - b.x[i]);
-        return sum;
-    }
-    double Distance(const VPoint& b) const {
-        return std::sqrt(DistanceSquare(b));
-    }
-    VPoint operator + (const VPoint& b) const {
-        assert(x.size() == b.x.size());
-        VPoint p(x.size());
-        for (size_t i = 0; i < x.size(); ++i) p.x[i] = x[i] + b.x[i];
-        return p;
-    }
-    VPoint& operator += (const VPoint& b) {
-        assert(x.size() == b.x.size());
-        for (size_t i = 0; i < x.size(); ++i) x[i] += b.x[i];
-        return *this;
-    }
-    VPoint operator / (double s) const {
-        VPoint p(x.size());
-        for (size_t i = 0; i < x.size(); ++i) p.x[i] = x[i] / s;
-        return p;
-    }
-    VPoint& operator /= (double s) {
-        for (size_t i = 0; i < x.size(); ++i) x[i] /= s;
-        return *this;
-    }
-    friend std::ostream& operator << (std::ostream& os, const VPoint& a) {
-        os << '(' << a.x[0];
-        for (size_t i = 1; i != a.x.size(); ++i) os << ',' << a.x[i];
-        return os << ')';
-    }
-
-    template <typename Archive>
-    void serialize(Archive& archive) {
-        archive(x);
-    }
-};
-
-/******************************************************************************/
+//! A variable D-dimensional point with double precision
+using VPoint = thrill::common::VVector<double>;
 
 template <typename Point>
 using PointClusterId = std::pair<Point, size_t>;
