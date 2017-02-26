@@ -10,7 +10,6 @@
 
 #include <thrill/common/die.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/lru_cache.hpp>
 #include <thrill/common/math.hpp>
 #include <thrill/data/block.hpp>
 #include <thrill/data/block_pool.hpp>
@@ -19,6 +18,7 @@
 #include <thrill/mem/aligned_allocator.hpp>
 #include <thrill/mem/pool.hpp>
 
+#include <tlx/lru_cache.hpp>
 #include <tlx/string/join_generic.hpp>
 
 #include <algorithm>
@@ -244,7 +244,7 @@ public:
     size_t hard_ram_limit_;
 
     //! list of all blocks that are _in_memory_ but are _not_ pinned.
-    common::LruCacheSet<
+    tlx::LruCacheSet<
         ByteBlock*, mem::GPoolAllocator<ByteBlock*> > unpinned_blocks_;
 
     //! set of ByteBlocks currently begin written to EM.
