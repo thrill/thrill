@@ -15,7 +15,6 @@
 
 #include <thrill/api/context.hpp>
 #include <thrill/core/reduce_functional.hpp>
-#include <tlx/meta/if.hpp>
 
 #include <algorithm>
 #include <functional>
@@ -105,7 +104,7 @@ public:
 
     using ReduceConfig = ReduceConfig_;
     using TableItem =
-              typename tlx::If<
+              typename std::conditional<
                   VolatileKey, std::pair<Key, Value>, Value>::type;
     using MakeTableItem = ReduceMakeTableItem<Value, TableItem, VolatileKey>;
 

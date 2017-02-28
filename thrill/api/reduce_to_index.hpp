@@ -24,7 +24,6 @@
 #include <thrill/common/porting.hpp>
 #include <thrill/core/reduce_by_index_post_phase.hpp>
 #include <thrill/core/reduce_pre_phase.hpp>
-#include <tlx/meta/if.hpp>
 
 #include <functional>
 #include <thread>
@@ -68,7 +67,7 @@ class ReduceToIndexNode final : public DOpNode<ValueType>
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
 
     using TableItem =
-              typename tlx::If<
+              typename std::conditional<
                   VolatileKey, std::pair<Key, ValueType>, ValueType>::type;
 
     static_assert(std::is_same<Key, size_t>::value,
