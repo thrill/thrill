@@ -17,6 +17,8 @@
 #include <thrill/data/stream.hpp>
 #include <thrill/mem/aligned_allocator.hpp>
 
+#include <tlx/math/round_to_power_of_two.hpp>
+
 #include <algorithm>
 #include <map>
 #include <vector>
@@ -243,7 +245,7 @@ void Multiplexer::OnMultiplexerHeader(Connection& s, net::Buffer&& buffer) {
     // round of allocation size to next power of two
     size_t alloc_size = header.size;
     if (alloc_size < THRILL_DEFAULT_ALIGN) alloc_size = THRILL_DEFAULT_ALIGN;
-    alloc_size = common::RoundUpToPowerOfTwo(alloc_size);
+    alloc_size = tlx::round_up_to_power_of_two(alloc_size);
 
     if (header.magic == MagicByte::CatStreamBlock)
     {

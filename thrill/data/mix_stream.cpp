@@ -15,6 +15,8 @@
 #include <thrill/data/multiplexer.hpp>
 #include <thrill/data/multiplexer_header.hpp>
 
+#include <tlx/math/round_to_power_of_two.hpp>
+
 #include <algorithm>
 #include <vector>
 
@@ -72,7 +74,7 @@ void MixStream::set_dia_id(size_t dia_id) {
 std::vector<MixStream::Writer> MixStream::GetWriters() {
     size_t hard_ram_limit = multiplexer_.block_pool_.hard_ram_limit();
     size_t block_size_base = hard_ram_limit / 16 / multiplexer_.num_workers();
-    size_t block_size = common::RoundDownToPowerOfTwo(block_size_base);
+    size_t block_size = tlx::round_down_to_power_of_two(block_size_base);
     if (block_size == 0 || block_size > default_block_size)
         block_size = default_block_size;
 

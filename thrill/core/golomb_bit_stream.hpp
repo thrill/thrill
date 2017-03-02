@@ -17,6 +17,8 @@
 
 #include <thrill/core/bit_stream.hpp>
 
+#include <tlx/math/integer_log2.hpp>
+
 namespace thrill {
 namespace core {
 
@@ -37,7 +39,7 @@ public:
     GolombBitStreamWriter(BlockWriter& block_writer, const size_t& b)
         : Super(block_writer),
           b_(b),
-          log2b_(common::IntegerLog2Ceil(b_)), // helper var for Golomb in
+          log2b_(tlx::integer_log2_ceil(b_)), // helper var for Golomb in
           max_little_value_((((size_t)1) << log2b_) - b_) {
         die_unless(block_writer.block_size() % sizeof(size_t) == 0);
     }
@@ -151,7 +153,7 @@ public:
     GolombBitStreamReader(BlockReader& block_reader, const size_t& b)
         : Super(block_reader),
           b_(b),
-          log2b_(common::IntegerLog2Ceil(b_)), // helper var for Golomb in
+          log2b_(tlx::integer_log2_ceil(b_)), // helper var for Golomb in
           max_little_value_((((size_t)1) << log2b_) - b_)
     { }
 

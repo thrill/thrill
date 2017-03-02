@@ -28,6 +28,7 @@
 #include <thrill/common/defines.hpp>
 #include <thrill/common/math.hpp>
 #include <tlx/define/likely.hpp>
+#include <tlx/math/round_to_power_of_two.hpp>
 #include <tlx/unused.hpp>
 
 #include <algorithm>
@@ -86,7 +87,7 @@ public:
     LoserTreeCopyBase(
         Source k, const Comparator& cmp = std::less<ValueType>())
         : ik_(k),
-          k_(common::RoundUpToPowerOfTwo(ik_)),
+          k_(tlx::round_up_to_power_of_two(ik_)),
           cmp_(cmp),
           first_insert_(true) {
         // avoid default-constructing losers[].key
@@ -340,7 +341,7 @@ public:
     LoserTreePointerBase(
         Source k, const Comparator& cmp = std::less<ValueType>())
         : ik_(k),
-          k_(common::RoundUpToPowerOfTwo(ik_)),
+          k_(tlx::round_up_to_power_of_two(ik_)),
           losers_(new Loser[k_ * 2]),
           cmp_(cmp) {
         for (Source i = ik_ - 1; i < k_; i++)
@@ -562,7 +563,7 @@ public:
     LoserTreeCopyUnguardedBase(Source k, const ValueType& sentinel,
                                const Comparator& cmp = std::less<ValueType>())
         : ik_(k),
-          k_(common::RoundUpToPowerOfTwo(ik_)),
+          k_(tlx::round_up_to_power_of_two(ik_)),
           losers_(new Loser[k_ * 2]),
           cmp_(cmp) {
         for (Source i = 0; i < 2 * k_; i++)
@@ -743,7 +744,7 @@ protected:
         Source k, const ValueType& sentinel,
         const Comparator& cmp = std::less<ValueType>())
         : ik_(k),
-          k_(common::RoundUpToPowerOfTwo(ik_)),
+          k_(tlx::round_up_to_power_of_two(ik_)),
           losers_(new Loser[k_ * 2]),
           cmp_(cmp) {
         for (Source i = ik_ - 1; i < k_; i++)

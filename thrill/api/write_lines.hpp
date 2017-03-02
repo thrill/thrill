@@ -61,7 +61,7 @@ public:
 
         max_buffer_size_ =
             std::min(data::default_block_size,
-                     common::RoundUpToPowerOfTwo(target_file_size_));
+                     tlx::round_up_to_power_of_two(target_file_size_));
 
         // close the function stack with our pre op and register it at parent
         // node for output

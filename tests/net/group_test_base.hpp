@@ -14,6 +14,7 @@
 
 #include <thrill/common/math.hpp>
 #include <thrill/net/group.hpp>
+#include <tlx/math/round_to_power_of_two.hpp>
 
 #include <functional>
 #include <future>
@@ -114,7 +115,7 @@ static void TestPrefixSumHypercubeString(net::Group* net) {
 
     static constexpr bool debug = false;
 
-    if (net->num_hosts() != common::RoundUpToPowerOfTwo(net->num_hosts()))
+    if (net->num_hosts() != tlx::round_up_to_power_of_two(net->num_hosts()))
         return;
 
     const std::string result = "abcdefghijklmnopqrstuvwxyz";
@@ -192,7 +193,7 @@ static void TestAllReduceString(net::Group* net) {
 
 //! let group of p hosts perform a AllReduce collective on std::string
 static void TestAllReduceHypercubeString(net::Group* net) {
-    if (net->num_hosts() != common::RoundUpToPowerOfTwo(net->num_hosts()))
+    if (net->num_hosts() != tlx::round_up_to_power_of_two(net->num_hosts()))
         return;
 
     const std::string result = "abcdefghijklmnopqrstuvwxyz";

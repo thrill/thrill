@@ -23,6 +23,7 @@
 #include <thrill/io/typed_block.hpp>
 #include <thrill/mem/aligned_allocator.hpp>
 #include <tlx/cmdline_parser.hpp>
+#include <tlx/math/div_ceil.hpp>
 #include <tlx/string/format_si_iec_units.hpp>
 
 #include <algorithm>
@@ -79,8 +80,7 @@ int BenchmarkDisksBlocksizeAlloc(
     // calculate total bytes processed in a batch
     batch_size = raw_block_size * batch_size;
 
-    size_t num_blocks_per_batch = (size_t)common::IntegerDivRoundUp<uint64_t>(
-        batch_size, raw_block_size);
+    size_t num_blocks_per_batch = (size_t)tlx::div_ceil(batch_size, raw_block_size);
     batch_size = num_blocks_per_batch * raw_block_size;
 
     TypedBlock* buffer = reinterpret_cast<TypedBlock*>(
@@ -113,7 +113,7 @@ int BenchmarkDisksBlocksizeAlloc(
             const uint64_t current_batch_size_int = current_batch_size / sizeof(int);
 #endif
             const size_t current_num_blocks_per_batch =
-                (size_t)common::IntegerDivRoundUp<uint64_t>(current_batch_size, raw_block_size);
+                (size_t)tlx::div_ceil(current_batch_size, raw_block_size);
 
             size_t num_total_blocks = bids.size();
             bids.resize(num_total_blocks + current_num_blocks_per_batch);

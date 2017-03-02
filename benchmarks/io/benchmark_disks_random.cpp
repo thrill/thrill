@@ -20,6 +20,7 @@
 #include <thrill/io/typed_block.hpp>
 #include <thrill/mem/aligned_allocator.hpp>
 #include <tlx/cmdline_parser.hpp>
+#include <tlx/math/div_ceil.hpp>
 #include <tlx/string/format_si_iec_units.hpp>
 
 #include <algorithm>
@@ -55,10 +56,8 @@ void RunTest(int64_t span, int64_t worksize,
     using TypedBlock = io::TypedBlock<raw_block_size, unsigned>;
     using BID = io::BID<0>;
 
-    size_t num_blocks =
-        (size_t)common::IntegerDivRoundUp<int64_t>(worksize, raw_block_size);
-    size_t num_blocks_in_span =
-        (size_t)common::IntegerDivRoundUp<int64_t>(span, raw_block_size);
+    size_t num_blocks = (size_t)tlx::div_ceil(worksize, raw_block_size);
+    size_t num_blocks_in_span = (size_t)tlx::div_ceil(span, raw_block_size);
 
     num_blocks = std::min(num_blocks, num_blocks_in_span);
     if (num_blocks == 0) num_blocks = num_blocks_in_span;

@@ -20,6 +20,7 @@
 #include <thrill/io/request_operations.hpp>
 #include <thrill/mem/aligned_allocator.hpp>
 #include <tlx/cmdline_parser.hpp>
+#include <tlx/math/div_ceil.hpp>
 
 #include <algorithm>
 #include <cstring>
@@ -238,7 +239,7 @@ int main(int argc, char* argv[]) {
             const uint64_t current_step_size = (length == 0) ? int64_t(step_size) : std::min<int64_t>(step_size, endpos - offset);
             const uint64_t current_step_size_int = current_step_size / sizeof(int);
             const size_t current_num_blocks =
-                (size_t)common::IntegerDivRoundUp<uint64_t>(current_step_size, block_size);
+                (size_t)tlx::div_ceil(current_step_size, block_size);
 
             std::cout << "File offset    " << std::setw(8) << offset / MB << " MiB: " << std::fixed;
 

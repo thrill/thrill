@@ -23,82 +23,6 @@ namespace common {
 
 /******************************************************************************/
 
-//! calculate the log2 floor of an integer type (by repeated bit shifts)
-template <typename IntegerType>
-static inline unsigned int IntegerLog2Floor(IntegerType i) {
-    unsigned int p = 0;
-    while (i >= 256) i >>= 8, p += 8;
-    while (i >>= 1) ++p;
-    return p;
-}
-
-//! calculate the log2 ceiling of an integer type (by repeated bit shifts)
-template <typename IntegerType>
-static inline unsigned int IntegerLog2Ceil(const IntegerType& i) {
-    if (i <= 1) return 0;
-    return IntegerLog2Floor(i - 1) + 1;
-}
-
-//! does what it says.
-template <typename Integral>
-static inline Integral RoundUpToPowerOfTwo(Integral n) {
-    --n;
-    for (size_t k = 1; k != 8 * sizeof(n); k <<= 1) {
-        n |= n >> k;
-    }
-    ++n;
-    return n;
-}
-
-//! does what it says.
-template <typename Integral>
-static inline Integral RoundDownToPowerOfTwo(Integral n) {
-    return RoundUpToPowerOfTwo(n + 1) >> 1;
-}
-
-//! does what it says.
-static inline bool IsPowerOfTwo(size_t i) {
-    if (i <= 0) return false;
-    return !(i & (i - 1));
-}
-
-#if defined(__GNUC__) || defined(__clang__)
-//! ffs (find first set bit)
-static inline size_t ffs(const int& x) {
-    return __builtin_ffs(x);
-}
-//! ffs (find first set bit)
-static inline size_t ffs(const unsigned& x) {
-    return __builtin_ffs(x);
-}
-//! ffs (find first set bit)
-static inline size_t ffs(const long& x) {
-    return __builtin_ffsl(x);
-}
-//! ffs (find first set bit)
-static inline size_t ffs(const unsigned long& x) {
-    return __builtin_ffsl(x);
-}
-//! ffs (find first set bit)
-static inline size_t ffs(const long long& x) {
-    return __builtin_ffsl(x);
-}
-//! ffs (find first set bit)
-static inline size_t ffs(const unsigned long long& x) {
-    return __builtin_ffsl(x);
-}
-#else
-//! ffs (find first set bit) - generic implementation
-template <typename Integral>
-static inline size_t ffs(Integral x) {
-    if (x == 0) return x;
-    size_t r = 1;
-    while ((x & 1) == 0)
-        x >>= 1, ++r;
-    return r;
-}
-#endif
-
 //! absolute difference, which also works for unsigned types
 template <typename T>
 T abs_diff(const T& a, const T& b) {
@@ -114,14 +38,6 @@ IntegerType AddTruncToType(const IntegerType& a, const IntegerType& b) {
     if (s >= (size_t(1) << bits))
         s = (size_t(1) << bits) - 1;
     return static_cast<IntegerType>(s);
-}
-
-/******************************************************************************/
-
-//! calculate n div k with rounding up
-template <typename IntegerType>
-static inline IntegerType IntegerDivRoundUp(const IntegerType& n, const IntegerType& k) {
-    return (n + k - 1) / k;
 }
 
 /******************************************************************************/

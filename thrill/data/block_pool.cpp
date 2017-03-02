@@ -19,6 +19,7 @@
 #include <thrill/mem/pool.hpp>
 
 #include <tlx/lru_cache.hpp>
+#include <tlx/math/is_power_of_two.hpp>
 #include <tlx/string/join_generic.hpp>
 
 #include <algorithm>
@@ -472,7 +473,7 @@ BlockPool::AllocateByteBlock(size_t size, size_t local_worker_id) {
     assert(local_worker_id < workers_per_host_);
     std::unique_lock<std::mutex> lock(mutex_);
 
-    if (!(size % THRILL_DEFAULT_ALIGN == 0 && common::IsPowerOfTwo(size))
+    if (!(size % THRILL_DEFAULT_ALIGN == 0 && tlx::is_power_of_two(size))
         // make exception to block_size constraint for test programs, which use
         // irregular block sizes to check all corner cases
         && d_->hard_ram_limit_ != 0) {
