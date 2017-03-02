@@ -12,7 +12,7 @@
 #ifndef THRILL_BENCHMARKS_DATA_DATA_GENERATORS_HEADER
 #define THRILL_BENCHMARKS_DATA_DATA_GENERATORS_HEADER
 
-#include <thrill/common/functional.hpp>
+#include <tlx/meta/index_sequence.hpp>
 
 #include <algorithm>
 #include <limits>
@@ -105,7 +105,7 @@ struct TupleGenerator<0, Types ...>{
 
 template <size_t ... Is, typename ... Types>
 auto TupleGeneratorNext(std::tuple<Generator<Types>...>& t,
-                        common::index_sequence<Is ...>) {
+                        tlx::index_sequence<Is ...>) {
     return std::make_tuple(std::get<Is>(t).Next() ...);
 }
 
@@ -122,7 +122,7 @@ public:
 
     std::tuple<Types ...> Next() {
         const size_t Size = sizeof ... (Types);
-        return TupleGeneratorNext(gen_, common::make_index_sequence<Size>{ });
+        return TupleGeneratorNext(gen_, tlx::make_index_sequence<Size>{ });
     }
 
     size_t TotalBytes() const {

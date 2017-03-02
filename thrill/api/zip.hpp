@@ -20,9 +20,12 @@
 #include <thrill/api/dop_node.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/meta.hpp>
 #include <thrill/common/string.hpp>
 #include <thrill/data/file.hpp>
+#include <tlx/meta/apply_tuple.hpp>
+#include <tlx/meta/call_for_range.hpp>
+#include <tlx/meta/call_foreach_with_index.hpp>
+#include <tlx/meta/vmap_for_range.hpp>
 
 #include <algorithm>
 #include <array>
@@ -110,7 +113,7 @@ public:
             files_.emplace_back(context_.GetFile(this));
 
         // Hook PreOp(s)
-        common::VariadicCallForeachIndex(
+        tlx::call_foreach_with_index(
             RegisterParent(this), parent0, parents ...);
     }
 
@@ -156,8 +159,8 @@ public:
                 ReaderNext<data::File::Reader> reader_next(*this, readers);
 
                 while (reader_next.HasNext()) {
-                    auto v = common::VariadicMapEnumerate<kNumInputs>(reader_next);
-                    this->PushItem(common::ApplyTuple(zip_function_, v));
+                    auto v = tlx::vmap_for_range<kNumInputs>(reader_next);
+                    this->PushItem(tlx::apply_tuple(zip_function_, v));
                     ++result_count;
                 }
             }
@@ -170,8 +173,8 @@ public:
                 ReaderNext<data::CatStream::CatReader> reader_next(*this, readers);
 
                 while (reader_next.HasNext()) {
-                    auto v = common::VariadicMapEnumerate<kNumInputs>(reader_next);
-                    this->PushItem(common::ApplyTuple(zip_function_, v));
+                    auto v = tlx::vmap_for_range<kNumInputs>(reader_next);
+                    this->PushItem(tlx::apply_tuple(zip_function_, v));
                     ++result_count;
                 }
             }
@@ -341,7 +344,7 @@ private:
         if (result_size_ == 0) return;
 
         // perform scatters to exchange data, with different types.
-        common::VariadicCallEnumerate<kNumInputs>(
+        tlx::call_for_range<kNumInputs>(
             [=](auto index) {
                 (void)index;
                 this->DoScatter<decltype(index)::index>();

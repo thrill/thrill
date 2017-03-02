@@ -20,10 +20,10 @@
 #include <thrill/api/dop_node.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/meta.hpp>
 #include <thrill/common/porting.hpp>
 #include <thrill/core/reduce_by_hash_post_phase.hpp>
 #include <thrill/core/reduce_pre_phase.hpp>
+#include <tlx/meta/is_std_pair.hpp>
 
 #include <functional>
 #include <thread>
@@ -412,7 +412,7 @@ auto DIA<ValueType, Stack>::ReducePair(
     using DOpResult
               = typename common::FunctionTraits<ReduceFunction>::result_type;
 
-    static_assert(common::is_std_pair<ValueType>::value,
+    static_assert(tlx::is_std_pair<ValueType>::value,
                   "ValueType is not a pair");
 
     static_assert(

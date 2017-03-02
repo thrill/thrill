@@ -14,6 +14,7 @@
 
 #include <thrill/api/dia.hpp>
 #include <thrill/api/dia_node.hpp>
+#include <tlx/meta/call_foreach_with_index.hpp>
 
 #include <algorithm>
 #include <initializer_list>
@@ -91,7 +92,7 @@ public:
                 { parent0.node(), parents.node() ... }),
           num_inputs_(1 + sizeof ... (ParentDIAs))
     {
-        common::VariadicCallForeachIndex(
+        tlx::call_foreach_with_index(
             RegisterParent(this), parent0, parents ...);
     }
 

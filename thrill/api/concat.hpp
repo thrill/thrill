@@ -18,6 +18,7 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/common/string.hpp>
 #include <thrill/data/file.hpp>
+#include <tlx/meta/call_foreach_with_index.hpp>
 
 #include <algorithm>
 #include <initializer_list>
@@ -62,7 +63,7 @@ public:
         for (size_t i = 0; i < num_inputs_; ++i)
             writers_.emplace_back(files_[i].GetWriter());
 
-        common::VariadicCallForeachIndex(
+        tlx::call_foreach_with_index(
             RegisterParent(this), parent0, parents ...);
     }
 

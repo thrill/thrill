@@ -14,6 +14,7 @@
 
 #include <thrill/common/function_traits.hpp>
 #include <thrill/common/functional.hpp>
+#include <tlx/meta/index_sequence.hpp>
 
 #include <array>
 #include <cassert>
@@ -117,7 +118,7 @@ public:
      */
     auto fold() const {
         const size_t Size = sizeof ... (Lambdas);
-        return EmitSequence(common::make_index_sequence<Size>{ });
+        return EmitSequence(tlx::make_index_sequence<Size>{ });
     }
 
     //! Is true if the FunctionStack is empty.
@@ -134,7 +135,7 @@ private:
      * \return Single "folded" lambda function representing the chain.
      */
     template <size_t ... Is>
-    auto EmitSequence(common::index_sequence<Is ...>) const {
+    auto EmitSequence(tlx::index_sequence<Is ...>) const {
         return RunEmitter(std::get<Is>(stack_) ...);
     }
 };

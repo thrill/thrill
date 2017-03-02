@@ -19,13 +19,13 @@
 #include <thrill/api/dop_node.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/meta.hpp>
 #include <thrill/common/stats_counter.hpp>
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/common/string.hpp>
 #include <thrill/core/multiway_merge.hpp>
 #include <thrill/data/dyn_block_reader.hpp>
 #include <thrill/data/file.hpp>
+#include <tlx/meta/call_foreach_with_index.hpp>
 
 #include <algorithm>
 #include <array>
@@ -104,7 +104,7 @@ public:
         for (size_t i = 0; i < kNumInputs; ++i)
             writers_[i] = files_[i]->GetWriter();
 
-        common::VariadicCallForeachIndex(
+        tlx::call_foreach_with_index(
             RegisterParent(this), parent0, parents ...);
     }
 

@@ -13,7 +13,7 @@
 #define THRILL_DATA_SERIALIZATION_HEADER
 
 #include <thrill/common/functional.hpp>
-#include <thrill/common/meta.hpp>
+#include <tlx/meta/has_member.hpp>
 
 #include <array>
 #include <string>
@@ -230,12 +230,12 @@ struct Serialization<Archive, std::array<T, N>,
 
 /******************* Serialization via Class Methods **************************/
 
-THRILL_MAKE_METHOD_TEST(thrill_is_fixed_size)
+TLX_MAKE_MEMBER_TEST(thrill_is_fixed_size)
 
 template <typename Archive, typename T>
 struct Serialization<Archive, T,
                      typename std::enable_if<
-                         has_method_thrill_is_fixed_size<T>::value
+                         has_member_thrill_is_fixed_size<T>::value
                          >::type
                      >{
     static void Serialize(const T& x, Archive& ar) {

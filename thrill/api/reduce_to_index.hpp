@@ -20,7 +20,6 @@
 #include <thrill/api/dop_node.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/meta.hpp>
 #include <thrill/common/porting.hpp>
 #include <thrill/core/reduce_by_index_post_phase.hpp>
 #include <thrill/core/reduce_pre_phase.hpp>
