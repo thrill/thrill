@@ -23,6 +23,9 @@
 #include <thrill/common/string.hpp>
 #include <thrill/data/file.hpp>
 #include <tlx/meta/apply_tuple.hpp>
+#include <tlx/meta/call_for_range.hpp>
+#include <tlx/meta/call_foreach_with_index.hpp>
+#include <tlx/meta/vmap_for_range.hpp>
 
 #include <algorithm>
 #include <array>
