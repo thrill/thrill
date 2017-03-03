@@ -28,7 +28,7 @@ namespace thrill {
 namespace mem {
 
 template <typename Type>
-class Allocator : public AllocatorBase<Type>
+class Allocator : public tlx::AllocatorBase<Type>
 {
     static constexpr bool debug = false;
 

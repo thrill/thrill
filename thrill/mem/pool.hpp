@@ -169,7 +169,7 @@ Pool& GPool();
 // PoolAllocator - an allocator to draw objects from a Pool.
 
 template <typename Type>
-class PoolAllocator : public AllocatorBase<Type>
+class PoolAllocator : public tlx::AllocatorBase<Type>
 {
 public:
     using value_type = Type;
@@ -241,7 +241,7 @@ public:
 // FixedPoolAllocator - an allocator to draw objects from a fixed Pool.
 
 template <typename Type, Pool& (* pool_)()>
-class FixedPoolAllocator : public AllocatorBase<Type>
+class FixedPoolAllocator : public tlx::AllocatorBase<Type>
 {
 public:
     using value_type = Type;
