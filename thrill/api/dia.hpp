@@ -20,9 +20,9 @@
 #include <thrill/api/action_node.hpp>
 #include <thrill/api/context.hpp>
 #include <thrill/api/dia_node.hpp>
-#include <thrill/api/function_stack.hpp>
 #include <thrill/common/function_traits.hpp>
 #include <thrill/common/functional.hpp>
+#include <tlx/meta/function_stack.hpp>
 
 #include <cassert>
 #include <functional>
@@ -128,7 +128,8 @@ const struct LocationDetectionFlag<false> NoLocationDetectionTag;
  * \tparam ValueType Type of elements currently in this DIA.
  * \tparam Stack Type of the function chain.
  */
-template <typename ValueType_, typename Stack_ = FunctionStack<ValueType_> >
+template <typename ValueType_,
+          typename Stack_ = tlx::FunctionStack<ValueType_> >
 class DIA
 {
     friend class Context;
@@ -208,7 +209,7 @@ public:
      * DIANode, LOps link to the DIANode of the previous DIA.
       */
     explicit DIA(DIANodePtr&& node)
-        : DIA(std::move(node), FunctionStack<ValueType>(),
+        : DIA(std::move(node), tlx::FunctionStack<ValueType>(),
               node->id(), node->label()) { }
 
     /*!
