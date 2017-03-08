@@ -57,7 +57,7 @@ public:
     //! Get object with given id, if it does not exist, create it.
     //! \param object_id of the object
     //! \param construction parameters forwards to constructor
-    template <typename Subclass = Object, typename ... Types>
+    template <typename Subclass = Object, typename... Types>
     tlx::CountingPtr<Subclass>
     GetOrCreate(Id object_id, Types&& ... construction) {
         auto it = map_.find(object_id);

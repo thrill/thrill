@@ -96,7 +96,7 @@ public:
 
     //! Allocate and construct a single item of given Type using memory from the
     //! Pool.
-    template <typename Type, typename ... Args>
+    template <typename Type, typename... Args>
     Type * make(Args&& ... args) {
         Type* t = reinterpret_cast<Type*>(allocate(sizeof(Type)));
         ::new (t)Type(std::forward<Args>(args) ...);
@@ -323,7 +323,7 @@ template <typename T>
 using safe_unique_ptr = std::unique_ptr<T, GPoolDeleter<T> >;
 
 //! make_unique with Manager tracking
-template <typename T, typename ... Args>
+template <typename T, typename... Args>
 safe_unique_ptr<T> safe_make_unique(Args&& ... args) {
     return safe_unique_ptr<T>(
         GPool().make<T>(std::forward<Args>(args) ...));

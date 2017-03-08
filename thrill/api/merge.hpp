@@ -85,7 +85,7 @@ class MergeNode : public DOpNode<ValueType>
     static_assert(kNumInputs >= 2, "Merge requires at least two inputs.");
 
 public:
-    template <typename ParentDIA0, typename ... ParentDIAs>
+    template <typename ParentDIA0, typename... ParentDIAs>
     MergeNode(const Comparator& comparator,
               const ParentDIA0& parent0, const ParentDIAs& ... parents)
         : Super(parent0.ctx(), "Merge",
@@ -106,7 +106,7 @@ public:
             writers_[i] = files_[i]->GetWriter();
 
         tlx::call_foreach_with_index(
-            RegisterParent(this), parent0, parents ...);
+            RegisterParent(this), parent0, parents...);
     }
 
     //! Register Parent PreOp Hooks, instantiated and called for each Merge
@@ -683,7 +683,7 @@ private:
  *
  * \ingroup dia_dops
  */
-template <typename Comparator, typename FirstDIA, typename ... DIAs>
+template <typename Comparator, typename FirstDIA, typename... DIAs>
 auto Merge(const Comparator& comparator,
            const FirstDIA& first_dia, const DIAs& ... dias) {
 
@@ -721,7 +721,7 @@ auto Merge(const Comparator& comparator,
         "Comparator must return bool");
 
     auto merge_node =
-        tlx::make_counting<MergeNode>(comparator, first_dia, dias ...);
+        tlx::make_counting<MergeNode>(comparator, first_dia, dias...);
 
     return DIA<ValueType>(merge_node);
 }

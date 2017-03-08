@@ -25,7 +25,7 @@
 
 using namespace thrill;
 
-template <typename InputA, typename ... MoreInputs>
+template <typename InputA, typename... MoreInputs>
 void DoMergeAndCheckResult(
     const std::vector<size_t>& expected,
     const InputA& merge_input1, const MoreInputs& ... merge_inputs) {
@@ -34,7 +34,7 @@ void DoMergeAndCheckResult(
 
     // merge
     auto merge_result = Merge(
-        std::less<size_t>(), merge_input1, merge_inputs ...);
+        std::less<size_t>(), merge_input1, merge_inputs...);
 
     // crude method to calculate the number of local items
     size_t count = 0;

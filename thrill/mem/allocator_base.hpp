@@ -151,7 +151,7 @@ template <typename Type>
 using BypassAllocator = FixedAllocator<Type, g_bypass_manager>;
 
 //! operator new with our Allocator
-template <typename T, typename ... Args>
+template <typename T, typename... Args>
 T * by_new(Args&& ... args) {
     BypassAllocator<T> allocator;
     T* value = allocator.allocate(1);

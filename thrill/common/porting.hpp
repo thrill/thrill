@@ -38,7 +38,7 @@ void MakePipe(int out_pipefds[2]);
 void LogCmdlineParams(JsonLogger& logger);
 
 //! create a std::thread and repeat creation if it fails
-template <typename ... Args>
+template <typename... Args>
 std::thread CreateThread(Args&& ... args) {
     // try for 300 seconds
     size_t r = 3000;

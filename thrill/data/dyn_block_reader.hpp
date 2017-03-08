@@ -107,7 +107,7 @@ private:
  * variadic parameters are passed to the constructor of the existing
  * BlockSource.
  */
-template <typename BlockSource, typename ... Params>
+template <typename BlockSource, typename... Params>
 DynBlockSource ConstructDynBlockSource(Params&& ... params) {
     return DynBlockSource(
         tlx::make_counting<DynBlockSourceAdapter<BlockSource> >(
@@ -119,7 +119,7 @@ DynBlockSource ConstructDynBlockSource(Params&& ... params) {
  * variadic parameters are passed to the constructor of the existing
  * BlockSource.
  */
-template <typename BlockSource, typename ... Params>
+template <typename BlockSource, typename... Params>
 DynBlockReader ConstructDynBlockReader(Params&& ... params) {
     return DynBlockReader(
         ConstructDynBlockSource<BlockSource>(std::forward<Params>(params) ...));

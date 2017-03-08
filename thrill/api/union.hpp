@@ -85,7 +85,7 @@ public:
 
     //! Constructor for variant with variadic parent parameter pack, which each
     //! parent may have a different FunctionStack.
-    template <typename ParentDIA0, typename ... ParentDIAs>
+    template <typename ParentDIA0, typename... ParentDIAs>
     explicit UnionNode(const ParentDIA0& parent0,
                        const ParentDIAs& ... parents)
         : Super(parent0.ctx(), "Union",
@@ -94,7 +94,7 @@ public:
           num_inputs_(1 + sizeof ... (ParentDIAs))
     {
         tlx::call_foreach_with_index(
-            RegisterParent(this), parent0, parents ...);
+            RegisterParent(this), parent0, parents...);
     }
 
     //! Constructor for variant with a std::vector of parents all with the same
@@ -316,7 +316,7 @@ private:
  *
  * \ingroup dia_lops
  */
-template <typename FirstDIA, typename ... DIAs>
+template <typename FirstDIA, typename... DIAs>
 auto Union(const FirstDIA& first_dia, const DIAs& ... dias) {
 
     tlx::vexpand((first_dia.AssertValid(), 0), (dias.AssertValid(), 0) ...);
@@ -325,7 +325,7 @@ auto Union(const FirstDIA& first_dia, const DIAs& ... dias) {
 
     using UnionNode = api::UnionNode<ValueType>;
 
-    return DIA<ValueType>(tlx::make_counting<UnionNode>(first_dia, dias ...));
+    return DIA<ValueType>(tlx::make_counting<UnionNode>(first_dia, dias...));
 }
 
 /*!

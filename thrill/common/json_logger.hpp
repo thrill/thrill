@@ -80,7 +80,7 @@ public:
 
     //! open JsonLogger with a super logger and some additional common key:value
     //! pairs
-    template <typename ... Args>
+    template <typename... Args>
     explicit JsonLogger(JsonLogger* super, const Args& ... args);
 
     //! create new JsonLine instance which will be written to this logger.
@@ -412,7 +412,7 @@ inline JsonLine& JsonLine::operator << (Type const& t) {
 /******************************************************************************/
 // JsonLogger
 
-template <typename ... Args>
+template <typename... Args>
 JsonLogger::JsonLogger(JsonLogger* super, const Args& ... args)
     : JsonLogger(super) {
 

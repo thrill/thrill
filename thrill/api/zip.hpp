@@ -94,7 +94,7 @@ public:
     /*!
      * Constructor for a ZipNode.
      */
-    template <typename ParentDIA0, typename ... ParentDIAs>
+    template <typename ParentDIA0, typename... ParentDIAs>
     ZipNode(const ZipFunction& zip_function, const ZipArgsTuple& padding,
             const ParentDIA0& parent0, const ParentDIAs& ... parents)
         : Super(parent0.ctx(), "Zip",
@@ -115,7 +115,7 @@ public:
 
         // Hook PreOp(s)
         tlx::call_foreach_with_index(
-            RegisterParent(this), parent0, parents ...);
+            RegisterParent(this), parent0, parents...);
     }
 
     void StartPreOp(size_t parent_index) final {
@@ -420,7 +420,7 @@ private:
  * \ingroup dia_dops
  */
 template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
-          typename ... DIAs>
+          typename... DIAs>
 auto Zip(const ZipFunction& zip_function,
          const DIA<FirstDIAType, FirstDIAStack>& first_dia,
          const DIAs& ... dias) {
@@ -446,7 +446,7 @@ auto Zip(const ZipFunction& zip_function,
               1 + sizeof ... (DIAs)>;
 
     auto node = tlx::make_counting<ZipNode>(
-        zip_function, ZipArgsTuple(), first_dia, dias ...);
+        zip_function, ZipArgsTuple(), first_dia, dias...);
 
     return DIA<ZipResult>(node);
 }
@@ -473,7 +473,7 @@ auto Zip(const ZipFunction& zip_function,
  * \ingroup dia_dops
  */
 template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
-          typename ... DIAs>
+          typename... DIAs>
 auto Zip(struct CutTag,
          const ZipFunction& zip_function,
          const DIA<FirstDIAType, FirstDIAStack>& first_dia,
@@ -500,7 +500,7 @@ auto Zip(struct CutTag,
               1 + sizeof ... (DIAs)>;
 
     auto node = tlx::make_counting<ZipNode>(
-        zip_function, ZipArgsTuple(), first_dia, dias ...);
+        zip_function, ZipArgsTuple(), first_dia, dias...);
 
     return DIA<ZipResult>(node);
 }
@@ -527,7 +527,7 @@ auto Zip(struct CutTag,
  * \ingroup dia_dops
  */
 template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
-          typename ... DIAs>
+          typename... DIAs>
 auto Zip(struct PadTag,
          const ZipFunction& zip_function,
          const DIA<FirstDIAType, FirstDIAStack>& first_dia,
@@ -554,7 +554,7 @@ auto Zip(struct PadTag,
               1 + sizeof ... (DIAs)>;
 
     auto node = tlx::make_counting<ZipNode>(
-        zip_function, ZipArgsTuple(), first_dia, dias ...);
+        zip_function, ZipArgsTuple(), first_dia, dias...);
 
     return DIA<ZipResult>(node);
 }
@@ -584,7 +584,7 @@ auto Zip(struct PadTag,
  * \ingroup dia_dops
  */
 template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
-          typename ... DIAs>
+          typename... DIAs>
 auto Zip(
     struct PadTag,
     const ZipFunction& zip_function,
@@ -610,7 +610,7 @@ auto Zip(
               1 + sizeof ... (DIAs)>;
 
     auto node = tlx::make_counting<ZipNode>(
-        zip_function, padding, first_dia, dias ...);
+        zip_function, padding, first_dia, dias...);
 
     return DIA<ZipResult>(node);
 }
@@ -638,7 +638,7 @@ auto Zip(
  * \ingroup dia_dops
  */
 template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
-          typename ... DIAs>
+          typename... DIAs>
 auto Zip(
     struct NoRebalanceTag,
     const ZipFunction& zip_function,
@@ -666,7 +666,7 @@ auto Zip(
               1 + sizeof ... (DIAs)>;
 
     auto node = tlx::make_counting<ZipNode>(
-        zip_function, ZipArgsTuple(), first_dia, dias ...);
+        zip_function, ZipArgsTuple(), first_dia, dias...);
 
     return DIA<ZipResult>(node);
 }
