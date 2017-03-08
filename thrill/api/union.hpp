@@ -15,6 +15,7 @@
 #include <thrill/api/dia.hpp>
 #include <thrill/api/dia_node.hpp>
 #include <tlx/meta/call_foreach_with_index.hpp>
+#include <tlx/meta/vexpand.hpp>
 
 #include <algorithm>
 #include <initializer_list>
@@ -318,12 +319,7 @@ private:
 template <typename FirstDIA, typename ... DIAs>
 auto Union(const FirstDIA& first_dia, const DIAs& ... dias) {
 
-    using VarForeachExpander = int[];
-
-    first_dia.AssertValid();
-    (void)VarForeachExpander {
-        (dias.AssertValid(), 0) ...
-    };
+    tlx::vexpand((first_dia.AssertValid(), 0), (dias.AssertValid(), 0) ...);
 
     using ValueType = typename FirstDIA::ValueType;
 

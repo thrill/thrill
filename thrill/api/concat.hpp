@@ -19,6 +19,7 @@
 #include <thrill/common/string.hpp>
 #include <thrill/data/file.hpp>
 #include <tlx/meta/call_foreach_with_index.hpp>
+#include <tlx/meta/vexpand.hpp>
 
 #include <algorithm>
 #include <initializer_list>
@@ -330,12 +331,7 @@ private:
 template <typename FirstDIA, typename ... DIAs>
 auto Concat(const FirstDIA& first_dia, const DIAs& ... dias) {
 
-    using VarForeachExpander = int[];
-
-    first_dia.AssertValid();
-    (void)VarForeachExpander {
-        (dias.AssertValid(), 0) ...
-    };
+    tlx::vexpand((first_dia.AssertValid(), 0), (dias.AssertValid(), 0) ...);
 
     using ValueType = typename FirstDIA::ValueType;
 

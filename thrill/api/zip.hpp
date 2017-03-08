@@ -25,6 +25,7 @@
 #include <tlx/meta/apply_tuple.hpp>
 #include <tlx/meta/call_for_range.hpp>
 #include <tlx/meta/call_foreach_with_index.hpp>
+#include <tlx/meta/vexpand.hpp>
 #include <tlx/meta/vmap_for_range.hpp>
 
 #include <algorithm>
@@ -424,12 +425,7 @@ auto Zip(const ZipFunction& zip_function,
          const DIA<FirstDIAType, FirstDIAStack>& first_dia,
          const DIAs& ... dias) {
 
-    using VarForeachExpander = int[];
-
-    first_dia.AssertValid();
-    (void)VarForeachExpander {
-        (dias.AssertValid(), 0) ...
-    };
+    tlx::vexpand((first_dia.AssertValid(), 0), (dias.AssertValid(), 0) ...);
 
     static_assert(
         std::is_convertible<
@@ -483,12 +479,7 @@ auto Zip(struct CutTag,
          const DIA<FirstDIAType, FirstDIAStack>& first_dia,
          const DIAs& ... dias) {
 
-    using VarForeachExpander = int[];
-
-    first_dia.AssertValid();
-    (void)VarForeachExpander {
-        (dias.AssertValid(), 0) ...
-    };
+    tlx::vexpand((first_dia.AssertValid(), 0), (dias.AssertValid(), 0) ...);
 
     static_assert(
         std::is_convertible<
@@ -542,12 +533,7 @@ auto Zip(struct PadTag,
          const DIA<FirstDIAType, FirstDIAStack>& first_dia,
          const DIAs& ... dias) {
 
-    using VarForeachExpander = int[];
-
-    first_dia.AssertValid();
-    (void)VarForeachExpander {
-        (dias.AssertValid(), 0) ...
-    };
+    tlx::vexpand((first_dia.AssertValid(), 0), (dias.AssertValid(), 0) ...);
 
     static_assert(
         std::is_convertible<
@@ -606,12 +592,7 @@ auto Zip(
     const DIA<FirstDIAType, FirstDIAStack>& first_dia,
     const DIAs& ... dias) {
 
-    using VarForeachExpander = int[];
-
-    first_dia.AssertValid();
-    (void)VarForeachExpander {
-        (dias.AssertValid(), 0) ...
-    };
+    tlx::vexpand((first_dia.AssertValid(), 0), (dias.AssertValid(), 0) ...);
 
     static_assert(
         std::is_convertible<
@@ -664,12 +645,7 @@ auto Zip(
     const DIA<FirstDIAType, FirstDIAStack>& first_dia,
     const DIAs& ... dias) {
 
-    using VarForeachExpander = int[];
-
-    first_dia.AssertValid();
-    (void)VarForeachExpander {
-        (dias.AssertValid(), 0) ...
-    };
+    tlx::vexpand((first_dia.AssertValid(), 0), (dias.AssertValid(), 0) ...);
 
     static_assert(
         std::is_convertible<

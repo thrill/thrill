@@ -14,6 +14,8 @@
 #ifndef THRILL_COMMON_JSON_LOGGER_HEADER
 #define THRILL_COMMON_JSON_LOGGER_HEADER
 
+#include <tlx/meta/vexpand.hpp>
+
 #include <array>
 #include <cassert>
 #include <fstream>
@@ -418,10 +420,7 @@ JsonLogger::JsonLogger(JsonLogger* super, const Args& ... args)
     {
         // use JsonLine writer without a Logger to generate a valid string.
         JsonLine json(nullptr, oss);
-        using ForeachExpander = int[];
-        (void)ForeachExpander {
-            (json << (args), 0) ...
-        };
+        tlx::vexpand((json << (args), 0) ...);
     }
     common_ = JsonVerbatim(oss.str());
 }
