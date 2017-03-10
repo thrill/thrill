@@ -345,8 +345,9 @@ void Group::AllReduceHypercube(T& value, BinarySumOp sum_op) {
     // For each dimension of the hypercube, exchange data between workers with
     // different bits at position d
 
-    // static constexpr bool debug = false;
-
+    //static constexpr bool debug = true;
+    processHost(my_host_rank(), 1, num_hosts(), &value, sum_op, 0);
+    /*
     for (size_t d = 1; d < num_hosts(); d <<= 1) {
         // communication peer for this round (hypercube dimension)
         size_t peer = my_host_rank() ^ d;
@@ -371,8 +372,7 @@ void Group::AllReduceHypercube(T& value, BinarySumOp sum_op) {
             //      << " from worker " << peer << " value = " << value;
         }
     }
-
-    // sLOG << "ALL_REDUCE_HYPERCUBE: value after all reduce " << value;
+    */
 }
 
 //! select allreduce implementation (often due to total number of processors)

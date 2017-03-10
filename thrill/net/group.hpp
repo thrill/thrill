@@ -93,6 +93,103 @@ public:
         return common::CalcOneFactorPeer(round, my_host_rank(), num_hosts());
     }
 
+    template <typename T, typename BinarySumOp = std::plus<T> >
+    T executeSendReceive(size_t peer, T value, BinarySumOp sum_op){
+        T recv_data;
+	//bool debug = false;
+        //sLOG << "ALL_REDUCE_HYPERCUBE: Host" << hostId
+        //     << ": SendReceive " << value << "to worker" << peer;
+        connection(peer).SendReceive(value, &recv_data);
+        if (my_host_rank() > peer)
+            return sum_op(recv_data, value);
+        else
+            return sum_op(value, recv_data);
+    }
+
+    template <typename T, typename BinarySumOp = std::plus<T> >
+    T executeReceive(size_t peer, T value, BinarySumOp sum_op){
+        T recv_data;
+	//bool debug = false;
+        //sLOG << "ALL_REDUCE_HYPERCUBE: Host" << hostId
+        //     << ": Receive " << value << "from worker" << peer;
+        connection(peer).Receive(&recv_data);
+        if (my_host_rank() > peer)
+            return sum_op(recv_data, value);
+        else
+            return sum_op(value, recv_data);
+    }
+
+    template <typename T, typename BinarySumOp = std::plus<T> >
+    void executeSend(size_t peer, T value){
+	//bool debug = false;
+        //sLOG << "ALL_REDUCE_HYPERCUBE: Host" << hostId
+        //     << ": Sending " << value << "to worker" << peer;
+        connection(peer).Send(value);
+    }
+
+    template <typename T, typename BinarySumOp = std::plus<T> >
+    void processHost(size_t hostId, size_t groupsSize, size_t remainingHostsCount, T *value, BinarySumOp sum_op, size_t sendTo = 0){
+	//bool debug = false;
+        // sendTo == 0 => no eliminated host waiting to receive fromm current host, host 0 is never eliminated
+
+        size_t groupsCount = remainingHostsCount/groupsSize;
+        if (groupsCount % 2 == 0){
+            // only hypercube
+            size_t peer = hostId ^ groupsSize;
+            if (peer < remainingHostsCount) {
+                *value = executeSendReceive(peer, *value, sum_op);
+            }
+        }else{
+            // check if my rank is in 3-2 elimination zone
+            size_t hostGroup = hostId/groupsSize;
+            if (hostGroup >=  groupsCount - 3){
+                // take part in the elimination
+                if (hostGroup == groupsCount - 1) {
+                    size_t peer = (hostId ^ groupsSize) - 2*groupsSize;
+
+                    executeSend(peer, *value);
+
+                    //sLOG << "ALL_REDUCE_HYPERCUBE: Host" << hostId
+                    //     << ": Receive " << value << "from worker" << peer;
+                    T recv_data;
+                    connection(peer).Receive(&recv_data);
+                    *value = recv_data;
+
+                } else if (hostGroup == groupsCount - 2) {
+                    size_t peer = (hostId ^ groupsSize) + 2*groupsSize;
+
+                    *value = executeReceive(peer, *value, sum_op);
+
+                    // important for Gathering
+                    sendTo = peer;
+
+                    peer = hostId ^ groupsSize;
+                    *value = executeSendReceive(peer, *value, sum_op);
+
+                } else if (hostGroup == groupsCount - 3) {
+                    size_t peer = hostId ^ groupsSize;
+                    *value = executeSendReceive(peer, *value, sum_op);
+                }
+            } else {
+                // no elimination, execute hypercube
+                size_t peer = hostId ^groupsSize;
+                if (peer < remainingHostsCount) {
+                    *value = executeSendReceive(peer, *value, sum_op);
+                }
+            }
+            remainingHostsCount -= groupsSize;
+        }
+        groupsSize <<= 1;
+
+        // Recursion
+        if (groupsSize < remainingHostsCount){
+            processHost(hostId, groupsSize, remainingHostsCount, value, sum_op, sendTo);
+        } else if (sendTo != 0){
+            executeSend(sendTo, *value);
+        }
+
+    }
+
     //! \}
 
     //! \name Convenience Functions
