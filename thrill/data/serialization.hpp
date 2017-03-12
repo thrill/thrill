@@ -230,7 +230,7 @@ struct Serialization<Archive, std::array<T, N>,
 
 /******************* Serialization via Class Methods **************************/
 
-TLX_MAKE_MEMBER_TEST(thrill_is_fixed_size)
+TLX_MAKE_HAS_MEMBER(thrill_is_fixed_size);
 
 template <typename Archive, typename T>
 struct Serialization<Archive, T,
