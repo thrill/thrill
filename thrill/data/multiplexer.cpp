@@ -172,7 +172,7 @@ CatStreamPtr Multiplexer::IntGetOrCreateCatStream(
     CatStreamPtr ptr = set->peer(local_worker_id);
     // update dia_id: the stream may have been created before the DIANode
     // associated with it.
-    if (!ptr->dia_id_)
+    if (ptr->dia_id_ == 0)
         ptr->set_dia_id(dia_id);
     return ptr;
 }
@@ -202,7 +202,7 @@ MixStreamPtr Multiplexer::IntGetOrCreateMixStream(
     MixStreamPtr ptr = set->peer(local_worker_id);
     // update dia_id: the stream may have been created before the DIANode
     // associated with it.
-    if (!ptr->dia_id_)
+    if (ptr->dia_id_ == 0)
         ptr->set_dia_id(dia_id);
     return ptr;
 }

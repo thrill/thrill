@@ -78,7 +78,7 @@ void LogCmdlineParams(JsonLogger& logger) {
         args.emplace_back(arg);
 
     std::string prog;
-    if (args.size() > 0) {
+    if (!args.empty()) {
         prog = args[0];
         std::string::size_type slashpos = prog.rfind('/');
         if (slashpos != std::string::npos)

@@ -26,12 +26,12 @@ namespace common {
     do {                                                     \
         LOG1 << msg << " @ " << __FILE__ << ':' << __LINE__; \
         abort();                                             \
-    } while (0)
+    } while (false)
 
 //! Check condition X and die miserably if false. Same as assert() except this
 //! is also active in Release mode.
 #define die_unless(X) \
-    do { if (!(X)) die("Assertion \"" #X "\" failed"); } while (0)
+    do { if (!(X)) die("Assertion \"" #X "\" failed"); } while (false)
 
 //! Check that X == Y or die miserably, but output the values of X and Y for
 //! better debugging.
@@ -42,7 +42,7 @@ namespace common {
         if (x != y)                                     \
             die("Inequality: " #X " != " #Y " : "       \
                 "\"" << x << "\" != \"" << y << "\"");  \
-    } while (0)
+    } while (false)
 
 //! Check that code throws an Exception
 #define die_unless_throws(code, Exception)                        \
@@ -53,7 +53,7 @@ namespace common {
         die("UNLESS-THROWS: " #code " - NO EXCEPTION " #Exception \
             " @ " __FILE__ ":" << __LINE__);                      \
         abort();                                                  \
-    } while (0)
+    } while (false)
 
 //! Check that X == Y or die miserably, but output the values of X and Y for
 //! better debugging. Only active if NDEBUG is not defined.

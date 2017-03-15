@@ -178,7 +178,7 @@ public:
         die_unless(err == 0);
     }
 
-    ~Hdfs3ReadStream() {
+    ~Hdfs3ReadStream() override {
         close();
     }
 
@@ -238,7 +238,7 @@ public:
     Hdfs3WriteStream(hdfsFS fs, hdfsFile file)
         : fs_(fs), file_(file) { }
 
-    ~Hdfs3WriteStream() {
+    ~Hdfs3WriteStream() override {
         close();
     }
 

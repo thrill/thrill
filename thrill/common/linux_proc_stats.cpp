@@ -390,7 +390,7 @@ void LinuxProcStats::read_stat(JsonLine& out) {
         }
     }
 
-    if (cores_user.size()) {
+    if (!cores_user.empty()) {
         prepare_out(out)
             << "cores_user" << cores_user
             << "cores_nice" << cores_nice

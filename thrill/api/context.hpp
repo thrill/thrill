@@ -98,7 +98,7 @@ public:
 #endif
 
     //! create host log
-    std::string MakeHostLogPath(size_t worker_rank);
+    std::string MakeHostLogPath(size_t host_rank);
 
     //! Returns local_host_id_
     size_t local_host_id() const { return local_host_id_; }
