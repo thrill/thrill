@@ -81,7 +81,8 @@ public:
 
     bool Insert(const TableItem& kv) {
         size_t key = MakeTableItem::GetKey(kv, key_extractor_);
-        size_t local_index = key - range_.begin;
+        size_t offset = key - range_.begin;
+        size_t local_index = range_.size() - offset - 1; // store elements in reverse order
 
         if (key != neutral_element_key_) { // normal index
             if (MakeTableItem::GetKey(items_[local_index], key_extractor_) == key) {
@@ -104,7 +105,7 @@ public:
     }
 
     void PushData(bool consume = false) {
-        Flush(consume);
+        consume ? FlushAndConsume() : Flush();
     }
 
     void Dispose() {
@@ -121,13 +122,16 @@ public:
 
 private:
 
-    void Flush(bool consume = false) {
-        TableItem neutral = MakeTableItem::Make(neutral_element_, key_extractor_);
-        for (size_t index = 0; index < range_.size(); index++) {
-            emitter_.Emit(items_[index]);
-            if (consume) {
-                items_[index] = neutral;
-            }
+    void Flush() {
+        for (auto iterator = items_.rbegin(); iterator != items_.rend(); iterator++) {
+            emitter_.Emit(*iterator);
+        }
+    }
+
+    void FlushAndConsume() {
+        while (!items_.empty()) {
+            emitter_.Emit(items_.back());
+            items_.pop_back();
         }
         neutral_element_index_occupied_ = false;
     }
@@ -147,7 +151,8 @@ private:
     //! Size of the table in bytes
     size_t limit_memory_bytes_ = 0;
 
-    //! Store for items in range of this workers
+    //! Store for items in range of this workers.
+    //! Stored in reverse order so we can consume while emitting.
     std::vector<TableItem> items_;
 
     //! The index where the neutral element would go if acutally inserted
