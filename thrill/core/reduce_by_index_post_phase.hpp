@@ -74,21 +74,32 @@ public:
         limit_memory_bytes_ = limit_memory_bytes;
 
         TableItem neutral = MakeTableItem::Make(neutral_element_, key_extractor_);
+        neutral_element_key_ = MakeTableItem::GetKey(neutral, key_extractor_);
         items_.resize(range_.size(), neutral);
-        occupied_.resize(range_.size(), false);
         // TODO too big for RAM
-        // TODO save occupied when having volatile keys
     }
 
     bool Insert(const TableItem& kv) {
-        size_t index = MakeTableItem::GetKey(kv, key_extractor_) - range_.begin;
-        if (occupied_[index]) {
-            items_[index] = MakeTableItem::Reduce(items_[index], kv, reduce_function_);
-            return false;
-        } else {
-            items_[index] = kv;
-            occupied_[index] = true;
-            return true;
+        size_t key = MakeTableItem::GetKey(kv, key_extractor_);
+        size_t local_index = key - range_.begin;
+
+        if (key != neutral_element_key_) { // normal index
+            if (MakeTableItem::GetKey(items_[local_index], key_extractor_) == key) {
+                items_[local_index] = MakeTableItem::Reduce(items_[local_index], kv, reduce_function_);
+                return false;
+            } else {
+                items_[local_index] = kv;
+                return true;
+            }
+        } else { // special handling for element with neutral index
+            if (neutral_element_index_occupied_) {
+                items_[local_index] = MakeTableItem::Reduce(items_[local_index], kv, reduce_function_);
+                return false;
+            } else {
+                items_[local_index] = kv;
+                neutral_element_index_occupied_ = true;
+                return true;
+            }
         }
     }
 
@@ -98,7 +109,6 @@ public:
 
     void Dispose() {
         std::vector<TableItem>().swap(items_);
-        std::vector<bool>().swap(occupied_);
     }
 
     //! \name Accessors
@@ -117,9 +127,9 @@ private:
             emitter_.Emit(items_[index]);
             if (consume) {
                 items_[index] = neutral;
-                occupied_[index] = false;
             }
         }
+        neutral_element_index_occupied_ = false;
     }
 
     //! Context
@@ -140,9 +150,11 @@ private:
     //! Store for items in range of this workers
     std::vector<TableItem> items_;
 
-    //! Bits to know if items_ already contains something else than the initial
-    //! neutral elemtent at a position
-    std::vector<bool> occupied_;
+    //! The index where the neutral element would go if acutally inserted
+    size_t neutral_element_key_ = 0;
+
+    //! Is there an actual element at the index of the neutral element?
+    bool neutral_element_index_occupied_ = false;
 
     //! Range for post phase on this worker
     common::Range range_;
