@@ -145,14 +145,14 @@ public:
 
             // re-parameterize with resulting key range on this worker - this is
             // only know after Initialize() of the pre_phase_.
-            post_phase_.range() = pre_phase_.key_range(context_.my_rank());
+            post_phase_.SetRange(pre_phase_.key_range(context_.my_rank()));
         }
         else {
             pre_phase_.Initialize(DIABase::mem_limit_ / 2);
 
             // re-parameterize with resulting key range on this worker - this is
             // only know after Initialize() of the pre_phase_.
-            post_phase_.range() = pre_phase_.key_range(context_.my_rank());
+            post_phase_.SetRange(pre_phase_.key_range(context_.my_rank()));
             post_phase_.Initialize(DIABase::mem_limit_ / 2);
 
             // start additional thread to receive from the channel

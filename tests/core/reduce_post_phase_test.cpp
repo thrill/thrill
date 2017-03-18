@@ -176,7 +176,7 @@ static void TestAddMyStructByIndex(Context& ctx) {
     Phase phase(ctx, 0, key_ex, red_fn, emit_fn,
                 typename Phase::ReduceConfig(),
                 /* neutral_element */ MyStruct { 0, 0 });
-    phase.range() = common::Range(0, mod_size);
+    phase.SetRange(common::Range(0, mod_size));
     phase.Initialize(/* limit_memory_bytes */ 64 * 1024);
 
     for (size_t i = 0; i < test_size; ++i) {
@@ -256,7 +256,7 @@ static void TestAddMyStructByIndexWithHoles(Context& ctx) {
     Phase phase(ctx, 0, key_ex, red_fn, emit_fn,
                 typename Phase::ReduceConfig(),
                 /* neutral_element */ MyStruct { 0, 0 });
-    phase.range() = common::Range(0, mod_size);
+    phase.SetRange(common::Range(0, mod_size));
     phase.Initialize(/* limit_memory_bytes */ 64 * 1024);
 
     for (size_t i = 0; i < test_size; ++i) {
