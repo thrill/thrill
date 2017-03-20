@@ -169,8 +169,8 @@ public:
         }
 
         if (context_.consume() && node_->consume_counter() == 0) {
-            sLOG1 << "StageBuilder: attempt to PushData on"
-                  << "stage" << *node_
+            sLOG1 << "StageBuilder: attempt to PushData from"
+                  << "stage" << *node_ << "to" << TargetsString()
                   << "failed, it was already consumed. Add .Keep()";
             abort();
         }
