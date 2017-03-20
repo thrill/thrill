@@ -47,9 +47,9 @@ public:
               TableItem, Value, Emitter, VolatileKey>;
 
     /*!
-     * A data structure which takes an arbitrary value and extracts an index using
-     * a key extractor function from that value. Afterwards, values with the same index
-     * are merged together
+     * A data structure which takes an arbitrary value and extracts an index
+     * using a key extractor function from that value. Afterwards, values with
+     * the same index are merged together
      */
     ReduceByIndexPostPhase(
         Context& ctx,
@@ -73,37 +73,43 @@ public:
         assert(range_.IsValid() || range_.IsEmpty());
         limit_memory_bytes_ = limit_memory_bytes;
 
-        TableItem neutral = MakeTableItem::Make(neutral_element_, key_extractor_);
-        neutral_element_key_ = MakeTableItem::GetKey(neutral, key_extractor_);
+        TableItem neutral =
+            MakeTableItem::Make(neutral_element_, key_extractor_);
+        neutral_element_key_ = key(neutral);
 
         if (range_.size() * sizeof(TableItem) < limit_memory_bytes) {
             // all good, we can store the whole index range
             items_.resize(range_.size(), neutral);
         } else {
             // we have to outsource some subranges
-            size_t num_subranges = 1 + (range_.size() * sizeof(TableItem) / limit_memory_bytes);
-            // we keep the first subrange in memory and only the other ones go into a file
+            size_t num_subranges =
+                1 + (range_.size() * sizeof(TableItem) / limit_memory_bytes);
+            // we keep the first subrange in memory and only the other ones go
+            // into a file
             range_ = full_range_.Partition(0, num_subranges);
-            for (size_t subpartition = 1; subpartition < num_subranges; subpartition++) {
+            for (size_t partition = 1; partition < num_subranges; partition++) {
                 auto file = ctx_.GetFile(dia_id_);
                 auto writer = file.GetWriter();
-                common::Range subrange = full_range_.Partition(subpartition, num_subranges);
-                subrange_files_.push_back(std::make_tuple(subrange, std::move(file), std::move(writer)));
+                common::Range subrange =
+                    full_range_.Partition(partition, num_subranges);
+                subrange_files_.emplace_back(
+                    subrange, std::move(file), std::move(writer));
             }
         }
     }
 
     bool Insert(const TableItem& kv) {
-        size_t key = MakeTableItem::GetKey(kv, key_extractor_);
-        assert(key >= full_range_.begin && key < full_range_.end);
-        size_t offset = key - range_.begin;
+        size_t item_key = key(kv);
+        assert(item_key >= full_range_.begin && item_key < full_range_.end);
+        size_t offset = item_key - range_.begin;
 
-        if (key >= range_.begin && key < range_.end) {
-            size_t local_index = range_.size() - offset - 1; // store elements in reverse order
+        if (item_key >= range_.begin && item_key < range_.end) {
+            // store elements in reverse order
+            size_t local_index = range_.size() - offset - 1;
 
-            if (key != neutral_element_key_) { // normal index
-                if (MakeTableItem::GetKey(items_[local_index], key_extractor_) == key) {
-                    items_[local_index] = MakeTableItem::Reduce(items_[local_index], kv, reduce_function_);
+            if (item_key != neutral_element_key_) { // normal index
+                if (key(items_[local_index]) == item_key) {
+                    items_[local_index] = reduce(items_[local_index], kv);
                     return false;
                 } else {
                     items_[local_index] = kv;
@@ -111,7 +117,7 @@ public:
                 }
             } else { // special handling for element with neutral index
                 if (neutral_element_index_occupied_) {
-                    items_[local_index] = MakeTableItem::Reduce(items_[local_index], kv, reduce_function_);
+                    items_[local_index] = reduce(items_[local_index], kv);
                     return false;
                 } else {
                     items_[local_index] = kv;
@@ -120,9 +126,11 @@ public:
                 }
             }
         } else {
-            common::Range& subrange = std::get<0>(subrange_files_[offset / range_.size() - 1]);
-            data::File::Writer& writer = std::get<2>(subrange_files_[offset / range_.size() - 1]);
-            assert(key >= subrange.begin && key < subrange.end);
+            common::Range& subrange =
+                std::get<0>(subrange_files_[offset / range_.size() - 1]);
+            data::File::Writer& writer =
+                std::get<2>(subrange_files_[offset / range_.size() - 1]);
+            assert(item_key >= subrange.begin && item_key < subrange.end);
             writer.Put(kv);
             return false;
         }
@@ -135,7 +143,11 @@ public:
         consume ? FlushAndConsume() : Flush();
 
         for (auto& subrange_file : subrange_files_) {
-            ReduceByIndexPostPhase<TableItem, Key, Value, KeyExtractor, ReduceFunction, Emitter, VolatileKey, ReduceConfig_> subtable(ctx_, dia_id_, key_extractor_, reduce_function_, emitter_.emit_, config_, neutral_element_);
+            ReduceByIndexPostPhase<TableItem, Key, Value, KeyExtractor,
+                                   ReduceFunction, Emitter, VolatileKey,
+                                   ReduceConfig_>
+                subtable(ctx_, dia_id_, key_extractor_, reduce_function_,
+                         emitter_.emit_, config_, neutral_element_);
             subtable.SetRange(std::get<0>(subrange_file));
             subtable.Initialize(limit_memory_bytes_);
             auto reader = std::get<1>(subrange_file).GetReader(consume);
@@ -153,7 +165,7 @@ public:
     //! \name Accessors
     //! \{
 
-    //! Returns range reference for post phase on this worker
+    //! Sets the range of indexes to be handled by this index table
     void SetRange(const common::Range& range) {
         range_ = range;
         full_range_ = range;
@@ -175,6 +187,14 @@ private:
             items_.pop_back();
         }
         neutral_element_index_occupied_ = false;
+    }
+
+    Key key(const TableItem& t) {
+        return MakeTableItem::GetKey(t, key_extractor_);
+    }
+
+    TableItem reduce(const TableItem& a, const TableItem& b) {
+        return MakeTableItem::Reduce(a, b, reduce_function_);
     }
 
     //! Context
@@ -207,10 +227,12 @@ private:
     //! Is there an actual element at the index of the neutral element?
     bool neutral_element_index_occupied_ = false;
 
-    //! Range of indexes actually managed in this instance - not including subranges
+    //! Range of indexes actually managed in this instance -
+    //! not including subranges
     common::Range range_;
 
-    //! Full range of indexes actually managed in this instance - including subranges
+    //! Full range of indexes actually managed in this instance -
+    //! including subranges
     common::Range full_range_;
 
     //! Store for items in range of this workers.
