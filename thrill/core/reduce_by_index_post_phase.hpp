@@ -160,6 +160,8 @@ public:
 
     void Dispose() {
         std::vector<TableItem>().swap(items_);
+        std::vector<std::tuple<common::Range, data::File, data::File::Writer>>()
+            .swap(subrange_files_);
     }
 
     //! \name Accessors
@@ -239,6 +241,7 @@ private:
     //! Stored in reverse order so we can consume while emitting.
     std::vector<TableItem> items_;
 
+    //! Store for items in nonactive subranges
     std::vector<std::tuple<common::Range, data::File, data::File::Writer>> subrange_files_;
 };
 
