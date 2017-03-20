@@ -213,23 +213,23 @@ TEST(ReduceNode, ReduceToIndexCorrectResults) {
         TestReduceToIndexCorrectResults<ReduceTableImpl::OLD_PROBING>());
 }
 
-// TEST(ReduceToIndexNode, OutputSizeCheck) {
-//     auto start_func =
-//         [](Context& context) {
-//             size_t node_count = 20000;
-//             size_t result = Generate(context, 10000, [node_count](const size_t index) { return index % node_count; })
-//                 .Filter([](const size_t node) { return node % 1000 < 250; })
-//                 .ReduceToIndex(
-//                     [](const size_t& node) -> size_t { return node; },
-//                     [](const size_t node, const size_t) {
-//                         return node;
-//                     }, node_count)
-//                 .Size();
-//             ASSERT_EQ(node_count, result);
-//         };
+TEST(ReduceToIndexNode, OutputSizeCheck) {
+    auto start_func =
+        [](Context& context) {
+            size_t node_count = 20000;
+            size_t result = Generate(context, 10000, [node_count](const size_t index) { return index % node_count; })
+                .Filter([](const size_t node) { return node % 1000 < 250; })
+                .ReduceToIndex(
+                    [](const size_t& node) -> size_t { return node; },
+                    [](const size_t node, const size_t) {
+                        return node;
+                    }, node_count)
+                .Size();
+            ASSERT_EQ(node_count, result);
+        };
 
-//     api::RunLocalTests(start_func);
-// }
+    api::RunLocalTests(start_func);
+}
 
 /******************************************************************************/
 
