@@ -128,6 +128,7 @@ public:
         } else {
             common::Range& subrange =
                 std::get<0>(subrange_files_[offset / range_.size() - 1]);
+            common::UNUSED(subrange); // for release build
             data::File::Writer& writer =
                 std::get<2>(subrange_files_[offset / range_.size() - 1]);
             assert(item_key >= subrange.begin && item_key < subrange.end);
