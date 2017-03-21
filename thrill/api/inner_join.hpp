@@ -163,6 +163,7 @@ public:
         if (UseLocationDetection) {
             std::unordered_map<size_t, size_t> target_processors;
             size_t max_hash = location_detection_.Flush(target_processors);
+            location_detection_.Dispose();
 
             auto file1reader = pre_file1_.GetConsumeReader();
             while (file1reader.HasNext()) {
