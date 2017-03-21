@@ -353,6 +353,11 @@ public:
         return max_hash;
     }
 
+    void Dispose() {
+        table_.Dispose();
+        std::vector<HashCount>().swap(hash_occ_);
+    }
+
     //! Target vector for vector emitter
     std::vector<HashCount> hash_occ_;
     //! Emitter to vector
