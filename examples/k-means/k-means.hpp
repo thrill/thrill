@@ -21,9 +21,6 @@
 #include <thrill/api/sum.hpp>
 #include <thrill/common/vector.hpp>
 
-#include <cereal/types/vector.hpp>
-#include <thrill/data/serialization_cereal.hpp>
-
 #include <limits>
 #include <string>
 #include <utility>

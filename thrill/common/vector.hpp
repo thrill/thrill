@@ -13,6 +13,10 @@
 #define THRILL_COMMON_VECTOR_HEADER
 
 #include <thrill/data/serialization_cereal.hpp>
+#include <thrill/common/die.hpp>
+
+#include <cereal/types/vector.hpp>
+#include <thrill/data/serialization_cereal.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -43,12 +47,21 @@ public:
         std::fill(p.x, p.x + D, 0.0);
         return p;
     }
+    Vector fill(const Type init_val) {
+        std::fill(x, x + D, init_val);
+		return *this;
+    }
     template <typename Distribution, typename Generator>
-    static Vector Random(size_t dim, Distribution& dist, Generator& gen) {
-        die_unless(dim == D);
-        Vector p;
-        for (size_t i = 0; i < D; ++i) p.x[i] = dist(gen);
-        return p;
+        static Vector Random(size_t dim, Distribution& dist, Generator& gen) {
+            die_unless(dim == D);
+            Vector p;
+            for (size_t i = 0; i < D; ++i) p.x[i] = dist(gen);
+            return p;
+        }
+    Type Norm() const {
+        Type sum = 0.0;
+        for (size_t i = 0; i < D; ++i) sum += x[i] * x[i];
+        return std::sqrt(sum);
     }
     Type DistanceSquare(const Vector& b) const {
         Type sum = 0.0;
@@ -67,6 +80,11 @@ public:
         for (size_t i = 0; i < D; ++i) x[i] += b.x[i];
         return *this;
     }
+    Vector operator - (const Vector& b) const {
+        Vector p;
+        for (size_t i = 0; i < D; ++i) p.x[i] = x[i] - b.x[i];
+        return p;
+    }
     Vector operator / (const Type& s) const {
         Vector p;
         for (size_t i = 0; i < D; ++i) p.x[i] = x[i] / s;
@@ -81,27 +99,51 @@ public:
         for (size_t i = 1; i != D; ++i) os << ',' << a.x[i];
         return os << ')';
     }
+    Type dot(const Vector& b) const {
+        Type r = 0;
+        for (size_t i = 0; i < D; ++i) r += x[i] * b.x[i];
+        return r;
+    }
+    size_t size() const {
+        return D;
+    }
+
+    template <typename Archive>
+    void serialize(Archive& archive) {
+        archive(x);
+    }
 };
+
+template <size_t D>
+Vector<D> operator * (const double a, Vector<D>& b) {
+    Vector<D> p;
+    for (size_t i = 0; i < D; ++i) p.x[i] = a * b.x[i];
+    return p;
+}
 
 //! A variable-length D-dimensional point with double precision
 template <typename Type = double>
 class VVector
 {
-public:
-    using TypeVector = std::vector<Type>;
+    public:
+        using TypeVector = std::vector<Type>;
 
-    using type = Type;
+        using type = Type;
 
-    //! coordinates array
-    TypeVector x;
+        //! coordinates array
+        TypeVector x;
 
-    explicit VVector(size_t D = 0) : x(D) { }
-    explicit VVector(TypeVector&& v) : x(std::move(v)) { }
+        explicit VVector(size_t D = 0) : x(D) { }
+        explicit VVector(TypeVector&& v) : x(std::move(v)) { }
 
-    size_t dim() const { return x.size(); }
+        size_t dim() const { return x.size(); }
 
-    static VVector Make(size_t D) {
-        return VVector(D);
+        static VVector Make(size_t D) {
+            return VVector(D);
+        }
+    VVector fill(const Type init_val) {
+        std::fill(x.begin(), x.end(), init_val);
+		return *this;
     }
     template <typename Distribution, typename Generator>
     static VVector Random(size_t D, Distribution& dist, Generator& gen) {
@@ -119,6 +161,11 @@ public:
     Type Distance(const VVector& b) const {
         return std::sqrt(DistanceSquare(b));
     }
+    Type Norm() const {
+        Type sum = 0.0;
+        for (size_t i = 0; i < x.size(); ++i) sum += x[i] * x[i];
+        return std::sqrt(sum);
+    }
     VVector operator + (const VVector& b) const {
         assert(x.size() == b.x.size());
         VVector p(x.size());
@@ -130,6 +177,12 @@ public:
         for (size_t i = 0; i < x.size(); ++i) x[i] += b.x[i];
         return *this;
     }
+    VVector operator - (const VVector& b) const {
+        assert(x.size() == b.x.size());
+        VVector p(x.size());
+        for (size_t i = 0; i < x.size(); ++i) p.x[i] = x[i] - b.x[i];
+        return p;
+    }
     VVector operator / (const Type& s) const {
         VVector p(x.size());
         for (size_t i = 0; i < x.size(); ++i) p.x[i] = x[i] / s;
@@ -138,6 +191,11 @@ public:
     VVector& operator /= (const Type& s) {
         for (size_t i = 0; i < x.size(); ++i) x[i] /= s;
         return *this;
+    }
+    Type dot(const VVector& b) const {
+        Type r = 0;
+        for (size_t i = 0; i < x.size(); ++i) r += x[i] * b.x[i];
+        return r;
     }
     friend std::ostream& operator << (std::ostream& os, const VVector& a) {
         os << '(' << a.x[0];
@@ -149,7 +207,17 @@ public:
     void serialize(Archive& archive) {
         archive(x);
     }
+
+    size_t size() const {
+        return x.size();
+    }
 };
+
+VVector<double> operator * (const double a, VVector<double>& b) {
+    VVector<double> p(b.x.size());
+    for (size_t i = 0; i < b.x.size(); ++i) p.x[i] = a * b.x[i];
+    return p;
+}
 
 } // namespace common
 } // namespace thrill
