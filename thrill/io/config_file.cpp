@@ -495,6 +495,7 @@ std::string DiskConfig::expand_path(std::string path) const {
         ss << std::getenv(match[1].str().c_str());
         path = match.suffix().str();
     }
+    ss << path;
 
     return ss.str();
 }
