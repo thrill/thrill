@@ -484,7 +484,7 @@ std::string DiskConfig::fileio_string() const {
     return oss.str();
 }
 
-std::string DiskConfig::expand_path(std::string path) {
+std::string DiskConfig::expand_path(std::string path) const {
     std::regex var_matcher("\\$([A-Z]+(_[A-Z]+)*)");
     std::smatch match;
 
