@@ -24,6 +24,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <regex>
 
 #if THRILL_WINDOWS
    #ifndef NOMINMAX
@@ -280,7 +281,7 @@ void DiskConfig::parse_line(const std::string& line) {
     std::vector<std::string> cmfield = common::Split(eqfield[1], ",", 3, 3);
 
     // path:
-    path = cmfield[0];
+    path = expand_path(cmfield[0]);
     // replace $$ -> pid in path
     {
         std::string::size_type pos;
@@ -481,6 +482,21 @@ std::string DiskConfig::fileio_string() const {
         oss << " queue_length=" << queue_length;
 
     return oss.str();
+}
+
+std::string DiskConfig::expand_path(std::string path) {
+    std::regex var_matcher("\\$([A-Z]+(_[A-Z]+)*)");
+    std::smatch match;
+
+    std::stringstream ss;
+
+    while (std::regex_search(path, match, var_matcher)) {
+        ss  << match.prefix().str();
+        ss << std::getenv(match[1].str().c_str());
+        path = match.suffix().str();
+    }
+
+    return ss.str();
 }
 
 } // namespace io

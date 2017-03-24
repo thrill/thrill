@@ -70,6 +70,9 @@ public:
     //! return formatted fileio name and optional configuration parameters
     std::string fileio_string() const;
 
+    //! expand environmental variables in path
+    std::string expand_path(std::string) const;
+
 public:
     //! \name Optional Disk / File I/O Implementation Parameters
     //! \{
