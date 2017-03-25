@@ -213,7 +213,7 @@ public:
             while (THRILL_UNLIKELY(
                        items_per_partition_[h.partition_id] >
                        limit_items_per_partition_[h.partition_id])) {
-                SpillPartition(h.partition_id);
+                GrowAndRehash(h.partition_id);
             }
 
             return true;
@@ -259,7 +259,7 @@ public:
         while (THRILL_UNLIKELY(
                    items_per_partition_[h.partition_id] >=
                    limit_items_per_partition_[h.partition_id])) {
-            LOG << "Spill due to "
+            LOG << "Grow due to "
                 << items_per_partition_[h.partition_id] << " >= "
                 << limit_items_per_partition_[h.partition_id]
                 << " among " << partition_size_[h.partition_id];
@@ -296,7 +296,10 @@ public:
 
         size_t old_size = partition_size_[partition_id];
         GrowPartition(partition_id);
-        if (partition_size_[partition_id] == old_size) return;
+        if (partition_size_[partition_id] == old_size) {
+            SpillPartition(partition_id);
+            return;
+        }
 
         if (partition_size_[partition_id] % old_size != 0) {
             // in place rehashing won't work properly so we spill rather than
