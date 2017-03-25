@@ -198,7 +198,6 @@ public:
         assert(h.partition_id < num_partitions_);
 
         if (THRILL_UNLIKELY(key_equal_function_(key(kv), Key()))) {
-            bool new_unique = false;
             // handle pairs with sentinel key specially by reducing into last
             // element of items.
             TableItem& sentinel = items_[num_buckets_];
@@ -206,10 +205,10 @@ public:
                 // first occurrence of sentinel key
                 new (&sentinel)TableItem(kv);
                 sentinel_partition_ = h.partition_id;
-                new_unique = true;
             }
             else {
                 sentinel = reduce(sentinel, kv);
+                return false;
             }
             ++items_per_partition_[h.partition_id];
             ++num_items_;
@@ -220,7 +219,7 @@ public:
                 SpillPartition(h.partition_id);
             }
 
-            return new_unique;
+            return true;
         }
 
         // calculate local index depending on the current subtable's size
