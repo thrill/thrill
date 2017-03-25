@@ -188,9 +188,6 @@ public:
      */
     bool Insert(const TableItem& kv) {
 
-        while (THRILL_UNLIKELY(mem::memory_exceeded && num_items_ != 0))
-            SpillAnyPartition();
-
         typename IndexFunction::Result h = index_function_(
             key(kv), num_partitions_,
             num_buckets_per_partition_, num_buckets_);
@@ -297,6 +294,10 @@ public:
 
     //! Grow a partition after a spill or flush (if possible)
     void GrowPartition(size_t partition_id) {
+
+        if (THRILL_UNLIKELY(mem::memory_exceeded)) {
+            return;
+        }
 
         if (partition_size_[partition_id] == num_buckets_per_partition_)
             return;
