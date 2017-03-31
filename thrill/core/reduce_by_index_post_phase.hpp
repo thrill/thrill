@@ -137,26 +137,55 @@ public:
         }
     }
 
-    void PushData(bool consume = false) {
-        for (auto& subrange_file : subrange_files_) {
-            std::get<2>(subrange_file).Close();
-        }
-        consume ? FlushAndConsume() : Flush();
+    void PushData(bool consume = false, data::File::Writer* pwriter = nullptr) {
+        assert(!pwriter || consume);
 
-        for (auto& subrange_file : subrange_files_) {
-            ReduceByIndexPostPhase<TableItem, Key, Value, KeyExtractor,
-                                   ReduceFunction, Emitter, VolatileKey,
-                                   ReduceConfig_>
-                subtable(ctx_, dia_id_, key_extractor_, reduce_function_,
-                         emitter_.emit_, config_, neutral_element_);
-            subtable.SetRange(std::get<0>(subrange_file));
-            subtable.Initialize(limit_memory_bytes_);
-            auto reader = std::get<1>(subrange_file).GetReader(consume);
-            while (reader.HasNext()) {
-                subtable.Insert(reader.template Next<TableItem>());
+        if (!cache_) {
+            if (!consume) {
+                if (subrange_files_.empty()) {
+                    Flush();
+                } else {
+                    data::FilePtr cache = ctx_.GetFilePtr(dia_id_);
+                    data::File::Writer writer = cache_->GetWriter();
+                    PushData(true, &writer);
+                    cache_ = cache;
+                    writer.Close();
+                }
+                return;
             }
-            subtable.PushData(consume);
+
+            for (auto& subrange_file : subrange_files_) {
+                std::get<2>(subrange_file).Close();
+            }
+
+            if (pwriter) {
+                FlushAndConsume<true>(pwriter);
+            } else {
+                FlushAndConsume();
+            }
+
+            for (auto& subrange_file : subrange_files_) {
+                ReduceByIndexPostPhase<TableItem, Key, Value, KeyExtractor,
+                                       ReduceFunction, Emitter, VolatileKey,
+                                       ReduceConfig_>
+                    subtable(ctx_, dia_id_, key_extractor_, reduce_function_,
+                             emitter_.emit_, config_, neutral_element_);
+                subtable.SetRange(std::get<0>(subrange_file));
+                subtable.Initialize(limit_memory_bytes_);
+                auto reader = std::get<1>(subrange_file).GetConsumeReader();
+                while (reader.HasNext()) {
+                    subtable.Insert(reader.template Next<TableItem>());
+                }
+                subtable.PushData(consume || pwriter, pwriter);
+            }
+
+        } else {
+            // previous PushData() has stored data in cache_
+            data::File::Reader reader = cache_->GetReader(consume);
+            while (reader.HasNext())
+                emitter_.Emit(reader.Next<TableItem>());
         }
+
     }
 
     void Dispose() {
@@ -184,9 +213,11 @@ private:
         }
     }
 
-    void FlushAndConsume() {
+    template<bool DoCache = false>
+    void FlushAndConsume(data::File::Writer* writer = nullptr) {
         while (!items_.empty()) {
             emitter_.Emit(items_.back());
+            if (DoCache) { writer->Put(items_.back()); }
             items_.pop_back();
         }
         neutral_element_index_occupied_ = false;
@@ -244,6 +275,9 @@ private:
 
     //! Store for items in nonactive subranges
     std::vector<std::tuple<common::Range, data::File, data::File::Writer>> subrange_files_;
+
+    //! File for storing data in-case we need multiple re-reduce levels.
+    data::FilePtr cache_ = nullptr;
 };
 
 } // namespace core
