@@ -97,7 +97,7 @@ static void RunPageRankEdgePerLine(
     if (output_path.size()) {
         ranks.ZipWithIndex(
             // generate index numbers: 0...num_pages-1
-            [](const PageId& p, const Rank& r) {
+            [](const Rank& r, const PageId& p) {
                 return common::str_sprintf("%zu: %g", p, r);
             })
         .WriteLines(output_path);
