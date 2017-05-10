@@ -19,6 +19,9 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/common/vector.hpp>
 
+#include <cereal/types/vector.hpp>
+#include <thrill/data/serialization_cereal.hpp>
+
 #include <algorithm>
 #include <utility>
 

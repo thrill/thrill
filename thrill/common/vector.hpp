@@ -13,10 +13,6 @@
 #define THRILL_COMMON_VECTOR_HEADER
 
 #include <thrill/common/die.hpp>
-#include <thrill/data/serialization_cereal.hpp>
-
-#include <cereal/types/vector.hpp>
-#include <thrill/data/serialization_cereal.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -37,6 +33,7 @@ public:
     using type = Type;
 
     static size_t dim() { return D; }
+    static size_t size() { return D; }
 
     static Vector Make(size_t D_) {
         die_unless(D_ == D);
@@ -104,10 +101,9 @@ public:
         for (size_t i = 0; i < D; ++i) r += x[i] * b.x[i];
         return r;
     }
-    size_t size() const {
-        return D;
-    }
 
+    //! serialization method for cereal. Keep this, even though Vector is a POD,
+    //! to serialize fixed-length Vectors that are contained in other structs.
     template <typename Archive>
     void serialize(Archive& archive) {
         archive(x);
@@ -137,6 +133,7 @@ public:
     explicit VVector(TypeVector&& v) : x(std::move(v)) { }
 
     size_t dim() const { return x.size(); }
+    size_t size() const { return x.size(); }
 
     static VVector Make(size_t D) {
         return VVector(D);
@@ -203,13 +200,10 @@ public:
         return os << ')';
     }
 
+    //! serialization method for cereal.
     template <typename Archive>
     void serialize(Archive& archive) {
         archive(x);
-    }
-
-    size_t size() const {
-        return x.size();
     }
 };
 
