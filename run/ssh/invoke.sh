@@ -22,7 +22,7 @@ user=$(whoami)
 with_perf=0
 with_perf_graph=0
 
-while getopts "u:h:H:cvCw:pP" opt; do
+while getopts "u:h:H:cvC:w:pP" opt; do
     case "$opt" in
     h)  # this overrides the user environment variable
         THRILL_SSHLIST=$OPTARG
@@ -45,7 +45,7 @@ while getopts "u:h:H:cvCw:pP" opt; do
     P)  with_perf_graph=1
         ;;
     w)  # this overrides the user environment variable
-        THRILL_WORKERS_PER_HOST=$OPTARG
+        export THRILL_WORKERS_PER_HOST=$OPTARG
         ;;
     :)  echo "Option -$OPTARG requires an argument." >&2
         exit 1
@@ -132,7 +132,7 @@ trap '[ $(jobs -p | wc -l) != 0 ] && kill $(jobs -p)' SIGINT SIGTERM EXIT
 for hostport in $THRILL_SSHLIST; do
   host=$(echo $hostport | awk 'BEGIN { FS=":" } { printf "%s", $1 }')
   if [ $verbose -ne 0 ]; then
-    echo "Connecting to $user@$host to invoke $cmd"
+    echo "Connecting to $user@$host to invoke $dir$cmdbase"
   fi
   THRILL_EXPORTS=$(env | awk -F= '/^THRILL_/ { printf("%s", $1 "=\"" $2 "\" ") }')
   THRILL_EXPORTS="${THRILL_EXPORTS}THRILL_RANK=\"$rank\" THRILL_DIE_WITH_PARENT=1"
