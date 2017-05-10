@@ -9,31 +9,30 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <thrill/api/context.hpp>
 #include <thrill/api/cache.hpp>
+#include <thrill/api/context.hpp>
+#include <thrill/api/gather.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/read_lines.hpp>
-#include <thrill/api/gather.hpp>
 
 #include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 
+#include <algorithm>
 #include <iomanip>
 #include <string>
-#include <algorithm>
 #include <vector>
 
 #include "stochastic_gradient_descent.hpp"
 
 using namespace examples::stochastic_gradient_descent; // NOLINT
 
-
 //! Output the points and the fitted linear function as a 2-D SVG drawing
 template <typename Vector>
 void OutputSVG(const std::string& svg_path, double svg_scale,
-        const DIA<DataPoint<Vector> >& point_dia,
-        const Vector& model) {
-    double width = 0, height = 0, min_vert = 0, max_vert = 0, min_hor = 0, max_hor=0;
+               const DIA<DataPoint<Vector> >& point_dia,
+               const Vector& model) {
+    double width = 0, height = 0, min_vert = 0, max_vert = 0, min_hor = 0, max_hor = 0;
 
     std::vector<DataPoint<Vector> > list = point_dia.Gather();
 
@@ -65,35 +64,40 @@ void OutputSVG(const std::string& svg_path, double svg_scale,
     os << "   xmlns:svg=\"http://www.w3.org/2000/svg\"\n";
     os << "   xmlns=\"http://www.w3.org/2000/svg\"\n";
     os << "   version=\"1.1\" id=\"svg2\" width=\"" << width * svg_scale
-        << "\" height=\"" << height * svg_scale << "\">\n";
+       << "\" height=\"" << height * svg_scale << "\">\n";
     os << "  <g id=\"layer1\">\n";
 
     // Draw grid
     os << "    <line x1=\"0\" y1=\"" << (height + min_vert) * svg_scale
-        << "\" x2=\"" << width * svg_scale << "\" y2=\"" << (height + min_vert) * svg_scale
-        << "\" stroke-width=\"1\" stroke=\"#777777\" style=\"stroke-opacity:0.3\" />\n";
+       << "\" x2=\"" << width * svg_scale << "\" y2=\"" << (height + min_vert) * svg_scale
+       << "\" stroke-width=\"1\" stroke=\"#777777\" style=\"stroke-opacity:0.3\" />\n";
     os << "    <line x1=\"" << -min_hor * svg_scale << "\" y1=\"0\""
-        << " x2=\"" << -min_hor * svg_scale << "\" y2=\"" << height * svg_scale
-        << "\" stroke-width=\"1\" stroke=\"#777777\" style=\"stroke-opacity:0.3\" />\n";
+       << " x2=\"" << -min_hor * svg_scale << "\" y2=\"" << height * svg_scale
+       << "\" stroke-width=\"1\" stroke=\"#777777\" style=\"stroke-opacity:0.3\" />\n";
 
     // Draw points
     for (const DataPoint<Vector>& p : list) {
         os << "    <circle r=\"1\" cx=\"" << (p.data.x[0] - min_hor) * svg_scale
-            << "\" cy=\"" << (height - p.label + min_vert) * svg_scale
-            << "\" style=\"stroke:none;stroke-opacity:1;fill:#45a2d1;fill-opacity:1\" />\n";
+           << "\" cy=\"" << (height - p.label + min_vert) * svg_scale
+           << "\" style=\"stroke:none;stroke-opacity:1;fill:#45a2d1;fill-opacity:1\" />\n";
     }
 
     // Draw line
     os << "    <line x1=\"0\" y1=\"" << (height - y1 + min_vert) * svg_scale
-        << "\" x2=\"" << width * svg_scale << "\" y2=\"" << (height - y2 + min_vert) * svg_scale
-        << "\" stroke-width=\"1\" stroke=\"#ff9900\" />\n";
+       << "\" x2=\"" << width * svg_scale << "\" y2=\"" << (height - y2 + min_vert) * svg_scale
+       << "\" stroke-width=\"1\" stroke=\"#ff9900\" />\n";
 
     os << " </g>\n";
     os << "</svg>\n";
 }
 
 template <typename Vector>
-static void RunStochasticGradGenerated(thrill::Context& ctx, size_t dimensions, size_t iterations, size_t num_points, double mini_batch_fraction, double step_size, double tolerance, const std::string& svg_path, double svg_scale, size_t repetitions) {
+static void RunStochasticGradGenerated(
+    thrill::Context& ctx, size_t dimensions, size_t iterations,
+    size_t num_points, double mini_batch_fraction,
+    double step_size, double tolerance,
+    const std::string& svg_path, double svg_scale, size_t repetitions) {
+
     std::default_random_engine rng(2342);
     std::uniform_real_distribution<double> uni_dist(-100.0, 100.0);
     std::normal_distribution<double> norm_dist(1.0, 0.1);
@@ -105,20 +109,21 @@ static void RunStochasticGradGenerated(thrill::Context& ctx, size_t dimensions, 
 
     auto points =
         Generate(
-                ctx, num_points,
-                [&](const size_t& /* index */) {
+            ctx, num_points,
+            [&](const size_t& /* index */) {
                 auto x = Vector::Random(dimensions, uni_dist, rng);
                 auto y = weights.dot(x) * norm_dist(rng);
                 return DataPoint<Vector>(x, y);
-                })
-    .Cache().KeepForever().Execute();
+            })
+        .Cache().KeepForever().Execute();
 
     auto start = std::chrono::high_resolution_clock::now();
 
     Vector result;
 
     for (size_t r = 0; r < repetitions; r++) {
-        auto grad_descent = StochasticGradientDescent<Vector>(iterations, mini_batch_fraction, step_size, tolerance);
+        auto grad_descent = StochasticGradientDescent<Vector>(
+            iterations, mini_batch_fraction, step_size, tolerance);
 
         auto initial_weights = Vector::Make(dimensions).fill(1.0);
         result = grad_descent.optimize(points, initial_weights);
@@ -127,59 +132,61 @@ static void RunStochasticGradGenerated(thrill::Context& ctx, size_t dimensions, 
     auto end = std::chrono::high_resolution_clock::now();
     if (ctx.my_rank() == 0) {
         LOG1 << "Estimated weights: " << result;
-        LOG1 << "Computation time: " << (std::chrono::duration_cast<std::chrono::duration<double>>(end - start)).count()/repetitions << "s";
+        LOG1 << "Computation time: " << (std::chrono::duration_cast<std::chrono::duration<double> >(end - start)).count() / repetitions << "s";
     }
 
     if (svg_path.size() && dimensions == 1) {
         OutputSVG(svg_path, svg_scale, points.Collapse(), result);
     }
-
 }
 
 template <typename Vector>
-static void RunStochasticGradFile(thrill::Context& ctx, size_t dimensions, size_t iterations,
-        double mini_batch_fraction, double step_size, double tolerance, const std::string& svg_path, double svg_scale,
-        const std::string& input_path, size_t repetitions) {
+static void RunStochasticGradFile(
+    thrill::Context& ctx, size_t dimensions, size_t iterations,
+    double mini_batch_fraction, double step_size, double tolerance,
+    const std::string& svg_path, double svg_scale,
+    const std::string& input_path, size_t repetitions) {
 
     auto points =
         ReadLines(ctx, input_path)
         .Filter(
-                [](const std::string& input) {
+            [](const std::string& input) {
                 // filter empty lines and comments
                 return (!input.empty() && input.at(0) != '#');
-                }
-               )
+            })
         .Map(
-                [dimensions](const std::string& input) {
+            [dimensions](const std::string& input) {
                 // parse "<pt> <pt> <pt> ... <lbl>" lines
                 Vector v = Vector::Make(dimensions);
                 double l;
                 char* endptr = const_cast<char*>(input.c_str());
                 for (size_t i = 0; i < dimensions; ++i) {
-                while (*endptr == ' ') ++endptr;
-                v.x[i] = std::strtod(endptr, &endptr);
-                if (!endptr || *endptr != ' ') {
-                die("Could not parse point coordinates: " << input);
-                }
+                    while (*endptr == ' ') ++endptr;
+                    v.x[i] = std::strtod(endptr, &endptr);
+                    if (!endptr || *endptr != ' ') {
+                        die("Could not parse point coordinates: " << input);
+                    }
                 }
                 while (*endptr == ' ') ++endptr;
                 l = std::strtod(endptr, &endptr);
                 if (!endptr) {
-                die("Could not parse point coordinates: " << input);
+                    die("Could not parse point coordinates: " << input);
                 }
                 while (*endptr == ' ') ++endptr;
                 if (!endptr || *endptr != 0) {
-                die("Could not parse point coordinates: " << input);
+                    die("Could not parse point coordinates: " << input);
                 }
                 return DataPoint<Vector>(v, l);
-                }).Cache().KeepForever().Execute();
+            })
+        .Cache().KeepForever().Execute();
 
     auto start = std::chrono::high_resolution_clock::now();
 
     Vector result;
 
     for (size_t r = 0; r < repetitions; r++) {
-        auto grad_descent = StochasticGradientDescent<Vector>(iterations, mini_batch_fraction, step_size, tolerance);
+        auto grad_descent = StochasticGradientDescent<Vector>(
+            iterations, mini_batch_fraction, step_size, tolerance);
 
         auto initial_weights = Vector::Make(dimensions).fill(1.0);
         result = grad_descent.optimize(points, initial_weights);
@@ -189,7 +196,7 @@ static void RunStochasticGradFile(thrill::Context& ctx, size_t dimensions, size_
 
     if (ctx.my_rank() == 0) {
         LOG1 << "Estimated weights: " << result;
-        LOG1 << "Computation time: " << (std::chrono::duration_cast<std::chrono::duration<double>>(end - start)).count()/repetitions << "s";
+        LOG1 << "Computation time: " << (std::chrono::duration_cast<std::chrono::duration<double> >(end - start)).count() / repetitions << "s";
     }
 
     if (svg_path.size() && dimensions == 1) {
@@ -203,47 +210,47 @@ int main(int argc, char* argv[]) {
 
     bool generate = false;
     clp.AddFlag('g', "generate", generate,
-            "generate random data, set num = #points");
+                "generate random data, set num = #points");
 
     size_t num = 100;
     clp.AddSizeT('n', "num", num,
-            "number of points to generate");
+                 "number of points to generate");
 
     size_t dimensions = 1;
     clp.AddSizeT('d', "dim", dimensions,
-            "dimensions of weights 1-10, default: 1");
+                 "dimensions of weights 1-10, default: 1");
 
     size_t iterations = 100;
     clp.AddSizeT('i', "iterations", iterations,
-            "iterations, default: 100");
+                 "iterations, default: 100");
 
     size_t repetitions = 1;
     clp.AddSizeT('r', "repetitions", repetitions,
-            "repetitions, for timing purpose only.");
+                 "repetitions, for timing purpose only.");
 
     double mini_batch_fraction = 1;
     clp.AddDouble('f', "frac", mini_batch_fraction,
-            "mini_batch_fraction, default: 1");
+                  "mini_batch_fraction, default: 1");
 
     double step_size = 0.001;
     clp.AddDouble('s', "step", step_size,
-            "stepsize, default: 0.001");
+                  "stepsize, default: 0.001");
 
     double tolerance = 0.01;
     clp.AddDouble('t', "tolerance", tolerance,
-            "tolerance, default: 0.01");
+                  "tolerance, default: 0.01");
 
     std::string input_path = "";
     clp.AddString('p', "paths", input_path,
-            "input file");
+                  "input file");
 
     std::string svg_path = "";
     clp.AddString('o', "output", svg_path,
-            "output path for svg drawing (only for dim = 2)");
+                  "output path for svg drawing (only for dim = 2)");
 
     double svg_scale = 1;
     clp.AddDouble('S', "svg-scale", svg_scale,
-            "scale coordinates for svg output, default: 1");
+                  "scale coordinates for svg output, default: 1");
 
     if (!clp.Process(argc, argv)) {
         return -1;
@@ -261,43 +268,43 @@ int main(int argc, char* argv[]) {
 
     clp.PrintResult();
 
-
     auto start_func =
         [&](thrill::Context& ctx) {
             ctx.enable_consume();
             if (generate) {
                 switch (dimensions) {
-                    case 0:
-                        die("Zero dimensional gradient descent doesn't seem very useful.");
-                        break;
-                    case 1:
-                        RunStochasticGradGenerated<Vector<1>>(ctx, dimensions, iterations, num, mini_batch_fraction, step_size, tolerance, svg_path, svg_scale, repetitions);
-                        break;
-                    case 2:
-                        RunStochasticGradGenerated<Vector<2>>(ctx, dimensions, iterations, num, mini_batch_fraction, step_size, tolerance, svg_path, svg_scale, repetitions);
-                        break;
-                    default:
-                        RunStochasticGradGenerated<VVector>(ctx, dimensions, iterations, num, mini_batch_fraction, step_size, tolerance, svg_path, svg_scale, repetitions);
-                        break;
+                case 0:
+                    die("Zero dimensional gradient descent doesn't seem very useful.");
+                    break;
+                case 1:
+                    RunStochasticGradGenerated<Vector<1> >(ctx, dimensions, iterations, num, mini_batch_fraction, step_size, tolerance, svg_path, svg_scale, repetitions);
+                    break;
+                case 2:
+                    RunStochasticGradGenerated<Vector<2> >(ctx, dimensions, iterations, num, mini_batch_fraction, step_size, tolerance, svg_path, svg_scale, repetitions);
+                    break;
+                default:
+                    RunStochasticGradGenerated<VVector>(ctx, dimensions, iterations, num, mini_batch_fraction, step_size, tolerance, svg_path, svg_scale, repetitions);
+                    break;
                 }
-
-            } else {
+            }
+            else {
                 switch (dimensions) {
-                    case 0:
-                        die("Zero dimensional gradient descent doesn't seem very useful.");
-                        break;
-                    case 1:
-                        RunStochasticGradFile<Vector<1>>(ctx, dimensions, iterations, mini_batch_fraction, step_size, tolerance, svg_path, svg_scale, input_path, repetitions);
-                        break;
-                    case 2:
-                        RunStochasticGradFile<Vector<2>>(ctx, dimensions, iterations, mini_batch_fraction, step_size, tolerance, svg_path, svg_scale, input_path, repetitions);
-                        break;
-                    default:
-                        RunStochasticGradFile<VVector>(ctx, dimensions, iterations, mini_batch_fraction, step_size, tolerance, svg_path, svg_scale, input_path, repetitions);
-                        break;
+                case 0:
+                    die("Zero dimensional gradient descent doesn't seem very useful.");
+                    break;
+                case 1:
+                    RunStochasticGradFile<Vector<1> >(ctx, dimensions, iterations, mini_batch_fraction, step_size, tolerance, svg_path, svg_scale, input_path, repetitions);
+                    break;
+                case 2:
+                    RunStochasticGradFile<Vector<2> >(ctx, dimensions, iterations, mini_batch_fraction, step_size, tolerance, svg_path, svg_scale, input_path, repetitions);
+                    break;
+                default:
+                    RunStochasticGradFile<VVector>(ctx, dimensions, iterations, mini_batch_fraction, step_size, tolerance, svg_path, svg_scale, input_path, repetitions);
+                    break;
                 }
             }
         };
     return thrill::Run(start_func);
 }
 
+/******************************************************************************/

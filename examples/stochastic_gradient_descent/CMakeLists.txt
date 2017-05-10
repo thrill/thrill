@@ -1,5 +1,5 @@
 ################################################################################
-# examples/k-means/CMakeLists.txt
+# examples/stochastic_gradient_descent/CMakeLists.txt
 #
 # Part of Project Thrill - http://project-thrill.org
 #

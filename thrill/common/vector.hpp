@@ -12,8 +12,8 @@
 #ifndef THRILL_COMMON_VECTOR_HEADER
 #define THRILL_COMMON_VECTOR_HEADER
 
-#include <thrill/data/serialization_cereal.hpp>
 #include <thrill/common/die.hpp>
+#include <thrill/data/serialization_cereal.hpp>
 
 #include <cereal/types/vector.hpp>
 #include <thrill/data/serialization_cereal.hpp>
@@ -49,15 +49,15 @@ public:
     }
     Vector fill(const Type init_val) {
         std::fill(x, x + D, init_val);
-		return *this;
+        return *this;
     }
     template <typename Distribution, typename Generator>
-        static Vector Random(size_t dim, Distribution& dist, Generator& gen) {
-            die_unless(dim == D);
-            Vector p;
-            for (size_t i = 0; i < D; ++i) p.x[i] = dist(gen);
-            return p;
-        }
+    static Vector Random(size_t dim, Distribution& dist, Generator& gen) {
+        die_unless(dim == D);
+        Vector p;
+        for (size_t i = 0; i < D; ++i) p.x[i] = dist(gen);
+        return p;
+    }
     Type Norm() const {
         Type sum = 0.0;
         for (size_t i = 0; i < D; ++i) sum += x[i] * x[i];
@@ -125,25 +125,25 @@ Vector<D> operator * (const double a, Vector<D>& b) {
 template <typename Type = double>
 class VVector
 {
-    public:
-        using TypeVector = std::vector<Type>;
+public:
+    using TypeVector = std::vector<Type>;
 
-        using type = Type;
+    using type = Type;
 
-        //! coordinates array
-        TypeVector x;
+    //! coordinates array
+    TypeVector x;
 
-        explicit VVector(size_t D = 0) : x(D) { }
-        explicit VVector(TypeVector&& v) : x(std::move(v)) { }
+    explicit VVector(size_t D = 0) : x(D) { }
+    explicit VVector(TypeVector&& v) : x(std::move(v)) { }
 
-        size_t dim() const { return x.size(); }
+    size_t dim() const { return x.size(); }
 
-        static VVector Make(size_t D) {
-            return VVector(D);
-        }
+    static VVector Make(size_t D) {
+        return VVector(D);
+    }
     VVector fill(const Type init_val) {
         std::fill(x.begin(), x.end(), init_val);
-		return *this;
+        return *this;
     }
     template <typename Distribution, typename Generator>
     static VVector Random(size_t D, Distribution& dist, Generator& gen) {
