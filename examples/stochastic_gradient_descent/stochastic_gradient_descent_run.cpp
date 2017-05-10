@@ -113,7 +113,7 @@ static void RunStochasticGradGenerated(
             [&](const size_t& /* index */) {
                 auto x = Vector::Random(dimensions, uni_dist, rng);
                 auto y = weights.dot(x) * norm_dist(rng);
-                return DataPoint<Vector>(x, y);
+                return DataPoint<Vector>{ x, y };
             })
         .Cache().KeepForever().Execute();
 
@@ -176,7 +176,7 @@ static void RunStochasticGradFile(
                 if (!endptr || *endptr != 0) {
                     die("Could not parse point coordinates: " << input);
                 }
-                return DataPoint<Vector>(v, l);
+                return DataPoint<Vector>{ v, l };
             })
         .Cache().KeepForever().Execute();
 

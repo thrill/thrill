@@ -111,7 +111,7 @@ public:
 };
 
 template <size_t D>
-Vector<D> operator * (const double a, Vector<D>& b) {
+Vector<D> operator * (const double a, const Vector<D>& b) {
     Vector<D> p;
     for (size_t i = 0; i < D; ++i) p.x[i] = a * b.x[i];
     return p;
@@ -207,7 +207,7 @@ public:
     }
 };
 
-VVector<double> operator * (const double a, VVector<double>& b) {
+VVector<double> operator * (const double a, const VVector<double>& b) {
     VVector<double> p(b.x.size());
     for (size_t i = 0; i < b.x.size(); ++i) p.x[i] = a * b.x[i];
     return p;

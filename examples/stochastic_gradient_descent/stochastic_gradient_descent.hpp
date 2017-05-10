@@ -41,14 +41,9 @@ struct DataPoint {
     Vector data;
     double label;
 
-    DataPoint()
-        : data(), label(0) { }
-    DataPoint(Vector data, double label)
-        : data(data), label(label) { }
-
     template <typename Archive>
-    void serialize(Archive& archive) {
-        archive(data, label);
+    void serialize(Archive& ar) {
+        ar(data, label);
     }
 };
 
@@ -59,11 +54,31 @@ std::ostream& operator << (std::ostream& os, const DataPoint<Vector>& p) {
 
 // weights, loss
 template <typename Vector>
-using GradientResult = std::pair<Vector, double>;
+struct GradientResult {
+    Vector weights;
+    double loss;
+
+    GradientResult<Vector> operator + (const GradientResult<Vector>& b) const {
+        return GradientResult<Vector>{ weights + b.weights, loss + b.loss };
+    }
+
+    template <typename Archive>
+    void serialize(Archive& ar) {
+        ar(weights, loss);
+    }
+};
 
 // size_t for counting the actual number of data points
 template <typename Vector>
-using SumResult = std::pair<GradientResult<Vector>, size_t>;
+struct SumResult {
+    GradientResult<Vector> grad;
+    double count;
+
+    template <typename Archive>
+    void serialize(Archive& ar) {
+        ar(grad, count);
+    }
+};
 
 //! simple implementation of a gradient computation class using a least squares
 //! cost function and a linear model (y = w*x)
@@ -71,11 +86,12 @@ template <typename Vector>
 class LeastSquaresGradient
 {
 public:
-    static GradientResult<Vector> Compute(Vector data, double label, Vector weights) {
+    static GradientResult<Vector> Compute(
+        const Vector& data, double label, const Vector& weights) {
         auto diff = data.dot(weights) - label;
         auto loss = 0.5 * diff * diff;
         auto gradient = diff * data;
-        return GradientResult<Vector>(gradient, loss);
+        return GradientResult<Vector>{ gradient, loss };
     }
 };
 
@@ -93,7 +109,7 @@ public:
 
     //! do the actual computation
     Vector optimize(const DIA<DataPoint<Vector> >& input_points,
-                    Vector& initial_weights) {
+                    const Vector& initial_weights) {
         auto weights = initial_weights;
         bool converged = false;
         size_t i = 1;
@@ -103,42 +119,36 @@ public:
             auto sample = input_points.BernoulliSample(mini_batch_fraction);
             auto sum_result =
                 sample
-                .Map([&weights](const DataPoint<Vector> p) {
+                .Map([&weights](const DataPoint<Vector>& p) {
                          auto grad = LeastSquaresGradient<Vector>::Compute(
                              p.data, p.label, weights);
-                         return SumResult<Vector>(grad, 1);
+                         return SumResult<Vector>{ grad, 1 };
                      })
                 .Sum(
-                    [](SumResult<Vector> a, SumResult<Vector> b) {
-                        auto grad_a = a.first;
-                        auto n_a = a.second;
-                        auto grad_b = b.first;
-                        auto n_b = b.second;
-                        return SumResult<Vector>(
-                            // gradient, loss
-                            GradientResult<Vector>(
-                                grad_a.first + grad_b.first,
-                                grad_a.second + grad_b.second),
+                    [](const SumResult<Vector>& a, const SumResult<Vector>& b) {
+                        return SumResult<Vector>{
+                            a.grad + b.grad,
                             // number of data points (BernoulliSample yields
                             // only an approximate fraction)
-                            n_a + n_b);
+                            a.count + b.count };
                     },
-                    SumResult<Vector>(
-                        GradientResult<Vector>(
-                            Vector::Make(weights.size()).fill(0.0), 0.0), 0));
+                    SumResult<Vector>{
+                        GradientResult<Vector>{
+                            Vector::Make(weights.size()).fill(0.0), 0.0}, 0});
 
-            auto weight_gradient_sum = sum_result.first;
-            size_t num_points = sum_result.second;
+            auto weight_gradient_sum = sum_result.grad;
 
-            LOG1 << "n: " << num_points;
-            LOG1 << "grad: " << weight_gradient_sum.first;
-            LOG1 << "loss: " << weight_gradient_sum.second;
+            LOG1 << "n: " << sum_result.count;
+            LOG1 << "grad: " << weight_gradient_sum.weights;
+            LOG1 << "loss: " << weight_gradient_sum.loss;
 
             // w = w - eta sum_i=0^n Q(w_i) / n
             // with
-            // adaptive step_size η
+            // adaptive step_size eta
             // gradient Q(w_i)
-            weights = weights - (step_size / sqrt(i)) * weight_gradient_sum.first / num_points;
+            weights = weights -
+                (step_size / sqrt(i))
+                * weight_gradient_sum.weights / sum_result.count;
             ++i;
             converged = is_converged(old_weights, weights, tolerance);
         }
