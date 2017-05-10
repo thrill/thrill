@@ -58,8 +58,8 @@ struct GradientResult {
     Vector weights;
     double loss;
 
-    GradientResult<Vector> operator + (const GradientResult<Vector>& b) const {
-        return GradientResult<Vector>{ weights + b.weights, loss + b.loss };
+    GradientResult operator + (const GradientResult& b) const {
+        return GradientResult { weights + b.weights, loss + b.loss };
     }
 
     template <typename Archive>
@@ -72,7 +72,7 @@ struct GradientResult {
 template <typename Vector>
 struct SumResult {
     GradientResult<Vector> grad;
-    double count;
+    double                 count;
 
     template <typename Archive>
     void serialize(Archive& ar) {
@@ -91,7 +91,7 @@ public:
         auto diff = data.dot(weights) - label;
         auto loss = 0.5 * diff * diff;
         auto gradient = diff * data;
-        return GradientResult<Vector>{ gradient, loss };
+        return GradientResult<Vector>({ gradient, loss });
     }
 };
 
@@ -122,19 +122,23 @@ public:
                 .Map([&weights](const DataPoint<Vector>& p) {
                          auto grad = LeastSquaresGradient<Vector>::Compute(
                              p.data, p.label, weights);
-                         return SumResult<Vector>{ grad, 1 };
+                         return SumResult<Vector>({ grad, 1 });
                      })
                 .Sum(
                     [](const SumResult<Vector>& a, const SumResult<Vector>& b) {
-                        return SumResult<Vector>{
-                            a.grad + b.grad,
-                            // number of data points (BernoulliSample yields
-                            // only an approximate fraction)
-                            a.count + b.count };
+                        return SumResult<Vector>(
+                            {
+                                a.grad + b.grad,
+                                // number of data points (BernoulliSample yields
+                                // only an approximate fraction)
+                                a.count + b.count
+                            });
                     },
                     SumResult<Vector>{
                         GradientResult<Vector>{
-                            Vector::Make(weights.size()).fill(0.0), 0.0}, 0});
+                            Vector::Make(weights.size()).fill(0.0), 0.0
+                        }, 0
+                    });
 
             auto weight_gradient_sum = sum_result.grad;
 
@@ -143,12 +147,10 @@ public:
             LOG1 << "loss: " << weight_gradient_sum.loss;
 
             // w = w - eta sum_i=0^n Q(w_i) / n
-            // with
-            // adaptive step_size eta
-            // gradient Q(w_i)
+            // with adaptive step_size eta, and gradient Q(w_i)
             weights = weights -
-                (step_size / sqrt(i))
-                * weight_gradient_sum.weights / sum_result.count;
+                      (step_size / sqrt(i))
+                      * weight_gradient_sum.weights / sum_result.count;
             ++i;
             converged = is_converged(old_weights, weights, tolerance);
         }
@@ -162,8 +164,8 @@ private:
     double step_size;
     double tolerance;
 
-    bool is_converged(Vector& old, Vector& current, double tolerance) {
-        return (old.Distance(current) < tolerance * std::max(current.Norm(), 1.0));
+    bool is_converged(Vector& old, Vector& curr, double tolerance) {
+        return old.Distance(curr) < tolerance * std::max(curr.Norm(), 1.0);
     }
 };
 
