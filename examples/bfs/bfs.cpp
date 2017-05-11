@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include "bfs.hpp"
+
 #include <thrill/api/cache.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/group_by_iterator.hpp>
@@ -26,37 +27,39 @@
 #include <thrill/api/zip_with_index.hpp>
 
 #include <algorithm>
-#include <sstream>
 #include <iterator>
+#include <sstream>
 #include <string>
 #include <vector>
 
-
 using thrill::DIA;
-using namespace bfs;
+using namespace examples::bfs;
 
 struct BfsResult {
-    DIA<BfsNode> graph;
+    DIA<BfsNode>          graph;
     std::vector<TreeInfo> treeInfos;
 };
 
 // load graph from file
-DIA<BfsNode> LoadBFSGraph(thrill::Context& ctx, size_t &graphSize, std::string path, Node startIndex) {    
+DIA<BfsNode> LoadBFSGraph(
+    thrill::Context& ctx, size_t& graphSize, std::string path, Node startIndex) {
+
     auto lines =
         ReadLines(ctx, path)
-            .ZipWithIndex(
-                [](const std::string &node, const size_t &index) {
-                    return std::make_pair(node, index);
-                });
-    
+        .ZipWithIndex(
+            [](const std::string& node, const size_t& index) {
+                return std::make_pair(node, index);
+            });
+
     auto size = lines.SizeFuture();
 
     auto graph = lines.Map(
-        [=](const std::pair<std::string, size_t> &input) {
+        [=](const std::pair<std::string, size_t>& input) {
             std::istringstream iss(input.first);
             BfsNode node;
 
-            node.edges = EdgeList(std::istream_iterator<Node>(iss), std::istream_iterator<Node>());
+            node.edges = EdgeList(std::istream_iterator<Node>(iss),
+                                  std::istream_iterator<Node>());
             node.nodeIndex = input.second;
 
             if (node.nodeIndex == startIndex)
@@ -71,12 +74,13 @@ DIA<BfsNode> LoadBFSGraph(thrill::Context& ctx, size_t &graphSize, std::string p
 
     graphSize = size.get();
 
-    return graph;//.Cache();
+    return graph;// .Cache();
 }
 
 // returns true if new nodes have been possibly added to the next BFS level
 bool BFSNextLevel(DIA<BfsNode>& graph, size_t& currentLevel, const size_t currentTreeIndex, const size_t graphSize) {
-    auto neighbors = graph
+    auto neighbors =
+        graph
         .FlatMap<NodeParentPair>(
             [=](const BfsNode& node, auto emit) {
                 if (node.level == currentLevel && node.treeIndex == currentTreeIndex) {
@@ -93,15 +97,14 @@ bool BFSNextLevel(DIA<BfsNode>& graph, size_t& currentLevel, const size_t curren
     }
 
     auto reducedNeighbors = neighbors.ReduceToIndex(
-            [] (const NodeParentPair& pair) {
-                return pair.node == INVALID ? 0 : pair.node;
-            },
-            [] (const NodeParentPair& pair1, const NodeParentPair& pair2) {
-                // pair1.node is INVALID iff it is the default constructed value for its index
-                return pair1.node == INVALID ? pair2 : pair1;
-            },
-            graphSize
-        );
+        [](const NodeParentPair& pair) {
+            return pair.node == INVALID ? 0 : pair.node;
+        },
+        [](const NodeParentPair& pair1, const NodeParentPair& pair2) {
+            // pair1.node is INVALID iff it is the default constructed value for its index
+            return pair1.node == INVALID ? pair2 : pair1;
+        },
+        graphSize);
 
     currentLevel++;
 
@@ -112,12 +115,10 @@ bool BFSNextLevel(DIA<BfsNode>& graph, size_t& currentLevel, const size_t curren
                 node.parent = pair.parent;
                 node.treeIndex = currentTreeIndex;
             }
-
             return node;
         },
         graph,
-        reducedNeighbors
-    );
+        reducedNeighbors);
 
     return true;
 }
@@ -129,11 +130,11 @@ bool PrepareNextTree(DIA<BfsNode>& graph, size_t& startIndex, const size_t curre
 
     // find a node which has not yet been traversed (level == INVALID)
     auto node = graph.Sum(
-        [](const BfsNode &node1, const BfsNode &node2) {
+        [](const BfsNode& node1, const BfsNode& node2) {
             return node1.level == INVALID ? node1 : node2;
         },
         validDummy);
-    
+
     if (node.level != INVALID)
         return false;   // all nodes have already been traversed
 
@@ -159,42 +160,44 @@ void outputBFSResult(DIA<BfsNode>& graph, size_t trees, std::string pathOut) {
         return;
     }
 
-    auto grouped = graph.Filter([](const BfsNode &i) { return i.treeIndex != INVALID; })
-                        .template GroupToIndex<std::string>(
-                           [](const BfsNode &i) { return i.treeIndex; },
-                           [](auto &iter, const size_t &key) mutable {
-                               std::stringstream str;
-                               str << "BFS tree " << key << ":\n";
+    auto grouped =
+        graph
+        .Filter([](const BfsNode& i) { return i.treeIndex != INVALID; })
+        .template GroupToIndex<std::string>(
+            [](const BfsNode& i) { return i.treeIndex; },
+            [](auto& iter, const size_t& key) mutable {
+                std::stringstream str;
+                str << "BFS tree " << key << ":\n";
 
-                               std::vector<std::pair<size_t, size_t>> nodes;
+                std::vector<std::pair<size_t, size_t> > nodes;
 
-                               while (iter.HasNext())
-                               {
-                                   BfsNode node = iter.Next();
-                                   nodes.emplace_back(node.level, node.nodeIndex);
-                               }
+                while (iter.HasNext())
+                {
+                    BfsNode node = iter.Next();
+                    nodes.emplace_back(node.level, node.nodeIndex);
+                }
 
-                               std::sort(nodes.begin(), nodes.end(),
-                                         [](const std::pair<size_t, size_t> &l, const std::pair<size_t, size_t> &r) {
-                                             return l.first < r.first;
-                                         });
+                std::sort(nodes.begin(), nodes.end(),
+                          [](const std::pair<size_t, size_t>& l, const std::pair<size_t, size_t>& r) {
+                              return l.first < r.first;
+                          });
 
-                               size_t lastLevel = 0;
-                               str << "0: ";
-                               for (const auto &node : nodes)
-                               {
-                                   if (lastLevel != node.first)
-                                   {
-                                       lastLevel++;
-                                       str << '\n' << lastLevel << ": ";
-                                   }
-                                   str << node.second << ' ';
-                               }
-                               str << '\n';
+                size_t lastLevel = 0;
+                str << "0: ";
+                for (const auto& node : nodes)
+                {
+                    if (lastLevel != node.first)
+                    {
+                        lastLevel++;
+                        str << '\n' << lastLevel << ": ";
+                    }
+                    str << node.second << ' ';
+                }
+                str << '\n';
 
-                               return str.str();
-                           },
-                           trees);
+                return str.str();
+            },
+            trees);
     grouped.WriteLinesOne(pathOut);
 }
 
@@ -208,15 +211,14 @@ BfsResult BFS(DIA<BfsNode>& graph, size_t graphSize, Node startIndex, bool fullB
     do {
         size_t currentLevel = 0;
 
-        while (BFSNextLevel(graph, currentLevel, currentTreeIndex, graphSize)) {
-        }
+        while (BFSNextLevel(graph, currentLevel, currentTreeIndex, graphSize)) { }
 
         treeInfos.emplace_back(startIndex, currentLevel);
 
         currentTreeIndex++;
     } while (fullBFS && PrepareNextTree(graph, startIndex, currentTreeIndex));
 
-    return {graph, treeInfos};
+    return BfsResult({ graph, treeInfos });
 }
 
 BfsResult BFS(thrill::Context& ctx, std::string pathIn, std::string pathOut, Node startIndex, bool fullBFS = false) {
@@ -237,29 +239,32 @@ size_t doubleSweepDiameter(thrill::Context& ctx, std::string pathIn, std::string
 
     // choose node from last level as new start index
     auto targetLevel = firstBFS.treeInfos.front().levels - 1;
-    startIndex = firstBFS.graph
-                        .Filter([=](const BfsNode &node) {
-                            return node.level == targetLevel;
-                        })
-                        .Map([](const BfsNode &node) {
-                            return node.nodeIndex;
-                        })
-                        .Min(INVALID);
+    startIndex =
+        firstBFS.graph
+        .Filter([=](const BfsNode& node) {
+                    return node.level == targetLevel;
+                })
+        .Map([](const BfsNode& node) {
+                 return node.nodeIndex;
+             })
+        .Min(INVALID);
 
     // create clean graph with new start index
-    DIA<BfsNode> secondGraph = graph.Map([=](const BfsNode &node) {
-        BfsNode emitNode;
-        emitNode.nodeIndex = node.nodeIndex;
-        emitNode.edges = node.edges;
+    DIA<BfsNode> secondGraph =
+        graph
+        .Map([=](const BfsNode& node) {
+                 BfsNode emitNode;
+                 emitNode.nodeIndex = node.nodeIndex;
+                 emitNode.edges = node.edges;
 
-        if (emitNode.nodeIndex == startIndex)
-        {
-            emitNode.parent = startIndex;
-            emitNode.level = 0;
-            emitNode.treeIndex = 0;
-        }
-        return emitNode;
-    });
+                 if (emitNode.nodeIndex == startIndex)
+                 {
+                     emitNode.parent = startIndex;
+                     emitNode.level = 0;
+                     emitNode.treeIndex = 0;
+                 }
+                 return emitNode;
+             });
 
     auto secondBFS = BFS(secondGraph, graphSize, startIndex);
 
@@ -280,21 +285,23 @@ int main(int argc, char* argv[]) {
     std::string tmp;
 
     switch (argc) {
-        case 4:
-            tmp = argv[3];
-            fullBFS = !(tmp == "false" || tmp == "0");
-        case 3:
-            pathOut = argv[2];
-        case 2:
-            pathIn = argv[1];
+    case 4:
+        tmp = argv[3];
+        fullBFS = !(tmp == "false" || tmp == "0");
+    case 3:
+        pathOut = argv[2];
+    case 2:
+        pathIn = argv[1];
         break;
-        default:
+    default:
         break;
     }
 
     return thrill::Run(
-        [&](thrill::Context &ctx) {
+        [&](thrill::Context& ctx) {
             BFS(ctx, pathIn, pathOut, 0, fullBFS);
-            //doubleSweepDiameter(ctx, pathIn, pathOut, "bfs2.graph", 1);
+            // doubleSweepDiameter(ctx, pathIn, pathOut, "bfs2.graph", 1);
         });
 }
+
+/******************************************************************************/

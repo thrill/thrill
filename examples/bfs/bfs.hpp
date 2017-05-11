@@ -8,20 +8,24 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
+#pragma once
+#ifndef THRILL_EXAMPLES_BFS_BFS_HEADER
+#define THRILL_EXAMPLES_BFS_BFS_HEADER
+
 #include <cereal/types/vector.hpp>
 #include <thrill/data/serialization_cereal.hpp>
 
 #include <limits>
 #include <vector>
 
+namespace examples {
 namespace bfs {
 
 const size_t INVALID = std::numeric_limits<size_t>::max();
 using Node = size_t;
 using EdgeList = std::vector<Node>;
 
-struct NodeParentPair
-{
+struct NodeParentPair {
     Node node = INVALID;
     Node parent = INVALID;
 
@@ -42,7 +46,6 @@ std::ostream& operator << (std::ostream& os, const NodeParentPair& pair) {
 class BfsNode
 {
 public:
-
     EdgeList edges;
     Node nodeIndex = INVALID;
     size_t treeIndex = INVALID;
@@ -76,8 +79,13 @@ struct TreeInfo {
     size_t levels = INVALID;
 
     TreeInfo() = default;
-    TreeInfo(size_t startIndex) : TreeInfo(startIndex, INVALID){}
-    TreeInfo(size_t startIndex, size_t levels) : startIndex(startIndex), levels(levels){}
+    TreeInfo(size_t startIndex) : TreeInfo(startIndex, INVALID) { }
+    TreeInfo(size_t startIndex, size_t levels) : startIndex(startIndex), levels(levels) { }
 };
 
 } // namespace bfs
+} // namespace examples
+
+#endif // !THRILL_EXAMPLES_BFS_BFS_HEADER
+
+/******************************************************************************/
