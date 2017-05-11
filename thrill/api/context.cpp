@@ -1090,7 +1090,7 @@ struct OverallStats {
     }
 
     OverallStats operator + (const OverallStats& b) const {
-        OverallStats r { };
+        OverallStats r;
         r.runtime = std::max(runtime, b.runtime);
         r.max_block_bytes = max_block_bytes + b.max_block_bytes;
         r.net_traffic_tx = net_traffic_tx + b.net_traffic_tx;
@@ -1137,7 +1137,7 @@ void Context::Launch(const std::function<void(Context&)>& job_startpoint) {
     overall_timer.Stop();
 
     // collect overall statistics
-    OverallStats stats { };
+    OverallStats stats;
     stats.runtime = overall_timer.SecondsDouble();
 
     stats.max_block_bytes =
