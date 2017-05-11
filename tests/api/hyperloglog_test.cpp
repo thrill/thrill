@@ -29,7 +29,7 @@ double relativeError(double trueVal, double estimate) {
 TEST(Operations, HyperLogLog) {
     auto start_func =
         [](Context& ctx) {
-            static constexpr bool debug = true;
+            static constexpr bool debug = false;
             size_t n = 100000;
 
             auto indices = Generate(ctx, n);
@@ -37,24 +37,67 @@ TEST(Operations, HyperLogLog) {
             double estimate = indices.HyperLogLog<4>();
             LOG << "hyperloglog with p=" << 4 << ": " << estimate
                 << ", relative error: " << relativeError(n, estimate);
+            ASSERT_LE(std::abs(relativeError(n, estimate)), 0.281968);
+
+            estimate = indices.HyperLogLog<5>();
+            LOG << "hyperloglog with p=" << 5 << ": " << estimate
+                << ", relative error: " << relativeError(n, estimate);
+            ASSERT_LE(std::abs(relativeError(n, estimate)), 0.187232);
+
             estimate = indices.HyperLogLog<6>();
             LOG << "hyperloglog with p=" << 6 << ": " << estimate
                 << ", relative error: " << relativeError(n, estimate);
+            ASSERT_LE(std::abs(relativeError(n, estimate)), 0.143484);
+
+            estimate = indices.HyperLogLog<7>();
+            LOG << "hyperloglog with p=" << 7 << ": " << estimate
+                << ", relative error: " << relativeError(n, estimate);
+            ASSERT_LE(std::abs(relativeError(n, estimate)), 0.0539420);
+
             estimate = indices.HyperLogLog<8>();
             LOG << "hyperloglog with p=" << 8 << ": " << estimate
                 << ", relative error: " << relativeError(n, estimate);
+            ASSERT_LE(std::abs(relativeError(n, estimate)), 0.0404526);
+
+            estimate = indices.HyperLogLog<9>();
+            LOG << "hyperloglog with p=" << 9 << ": " << estimate
+                << ", relative error: " << relativeError(n, estimate);
+            ASSERT_LE(std::abs(relativeError(n, estimate)), 0.00617723);
+
             estimate = indices.HyperLogLog<10>();
             LOG << "hyperloglog with p=" << 10 << ": " << estimate
                 << ", relative error: " << relativeError(n, estimate);
+            ASSERT_LE(std::abs(relativeError(n, estimate)), 0.0189908);
+
+            estimate = indices.HyperLogLog<11>();
+            LOG << "hyperloglog with p=" << 11 << ": " << estimate
+                << ", relative error: " << relativeError(n, estimate);
+            ASSERT_LE(std::abs(relativeError(n, estimate)), 0.0159900);
+
             estimate = indices.HyperLogLog<12>();
             LOG << "hyperloglog with p=" << 12 << ": " << estimate
                 << ", relative error: " << relativeError(n, estimate);
+            ASSERT_LE(std::abs(relativeError(n, estimate)), 0.00214130);
+
+            estimate = indices.HyperLogLog<13>();
+            LOG << "hyperloglog with p=" << 13 << ": " << estimate
+                << ", relative error: " << relativeError(n, estimate);
+            ASSERT_LE(std::abs(relativeError(n, estimate)), 0.000118785);
+
             estimate = indices.HyperLogLog<14>();
             LOG << "hyperloglog with p=" << 14 << ": " << estimate
                 << ", relative error: " << relativeError(n, estimate);
+            ASSERT_LE(std::abs(relativeError(n, estimate)), 0.0049057);
+
+            estimate = indices.HyperLogLog<15>();
+            LOG << "hyperloglog with p=" << 15 << ": " << estimate
+                << ", relative error: " << relativeError(n, estimate);
+            ASSERT_LE(std::abs(relativeError(n, estimate)), 0.000725130);
+
             estimate = indices.HyperLogLog<16>();
             LOG << "hyperloglog with p=" << 16 << ": " << estimate
                 << ", relative error: " << relativeError(n, estimate);
+            ASSERT_LE(std::abs(relativeError(n, estimate)), 0.00189360);
 
             LOG << "###################################################";
             LOG << "hyperloglog for small counts";
