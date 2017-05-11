@@ -18,6 +18,8 @@
 // windows/msvc is a mess.
 #include <BaseTsd.h>
 using ssize_t = SSIZE_T;
+#elif defined(__APPLE__)
+#include <unistd.h>
 #endif
 
 namespace thrill {

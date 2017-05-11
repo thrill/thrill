@@ -780,7 +780,7 @@ auto InnerJoin(
               JoinResult, FirstDIA, SecondDIA, KeyExtractor1, KeyExtractor2,
               JoinFunction, HashFunction, LocationDetectionValue>;
 
-    auto node = common::MakeCounting<JoinNode>(
+    auto node = tlx::make_counting<JoinNode>(
         first_dia, second_dia, key_extractor1, key_extractor2, join_function,
         hash_function);
 

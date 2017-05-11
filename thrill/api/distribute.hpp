@@ -108,7 +108,7 @@ auto Distribute(
 
     using DistributeNode = api::DistributeNode<ValueType>;
 
-    auto node = common::MakeCounting<DistributeNode>(
+    auto node = tlx::make_counting<DistributeNode>(
         ctx, in_vector, source_id);
 
     return DIA<ValueType>(node);
@@ -128,7 +128,7 @@ auto Distribute(
 
     using DistributeNode = api::DistributeNode<ValueType>;
 
-    auto node = common::MakeCounting<DistributeNode>(
+    auto node = tlx::make_counting<DistributeNode>(
         ctx, std::move(in_vector), source_id);
 
     return DIA<ValueType>(node);

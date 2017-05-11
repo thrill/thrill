@@ -59,7 +59,7 @@ struct IndexKMer {
     friend std::ostream& operator << (std::ostream& os, const IndexKMer& iom) {
         return os << '[' << iom.index << ',' << iom.chars << ']';
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 //! A pair (index, rank)
 template <typename Index>
@@ -70,7 +70,7 @@ struct IndexRank {
     friend std::ostream& operator << (std::ostream& os, const IndexRank& ri) {
         return os << '(' << ri.index << '|' << ri.rank << ')';
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 //! A triple (index, rank_1, rank_2)
 template <typename Index>
@@ -97,7 +97,7 @@ struct IndexRankRank {
     friend std::ostream& operator << (std::ostream& os, const IndexRankRank& rri) {
         return os << "( i: " << rri.index << "| r1: " << rri.rank1 << "| r2: " << rri.rank2 << ")";
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 //! A triple with index (index, rank_1, rank_2, rank_3)
 template <typename Index>
@@ -111,7 +111,7 @@ struct Index3Rank {
         return os << "( i: " << irrr.index << "| r1: " << irrr.rank1
                   << "| r2: " << irrr.rank2 << "| r3: " << irrr.rank3 << ")";
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 template <typename Char, typename Index>
 struct CharCharIndex {
@@ -130,7 +130,7 @@ struct CharCharIndex {
         return os << '[' << cci.ch[0] << ',' << cci.ch[1]
                   << '|' << cci.index << ']';
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 enum class Status : uint8_t {
     UNDECIDED = 0,
@@ -162,7 +162,7 @@ struct IndexRankStatus {
         return os << "(i: " << irs.index << "| r: " << irs.rank << "| s: "
                   << static_cast<uint8_t>(irs.status) << ")";
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 //! A triple (index, rank, status)
 template <typename Index>
@@ -176,7 +176,7 @@ struct IndexRankRankStatus {
         return os << "(i: " << irrs.index << "| r1: " << irrs.rank1 << "| r2: "
                   << irrs.rank2 << "| s: " << static_cast<uint8_t>(irrs.status) << ")";
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 template <typename Index, typename InputDIA>
 DIA<Index> PrefixDoublingDiscardingDementiev(const InputDIA& input_dia, size_t input_size, bool packed) {

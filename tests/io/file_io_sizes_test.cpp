@@ -11,12 +11,14 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/io/create_file.hpp>
 #include <thrill/io/file_base.hpp>
 #include <thrill/io/iostats.hpp>
 #include <thrill/io/request_operations.hpp>
 #include <thrill/mem/aligned_allocator.hpp>
+#include <tlx/string/format_si_iec_units.hpp>
+
+#include <iostream>
 
 static constexpr bool debug = false;
 
@@ -49,7 +51,7 @@ int main(int argc, char** argv) {
                 buffer[i] = i;
 
             // write
-            LOG << common::FormatIecUnits(size) << "B are being written at once";
+            LOG << tlx::format_iec_units(size) << "B are being written at once";
             req = file->awrite(buffer, 0, size);
             wait_all(&req, 1);
 
@@ -58,7 +60,7 @@ int main(int argc, char** argv) {
                 buffer[i] = 0xFFFFFFFFFFFFFFFFull;
 
             // read again
-            LOG << common::FormatIecUnits(size) << "B are being read at once";
+            LOG << tlx::format_iec_units(size) << "B are being read at once";
             req = file->aread(buffer, 0, size);
             wait_all(&req, 1);
 

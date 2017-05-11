@@ -15,6 +15,7 @@
 
 #include <thrill/api/dia.hpp>
 #include <thrill/api/dia_node.hpp>
+#include <tlx/meta/function_stack.hpp>
 
 #include <algorithm>
 
@@ -123,7 +124,7 @@ template <typename AnyStack>
 DIA<ValueType, Stack>::DIA(const DIA<ValueType, AnyStack>& rhs)
 // Create new CollapseNode. Transfer stack from rhs to CollapseNode. Build new
 // DIA with empty stack and CollapseNode
-    : DIA(common::MakeCounting<api::CollapseNode<ValueType> >(rhs)) {
+    : DIA(tlx::make_counting<api::CollapseNode<ValueType> >(rhs)) {
     LOG0 << "WARNING: cast to DIA creates CollapseNode instead of inline chaining.";
     LOG0 << "Consider whether you can use auto instead of DIA.";
 }
@@ -140,15 +141,15 @@ struct CollapseSwitch {
         // CollapseNode. Build new DIA with empty stack and CollapseNode
         using CollapseNode = api::CollapseNode<ValueType>;
 
-        return DIA<ValueType>(common::MakeCounting<CollapseNode>(dia));
+        return DIA<ValueType>(tlx::make_counting<CollapseNode>(dia));
     }
 };
 
 //! Template switch to NOT generate a CollapseNode if there is an empty Stack.
 template <typename ValueType>
-struct CollapseSwitch<ValueType, FunctionStack<ValueType> >{
+struct CollapseSwitch<ValueType, tlx::FunctionStack<ValueType> >{
     static DIA<ValueType> MakeCollapse(
-        const DIA<ValueType, FunctionStack<ValueType> >& dia) {
+        const DIA<ValueType, tlx::FunctionStack<ValueType> >& dia) {
         return dia;
     }
 };

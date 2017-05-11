@@ -269,7 +269,7 @@ auto DIA<ValueType, Stack>::GroupToIndex(
     using GroupToIndexNode
               = GroupToIndexNode<DOpResult, KeyExtractor, GroupFunction>;
 
-    auto node = common::MakeCounting<GroupToIndexNode>(
+    auto node = tlx::make_counting<GroupToIndexNode>(
         *this, key_extractor, groupby_function, result_size, neutral_element);
 
     return DIA<DOpResult>(node);

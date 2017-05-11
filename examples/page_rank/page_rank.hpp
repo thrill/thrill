@@ -23,6 +23,8 @@
 #include <thrill/api/zip.hpp>
 #include <thrill/common/logger.hpp>
 
+#include <tlx/string/join_generic.hpp>
+
 #include <algorithm>
 #include <string>
 #include <utility>
@@ -47,7 +49,7 @@ struct PagePageLink {
     friend std::ostream& operator << (std::ostream& os, const PagePageLink& a) {
         return os << '(' << a.src << '>' << a.tgt << ')';
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 //! A pair (page, rank)
 struct PageRankPair {
@@ -57,7 +59,7 @@ struct PageRankPair {
     friend std::ostream& operator << (std::ostream& os, const PageRankPair& a) {
         return os << '(' << a.page << '|' << a.rank << ')';
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 using PageRankStdPair = std::pair<PageId, Rank>;
 using OutgoingLinks = std::vector<PageId>;
@@ -101,7 +103,7 @@ auto PageRank(const DIA<OutgoingLinks, InStack>& links,
         if (debug) {
             outs_rank
             .Map([](const OutgoingLinksRank& ol) {
-                     return common::Join(',', ol.first)
+                     return tlx::join(',', ol.first)
                      + " <- " + std::to_string(ol.second);
                  })
             .Print("outs_rank");
@@ -176,7 +178,7 @@ auto PageRankJoin(const DIA<LinkedPage, InStack>& links, size_t num_pages,
         if (debug) {
             outs_rank
             .Map([](const OutgoingLinksRank& ol) {
-                     return common::Join(',', ol.first)
+                     return tlx::join(',', ol.first)
                      + " <- " + std::to_string(ol.second);
                  })
             .Print("outs_rank");

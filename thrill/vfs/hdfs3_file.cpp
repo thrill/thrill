@@ -10,9 +10,10 @@
 
 #include <thrill/vfs/hdfs3_file.hpp>
 
-#include <thrill/common/die.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/string.hpp>
+
+#include <tlx/die.hpp>
 
 #if THRILL_HAVE_LIBHDFS3
 #include <hdfs/hdfs.h>
@@ -178,7 +179,7 @@ public:
         die_unless(err == 0);
     }
 
-    ~Hdfs3ReadStream() {
+    ~Hdfs3ReadStream() override {
         close();
     }
 
@@ -225,7 +226,7 @@ ReadStreamPtr Hdfs3OpenReadStream(
     if (!file)
         die("Could not open HDFS file \"" << _path << "\": " << hdfsGetLastError());
 
-    return common::MakeCounting<Hdfs3ReadStream>(
+    return tlx::make_counting<Hdfs3ReadStream>(
         fs, file, /* start_byte */ range.begin, /* byte_count */ range.size());
 }
 
@@ -238,7 +239,7 @@ public:
     Hdfs3WriteStream(hdfsFS fs, hdfsFile file)
         : fs_(fs), file_(file) { }
 
-    ~Hdfs3WriteStream() {
+    ~Hdfs3WriteStream() override {
         close();
     }
 
@@ -283,7 +284,7 @@ WriteStreamPtr Hdfs3OpenWriteStream(const std::string& _path) {
     if (!file)
         die("Could not open HDFS file \"" << _path << "\": " << hdfsGetLastError());
 
-    return common::MakeCounting<Hdfs3WriteStream>(fs, file);
+    return tlx::make_counting<Hdfs3WriteStream>(fs, file);
 }
 
 #else   // !THRILL_HAVE_LIBHDFS3

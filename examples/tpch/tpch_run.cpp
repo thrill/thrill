@@ -17,10 +17,12 @@
 #include <thrill/api/inner_join.hpp>
 #include <thrill/api/read_lines.hpp>
 #include <thrill/api/size.hpp>
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/common/string.hpp>
+#include <tlx/cmdline_parser.hpp>
+
+#include <tlx/string/split.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -49,7 +51,7 @@ struct LineItem {
     char   shipinstruct[25];
     char   shipmode[10];
     char   comment[44];
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 struct Order {
     size_t orderkey;
@@ -66,7 +68,7 @@ struct Order {
         os << '(' << o.orderpriority << "|" << o.clerk << "|" << o.comment;
         return os << ')';
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 struct JoinedElement {
     size_t orderkey;
@@ -93,7 +95,7 @@ struct JoinedElement {
     char   clerk[16];
     bool   priority;
     char   order_comment[79];
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 JoinedElement ConstructJoinedElement(const struct LineItem& li, const struct Order& o) {
     JoinedElement je;
@@ -175,7 +177,7 @@ static size_t JoinTPCH4(
 
             LineItem li;
             char* end;
-            common::SplitRef(input, '|', splitted);
+            tlx::split(&splitted, '|', input);
 
             li.commit = time_to_epoch(splitted[11]);
             li.receipt = time_to_epoch(splitted[12]);
@@ -217,7 +219,7 @@ static size_t JoinTPCH4(
             Order o;
 
             char* end;
-            common::SplitRef(input, '|', splitted);
+            tlx::split(&splitted, '|', input);
 
             o.ordertime = time_to_epoch(splitted[4]);
             if (o.ordertime >= starttime && o.ordertime < stoptime) {
@@ -277,19 +279,19 @@ static size_t JoinTPCH4(
 
 int main(int argc, char* argv[]) {
 
-    common::CmdlineParser clp;
+    tlx::CmdlineParser clp;
 
     std::vector<std::string> input_path;
-    clp.AddParamStringlist("input", input_path,
-                           "input file pattern");
+    clp.add_param_stringlist("input", input_path,
+                             "input file pattern");
 
-    if (!clp.Process(argc, argv)) {
+    if (!clp.process(argc, argv)) {
         return -1;
     }
 
     die_unless(input_path.size() == 1);
 
-    clp.PrintResult();
+    clp.print_result();
 
     return api::Run(
         [&](api::Context& ctx) {

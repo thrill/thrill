@@ -47,7 +47,7 @@ public:
         std::vector<DIABase*> children = node_->children();
         std::reverse(children.begin(), children.end());
 
-        while (children.size()) {
+        while (!children.empty()) {
             DIABase* child = children.back();
             children.pop_back();
 
@@ -71,7 +71,7 @@ public:
         bool first = true;
 
         oss << '[';
-        while (children.size())
+        while (!children.empty())
         {
             DIABase* child = children.back();
             children.pop_back();
@@ -222,7 +222,7 @@ public:
 
         // distribute remaining memory to nodes requesting maximum RAM amount
 
-        if (max_mem_nodes.size()) {
+        if (!max_mem_nodes.empty()) {
             size_t remaining_mem = mem_limit - const_mem;
             remaining_mem /= max_mem_nodes.size();
 
@@ -299,7 +299,7 @@ using mm_set = std::set<T, std::less<T>, mem::Allocator<T> >;
 //! Do a BFS on parents to find all DIANodes (Stages) needed to Execute or
 //! PushData to calculate this action node.
 static void FindStages(
-    Context& ctx, const DIABasePtr& action, mm_set<Stage>& stages) {
+    Context& ctx, const DIABasePtr& action, mm_set<Stage>* stages) {
     static constexpr bool debug = Stage::debug;
 
     if (ctx.my_rank() == 0)
@@ -309,7 +309,7 @@ static void FindStages(
         mem::Allocator<DIABasePtr>(action->mem_manager()));
 
     bfs_stack.push_back(action);
-    stages.insert(Stage(action));
+    stages->insert(Stage(action));
 
     while (!bfs_stack.empty()) {
         DIABasePtr curr = bfs_stack.front();
@@ -321,12 +321,12 @@ static void FindStages(
             const DIABasePtr& p = parents[i];
 
             // if parent was already seen, done.
-            if (stages.count(Stage(p))) continue;
+            if (stages->count(Stage(p)) != 0) continue;
 
             if (!curr->ForwardDataOnly()) {
                 if (ctx.my_rank() == 0)
                     LOG << "  Stage: " << *p;
-                stages.insert(Stage(p));
+                stages->emplace(p);
                 // If parent was not executed push it to the BFS queue and
                 // continue upwards. if state is EXECUTED, then we only need to
                 // PushData(), which is already indicated by stages.insert().
@@ -338,7 +338,7 @@ static void FindStages(
                 if (curr->RequireParentPushData(i)) {
                     if (ctx.my_rank() == 0)
                         LOG << "  Stage: " << *p;
-                    stages.insert(Stage(p));
+                    stages->emplace(p);
                     bfs_stack.push_back(p);
                 }
             }
@@ -347,7 +347,7 @@ static void FindStages(
 }
 
 static void TopoSortVisit(
-    const Stage& s, mm_set<Stage>& stages, mem::vector<Stage>& result) {
+    const Stage& s, mm_set<Stage>* stages, mem::vector<Stage>* result) {
     // check markers
     die_unless(!s.cycle_mark_ && "Cycle in toposort of Stages? Impossible.");
     if (s.topo_seen_) return;
@@ -355,10 +355,10 @@ static void TopoSortVisit(
     s.cycle_mark_ = true;
     // iterate over all children of s which are in the to-be-calculate stages
     for (DIABase* child : s.node_->children()) {
-        auto it = stages.find(Stage(DIABasePtr(child)));
+        auto it = stages->find(Stage(DIABasePtr(child)));
 
         // child not in stage set
-        if (it == stages.end()) continue;
+        if (it == stages->end()) continue;
 
         // depth-first search
         TopoSortVisit(*it, stages, result);
@@ -366,12 +366,12 @@ static void TopoSortVisit(
 
     s.topo_seen_ = true;
     s.cycle_mark_ = false;
-    result.push_back(s);
+    result->push_back(s);
 }
 
-static void TopoSortStages(mm_set<Stage>& stages, mem::vector<Stage>& result) {
+static void TopoSortStages(mm_set<Stage>* stages, mem::vector<Stage>* result) {
     // iterate over all stages and visit nodes in DFS search
-    for (const Stage& s : stages) {
+    for (const Stage& s : *stages) {
         if (s.topo_seen_) continue;
         TopoSortVisit(s, stages, result);
     }
@@ -397,12 +397,12 @@ void DIABase::RunScope() {
     mm_set<Stage> stages {
         mem::Allocator<Stage>(mem_manager())
     };
-    FindStages(context_, DIABasePtr(this), stages);
+    FindStages(context_, DIABasePtr(this), &stages);
 
     mem::vector<Stage> toporder {
         mem::Allocator<Stage>(mem_manager())
     };
-    TopoSortStages(stages, toporder);
+    TopoSortStages(&stages, &toporder);
 
     if (context_.my_rank() == 0) {
         LOG << "Topological order";
@@ -413,7 +413,7 @@ void DIABase::RunScope() {
 
     assert(toporder.front().node_.get() == this);
 
-    while (toporder.size())
+    while (!toporder.empty())
     {
         Stage& s = toporder.back();
 

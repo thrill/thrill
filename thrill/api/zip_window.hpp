@@ -20,9 +20,13 @@
 #include <thrill/api/dop_node.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/meta.hpp>
 #include <thrill/common/string.hpp>
 #include <thrill/data/file.hpp>
+#include <tlx/meta/apply_tuple.hpp>
+#include <tlx/meta/call_for_range.hpp>
+#include <tlx/meta/call_foreach_with_index.hpp>
+#include <tlx/meta/vexpand.hpp>
+#include <tlx/meta/vmap_for_range.hpp>
 
 #include <algorithm>
 #include <array>
@@ -57,8 +61,8 @@ struct ZipWindowTraits : public ZipWindowTraits<decltype(& T::operator ())>{ };
 #endif
 
 //! specialize for pointers to const member function
-template <typename ClassType, typename ReturnType, typename ... Args>
-struct ZipWindowTraits<ReturnType (ClassType::*)(Args ...) const>{
+template <typename ClassType, typename ReturnType, typename... Args>
+struct ZipWindowTraits<ReturnType (ClassType::*)(Args...) const>{
 
     //! arity is the number of arguments.
     static constexpr size_t arity = sizeof ... (Args);
@@ -70,7 +74,7 @@ struct ZipWindowTraits<ReturnType (ClassType::*)(Args ...) const>{
     using value_type_tuple = std::tuple<
               typename std::remove_cv<
                   typename std::remove_reference<Args>::type
-                  >::type::value_type ...>;
+                  >::type::value_type...>;
 
     //! the tuple of value_types: with remove_cv and remove_reference applied.
     using value_type_tuple_plain = std::tuple<
@@ -78,7 +82,7 @@ struct ZipWindowTraits<ReturnType (ClassType::*)(Args ...) const>{
                   typename std::remove_reference<
                       typename std::remove_cv<
                           typename std::remove_reference<Args>::type
-                          >::type::value_type>::type>::type ...>;
+                          >::type::value_type>::type>::type...>;
 
     //! the i-th argument is equivalent to the i-th tuple element of a tuple
     //! composed of those arguments.
@@ -95,7 +99,7 @@ struct ZipWindowTraits<ReturnType (ClassType::*)(Args ...) const>{
     //! the tuple of std::vector<>s: with remove_cv and remove_reference applied
     using vector_tuple_plain = std::tuple<
               typename std::remove_cv<
-                  typename std::remove_reference<Args>::type>::type ...>;
+                  typename std::remove_reference<Args>::type>::type...>;
 
     //! the i-th argument is equivalent to the i-th tuple element of a tuple
     //! composed of those arguments.
@@ -105,15 +109,15 @@ struct ZipWindowTraits<ReturnType (ClassType::*)(Args ...) const>{
 };
 
 //! specialize for pointers to mutable member function
-template <typename ClassType, typename ReturnType, typename ... Args>
-struct ZipWindowTraits<ReturnType (ClassType::*)(Args ...)>
-    : public ZipWindowTraits<ReturnType (ClassType::*)(Args ...) const>{
+template <typename ClassType, typename ReturnType, typename... Args>
+struct ZipWindowTraits<ReturnType (ClassType::*)(Args...)>
+    : public ZipWindowTraits<ReturnType (ClassType::*)(Args...) const>{
     using is_const = std::false_type;
 };
 
 //! specialize for function pointers
-template <typename ReturnType, typename ... Args>
-struct ZipWindowTraits<ReturnType (*)(Args ...)>{
+template <typename ReturnType, typename... Args>
+struct ZipWindowTraits<ReturnType (*)(Args...)>{
 
     //! arity is the number of arguments.
     static constexpr size_t arity = sizeof ... (Args);
@@ -125,7 +129,7 @@ struct ZipWindowTraits<ReturnType (*)(Args ...)>{
     using value_type_tuple = std::tuple<
               typename std::remove_cv<
                   typename std::remove_reference<Args>::type
-                  >::type::value_type ...>;
+                  >::type::value_type...>;
 
     //! the tuple of value_types: with remove_cv and remove_reference applied.
     using value_type_tuple_plain = std::tuple<
@@ -133,7 +137,7 @@ struct ZipWindowTraits<ReturnType (*)(Args ...)>{
                   typename std::remove_reference<
                       typename std::remove_cv<
                           typename std::remove_reference<Args>::type
-                          >::type::value_type>::type>::type ...>;
+                          >::type::value_type>::type>::type...>;
 
     //! the i-th argument is equivalent to the i-th tuple element of a tuple
     //! composed of those arguments.
@@ -150,7 +154,7 @@ struct ZipWindowTraits<ReturnType (*)(Args ...)>{
     //! the tuple of std::vector<>s: with remove_cv and remove_reference applied
     using vector_tuple_plain = std::tuple<
               typename std::remove_cv<
-                  typename std::remove_reference<Args>::type>::type ...>;
+                  typename std::remove_reference<Args>::type>::type...>;
 
     //! the i-th argument is equivalent to the i-th tuple element of a tuple
     //! composed of those arguments.
@@ -193,7 +197,7 @@ public:
     /*!
      * Constructor for a ZipWindowNode.
      */
-    template <typename ParentDIA0, typename ... ParentDIAs>
+    template <typename ParentDIA0, typename... ParentDIAs>
     ZipWindowNode(const std::array<size_t, kNumInputs>& window_size,
                   const ZipFunction& zip_function, const ZipArgsTuple& padding,
                   const ParentDIA0& parent0, const ParentDIAs& ... parents)
@@ -215,8 +219,8 @@ public:
             files_.emplace_back(context_.GetFile(this));
 
         // Hook PreOp(s)
-        common::VariadicCallForeachIndex(
-            RegisterParent(this), parent0, parents ...);
+        tlx::call_foreach_with_index(
+            RegisterParent(this), parent0, parents...);
     }
 
     void StartPreOp(size_t parent_index) final {
@@ -261,8 +265,8 @@ public:
                 *this, readers);
 
             while (reader_next.HasNext()) {
-                auto v = common::VariadicMapEnumerate<kNumInputs>(reader_next);
-                this->PushItem(common::ApplyTuple(zip_function_, v));
+                auto v = tlx::vmap_for_range<kNumInputs>(reader_next);
+                this->PushItem(tlx::apply_tuple(zip_function_, v));
                 ++result_count;
             }
         }
@@ -438,7 +442,7 @@ private:
         if (result_window_count_ == 0) return;
 
         // perform scatters to exchange data, with different types.
-        common::VariadicCallEnumerate<kNumInputs>(
+        tlx::call_for_range<kNumInputs>(
             [=](auto index) {
                 (void)index;
                 this->DoScatter<decltype(index)::index>();
@@ -611,18 +615,13 @@ private:
  * \ingroup dia_dops
  */
 template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
-          typename ... DIAs>
+          typename... DIAs>
 auto ZipWindow(const std::array<size_t, 1 + sizeof ... (DIAs)>& window_size,
                const ZipFunction& zip_function,
                const DIA<FirstDIAType, FirstDIAStack>& first_dia,
                const DIAs& ... dias) {
 
-    using VarForeachExpander = int[];
-
-    first_dia.AssertValid();
-    (void)VarForeachExpander {
-        (dias.AssertValid(), 0) ...
-    };
+    tlx::vexpand((first_dia.AssertValid(), 0), (dias.AssertValid(), 0) ...);
 
     static_assert(
         std::is_convertible<
@@ -643,8 +642,8 @@ auto ZipWindow(const std::array<size_t, 1 + sizeof ... (DIAs)>& window_size,
               /* UseStdArray */ false,
               1 + sizeof ... (DIAs)>;
 
-    auto node = common::MakeCounting<ZipWindowNode>(
-        window_size, zip_function, ZipArgsTuple(), first_dia, dias ...);
+    auto node = tlx::make_counting<ZipWindowNode>(
+        window_size, zip_function, ZipArgsTuple(), first_dia, dias...);
 
     return DIA<ZipResult>(node);
 }
@@ -662,19 +661,14 @@ auto ZipWindow(const std::array<size_t, 1 + sizeof ... (DIAs)>& window_size,
  * \ingroup dia_dops
  */
 template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
-          typename ... DIAs>
+          typename... DIAs>
 auto ZipWindow(struct CutTag,
                const std::array<size_t, 1 + sizeof ... (DIAs)>& window_size,
                const ZipFunction& zip_function,
                const DIA<FirstDIAType, FirstDIAStack>& first_dia,
                const DIAs& ... dias) {
 
-    using VarForeachExpander = int[];
-
-    first_dia.AssertValid();
-    (void)VarForeachExpander {
-        (dias.AssertValid(), 0) ...
-    };
+    tlx::vexpand((first_dia.AssertValid(), 0), (dias.AssertValid(), 0) ...);
 
     static_assert(
         std::is_convertible<
@@ -695,8 +689,8 @@ auto ZipWindow(struct CutTag,
               /* UseStdArray */ false,
               1 + sizeof ... (DIAs)>;
 
-    auto node = common::MakeCounting<ZipWindowNode>(
-        window_size, zip_function, ZipArgsTuple(), first_dia, dias ...);
+    auto node = tlx::make_counting<ZipWindowNode>(
+        window_size, zip_function, ZipArgsTuple(), first_dia, dias...);
 
     return DIA<ZipResult>(node);
 }
@@ -714,7 +708,7 @@ auto ZipWindow(struct CutTag,
  * \ingroup dia_dops
  */
 template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
-          typename ... DIAs>
+          typename... DIAs>
 auto ZipWindow(
     struct PadTag,
     const std::array<size_t, 1 + sizeof ... (DIAs)>& window_size,
@@ -723,12 +717,7 @@ auto ZipWindow(
     const DIA<FirstDIAType, FirstDIAStack>& first_dia,
     const DIAs& ... dias) {
 
-    using VarForeachExpander = int[];
-
-    first_dia.AssertValid();
-    (void)VarForeachExpander {
-        (dias.AssertValid(), 0) ...
-    };
+    tlx::vexpand((first_dia.AssertValid(), 0), (dias.AssertValid(), 0) ...);
 
     static_assert(
         std::is_convertible<
@@ -746,8 +735,8 @@ auto ZipWindow(
               /* UseStdArray */ false,
               1 + sizeof ... (DIAs)>;
 
-    auto node = common::MakeCounting<ZipWindowNode>(
-        window_size, zip_function, padding, first_dia, dias ...);
+    auto node = tlx::make_counting<ZipWindowNode>(
+        window_size, zip_function, padding, first_dia, dias...);
 
     return DIA<ZipResult>(node);
 }
@@ -765,7 +754,7 @@ auto ZipWindow(
  * \ingroup dia_dops
  */
 template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
-          typename ... DIAs>
+          typename... DIAs>
 auto ZipWindow(struct PadTag,
                const std::array<size_t, 1 + sizeof ... (DIAs)>& window_size,
                const ZipFunction& zip_function,
@@ -776,7 +765,7 @@ auto ZipWindow(struct PadTag,
               typename ZipWindowTraits<ZipFunction>::value_type_tuple_plain;
 
     return ZipWindow(PadTag, window_size, zip_function,
-                     ZipArgsTuple(), first_dia, dias ...);
+                     ZipArgsTuple(), first_dia, dias...);
 }
 
 /******************************************************************************/
@@ -794,7 +783,7 @@ auto ZipWindow(struct PadTag,
  * \ingroup dia_dops
  */
 template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
-          typename ... DIAs>
+          typename... DIAs>
 auto ZipWindow(
     struct ArrayTag,
     struct PadTag,
@@ -804,12 +793,7 @@ auto ZipWindow(
     const DIA<FirstDIAType, FirstDIAStack>& first_dia,
     const DIAs& ... dias) {
 
-    using VarForeachExpander = int[];
-
-    first_dia.AssertValid();
-    (void)VarForeachExpander {
-        (dias.AssertValid(), 0) ...
-    };
+    tlx::vexpand((first_dia.AssertValid(), 0), (dias.AssertValid(), 0) ...);
 
     // static_assert(
     //     std::is_convertible<
@@ -827,8 +811,8 @@ auto ZipWindow(
               /* UseStdArray */ true,
               1 + sizeof ... (DIAs)>;
 
-    auto node = common::MakeCounting<ZipWindowNode>(
-        window_size, zip_function, padding, first_dia, dias ...);
+    auto node = tlx::make_counting<ZipWindowNode>(
+        window_size, zip_function, padding, first_dia, dias...);
 
     return DIA<ZipResult>(node);
 }
@@ -846,7 +830,7 @@ auto ZipWindow(
  * \ingroup dia_dops
  */
 template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
-          typename ... DIAs>
+          typename... DIAs>
 auto ZipWindow(
     struct ArrayTag,
     struct PadTag,
@@ -859,7 +843,7 @@ auto ZipWindow(
               typename ZipWindowTraits<ZipFunction>::value_type_tuple_plain;
 
     return ZipWindow(ArrayTag, PadTag, window_size, zip_function,
-                     ZipArgsTuple(), first_dia, dias ...);
+                     ZipArgsTuple(), first_dia, dias...);
 }
 
 /******************************************************************************/

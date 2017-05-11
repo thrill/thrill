@@ -12,7 +12,7 @@
 #ifndef THRILL_COMMON_VECTOR_HEADER
 #define THRILL_COMMON_VECTOR_HEADER
 
-#include <thrill/common/die.hpp>
+#include <tlx/die.hpp>
 
 #include <algorithm>
 #include <cassert>

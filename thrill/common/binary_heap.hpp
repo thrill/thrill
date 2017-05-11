@@ -53,7 +53,7 @@ public:
     const_reference top() const { return c_.front(); }
 
     //! add an items in the PQ.
-    template <typename ... Args>
+    template <typename... Args>
     void emplace(Args&& ... args) {
         c_.emplace_back(std::forward<Args>(args) ...);
         push_heap(c_.begin(), c_.end(), cmp_);

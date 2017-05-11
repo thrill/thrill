@@ -15,7 +15,7 @@
 #include <thrill/api/generate.hpp>
 #include <thrill/api/read_lines.hpp>
 
-#include <thrill/common/cmdline_parser.hpp>
+#include <tlx/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 
 #include <algorithm>
@@ -206,67 +206,61 @@ static void RunStochasticGradFile(
 
 int main(int argc, char* argv[]) {
 
-    thrill::common::CmdlineParser clp;
+    tlx::CmdlineParser cp;
 
     bool generate = false;
-    clp.AddFlag('g', "generate", generate,
+    cp.add_flag('g', "generate", generate,
                 "generate random data, set num = #points");
 
     size_t num = 100;
-    clp.AddSizeT('n', "num", num,
+    cp.add_size_t('n', "num", num,
                  "number of points to generate");
 
     size_t dimensions = 1;
-    clp.AddSizeT('d', "dim", dimensions,
+    cp.add_size_t('d', "dim", dimensions,
                  "dimensions of weights 1-10, default: 1");
 
     size_t iterations = 100;
-    clp.AddSizeT('i', "iterations", iterations,
+    cp.add_size_t('i', "iterations", iterations,
                  "iterations, default: 100");
 
     size_t repetitions = 1;
-    clp.AddSizeT('r', "repetitions", repetitions,
+    cp.add_size_t('r', "repetitions", repetitions,
                  "repetitions, for timing purpose only.");
 
     double mini_batch_fraction = 1;
-    clp.AddDouble('f', "frac", mini_batch_fraction,
+    cp.add_double('f', "frac", mini_batch_fraction,
                   "mini_batch_fraction, default: 1");
 
     double step_size = 0.001;
-    clp.AddDouble('s', "step", step_size,
+    cp.add_double('s', "step", step_size,
                   "stepsize, default: 0.001");
 
     double tolerance = 0.01;
-    clp.AddDouble('t', "tolerance", tolerance,
+    cp.add_double('t', "tolerance", tolerance,
                   "tolerance, default: 0.01");
 
     std::string input_path = "";
-    clp.AddString('p', "paths", input_path,
+    cp.add_string('p', "paths", input_path,
                   "input file");
 
     std::string svg_path = "";
-    clp.AddString('o', "output", svg_path,
+    cp.add_string('o', "output", svg_path,
                   "output path for svg drawing (only for dim = 2)");
 
     double svg_scale = 1;
-    clp.AddDouble('S', "svg-scale", svg_scale,
+    cp.add_double('S', "svg-scale", svg_scale,
                   "scale coordinates for svg output, default: 1");
 
-    if (!clp.Process(argc, argv)) {
+    if (!cp.process(argc, argv)) {
         return -1;
     }
 
-    clp.PrintResult();
+    cp.print_result();
 
     if (!generate && input_path == "") {
         die("Please use -g to generate input data or -p to load files");
     }
-
-    if (!clp.Process(argc, argv)) {
-        return -1;
-    }
-
-    clp.PrintResult();
 
     auto start_func =
         [&](thrill::Context& ctx) {

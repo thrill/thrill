@@ -165,7 +165,7 @@ auto DIA<ValueType, Stack>::ZipWithIndex(
 
     using ZipWithIndexNode = api::ZipWithIndexNode<ZipResult, ZipFunction>;
 
-    auto node = common::MakeCounting<ZipWithIndexNode>(zip_function, *this);
+    auto node = tlx::make_counting<ZipWithIndexNode>(zip_function, *this);
 
     return DIA<ZipResult>(node);
 }

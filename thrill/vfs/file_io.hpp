@@ -15,10 +15,10 @@
 #ifndef THRILL_VFS_FILE_IO_HEADER
 #define THRILL_VFS_FILE_IO_HEADER
 
-#include <thrill/common/counting_ptr.hpp>
 #include <thrill/common/math.hpp>
 #include <thrill/common/porting.hpp>
 #include <thrill/common/system_exception.hpp>
+#include <tlx/counting_ptr.hpp>
 
 #include <string>
 #include <vector>
@@ -114,7 +114,7 @@ FileList Glob(const std::vector<std::string>& globlist,
  * Reader object from any source. Streams can be created for any supported URI
  * and seek to the given range's offset.
  */
-class ReadStream : public virtual common::ReferenceCount
+class ReadStream : public virtual tlx::ReferenceCounter
 {
 public:
     virtual ~ReadStream();
@@ -129,7 +129,7 @@ public:
 /*!
  * Writer object to output data to any supported URI.
  */
-class WriteStream : public virtual common::ReferenceCount
+class WriteStream : public virtual tlx::ReferenceCounter
 {
 public:
     virtual ~WriteStream();
@@ -139,8 +139,8 @@ public:
     virtual void close() = 0;
 };
 
-using ReadStreamPtr = common::CountingPtr<ReadStream>;
-using WriteStreamPtr = common::CountingPtr<WriteStream>;
+using ReadStreamPtr = tlx::CountingPtr<ReadStream>;
+using WriteStreamPtr = tlx::CountingPtr<WriteStream>;
 
 /******************************************************************************/
 

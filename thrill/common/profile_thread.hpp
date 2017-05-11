@@ -16,8 +16,8 @@
 #define THRILL_COMMON_PROFILE_THREAD_HEADER
 
 #include <thrill/common/binary_heap.hpp>
-#include <thrill/common/delegate.hpp>
 #include <thrill/common/profile_task.hpp>
+#include <tlx/delegate.hpp>
 
 #include <atomic>
 #include <chrono>

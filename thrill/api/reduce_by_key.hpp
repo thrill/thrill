@@ -20,10 +20,10 @@
 #include <thrill/api/dop_node.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/meta.hpp>
 #include <thrill/common/porting.hpp>
 #include <thrill/core/reduce_by_hash_post_phase.hpp>
 #include <thrill/core/reduce_pre_phase.hpp>
+#include <tlx/meta/is_std_pair.hpp>
 
 #include <functional>
 #include <thread>
@@ -72,7 +72,7 @@ private:
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
 
     using TableItem =
-              typename common::If<
+              typename std::conditional<
                   VolatileKey, std::pair<Key, ValueType>, ValueType>::type;
 
     using HashIndexFunction = core::ReduceByHash<Key, KeyHashFunction>;
@@ -348,7 +348,7 @@ auto DIA<ValueType, Stack>::ReduceByKey(
               KeyHashFunction, KeyEqualFunction,
               VolatileKeyValue, DuplicateDetectionValue>;
 
-    auto node = common::MakeCounting<ReduceNode>(
+    auto node = tlx::make_counting<ReduceNode>(
         *this, "ReduceByKey",
         key_extractor, reduce_function, reduce_config,
         key_hash_function, key_equal_funtion);
@@ -412,7 +412,7 @@ auto DIA<ValueType, Stack>::ReducePair(
     using DOpResult
               = typename common::FunctionTraits<ReduceFunction>::result_type;
 
-    static_assert(common::is_std_pair<ValueType>::value,
+    static_assert(tlx::is_std_pair<ValueType>::value,
                   "ValueType is not a pair");
 
     static_assert(
@@ -448,7 +448,7 @@ auto DIA<ValueType, Stack>::ReducePair(
               ReduceConfig, KeyHashFunction, KeyEqualFunction,
               /* VolatileKey */ false, DuplicateDetectionValue>;
 
-    auto node = common::MakeCounting<ReduceNode>(
+    auto node = tlx::make_counting<ReduceNode>(
         *this, "ReducePair",
         key_extractor, reduce_pair_function, reduce_config,
         key_hash_function, key_equal_funtion);

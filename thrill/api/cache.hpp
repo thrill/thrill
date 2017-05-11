@@ -104,7 +104,7 @@ DIA<ValueType> DIA<ValueType, Stack>::Cache() const {
     }
 #endif
     return DIA<ValueType>(
-        common::MakeCounting<api::CacheNode<ValueType> >(*this));
+        tlx::make_counting<api::CacheNode<ValueType> >(*this));
 }
 
 } // namespace api

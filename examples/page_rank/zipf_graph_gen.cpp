@@ -17,9 +17,10 @@
 
 #include <examples/page_rank/zipf_graph_gen.hpp>
 
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
+#include <tlx/cmdline_parser.hpp>
 
+#include <iostream>
 #include <string>
 #include <vector>
 
@@ -28,34 +29,34 @@ using namespace examples::page_rank; // NOLINT
 
 int main(int argc, char* argv[]) {
 
-    common::CmdlineParser clp;
+    tlx::CmdlineParser clp;
 
     // Graph Generator
     ZipfGraphGen gg(1);
 
     uint64_t pages;
-    clp.AddParamBytes("pages", pages, "number of pages");
+    clp.add_param_bytes("pages", pages, "number of pages");
 
     bool group = false;
-    clp.AddFlag('g', "group", group, "group outgoing links");
+    clp.add_bool('g', "group", group, "group outgoing links");
 
-    clp.AddDouble('m', "size_mean", gg.size_mean,
-                  "mean of number of outgoing links, default: "
-                  + std::to_string(gg.size_mean));
+    clp.add_double('m', "size_mean", gg.size_mean,
+                   "mean of number of outgoing links, default: "
+                   + std::to_string(gg.size_mean));
 
-    clp.AddDouble(0, "size_var", gg.size_var,
-                  "variance of number of outgoing links, default: "
-                  + std::to_string(gg.size_var));
+    clp.add_double(0, "size_var", gg.size_var,
+                   "variance of number of outgoing links, default: "
+                   + std::to_string(gg.size_var));
 
-    clp.AddDouble(0, "link_scale", gg.link_zipf_scale,
-                  "Zipf scale parameter for outgoing links, default: "
-                  + std::to_string(gg.link_zipf_scale));
+    clp.add_double(0, "link_scale", gg.link_zipf_scale,
+                   "Zipf scale parameter for outgoing links, default: "
+                   + std::to_string(gg.link_zipf_scale));
 
-    clp.AddDouble(0, "link_exponent", gg.link_zipf_exponent,
-                  "Zipf exponent parameter for outgoing links, default: "
-                  + std::to_string(gg.link_zipf_exponent));
+    clp.add_double(0, "link_exponent", gg.link_zipf_exponent,
+                   "Zipf exponent parameter for outgoing links, default: "
+                   + std::to_string(gg.link_zipf_exponent));
 
-    if (!clp.Process(argc, argv)) {
+    if (!clp.process(argc, argv)) {
         return -1;
     }
 

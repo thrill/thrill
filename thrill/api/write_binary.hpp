@@ -20,6 +20,7 @@
 #include <thrill/data/block_sink.hpp>
 #include <thrill/data/block_writer.hpp>
 #include <thrill/vfs/file_io.hpp>
+#include <tlx/math/round_to_power_of_two.hpp>
 
 #include <algorithm>
 #include <string>
@@ -52,7 +53,7 @@ public:
         sLOG << "Creating write node.";
 
         block_size_ = std::min(data::default_block_size,
-                               common::RoundUpToPowerOfTwo(max_file_size));
+                               tlx::round_up_to_power_of_two(max_file_size));
         sLOG << "block_size_" << block_size_;
 
         auto pre_op_fn = [=](const ValueType& input) {
@@ -202,7 +203,7 @@ void DIA<ValueType, Stack>::WriteBinary(
 
     using WriteBinaryNode = api::WriteBinaryNode<ValueType>;
 
-    auto node = common::MakeCounting<WriteBinaryNode>(
+    auto node = tlx::make_counting<WriteBinaryNode>(
         *this, filepath, max_file_size);
 
     node->RunScope();
@@ -214,7 +215,7 @@ Future<void> DIA<ValueType, Stack>::WriteBinaryFuture(
 
     using WriteBinaryNode = api::WriteBinaryNode<ValueType>;
 
-    auto node = common::MakeCounting<WriteBinaryNode>(
+    auto node = tlx::make_counting<WriteBinaryNode>(
         *this, filepath, max_file_size);
 
     return Future<void>(node);

@@ -12,9 +12,12 @@
 #include <thrill/api/read_binary.hpp>
 #include <thrill/api/sort.hpp>
 #include <thrill/api/write_binary.hpp>
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/string.hpp>
+#include <tlx/cmdline_parser.hpp>
+
+#include <tlx/string/hexdump.hpp>
+#include <tlx/string/parse_si_iec_units.hpp>
 
 #include <algorithm>
 #include <random>
@@ -32,9 +35,9 @@ struct Record {
         return std::lexicographical_compare(key, key + 10, b.key, b.key + 10);
     }
     friend std::ostream& operator << (std::ostream& os, const Record& c) {
-        return os << common::Hexdump(c.key, 10);
+        return os << tlx::hexdump(c.key, 10);
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 static_assert(sizeof(Record) == 100, "struct Record packing incorrect.");
 
@@ -48,9 +51,9 @@ struct RecordSigned {
         return std::lexicographical_compare(key, key + 10, b.key, b.key + 10);
     }
     friend std::ostream& operator << (std::ostream& os, const RecordSigned& c) {
-        return os << common::Hexdump(c.key, 10);
+        return os << tlx::hexdump(c.key, 10);
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 /*!
  * Generate a Record in a similar way as the "binary" version of Hadoop's
@@ -115,35 +118,35 @@ private:
 
 int main(int argc, char* argv[]) {
 
-    common::CmdlineParser clp;
+    tlx::CmdlineParser clp;
 
     bool use_signed_char = false;
-    clp.AddFlag('s', "signed_char", use_signed_char,
-                "compare with signed chars to compare with broken Java "
-                "implementations, default: false");
+    clp.add_bool('s', "signed_char", use_signed_char,
+                 "compare with signed chars to compare with broken Java "
+                 "implementations, default: false");
 
     bool generate = false;
-    clp.AddFlag('g', "generate", generate,
-                "generate binary record on-the-fly for testing."
-                " size: first input pattern, default: false");
+    clp.add_bool('g', "generate", generate,
+                 "generate binary record on-the-fly for testing."
+                 " size: first input pattern, default: false");
 
     bool generate_only = false;
-    clp.AddFlag('G', "generate-only", generate_only,
-                "write unsorted generated binary records to output.");
+    clp.add_bool('G', "generate-only", generate_only,
+                 "write unsorted generated binary records to output.");
 
     std::string output;
-    clp.AddString('o', "output", output,
-                  "output file pattern");
+    clp.add_string('o', "output", output,
+                   "output file pattern");
 
     std::vector<std::string> input;
-    clp.AddParamStringlist("input", input,
-                           "input file pattern(s)");
+    clp.add_param_stringlist("input", input,
+                             "input file pattern(s)");
 
-    if (!clp.Process(argc, argv)) {
+    if (!clp.process(argc, argv)) {
         return -1;
     }
 
-    clp.PrintResult();
+    clp.print_result();
 
     return api::Run(
         [&](api::Context& ctx) {
@@ -152,7 +155,7 @@ int main(int argc, char* argv[]) {
                 die_unequal(input.size(), 1u);
                 // parse first argument like "100mib" size
                 uint64_t size;
-                die_unless(common::ParseSiIecUnits(input[0].c_str(), size));
+                die_unless(tlx::parse_si_iec_units(input[0].c_str(), &size));
                 die_unless(!use_signed_char);
 
                 Generate(ctx, size / sizeof(Record), GenerateRecord())
@@ -162,7 +165,7 @@ int main(int argc, char* argv[]) {
                 die_unequal(input.size(), 1u);
                 // parse first argument like "100mib" size
                 uint64_t size;
-                die_unless(common::ParseSiIecUnits(input[0].c_str(), size));
+                die_unless(tlx::parse_si_iec_units(input[0].c_str(), &size));
                 die_unless(!use_signed_char);
 
                 auto r =

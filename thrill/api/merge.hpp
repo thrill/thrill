@@ -19,13 +19,16 @@
 #include <thrill/api/dop_node.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/meta.hpp>
 #include <thrill/common/stats_counter.hpp>
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/common/string.hpp>
 #include <thrill/core/multiway_merge.hpp>
 #include <thrill/data/dyn_block_reader.hpp>
 #include <thrill/data/file.hpp>
+
+#include <tlx/math/abs_diff.hpp>
+#include <tlx/meta/call_foreach_with_index.hpp>
+#include <tlx/meta/vexpand.hpp>
 
 #include <algorithm>
 #include <array>
@@ -84,7 +87,7 @@ class MergeNode : public DOpNode<ValueType>
     static_assert(kNumInputs >= 2, "Merge requires at least two inputs.");
 
 public:
-    template <typename ParentDIA0, typename ... ParentDIAs>
+    template <typename ParentDIA0, typename... ParentDIAs>
     MergeNode(const Comparator& comparator,
               const ParentDIA0& parent0, const ParentDIAs& ... parents)
         : Super(parent0.ctx(), "Merge",
@@ -104,8 +107,8 @@ public:
         for (size_t i = 0; i < kNumInputs; ++i)
             writers_[i] = files_[i]->GetWriter();
 
-        common::VariadicCallForeachIndex(
-            RegisterParent(this), parent0, parents ...);
+        tlx::call_foreach_with_index(
+            RegisterParent(this), parent0, parents...);
     }
 
     //! Register Parent PreOp Hooks, instantiated and called for each Merge
@@ -606,7 +609,7 @@ private:
             finished = true;
             for (size_t i = 0; i < p - 1; i++) {
                 size_t a = global_ranks[i], b = target_ranks[i];
-                if (common::abs_diff(a, b) > kNumInputs + 1) {
+                if (tlx::abs_diff(a, b) > kNumInputs + 1) {
                     finished = false;
                     break;
                 }
@@ -682,16 +685,11 @@ private:
  *
  * \ingroup dia_dops
  */
-template <typename Comparator, typename FirstDIA, typename ... DIAs>
+template <typename Comparator, typename FirstDIA, typename... DIAs>
 auto Merge(const Comparator& comparator,
            const FirstDIA& first_dia, const DIAs& ... dias) {
 
-    using VarForeachExpander = int[];
-
-    first_dia.AssertValid();
-    (void)VarForeachExpander {
-        (dias.AssertValid(), 0) ...
-    };
+    tlx::vexpand((first_dia.AssertValid(), 0), (dias.AssertValid(), 0) ...);
 
     using ValueType = typename FirstDIA::ValueType;
 
@@ -725,7 +723,7 @@ auto Merge(const Comparator& comparator,
         "Comparator must return bool");
 
     auto merge_node =
-        common::MakeCounting<MergeNode>(comparator, first_dia, dias ...);
+        tlx::make_counting<MergeNode>(comparator, first_dia, dias...);
 
     return DIA<ValueType>(merge_node);
 }

@@ -40,7 +40,7 @@ struct IndexRank {
     friend std::ostream& operator << (std::ostream& os, const IndexRank& ir) {
         return os << '(' << ir.index << '|' << ir.rank << ')';
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 template <typename Char, typename Index>
 struct IndexChar {
@@ -50,7 +50,7 @@ struct IndexChar {
     friend std::ostream& operator << (std::ostream& os, const IndexChar& ic) {
         return os << '(' << ic.index << '|' << ic.ch << ')';
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 template <typename Index>
 struct IndexFlag {
@@ -60,7 +60,7 @@ struct IndexFlag {
     friend std::ostream& operator << (std::ostream& os, const IndexFlag& idx_flag) {
         return os << '(' << idx_flag.index << '|' << (idx_flag.flag ? 't' : 'f') << ')';
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 template <typename Index>
 struct IndexRankFlag {
@@ -71,7 +71,7 @@ struct IndexRankFlag {
     friend std::ostream& operator << (std::ostream& os, const IndexRankFlag& irf) {
         return os << '(' << irf.index << '|' << irf.rank << '|' << (irf.flag ? 't' : 'f') << ')';
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 template <typename InputDIA, typename IndexDIA>
 IndexDIA ConstructLCP(const InputDIA& input, const IndexDIA& /*suffix_array*/,

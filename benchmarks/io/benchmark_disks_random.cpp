@@ -13,17 +13,20 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/math.hpp>
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/io/block_manager.hpp>
 #include <thrill/io/request_operations.hpp>
 #include <thrill/io/typed_block.hpp>
 #include <thrill/mem/aligned_allocator.hpp>
+#include <tlx/cmdline_parser.hpp>
+#include <tlx/math/div_ceil.hpp>
+#include <tlx/string/format_si_iec_units.hpp>
 
 #include <algorithm>
 #include <ctime>
 #include <iomanip>
+#include <iostream>
 #include <string>
 #include <vector>
 
@@ -53,10 +56,8 @@ void RunTest(int64_t span, int64_t worksize,
     using TypedBlock = io::TypedBlock<raw_block_size, unsigned>;
     using BID = io::BID<0>;
 
-    size_t num_blocks =
-        (size_t)common::IntegerDivRoundUp<int64_t>(worksize, raw_block_size);
-    size_t num_blocks_in_span =
-        (size_t)common::IntegerDivRoundUp<int64_t>(span, raw_block_size);
+    size_t num_blocks = (size_t)tlx::div_ceil(worksize, raw_block_size);
+    size_t num_blocks_in_span = (size_t)tlx::div_ceil(span, raw_block_size);
 
     num_blocks = std::min(num_blocks, num_blocks_in_span);
     if (num_blocks == 0) num_blocks = num_blocks_in_span;
@@ -79,14 +80,14 @@ void RunTest(int64_t span, int64_t worksize,
         io::BlockManager::GetInstance()->new_blocks(alloc, bids.begin(), bids.end());
 
         std::cout << "# Span size: "
-                  << common::FormatIecUnits(span) << " ("
+                  << tlx::format_iec_units(span) << " ("
                   << num_blocks_in_span << " blocks of "
-                  << common::FormatIecUnits(raw_block_size) << ")" << std::endl;
+                  << tlx::format_iec_units(raw_block_size) << ")" << std::endl;
 
         std::cout << "# Work size: "
-                  << common::FormatIecUnits(worksize) << " ("
+                  << tlx::format_iec_units(worksize) << " ("
                   << num_blocks << " blocks of "
-                  << common::FormatIecUnits(raw_block_size) << ")" << std::endl;
+                  << tlx::format_iec_units(raw_block_size) << ")" << std::endl;
 
         double elapsed = 0;
 
@@ -206,35 +207,35 @@ int BenchmarkDisksRandomAlloc(uint64_t span, uint64_t block_size, uint64_t works
 int main(int argc, char* argv[]) {
     // parse command line
 
-    common::CmdlineParser cp;
+    tlx::CmdlineParser cp;
 
     uint64_t span, block_size = 8 * MiB, worksize = 0;
     std::string optirw = "irw", allocstr;
 
-    cp.AddParamBytes(
+    cp.add_param_bytes(
         "span", span,
         "Span of external memory to write/read to (e.g. 10GiB).");
-    cp.AddOptParamBytes(
+    cp.add_opt_param_bytes(
         "block_size", block_size,
         "Size of blocks to randomly write/read (default: 8MiB).");
-    cp.AddOptParamBytes(
+    cp.add_opt_param_bytes(
         "size", worksize,
         "Amount of data to operate on (e.g. 2GiB), default: whole span.");
-    cp.AddOptParamString(
+    cp.add_opt_param_string(
         "i|r|w", optirw,
         "Operations: [i]nitialize, [r]ead, and/or [w]rite (default: all).");
-    cp.AddOptParamString(
+    cp.add_opt_param_string(
         "alloc", allocstr,
         "Block allocation strategy: RC, SR, FR, S (default: RC).");
 
-    cp.SetDescription(
+    cp.set_description(
         "This program will benchmark _random_ block access on the disks "
         "configured by the standard .thrill disk configuration files mechanism. "
         "Available block sizes are power of two from 4 KiB to 128 MiB. "
         "A set of three operations can be performed: sequential initialization, "
         "random reading and random writing.");
 
-    if (!cp.Process(argc, argv))
+    if (!cp.process(argc, argv))
         return -1;
 
 #define RunAlloc(Alloc) BenchmarkDisksRandomAlloc<Alloc>( \
@@ -252,7 +253,7 @@ int main(int argc, char* argv[]) {
             return RunAlloc(io::Striping);
 
         std::cout << "Unknown allocation strategy '" << allocstr << "'" << std::endl;
-        cp.PrintUsage();
+        cp.print_usage();
         return -1;
     }
 

@@ -14,11 +14,13 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/config.hpp>
 #include <thrill/io/config_file.hpp>
 #include <thrill/io/error_handling.hpp>
 #include <thrill/io/file_base.hpp>
+
+#include <tlx/string/parse_si_iec_units.hpp>
+#include <tlx/string/split.hpp>
 
 #include <fstream>
 #include <iostream>
@@ -251,7 +253,7 @@ DiskConfig::DiskConfig(const std::string& line)
 
 void DiskConfig::parse_line(const std::string& line) {
     // split off disk= or flash=
-    std::vector<std::string> eqfield = common::Split(line, "=", 2, 2);
+    std::vector<std::string> eqfield = tlx::split('=', line, 2, 2);
 
     if (eqfield[0] == "disk") {
         flash = false;
@@ -277,7 +279,7 @@ void DiskConfig::parse_line(const std::string& line) {
     // *** Save Basic Options ***
 
     // split at commands, at least 3 fields
-    std::vector<std::string> cmfield = common::Split(eqfield[1], ",", 3, 3);
+    std::vector<std::string> cmfield = tlx::split(',', eqfield[1], 3, 3);
 
     // path:
     path = cmfield[0];
@@ -296,7 +298,7 @@ void DiskConfig::parse_line(const std::string& line) {
     }
 
     // size: (default unit MiB)
-    if (!common::ParseSiIecUnits(cmfield[1].c_str(), size, 'M')) {
+    if (!tlx::parse_si_iec_units(cmfield[1].c_str(), &size, 'M')) {
         THRILL_THROW(std::runtime_error,
                      "Invalid disk size '" << cmfield[1] << "' in disk configuration file.");
     }
@@ -327,13 +329,13 @@ void DiskConfig::parse_fileio() {
     std::string paramstr = io_impl.substr(spacepos + 1);
     io_impl = io_impl.substr(0, spacepos);
 
-    std::vector<std::string> param = common::Split(paramstr, " ");
+    std::vector<std::string> param = tlx::split(' ', paramstr);
 
     for (std::vector<std::string>::const_iterator p = param.begin();
          p != param.end(); ++p)
     {
         // split at equal sign
-        std::vector<std::string> eq = common::Split(*p, "=", 2, 2);
+        std::vector<std::string> eq = tlx::split('=', *p, 2, 2);
 
         // *** PLEASE try to keep the elseifs sorted by parameter name!
         if (*p == "") {

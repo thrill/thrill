@@ -211,7 +211,7 @@ public:
     ~FlowControlChannel();
 
 #ifdef SWIG
-#define THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
+#define TLX_ATTRIBUTE_WARN_UNUSED_RESULT
 #endif
 
     /*!
@@ -230,7 +230,7 @@ public:
      * \return The prefix sum for the position of this worker.
      */
     template <typename T, typename BinarySumOp = std::plus<T> >
-    T THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
+    T TLX_ATTRIBUTE_WARN_UNUSED_RESULT
     PrefixSum(const T& value, const T& initial = T(),
               const BinarySumOp& sum_op = BinarySumOp(),
               bool inclusive = true) {
@@ -298,7 +298,7 @@ public:
      * \return The prefix sum for the position of this worker.
      */
     template <typename T, typename BinarySumOp = std::plus<T> >
-    T THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
+    T TLX_ATTRIBUTE_WARN_UNUSED_RESULT
     ExPrefixSum(const T& value, const T& initial = T(),
                 const BinarySumOp& sum_op = BinarySumOp()) {
         return PrefixSum(value, initial, sum_op, false);
@@ -320,7 +320,7 @@ public:
      * \return The prefix sum for the position of this worker.
      */
     template <typename T, typename BinarySumOp = std::plus<T> >
-    T THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
+    T TLX_ATTRIBUTE_WARN_UNUSED_RESULT
     ExPrefixSumTotal(T& value, const T& initial = T(),
                      const BinarySumOp& sum_op = BinarySumOp()) {
 
@@ -388,7 +388,7 @@ public:
      * \return The value sent by the master.
      */
     template <typename T>
-    T THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
+    T TLX_ATTRIBUTE_WARN_UNUSED_RESULT
     Broadcast(const T& value, size_t origin = 0) {
 
         RunTimer run_timer(timer_broadcast_);
@@ -434,7 +434,7 @@ public:
      * \return The result of the reduce operation.
      */
     template <typename T, typename BinarySumOp = std::plus<T> >
-    T THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
+    T TLX_ATTRIBUTE_WARN_UNUSED_RESULT
     Reduce(const T& value, size_t root = 0,
            const BinarySumOp& sum_op = BinarySumOp()) {
         assert(root < num_workers());
@@ -481,7 +481,7 @@ public:
      * \return The result of the reduce operation.
      */
     template <typename T, typename BinarySumOp = std::plus<T> >
-    T THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
+    T TLX_ATTRIBUTE_WARN_UNUSED_RESULT
     AllReduce(const T& value, const BinarySumOp& sum_op = BinarySumOp()) {
 
         RunTimer run_timer(timer_allreduce_);

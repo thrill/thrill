@@ -15,6 +15,9 @@
 #include <thrill/common/string.hpp>
 #include <thrill/common/system_exception.hpp>
 
+#include <tlx/string/replace.hpp>
+#include <tlx/unused.hpp>
+
 #include <fcntl.h>
 
 #include <fstream>
@@ -41,7 +44,7 @@ void PortSetCloseOnExec(int fd) {
         throw ErrnoException("Error setting FD_CLOEXEC on file descriptor");
     }
 #else
-    UNUSED(fd);
+    tlx::unused(fd);
 #endif
 }
 
@@ -75,7 +78,7 @@ void LogCmdlineParams(JsonLogger& logger) {
         args.emplace_back(arg);
 
     std::string prog;
-    if (args.size() > 0) {
+    if (!args.empty()) {
         prog = args[0];
         std::string::size_type slashpos = prog.rfind('/');
         if (slashpos != std::string::npos)
@@ -90,7 +93,7 @@ void LogCmdlineParams(JsonLogger& logger) {
         arg = args[i];
         // escape " -> \"
         if (arg.find('"') != std::string::npos)
-            common::ReplaceAll(arg, "\"", "\\\"");
+            tlx::replace_all(arg, "\"", "\\\"");
         cmdline << arg;
     }
 
@@ -100,7 +103,7 @@ void LogCmdlineParams(JsonLogger& logger) {
            << "argv" << args
            << "cmdline" << cmdline.str();
 #else
-    UNUSED(logger);
+    tlx::unused(logger);
 #endif
 }
 
@@ -116,8 +119,8 @@ void SetCpuAffinity(std::thread& thread, size_t cpu_id) {
              << rc << ": " << strerror(errno);
     }
 #else
-    UNUSED(thread);
-    UNUSED(cpu_id);
+    tlx::unused(thread);
+    tlx::unused(cpu_id);
 #endif
 }
 
@@ -132,7 +135,7 @@ void SetCpuAffinity(size_t cpu_id) {
              << rc << ": " << strerror(errno);
     }
 #else
-    UNUSED(cpu_id);
+    tlx::unused(cpu_id);
 #endif
 }
 

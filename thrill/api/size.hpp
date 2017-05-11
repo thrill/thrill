@@ -101,7 +101,7 @@ size_t DIA<ValueType, Stack>::Size() const {
     assert(IsValid());
 
     using SizeNode = api::SizeNode<ValueType>;
-    auto node = common::MakeCounting<SizeNode>(*this);
+    auto node = tlx::make_counting<SizeNode>(*this);
     node->RunScope();
     return node->result();
 }
@@ -111,7 +111,7 @@ Future<size_t> DIA<ValueType, Stack>::SizeFuture() const {
     assert(IsValid());
 
     using SizeNode = api::SizeNode<ValueType>;
-    auto node = common::MakeCounting<SizeNode>(*this);
+    auto node = tlx::make_counting<SizeNode>(*this);
     return Future<size_t>(node);
 }
 

@@ -37,13 +37,13 @@ bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
     struct IndexRank {
         Index index;
         Index rank;
-    } THRILL_ATTRIBUTE_PACKED;
+    } TLX_ATTRIBUTE_PACKED;
 
     struct Index3 {
         Index index;
         Index next;
         Char  ch;
-    } THRILL_ATTRIBUTE_PACKED;
+    } TLX_ATTRIBUTE_PACKED;
 
     uint64_t input_size = input.Keep().Size();
 

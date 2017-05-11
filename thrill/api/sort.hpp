@@ -24,6 +24,7 @@
 #include <thrill/core/multiway_merge.hpp>
 #include <thrill/data/file.hpp>
 #include <thrill/net/group.hpp>
+#include <tlx/math/integer_log2.hpp>
 
 #include <algorithm>
 #include <cstdlib>
@@ -593,7 +594,7 @@ private:
         std::vector<SampleIndexPair>().swap(samples_);
 
         // Get the ceiling of log(num_total_workers), as SSSS needs 2^n buckets.
-        size_t ceil_log = common::IntegerLog2Ceil(num_total_workers);
+        size_t ceil_log = tlx::integer_log2_ceil(num_total_workers);
         size_t workers_algo = size_t(1) << ceil_log;
         size_t splitter_count_algo = workers_algo - 1;
 
@@ -792,7 +793,7 @@ auto DIA<ValueType, Stack>::Sort(const CompareFunction& compare_function) const 
             bool>::value,
         "CompareFunction has the wrong output type (should be bool)");
 
-    auto node = common::MakeCounting<SortNode>(*this, compare_function);
+    auto node = tlx::make_counting<SortNode>(*this, compare_function);
 
     return DIA<ValueType>(node);
 }
@@ -824,7 +825,7 @@ auto DIA<ValueType, Stack>::Sort(const CompareFunction& compare_function,
             bool>::value,
         "CompareFunction has the wrong output type (should be bool)");
 
-    auto node = common::MakeCounting<SortNode>(
+    auto node = tlx::make_counting<SortNode>(
         *this, compare_function, sort_algorithm);
 
     return DIA<ValueType>(node);

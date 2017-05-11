@@ -135,10 +135,10 @@ private:
     BlockQueue * loopback_queue(size_t from_worker_id);
 };
 
-using CatStreamPtr = common::CountingPtr<CatStream>;
+using CatStreamPtr = tlx::CountingPtr<CatStream>;
 
 using CatStreamSet = StreamSet<CatStream>;
-using CatStreamSetPtr = common::CountingPtr<CatStreamSet>;
+using CatStreamSetPtr = tlx::CountingPtr<CatStreamSet>;
 
 //! \}
 

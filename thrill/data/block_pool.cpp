@@ -8,9 +8,7 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <thrill/common/die.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/lru_cache.hpp>
 #include <thrill/common/math.hpp>
 #include <thrill/data/block.hpp>
 #include <thrill/data/block_pool.hpp>
@@ -18,6 +16,11 @@
 #include <thrill/io/iostats.hpp>
 #include <thrill/mem/aligned_allocator.hpp>
 #include <thrill/mem/pool.hpp>
+
+#include <tlx/die.hpp>
+#include <tlx/lru_cache.hpp>
+#include <tlx/math/is_power_of_two.hpp>
+#include <tlx/string/join_generic.hpp>
 
 #include <algorithm>
 #include <functional>
@@ -204,8 +207,8 @@ void BlockPool::PinCount::AssertZero() const {
 std::ostream& operator << (std::ostream& os, const BlockPool::PinCount& p) {
     os << " total_pins_=" << p.total_pins_
        << " total_pinned_bytes_=" << p.total_pinned_bytes_
-       << " pin_count_=[" << common::Join(',', p.pin_count_) << "]"
-       << " pinned_bytes_=[" << common::Join(',', p.pinned_bytes_) << "]"
+       << " pin_count_=[" << tlx::join(',', p.pin_count_) << "]"
+       << " pinned_bytes_=[" << tlx::join(',', p.pinned_bytes_) << "]"
        << " max_pin=" << p.max_pins
        << " max_pinned_bytes=" << p.max_pinned_bytes;
     return os;
@@ -217,13 +220,13 @@ std::ostream& operator << (std::ostream& os, const BlockPool::PinCount& p) {
 //! type of set of ByteBlocks currently begin written to EM.
 using WritingMap = std::unordered_map<
           ByteBlock*, io::RequestPtr,
-          std::hash<ByteBlock*>, std::equal_to<ByteBlock*>,
+          std::hash<ByteBlock*>, std::equal_to<>,
           mem::GPoolAllocator<std::pair<ByteBlock* const, io::RequestPtr> > >;
 
 //! type of set of ByteBlocks currently begin read from EM.
 using ReadingMap = std::unordered_map<
           ByteBlock*, PinRequestPtr,
-          std::hash<ByteBlock*>, std::equal_to<ByteBlock*>,
+          std::hash<ByteBlock*>, std::equal_to<>,
           mem::GPoolAllocator<
               std::pair<ByteBlock* const, PinRequestPtr> > >;
 
@@ -242,7 +245,7 @@ public:
     size_t hard_ram_limit_;
 
     //! list of all blocks that are _in_memory_ but are _not_ pinned.
-    common::LruCacheSet<
+    tlx::LruCacheSet<
         ByteBlock*, mem::GPoolAllocator<ByteBlock*> > unpinned_blocks_;
 
     //! set of ByteBlocks currently begin written to EM.
@@ -253,7 +256,7 @@ public:
 
     //! set of ByteBlock currently in EM.
     std::unordered_set<
-        ByteBlock*, std::hash<ByteBlock*>, std::equal_to<ByteBlock*>,
+        ByteBlock*, std::hash<ByteBlock*>, std::equal_to<>,
         mem::GPoolAllocator<ByteBlock*> > swapped_;
 
     //! I/O layer stats when BlockPool was created.
@@ -470,7 +473,7 @@ BlockPool::AllocateByteBlock(size_t size, size_t local_worker_id) {
     assert(local_worker_id < workers_per_host_);
     std::unique_lock<std::mutex> lock(mutex_);
 
-    if (!(size % THRILL_DEFAULT_ALIGN == 0 && common::IsPowerOfTwo(size))
+    if (!(size % THRILL_DEFAULT_ALIGN == 0 && tlx::is_power_of_two(size))
         // make exception to block_size constraint for test programs, which use
         // irregular block sizes to check all corner cases
         && d_->hard_ram_limit_ != 0) {
@@ -486,7 +489,7 @@ BlockPool::AllocateByteBlock(size_t size, size_t local_worker_id) {
     Byte* data = d_->aligned_alloc_.allocate(size);
     lock.lock();
 
-    // create common::CountingPtr, no need for special make_shared()-equivalent
+    // create tlx::CountingPtr, no need for special make_shared()-equivalent
     PinnedByteBlockPtr block_ptr(
         mem::GPool().make<ByteBlock>(this, data, size), local_worker_id);
     ++d_->total_byte_blocks_;
@@ -511,7 +514,7 @@ BlockPool::AllocateByteBlock(size_t size, size_t local_worker_id) {
 ByteBlockPtr BlockPool::MapExternalBlock(
     const io::FileBasePtr& file, int64_t offset, size_t size) {
     std::unique_lock<std::mutex> lock(mutex_);
-    // create common::CountingPtr, no need for special make_shared()-equivalent
+    // create tlx::CountingPtr, no need for special make_shared()-equivalent
     ByteBlockPtr block_ptr(
         mem::GPool().make<ByteBlock>(this, file, offset, size));
     ++d_->total_byte_blocks_;

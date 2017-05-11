@@ -102,7 +102,7 @@ auto Generate(Context& ctx, size_t size,
             >::value,
         "GenerateFunction needs a const unsigned long int& (aka. size_t) as input");
 
-    auto node = common::MakeCounting<GenerateNode>(
+    auto node = tlx::make_counting<GenerateNode>(
         ctx, generate_function, size);
 
     return DIA<GenerateResult>(node);

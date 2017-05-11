@@ -13,9 +13,9 @@
 #include <thrill/api/generate.hpp>
 #include <thrill/api/print.hpp>
 #include <thrill/api/read_lines.hpp>
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/string.hpp>
+#include <tlx/cmdline_parser.hpp>
 
 #include <array>
 #include <random>
@@ -143,30 +143,30 @@ void TestLogit(api::Context& ctx, const std::string& test_file,
 }
 
 int main(int argc, char* argv[]) {
-    common::CmdlineParser clp;
+    tlx::CmdlineParser clp;
 
     std::string training_path;
     std::vector<std::string> test_path;
-    clp.AddParamString("input", training_path, "training file pattern(s)");
-    clp.AddParamStringlist("test", test_path, "test file pattern(s)");
+    clp.add_param_string("input", training_path, "training file pattern(s)");
+    clp.add_param_stringlist("test", test_path, "test file pattern(s)");
 
     size_t max_iterations = 1000;
-    clp.AddSizeT('n', "iterations", max_iterations,
-                 "Maximum number of iterations, default: 1000");
+    clp.add_size_t('n', "iterations", max_iterations,
+                   "Maximum number of iterations, default: 1000");
 
     double gamma = 0.002, epsilon = 0.0001;
-    clp.AddDouble('g', "gamma", gamma, "Gamma, default: 0.002");
-    clp.AddDouble('e', "epsilon", epsilon, "Epsilon, default: 0.0001");
+    clp.add_double('g', "gamma", gamma, "Gamma, default: 0.002");
+    clp.add_double('e', "epsilon", epsilon, "Epsilon, default: 0.0001");
 
     bool generate = false;
-    clp.AddFlag('G', "generate", generate,
-                "Generate some random data to train and classify");
+    clp.add_bool('G', "generate", generate,
+                 "Generate some random data to train and classify");
 
-    if (!clp.Process(argc, argv)) {
+    if (!clp.process(argc, argv)) {
         return -1;
     }
 
-    clp.PrintResult();
+    clp.print_result();
 
     return api::Run(
         [&](api::Context& ctx) {

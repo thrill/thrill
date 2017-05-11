@@ -28,7 +28,7 @@ namespace thrill {
 namespace mem {
 
 template <typename Type>
-class Allocator : public AllocatorBase<Type>
+class Allocator : public tlx::AllocatorBase<Type>
 {
     static constexpr bool debug = false;
 
@@ -167,7 +167,7 @@ public:
 };
 
 //! operator new with our Allocator
-template <typename T, typename ... Args>
+template <typename T, typename... Args>
 T * mm_new(Manager& manager, Args&& ... args) {
     Allocator<T> allocator(manager);
     T* value = allocator.allocate(1);
@@ -208,7 +208,7 @@ template <typename T>
 using unique_ptr = std::unique_ptr<T, Deleter<T> >;
 
 //! make_unique with Manager tracking
-template <typename T, typename ... Args>
+template <typename T, typename... Args>
 unique_ptr<T> make_unique(Manager& manager, Args&& ... args) {
     return unique_ptr<T>(
         mm_new<T>(manager, std::forward<Args>(args) ...),

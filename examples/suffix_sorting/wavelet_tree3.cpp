@@ -13,8 +13,8 @@
 #include <thrill/api/generate.hpp>
 #include <thrill/api/read_binary.hpp>
 #include <thrill/api/write_binary.hpp>
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
+#include <tlx/cmdline_parser.hpp>
 
 #include <algorithm>
 #include <limits>
@@ -30,16 +30,16 @@ int main(int argc, char* argv[]) {
     using namespace thrill; // NOLINT
     using namespace examples::suffix_sorting;
 
-    common::CmdlineParser cp;
+    tlx::CmdlineParser cp;
 
-    cp.SetAuthor("Timo Bingmann <tb@panthema.net>");
+    cp.set_author("Timo Bingmann <tb@panthema.net>");
 
     std::string input_path;
 
-    cp.AddOptParamString("input", input_path,
-                         "Path to input file.");
+    cp.add_opt_param_string("input", input_path,
+                            "Path to input file.");
 
-    if (!cp.Process(argc, argv))
+    if (!cp.process(argc, argv))
         return -1;
 
     return Run(

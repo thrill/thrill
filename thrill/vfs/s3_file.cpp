@@ -10,9 +10,12 @@
 
 #include <thrill/vfs/s3_file.hpp>
 
-#include <thrill/common/die.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/string.hpp>
+
+#include <tlx/die.hpp>
+#include <tlx/string/split.hpp>
+#include <tlx/string/starts_with.hpp>
 
 #if THRILL_HAVE_LIBS3
 #include <libs3.h>
@@ -53,16 +56,16 @@ void LibS3LogError(S3Status status, const S3ErrorDetails* error) {
         LOG1 << "S3-ERROR - Status: " << S3_get_status_name(status);
     }
 
-    if (error && error->message) {
+    if (error != nullptr && error->message != nullptr) {
         LOG1 << "S3-ERROR - Message: " << error->message;
     }
-    if (error && error->resource) {
+    if (error != nullptr && error->resource != nullptr) {
         LOG1 << "S3-ERROR - Resource: " << error->resource;
     }
-    if (error && error->furtherDetails) {
+    if (error != nullptr && error->furtherDetails != nullptr) {
         LOG1 << "S3-ERROR - Further Details: " << error->furtherDetails;
     }
-    if (error && error->extraDetailsCount) {
+    if (error != nullptr && error->extraDetailsCount != 0) {
         LOG1 << "S3-ERROR - Extra Details:";
         for (int i = 0; i < error->extraDetailsCount; i++) {
             LOG1 << "S3-ERROR - - " << error->extraDetails[i].name
@@ -77,17 +80,17 @@ S3Status ResponsePropertiesCallback(
 
     if (!debug) return S3StatusOK;
 
-    if (properties->contentType)
+    if (properties->contentType != nullptr)
         LOG1 << "S3-DEBUG - Content-Type: " << properties->contentType;
-    if (properties->requestId)
+    if (properties->requestId != nullptr)
         LOG1 << "S3-DEBUG - Request-Id: " << properties->requestId;
-    if (properties->requestId2)
+    if (properties->requestId2 != nullptr)
         LOG1 << "S3-DEBUG - Request-Id-2: " << properties->requestId2;
     if (properties->contentLength > 0)
         LOG1 << "S3-DEBUG - Content-Length: " << properties->contentLength;
-    if (properties->server)
+    if (properties->server != nullptr)
         LOG1 << "S3-DEBUG - Server: " << properties->server;
-    if (properties->eTag)
+    if (properties->eTag != nullptr)
         LOG1 << "S3-DEBUG - ETag: " << properties->eTag;
     if (properties->lastModified > 0) {
         char timebuf[256];
@@ -121,10 +124,10 @@ static void FillS3BucketContext(S3BucketContext& bkt, const std::string& key) {
     bkt.accessKeyId = getenv("THRILL_S3_KEY");
     bkt.secretAccessKey = getenv("THRILL_S3_SECRET");
 
-    if (!bkt.accessKeyId) {
+    if (bkt.accessKeyId != nullptr) {
         die("S3-ERROR - set environment variable THRILL_S3_KEY");
     }
-    if (!bkt.secretAccessKey) {
+    if (bkt.secretAccessKey != nullptr) {
         die("S3-ERROR - set environment variable THRILL_S3_SECRET");
     }
 }
@@ -228,7 +231,7 @@ private:
             filelist_.emplace_back(fi);
         }
         last_marker_ = contents[contents_count - 1].key;
-        is_truncated_ = is_truncated;
+        is_truncated_ = (is_truncated != 0);
         return S3StatusOK;
     }
 
@@ -249,11 +252,11 @@ void S3Glob(const std::string& _path, const GlobType& gtype,
 
     std::string path = _path;
     // crop off s3://
-    die_unless(common::StartsWith(path, "s3://"));
+    die_unless(tlx::starts_with(path, "s3://"));
     path = path.substr(5);
 
     // split uri into host/path
-    std::vector<std::string> splitted = common::Split(path, '/', 2);
+    std::vector<std::string> splitted = tlx::split('/', path, 2);
 
     // construct bucket
     S3BucketContext bkt;
@@ -328,7 +331,7 @@ public:
     //! non-copyable: delete assignment operator
     S3ReadStream& operator = (const S3ReadStream&) = delete;
 
-    virtual ~S3ReadStream() {
+    ~S3ReadStream() override {
         close();
     }
 
@@ -381,7 +384,7 @@ public:
     }
 
     void close() final {
-        if (!req_ctx_) return;
+        if (req_ctx_ == nullptr) return;
 
         S3_destroy_request_context(req_ctx_);
         req_ctx_ = nullptr;
@@ -440,7 +443,7 @@ private:
         if (wb != static_cast<uintptr_t>(bufferSize))
         {
             die_unless(output_ == output_end_);
-            die_unless(buffer_.size() == 0);
+            die_unless(buffer_.empty());
             buffer_.resize(bufferSize - wb);
             std::copy(buffer + wb, buffer + bufferSize, buffer_.data());
         }
@@ -457,17 +460,17 @@ private:
 };
 
 ReadStreamPtr S3OpenReadStream(
-    const std::string& _path, const common::Range& range) {
+    const std::string& path, const common::Range& range) {
 
-    std::string path = _path;
+    std::string path_ = path;
     // crop off s3://
-    die_unless(common::StartsWith(path, "s3://"));
-    path = path.substr(5);
+    die_unless(tlx::starts_with(path_, "s3://"));
+    path_ = path_.substr(5);
 
     // split uri into host/path
-    std::vector<std::string> splitted = common::Split(path, '/', 2);
+    std::vector<std::string> splitted = tlx::split('/', path_, 2);
 
-    return common::MakeCounting<S3ReadStream>(
+    return tlx::make_counting<S3ReadStream>(
         splitted[0], splitted[1],
         /* start_byte */ range.begin,
         /* byte_count */ range.end == 0 ? 0 : range.size());
@@ -503,7 +506,7 @@ public:
             /* request_context */ nullptr, this);
     }
 
-    ~S3WriteStream() {
+    ~S3WriteStream() override {
         close();
     }
 
@@ -528,10 +531,10 @@ public:
     }
 
     void close() final {
-        if (!upload_id_.size()) return;
+        if (upload_id_.empty()) return;
 
         // upload last multipart piece
-        if (buffer_.size())
+        if (!buffer_.empty())
             UploadMultipart();
 
         LOG1 << "commit multipart";
@@ -706,17 +709,17 @@ private:
     }
 };
 
-WriteStreamPtr S3OpenWriteStream(const std::string& _path) {
+WriteStreamPtr S3OpenWriteStream(const std::string& path) {
 
-    std::string path = _path;
+    std::string path_ = path;
     // crop off s3://
-    die_unless(common::StartsWith(path, "s3://"));
-    path = path.substr(5);
+    die_unless(tlx::starts_with(path_, "s3://"));
+    path_ = path_.substr(5);
 
     // split uri into host/path
-    std::vector<std::string> splitted = common::Split(path, '/', 2);
+    std::vector<std::string> splitted = tlx::split('/', path_, 2);
 
-    return common::MakeCounting<S3WriteStream>(splitted[0], splitted[1]);
+    return tlx::make_counting<S3WriteStream>(splitted[0], splitted[1]);
 }
 
 #else   // !THRILL_HAVE_LIBS3

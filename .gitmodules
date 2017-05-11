@@ -10,3 +10,6 @@
 [submodule "extlib/libs3/libs3"]
 	path = extlib/libs3/libs3
         url = https://github.com/bji/libs3.git
+[submodule "extlib/tlx"]
+	path = extlib/tlx
+	url = https://github.com/tlx/tlx.git

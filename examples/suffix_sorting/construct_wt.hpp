@@ -20,6 +20,7 @@
 #include <thrill/api/window.hpp>
 #include <thrill/api/write_binary.hpp>
 #include <thrill/common/logger.hpp>
+#include <tlx/math/integer_log2.hpp>
 
 #include <algorithm>
 #include <limits>
@@ -40,7 +41,7 @@ auto ConstructWaveletTree(
     uint64_t max_value = input_dia.Keep().Max();
     sLOG << "max_value" << max_value;
 
-    uint64_t level = common::IntegerLog2Ceil(max_value);
+    uint64_t level = tlx::integer_log2_ceil(max_value);
     uint64_t mask = (~uint64_t(0)) << level;
     uint64_t maskbit = uint64_t(1) << level;
 

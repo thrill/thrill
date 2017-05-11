@@ -25,7 +25,7 @@
 
 using namespace thrill;
 
-template <typename InputA, typename ... MoreInputs>
+template <typename InputA, typename... MoreInputs>
 void DoMergeAndCheckResult(
     const std::vector<size_t>& expected,
     const InputA& merge_input1, const MoreInputs& ... merge_inputs) {
@@ -34,7 +34,7 @@ void DoMergeAndCheckResult(
 
     // merge
     auto merge_result = Merge(
-        std::less<size_t>(), merge_input1, merge_inputs ...);
+        std::less<size_t>(), merge_input1, merge_inputs...);
 
     // crude method to calculate the number of local items
     size_t count = 0;
@@ -48,7 +48,7 @@ void DoMergeAndCheckResult(
     // check if balancing condition was met
     LOG0 << "count: " << count << " expected: " << res.size() / num_workers;
     size_t expectedCount = res.size() / num_workers;
-    ASSERT_LE(common::abs_diff(expectedCount, count), num_workers + 50);
+    ASSERT_LE(tlx::abs_diff(expectedCount, count), num_workers + 50);
 }
 
 TEST(MergeNode, TwoBalancedIntegerArrays) {

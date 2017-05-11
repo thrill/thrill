@@ -9,11 +9,12 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <thrill/common/die.hpp>
 #include <thrill/net/tcp/connection.hpp>
 #include <thrill/net/tcp/construct.hpp>
 #include <thrill/net/tcp/group.hpp>
 #include <thrill/net/tcp/select_dispatcher.hpp>
+
+#include <tlx/die.hpp>
 
 #include <deque>
 #include <map>

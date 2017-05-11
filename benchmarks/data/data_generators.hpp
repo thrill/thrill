@@ -12,7 +12,7 @@
 #ifndef THRILL_BENCHMARKS_DATA_DATA_GENERATORS_HEADER
 #define THRILL_BENCHMARKS_DATA_DATA_GENERATORS_HEADER
 
-#include <thrill/common/functional.hpp>
+#include <tlx/meta/index_sequence.hpp>
 
 #include <algorithm>
 #include <limits>
@@ -81,20 +81,20 @@ private:
 
 /******************************************************************************/
 
-template <size_t Index, typename ... Types>
+template <size_t Index, typename... Types>
 struct TupleGenerator {
     static bool   HasNext(const std::tuple<Generator<Types>...>& t) {
         return std::get<Index - 1>(t).HasNext() &&
-               TupleGenerator<Index - 1, Types ...>::HasNext(t);
+               TupleGenerator<Index - 1, Types...>::HasNext(t);
     }
     static size_t TotalBytes(const std::tuple<Generator<Types>...>& t) {
         return std::get<Index - 1>(t).TotalBytes() +
-               TupleGenerator<Index - 1, Types ...>::TotalBytes(t);
+               TupleGenerator<Index - 1, Types...>::TotalBytes(t);
     }
 };
 
-template <typename ... Types>
-struct TupleGenerator<0, Types ...>{
+template <typename... Types>
+struct TupleGenerator<0, Types...>{
     static bool HasNext(const std::tuple<Generator<Types>...>&) {
         return true;
     }
@@ -103,30 +103,30 @@ struct TupleGenerator<0, Types ...>{
     }
 };
 
-template <size_t ... Is, typename ... Types>
+template <size_t... Is, typename... Types>
 auto TupleGeneratorNext(std::tuple<Generator<Types>...>& t,
-                        common::index_sequence<Is ...>) {
+                        tlx::index_sequence<Is...>) {
     return std::make_tuple(std::get<Is>(t).Next() ...);
 }
 
-template <typename ... Types>
-class Generator<std::tuple<Types ...> >
+template <typename... Types>
+class Generator<std::tuple<Types...> >
 {
 public:
     explicit Generator(size_t bytes, size_t min_size = 0, size_t max_size = 0)
         : gen_(Generator<Types>(bytes, min_size, max_size) ...) { }
 
     bool HasNext() const {
-        return TupleGenerator<sizeof ... (Types), Types ...>::HasNext(gen_);
+        return TupleGenerator<sizeof ... (Types), Types...>::HasNext(gen_);
     }
 
-    std::tuple<Types ...> Next() {
+    std::tuple<Types...> Next() {
         const size_t Size = sizeof ... (Types);
-        return TupleGeneratorNext(gen_, common::make_index_sequence<Size>{ });
+        return TupleGeneratorNext(gen_, tlx::make_index_sequence<Size>{ });
     }
 
     size_t TotalBytes() const {
-        return TupleGenerator<sizeof ... (Types), Types ...>::TotalBytes(gen_);
+        return TupleGenerator<sizeof ... (Types), Types...>::TotalBytes(gen_);
     }
 
 private:

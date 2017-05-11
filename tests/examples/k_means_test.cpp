@@ -14,6 +14,8 @@
 #include <thrill/api/all_gather.hpp>
 #include <thrill/api/equal_to_dia.hpp>
 
+#include <tlx/math/abs_diff.hpp>
+
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -117,10 +119,10 @@ TEST(KMeans, RandomPoints) {
             if (ctx.my_rank() == 0) {
                 sLOG1 << "cost" << cost << "correct_cost" << correct_cost
                       << "abs_diff_percent"
-                      << common::abs_diff(cost, correct_cost) / correct_cost;
+                      << tlx::abs_diff(cost, correct_cost) / correct_cost;
             }
 
-            ASSERT_LE(common::abs_diff(cost, correct_cost) / correct_cost, 0.2);
+            ASSERT_LE(tlx::abs_diff(cost, correct_cost) / correct_cost, 0.2);
         };
 
     api::RunLocalTests(start_func);

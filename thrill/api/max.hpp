@@ -23,7 +23,7 @@ ValueType DIA<ValueType, Stack>::Max(const ValueType& initial_value) const {
     assert(IsValid());
 
     using MaxNode = api::AllReduceNode<ValueType, common::maximum<ValueType> >;
-    auto node = common::MakeCounting<MaxNode>(*this, "Max", initial_value);
+    auto node = tlx::make_counting<MaxNode>(*this, "Max", initial_value);
     node->RunScope();
     return node->result();
 }
@@ -34,7 +34,7 @@ Future<ValueType> DIA<ValueType, Stack>::MaxFuture(
     assert(IsValid());
 
     using MaxNode = api::AllReduceNode<ValueType, common::maximum<ValueType> >;
-    auto node = common::MakeCounting<MaxNode>(*this, "Max", initial_value);
+    auto node = tlx::make_counting<MaxNode>(*this, "Max", initial_value);
     return Future<ValueType>(node);
 }
 

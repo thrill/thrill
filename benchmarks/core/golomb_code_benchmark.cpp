@@ -9,14 +9,15 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <thrill/common/cmdline_parser.hpp>
-#include <thrill/common/die.hpp>
 #include <thrill/common/math.hpp>
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/core/golomb_bit_stream.hpp>
 #include <thrill/data/file.hpp>
+#include <tlx/cmdline_parser.hpp>
+#include <tlx/die.hpp>
 
 #include <cmath>
+#include <iostream>
 #include <random>
 
 using namespace thrill; // NOLINT
@@ -27,18 +28,18 @@ int main(int argc, char* argv[]) {
     size_t num_elements = 1;
     size_t average_distance = 10;
 
-    common::CmdlineParser clp;
+    tlx::CmdlineParser clp;
 
-    clp.AddSizeT('g', "golomb_param", golomb_param,
-                 "Set Golomb Parameter, default: 5");
+    clp.add_size_t('g', "golomb_param", golomb_param,
+                   "Set Golomb Parameter, default: 5");
 
-    clp.AddSizeT('n', "elements", num_elements,
-                 "Set the number of elements");
+    clp.add_size_t('n', "elements", num_elements,
+                   "Set the number of elements");
 
-    clp.AddSizeT('d', "avg_dist", average_distance,
-                 "Average distance between numbers, default: 10");
+    clp.add_size_t('d', "avg_dist", average_distance,
+                   "Average distance between numbers, default: 10");
 
-    if (!clp.Process(argc, argv))
+    if (!clp.process(argc, argv))
         return -1;
 
     data::BlockPool block_pool_;

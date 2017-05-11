@@ -153,7 +153,7 @@ auto DIA<ValueType, Stack>::PrefixSum(
             ValueType>::value,
         "SumFunction has the wrong input type");
 
-    auto node = common::MakeCounting<PrefixSumNode>(
+    auto node = tlx::make_counting<PrefixSumNode>(
         *this, sum_function, initial_element);
 
     return DIA<ValueType>(node);

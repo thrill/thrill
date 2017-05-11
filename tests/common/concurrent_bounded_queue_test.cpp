@@ -10,7 +10,7 @@
 
 #include <gtest/gtest.h>
 #include <thrill/common/concurrent_bounded_queue.hpp>
-#include <thrill/common/thread_pool.hpp>
+#include <tlx/thread_pool.hpp>
 
 #include <atomic>
 #include <string>
@@ -18,7 +18,7 @@
 using namespace thrill::common;
 
 TEST(ConcurrentBoundedQueue, ParallelPushPopAscIntegerAndCalculateTotalSum) {
-    ThreadPool pool(8);
+    tlx::ThreadPool pool(8);
 
     ConcurrentBoundedQueue<size_t> queue;
     std::atomic<size_t> count(0);
@@ -30,7 +30,7 @@ TEST(ConcurrentBoundedQueue, ParallelPushPopAscIntegerAndCalculateTotalSum) {
     // have threads push items
 
     for (size_t i = 0; i != num_threads; ++i) {
-        pool.Enqueue([&queue]() {
+        pool.enqueue([&queue]() {
                          for (size_t i = 0; i != num_pushes; ++i) {
                              queue.push(i);
                          }
@@ -39,7 +39,7 @@ TEST(ConcurrentBoundedQueue, ParallelPushPopAscIntegerAndCalculateTotalSum) {
 
     // have one thread try to pop() items, waiting for new ones as needed.
 
-    pool.Enqueue([&]() {
+    pool.enqueue([&]() {
                      while (count != num_threads * num_pushes) {
                          size_t item;
                          queue.pop(item);
@@ -48,7 +48,7 @@ TEST(ConcurrentBoundedQueue, ParallelPushPopAscIntegerAndCalculateTotalSum) {
                      }
                  });
 
-    pool.LoopUntilEmpty();
+    pool.loop_until_empty();
 
     ASSERT_TRUE(queue.empty());
     ASSERT_EQ(count, num_threads * num_pushes);

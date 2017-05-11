@@ -171,7 +171,7 @@ public:
         my_last.reserve(window_size_ - 1);
 
         assert(window_.size() < window_size_);
-        window_.move_to(my_last);
+        window_.move_to(&my_last);
 
         // collective operation: get k - 1 predecessors
         std::vector<Input> pre =
@@ -258,7 +258,7 @@ auto DIA<ValueType, Stack>::FlatWindow(
     // cannot check WindowFunction's arguments, since it is a template methods
     // due to the auto emitter.
 
-    auto node = common::MakeCounting<WindowNode>(
+    auto node = tlx::make_counting<WindowNode>(
         *this, "FlatWindow", window_size,
         window_function, partial_window_function);
 
@@ -320,7 +320,7 @@ auto DIA<ValueType, Stack>::Window(
               Result, ValueType,
               decltype(flatwindow_function), decltype(no_operation_function)>;
 
-    auto node = common::MakeCounting<WindowNode>(
+    auto node = tlx::make_counting<WindowNode>(
         *this, "Window", window_size,
         flatwindow_function, no_operation_function);
 
@@ -371,7 +371,7 @@ auto DIA<ValueType, Stack>::Window(
               Result, ValueType,
               decltype(flatwindow_function), decltype(flatwindow_partial_function)>;
 
-    auto node = common::MakeCounting<WindowNode>(
+    auto node = tlx::make_counting<WindowNode>(
         *this, "Window", window_size,
         flatwindow_function, flatwindow_partial_function);
 
@@ -416,7 +416,7 @@ public:
         my_last.reserve(window_size_ - 1);
 
         assert(window_.size() < window_size_);
-        window_.move_to(my_last);
+        window_.move_to(&my_last);
 
         // collective operation: get k - 1 predecessors
         std::vector<Input> pre =
@@ -449,7 +449,7 @@ public:
         // copy window into vector containing first items
         std::vector<Input> window;
         window.reserve(window_size_);
-        window_.copy_to(window);
+        window_.copy_to(&window);
         assert(window.size() < window_size_);
 
         size_t rank = first_rank_ - (window_size_ - 1);
@@ -513,7 +513,7 @@ auto DIA<ValueType, Stack>::FlatWindow(
     // cannot check WindowFunction's arguments, since it is a template methods
     // due to the auto emitter.
 
-    auto node = common::MakeCounting<WindowNode>(
+    auto node = tlx::make_counting<WindowNode>(
         *this, "FlatWindow", window_size, window_function, window_function);
 
     return DIA<ValueOut>(node);
@@ -555,7 +555,7 @@ auto DIA<ValueType, Stack>::Window(
               Result, ValueType,
               decltype(flatwindow_function), decltype(flatwindow_function)>;
 
-    auto node = common::MakeCounting<WindowNode>(
+    auto node = tlx::make_counting<WindowNode>(
         *this, "Window", window_size, flatwindow_function, flatwindow_function);
 
     return DIA<Result>(node);

@@ -12,8 +12,8 @@
 
 #include <thrill/api/generate.hpp>
 #include <thrill/api/size.hpp>
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
+#include <tlx/cmdline_parser.hpp>
 
 #include <string>
 
@@ -21,12 +21,12 @@ using namespace thrill; // NOLINT
 
 int main(int argc, char* argv[]) {
 
-    common::CmdlineParser clp;
+    tlx::CmdlineParser clp;
 
     unsigned seconds;
-    clp.AddParamUInt("seconds", seconds, "seconds to sleep");
+    clp.add_param_unsigned("seconds", seconds, "seconds to sleep");
 
-    if (!clp.Process(argc, argv))
+    if (!clp.process(argc, argv))
         return -1;
 
     return api::Run(

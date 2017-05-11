@@ -9,12 +9,13 @@
  ******************************************************************************/
 
 #include <thrill/api/context.hpp>
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/json_logger.hpp>
 #include <thrill/common/linux_proc_stats.hpp>
 #include <thrill/common/profile_thread.hpp>
+#include <tlx/cmdline_parser.hpp>
 
 #include <csignal>
+#include <iostream>
 #include <string>
 
 using namespace thrill; // NOLINT
@@ -29,16 +30,16 @@ void sig_int_handler(int signum) {
 }
 
 int main(int argc, char* argv[]) {
-    common::CmdlineParser clp;
-    clp.SetDescription("Standalone Linux /proc JsonLogger from Thrill");
+    tlx::CmdlineParser clp;
+    clp.set_description("Standalone Linux /proc JsonLogger from Thrill");
 
     size_t check_pid = 0;
-    clp.AddSizeT('p', "pid", check_pid, "Terminate when pid is not running.");
+    clp.add_size_t('p', "pid", check_pid, "Terminate when pid is not running.");
 
     std::string output;
-    clp.AddParamString("output", output, "json logger output");
+    clp.add_param_string("output", output, "json logger output");
 
-    if (!clp.Process(argc, argv)) return -1;
+    if (!clp.process(argc, argv)) return -1;
 
     signal(SIGINT, sig_int_handler);
 

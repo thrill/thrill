@@ -165,7 +165,7 @@ private:
     double tolerance;
 
     bool is_converged(Vector& old, Vector& curr, double tolerance) {
-        return old.Distance(curr) < tolerance * std::max(curr.Norm(), 1.0);
+        return old.Distance(curr) < tolerance* std::max(curr.Norm(), 1.0);
     }
 };
 

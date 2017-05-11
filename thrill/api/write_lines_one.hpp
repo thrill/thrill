@@ -117,7 +117,7 @@ void DIA<ValueType, Stack>::WriteLinesOne(
 
     using WriteLinesOneNode = api::WriteLinesOneNode<ValueType>;
 
-    auto node = common::MakeCounting<WriteLinesOneNode>(*this, filepath);
+    auto node = tlx::make_counting<WriteLinesOneNode>(*this, filepath);
 
     node->RunScope();
 }
@@ -132,7 +132,7 @@ Future<void> DIA<ValueType, Stack>::WriteLinesOneFuture(
 
     using WriteLinesOneNode = api::WriteLinesOneNode<ValueType>;
 
-    auto node = common::MakeCounting<WriteLinesOneNode>(*this, filepath);
+    auto node = tlx::make_counting<WriteLinesOneNode>(*this, filepath);
 
     return Future<void>(node);
 }
