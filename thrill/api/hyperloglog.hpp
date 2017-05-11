@@ -62,8 +62,7 @@ std::pair<size_t, uint8_t> decodeHash(SparseRegister reg) {
     }
     else {
         // First zero bottom bits, then shift the bits used for the new index to
-        // the
-        // left
+        // the left
         uint32_t topBitsValue =
             (reg & upperNBitMask(sparsePrecision)) << densePrecision;
         denseValue = __builtin_clz(topBitsValue) + 1;
@@ -73,7 +72,7 @@ std::pair<size_t, uint8_t> decodeHash(SparseRegister reg) {
 }
 
 template <size_t precision>
-std::pair<uint32_t, uint8_t> splitSparseRegister(SparseRegister reg) {
+std::pair<uint32_t, uint8_t> splitSparseRegister(const SparseRegister& reg) {
     uint8_t value = (reg & lowerNBitMask(32 - precision)) >> 1;
     uint32_t idx = reg >> (32 - precision);
     return std::make_pair(idx, value);
@@ -81,15 +80,15 @@ std::pair<uint32_t, uint8_t> splitSparseRegister(SparseRegister reg) {
 
 template <size_t sparsePrecision, size_t densePrecision>
 uint32_t encodePair(uint32_t index, uint8_t value) {
-    uint32_t decidingBits = lowerNBitMask(sparsePrecision - densePrecision) &
-                            index; // x_{63 - densePrecision}...x_{64 - sparsePrecision}
+    // x_{63 - densePrecision}...x_{64 - sparsePrecision}
+    uint32_t decidingBits =
+        lowerNBitMask(sparsePrecision - densePrecision) & index;
     if (decidingBits == 0) {
         return index << (32 - sparsePrecision) | (value << 1) | 1;
     }
     else {
-        uint32_t shifted =
-            index << (32 -
-                      sparsePrecision); // x_63...x_{64 - sparsePrecision} || 0
+        // x_63...x_{64 - sparsePrecision} || 0
+        uint32_t shifted = index << (32 - sparsePrecision);
         return shifted;
     }
 }
@@ -108,9 +107,7 @@ uint32_t encodeHash(uint64_t hash) {
     uint8_t leadingZeroes =
         valueBits == 0 ? (64 - sparsePrecision) : __builtin_clzll(valueBits);
     uint32_t index = (hash >> (64 - sparsePrecision));
-    auto encoded =
-        encodePair<sparsePrecision, densePrecision>(index, leadingZeroes + 1);
-    return encoded;
+    return encodePair<sparsePrecision, densePrecision>(index, leadingZeroes + 1);
 }
 
 template <size_t precision>
@@ -208,17 +205,22 @@ public:
 std::vector<uint8_t> encodeSparseList(const std::vector<uint32_t>& sparseList);
 
 template <size_t p>
-struct Registers {
-    unsigned                    sparseSize = 0;
-    RegisterFormat              format;
+class Registers
+{
+public:
+    unsigned sparseSize = 0;
+    RegisterFormat format;
     // Register values are always smaller than 64. We thus need log2(64) = 6
     // bits to store them. In particular an uint8_t is sufficient
-    std::vector<uint8_t>        sparseListBuffer;
+    std::vector<uint8_t> sparseListBuffer;
     std::vector<SparseRegister> tmpSet;
-    std::vector<uint8_t>        entries;
+    std::vector<uint8_t> entries;
+
     Registers() : format(RegisterFormat::SPARSE) { }
-    size_t                      size() const { return entries.size(); }
-    void                        toDense() {
+
+    size_t size() const { return entries.size(); }
+
+    void toDense() {
         assert(format == RegisterFormat::SPARSE);
         format = RegisterFormat::DENSE;
         entries.resize(1 << p, 0);
@@ -374,26 +376,8 @@ static double threshold() {
     return thresholds[p - 4];
 }
 
-int binarySearch(double rawEstimate, const std::vector<double>& estimatedData);
-
-double knearestNeighbor(int k, int index, double estimate,
-                        const std::vector<double>& bias,
-                        const std::vector<double>& estimateData);
 template <size_t p>
-static double estimateBias(double rawEstimate) {
-    /**
-     * 1. Find Elements in rawEstimateData (binary Search)
-     * 2. k-nearest neighbor interpolation with k = 6
-     * Estimation with: which data? from biasData!
-    */
-    std::vector<double> estimatedData = rawEstimateData[p - 4];
-    int lowerEstimateIndex = binarySearch(rawEstimate, estimatedData);
-
-    std::vector<double> bias = biasData[p - 4];
-
-    return knearestNeighbor(6, lowerEstimateIndex, rawEstimate, bias,
-                            estimatedData);
-}
+double estimateBias(double rawEstimate);
 
 template <size_t p>
 static Registers<p> combineRegisters(Registers<p>& registers1,
@@ -451,13 +435,13 @@ public:
         : Super(parent.ctx(), label, { parent.id() }, { parent.node() }),
           registers { } {
         // Hook PreOp(s)
-        auto pre_op_fn = [this](const ValueType& input) { PreOp(input); };
+        auto pre_op_fn = [this](const ValueType& input) {
+            registers.insert(input);
+        };
 
         auto lop_chain = parent.stack().push(pre_op_fn).fold();
         parent.node()->AddChild(this, lop_chain);
     }
-
-    void PreOp(const ValueType& input) { registers.insert(input); }
 
     //! Executes the sum operation.
     void Execute() final {

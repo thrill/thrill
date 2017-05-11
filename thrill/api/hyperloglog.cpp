@@ -73,6 +73,39 @@ double knearestNeighbor(int k, int index, double estimate,
     return sum / neighbors;
 }
 
+template <size_t p>
+double estimateBias(double rawEstimate) {
+    /*
+     * 1. Find Elements in rawEstimateData (binary Search)
+     * 2. k-nearest neighbor interpolation with k = 6
+     * Estimation with: which data? from biasData!
+     */
+    const std::vector<double>& estimatedData = rawEstimateData[p - 4];
+    int lowerEstimateIndex = binarySearch(rawEstimate, estimatedData);
+
+    const std::vector<double>& bias = biasData[p - 4];
+
+    return knearestNeighbor(
+        6, lowerEstimateIndex, rawEstimate, bias, estimatedData);
+}
+
+template double estimateBias<4>(double);
+template double estimateBias<5>(double);
+template double estimateBias<6>(double);
+template double estimateBias<7>(double);
+template double estimateBias<8>(double);
+template double estimateBias<9>(double);
+template double estimateBias<10>(double);
+template double estimateBias<11>(double);
+template double estimateBias<12>(double);
+template double estimateBias<13>(double);
+template double estimateBias<14>(double);
+template double estimateBias<15>(double);
+template double estimateBias<16>(double);
+template double estimateBias<17>(double);
+template double estimateBias<18>(double);
+template double estimateBias<19>(double);
+
 } // namespace api
 
 std::vector<uint8_t> encodeSparseList(const std::vector<uint32_t>& sparseList) {
