@@ -26,21 +26,12 @@ using Node = size_t;
 using EdgeList = std::vector<Node>;
 
 struct NodeParentPair {
-    Node node = INVALID;
-    Node parent = INVALID;
-
-    NodeParentPair() = default;
-    NodeParentPair(Node node, Node parent) : node(node), parent(parent) { }
-
-    template <typename Archive>
-    void serialize(Archive& archive) {
-        archive(node, parent);
-    }
+    Node node;
+    Node parent;
 };
 
 std::ostream& operator << (std::ostream& os, const NodeParentPair& pair) {
-    os << '(' << pair.node << ',' << pair.parent << ')';
-    return os;
+    return os << '(' << pair.node << ',' << pair.parent << ')';
 }
 
 class BfsNode
@@ -75,12 +66,8 @@ std::ostream& operator << (std::ostream& os, const BfsNode& node) {
 }
 
 struct TreeInfo {
-    size_t startIndex = INVALID;
-    size_t levels = INVALID;
-
-    TreeInfo() = default;
-    TreeInfo(size_t startIndex) : TreeInfo(startIndex, INVALID) { }
-    TreeInfo(size_t startIndex, size_t levels) : startIndex(startIndex), levels(levels) { }
+    size_t startIndex;
+    size_t levels;
 };
 
 } // namespace bfs

@@ -41,9 +41,10 @@ struct BfsResult {
 };
 
 // load graph from file
-DIA<BfsNode> LoadBFSGraph(
-    thrill::Context& ctx, size_t& graphSize, std::string path, Node startIndex) {
+DIA<BfsNode> LoadBFSGraph(thrill::Context& ctx, size_t& graphSize,
+                          const std::string& path, Node startIndex) {
 
+    // read graph lines from file and add index
     auto lines =
         ReadLines(ctx, path)
         .ZipWithIndex(
@@ -53,8 +54,9 @@ DIA<BfsNode> LoadBFSGraph(
 
     auto size = lines.SizeFuture();
 
+    // parse lines into BfsNode structs
     auto graph = lines.Map(
-        [=](const std::pair<std::string, size_t>& input) {
+        [startIndex](const std::pair<std::string, size_t>& input) {
             std::istringstream iss(input.first);
             BfsNode node;
 
@@ -74,27 +76,26 @@ DIA<BfsNode> LoadBFSGraph(
 
     graphSize = size.get();
 
-    return graph;// .Cache();
+    return graph.Cache();
 }
 
 // returns true if new nodes have been possibly added to the next BFS level
-bool BFSNextLevel(DIA<BfsNode>& graph, size_t& currentLevel, const size_t currentTreeIndex, const size_t graphSize) {
+bool BFSNextLevel(DIA<BfsNode>& graph, size_t& currentLevel,
+                  const size_t currentTreeIndex, const size_t graphSize) {
+
     auto neighbors =
         graph
         .FlatMap<NodeParentPair>(
             [=](const BfsNode& node, auto emit) {
                 if (node.level == currentLevel && node.treeIndex == currentTreeIndex) {
                     for (auto neighbor : node.edges) {
-                        emit(NodeParentPair(neighbor, node.nodeIndex));
+                        emit(NodeParentPair { neighbor, node.nodeIndex });
                     }
                 }
             });
 
-    auto neighborsSize = neighbors.SizeFuture();
-
-    if (neighbors.Size() == 0) {
+    if (neighbors.Size() == 0)
         return false;
-    }
 
     auto reducedNeighbors = neighbors.ReduceToIndex(
         [](const NodeParentPair& pair) {
@@ -178,7 +179,8 @@ void outputBFSResult(DIA<BfsNode>& graph, size_t trees, std::string pathOut) {
                 }
 
                 std::sort(nodes.begin(), nodes.end(),
-                          [](const std::pair<size_t, size_t>& l, const std::pair<size_t, size_t>& r) {
+                          [](const std::pair<size_t, size_t>& l,
+                             const std::pair<size_t, size_t>& r) {
                               return l.first < r.first;
                           });
 
@@ -213,7 +215,7 @@ BfsResult BFS(DIA<BfsNode>& graph, size_t graphSize, Node startIndex, bool fullB
 
         while (BFSNextLevel(graph, currentLevel, currentTreeIndex, graphSize)) { }
 
-        treeInfos.emplace_back(startIndex, currentLevel);
+        treeInfos.emplace_back(TreeInfo { startIndex, currentLevel });
 
         currentTreeIndex++;
     } while (fullBFS && PrepareNextTree(graph, startIndex, currentTreeIndex));
@@ -221,7 +223,8 @@ BfsResult BFS(DIA<BfsNode>& graph, size_t graphSize, Node startIndex, bool fullB
     return BfsResult({ graph, treeInfos });
 }
 
-BfsResult BFS(thrill::Context& ctx, std::string pathIn, std::string pathOut, Node startIndex, bool fullBFS = false) {
+BfsResult BFS(thrill::Context& ctx, std::string pathIn, std::string pathOut,
+              Node startIndex, bool fullBFS = false) {
     size_t graphSize;
     DIA<BfsNode> graph = LoadBFSGraph(ctx, graphSize, pathIn, startIndex);
     auto result = BFS(graph, graphSize, startIndex, fullBFS);
@@ -230,7 +233,11 @@ BfsResult BFS(thrill::Context& ctx, std::string pathIn, std::string pathOut, Nod
     return result;
 }
 
-size_t doubleSweepDiameter(thrill::Context& ctx, std::string pathIn, std::string pathOut, std::string pathOut2, Node startIndex) {
+size_t doubleSweepDiameter(
+    thrill::Context& ctx,
+    std::string pathIn, std::string pathOut, std::string pathOut2,
+    Node startIndex) {
+
     size_t graphSize;
     DIA<BfsNode> graph = LoadBFSGraph(ctx, graphSize, pathIn, startIndex);
     auto firstBFS = BFS(graph, graphSize, startIndex);
