@@ -18,6 +18,7 @@
 #include <thrill/api/collapse.hpp>
 #include <thrill/api/reduce_by_key.hpp>
 #include <thrill/api/sample.hpp>
+#include <thrill/api/all_gather.hpp>
 #include <thrill/api/sum.hpp>
 #include <thrill/common/vector.hpp>
 
@@ -172,22 +173,22 @@ private:
 //! input and an output parameter. The method returns a std::pair<Point2D,
 //! size_t> = Point2DClusterId into the centroids for each input point.
 template <typename Point, typename InStack>
-auto KMeans(const DIA<Point, InStack>& input_points,
-            size_t dimensions, size_t num_clusters, size_t iterations) {
+auto KMeans(const DIA<Point, InStack>& input_points, size_t dimensions,
+            size_t num_clusters, size_t iterations, double epsilon) {
 
     auto points = input_points.Cache();
+
+	bool break_condition = false;
 
     using ClosestCentroid = ClosestCentroid<Point>;
     using CentroidAccumulated = CentroidAccumulated<Point>;
 
     DIA<Point> centroids = points.Keep().Sample(num_clusters);
 
-    for (size_t iter = 0; iter < iterations; ++iter) {
+	std::vector<Point> local_centroids = centroids.AllGather();
+	std::vector<Point> old_local_centroids(local_centroids);
 
-        // handling this local variable is difficult: it is calculated as an
-        // Action here, but must exist later when the Map() is
-        // processed. Hhence, we move it into the closure.
-        std::vector<Point> local_centroids = centroids.AllGather();
+    for (size_t iter = 0; iter < iterations; ++iter) {
 
         // calculate the closest centroid for each point
         auto closest = points.Keep().Map(
@@ -224,11 +225,96 @@ auto KMeans(const DIA<Point, InStack>& input_points,
                      return cc.center.p / static_cast<double>(cc.center.count);
                  })
             .Collapse();
+
+		// Check whether centroid positions changed significantly,
+		// if yes do another iteration
+		break_condition = true;
+		local_centroids = centroids.AllGather();
+		for (size_t i = 0; i < local_centroids.size(); ++i) {
+			if (local_centroids[i].Distance(old_local_centroids[i]) > epsilon) {
+				old_local_centroids.insert(old_local_centroids.begin(),
+					local_centroids.begin(), local_centroids.end());
+				break_condition = false;
+				break;
+			}
+		}
     }
 
     return KMeansModel<Point>(
         dimensions, num_clusters, iterations,
-        centroids.AllGather());
+        local_centroids);
+}
+
+//! Calculate k-Means using bisecting method
+template <typename Point, typename InStack>
+auto BisecKMeans(const DIA<Point, InStack>& input_points, size_t dimensions,
+	size_t num_clusters, size_t iterations, double epsilon) {
+
+	using ClosestCentroid = ClosestCentroid<Point>;
+	using CentroidAccumulated = CentroidAccumulated<Point>;
+
+	//! initial cluster size
+	size_t initial_size = num_clusters <= 2 ? num_clusters : 2;
+
+	//! model that is steadily updated and returned to the calling function
+	auto _result_model =
+		KMeans(input_points, dimensions, initial_size, iterations, epsilon);
+
+	for (size_t size = initial_size; size < num_clusters; ++size) {
+
+		// Classify all points for the current k-Means model
+		auto classified_points = _result_model.ClassifyPairs(input_points)
+			.Map([](const PointClusterId<Point>& pci) {
+			return ClosestCentroid{ pci.second,
+				CentroidAccumulated{ pci.first, 1 }
+			}; });
+
+		// Create a vector containing the cluster IDs and the number 
+		// of closest points in order to determine the biggest cluster
+		size_t biggest_cluster_idx = classified_points
+			.ReduceByKey(
+				[](const ClosestCentroid& cc) { return cc.cluster_id; },
+				[](const ClosestCentroid& a, const ClosestCentroid& b) {
+			return ClosestCentroid{ a.cluster_id,
+				CentroidAccumulated{ a.center.p,
+				a.center.count + b.center.count } };
+		})
+			.AllReduce(
+				[](const ClosestCentroid& cc1, const ClosestCentroid& cc2) {
+			return cc1.center.count > cc2.center.count ? cc1 : cc2;
+		})
+			.cluster_id;
+
+		// Filter the points of the biggest cluster for a further split
+		auto filtered_points = classified_points
+			.Filter(
+				[biggest_cluster_idx](const ClosestCentroid& cc) {
+			return cc.cluster_id == biggest_cluster_idx;
+		})
+			.Map(
+				[](const ClosestCentroid& cc) {
+			return cc.center.p;
+		});
+
+		// Compute two new cluster by splitting the biggest one 
+		std::vector<Point> tmp_model_centroids =
+			KMeans(filtered_points, dimensions, 2, iterations, epsilon)
+			.centroids();
+
+		// Delete the centroid of the biggest cluster
+		// Add two new centroids calculated in the previous step 
+		std::vector<Point> result_model_centroids = _result_model.centroids();
+		result_model_centroids.erase(result_model_centroids.begin()
+			+ biggest_cluster_idx);
+		result_model_centroids.insert(result_model_centroids.end(),
+			tmp_model_centroids.begin(), tmp_model_centroids.end());
+
+		// Update centroids of the result_model
+		_result_model = KMeansModel<Point>(
+			dimensions, num_clusters, iterations, result_model_centroids);
+	}
+
+	return _result_model;
 }
 
 } // namespace k_means
