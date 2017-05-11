@@ -40,10 +40,14 @@ using SparseRegister = uint32_t;
 
 enum class RegisterFormat { SPARSE, DENSE };
 
-template <const uint64_t n>
-const uint64_t lowerNBitMask = (static_cast<uint64_t>(1) << n) - 1;
-template <uint32_t n>
-const uint32_t upperNBitMask = ~(static_cast<uint32_t>((1 << (32 - n)) - 1));
+constexpr uint64_t lowerNBitMask(uint64_t n) {
+    return (static_cast<uint64_t>(1) << n) - 1;
+}
+
+constexpr uint32_t upperNBitMask(uint32_t n) {
+    return ~(static_cast<uint32_t>((1 << (32 - n)) - 1));
+}
+
 template <size_t sparsePrecision, size_t densePrecision>
 std::pair<size_t, uint8_t> decodeHash(SparseRegister reg) {
     static_assert(sparsePrecision >= densePrecision,
@@ -52,34 +56,33 @@ std::pair<size_t, uint8_t> decodeHash(SparseRegister reg) {
     uint32_t lowestBit = reg & 1;
     uint32_t index;
     if (lowestBit == 1) {
-        uint32_t sparseValue = (reg >> 1) & lowerNBitMask<31 - sparsePrecision>;
+        uint32_t sparseValue = (reg >> 1) & lowerNBitMask(31 - sparsePrecision);
         denseValue = sparseValue + (sparsePrecision - densePrecision);
-        index = (reg >> (32 - densePrecision)) & lowerNBitMask<densePrecision>;
+        index = (reg >> (32 - densePrecision)) & lowerNBitMask(densePrecision);
     }
     else {
         // First zero bottom bits, then shift the bits used for the new index to
         // the
         // left
         uint32_t topBitsValue =
-            (reg & upperNBitMask<sparsePrecision>) << densePrecision;
+            (reg & upperNBitMask(sparsePrecision)) << densePrecision;
         denseValue = __builtin_clz(topBitsValue) + 1;
-        index = (reg >> (32 - densePrecision)) & lowerNBitMask<densePrecision>;
+        index = (reg >> (32 - densePrecision)) & lowerNBitMask(densePrecision);
     }
     return std::make_pair(index, denseValue);
 }
 
 template <size_t precision>
 std::pair<uint32_t, uint8_t> splitSparseRegister(SparseRegister reg) {
-    uint8_t value = (reg & lowerNBitMask<32 - precision>) >> 1;
+    uint8_t value = (reg & lowerNBitMask(32 - precision)) >> 1;
     uint32_t idx = reg >> (32 - precision);
     return std::make_pair(idx, value);
 }
 
 template <size_t sparsePrecision, size_t densePrecision>
 uint32_t encodePair(uint32_t index, uint8_t value) {
-    uint32_t decidingBits =
-        lowerNBitMask<sparsePrecision - densePrecision>&
-        index; // x_{63 - densePrecision}...x_{64 - sparsePrecision}
+    uint32_t decidingBits = lowerNBitMask(sparsePrecision - densePrecision) &
+                            index; // x_{63 - densePrecision}...x_{64 - sparsePrecision}
     if (decidingBits == 0) {
         return index << (32 - sparsePrecision) | (value << 1) | 1;
     }
@@ -350,13 +353,21 @@ extern const std::array<std::vector<double>, 15> rawEstimateData;
 extern const std::array<std::vector<double>, 15> biasData;
 
 template <size_t p>
-constexpr double alpha = 0.7213 / (1 + 1.079 / (1 << p));
+constexpr double alpha() {
+    return 0.7213 / (1 + 1.079 / (1 << p));
+}
 template <>
-constexpr double alpha<4> = 0.673;
+constexpr double alpha<4>() {
+    return 0.673;
+}
 template <>
-constexpr double alpha<5> = 0.697;
+constexpr double alpha<5>() {
+    return 0.697;
+}
 template <>
-constexpr double alpha<6> = 0.709;
+constexpr double alpha<6>() {
+    return 0.709;
+}
 
 template <size_t p>
 static double threshold() {
@@ -503,7 +514,7 @@ double DIA<ValueType, Stack>::HyperLogLog() const {
     double E = pairEV.first;
     unsigned V = pairEV.second;
 
-    E = alpha<p>* m * m / E;
+    E = alpha<p>() * m * m / E;
     double E_ = E;
     if (E <= 5 * m) {
         double bias = estimateBias<p>(E);
