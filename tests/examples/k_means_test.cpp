@@ -122,7 +122,7 @@ TEST(KMeans, RandomPoints) {
                       << tlx::abs_diff(cost, correct_cost) / correct_cost;
             }
 
-            ASSERT_LE(tlx::abs_diff(cost, correct_cost) / correct_cost, 0.2);
+            ASSERT_LE(tlx::abs_diff(cost, correct_cost) / correct_cost, 0.4);
         };
 
     api::RunLocalTests(start_func);
