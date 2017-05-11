@@ -20,14 +20,9 @@
 #include <thrill/api/all_reduce.hpp>
 #include <thrill/api/distribute.hpp>
 #include <thrill/common/functional.hpp>
+#include <thrill/common/siphash.hpp>
 
 namespace thrill {
-namespace api {
-
-uint64_t siphash(const unsigned char key[16], const unsigned char* m,
-                 size_t len);
-
-} // namespace api
 
 template <typename Value>
 uint64_t hash(const Value& val) {
@@ -35,8 +30,8 @@ uint64_t hash(const Value& val) {
         0, 0, 0, 0, 0, 0, 0, 0x4,
         0, 0, 0, 0, 0, 0, 0, 0x7
     };
-    return api::siphash(key, reinterpret_cast<const unsigned char*>(&val),
-                        sizeof(Value));
+    return common::siphash(
+        key, reinterpret_cast<const unsigned char*>(&val), sizeof(val));
 }
 
 // The high 25 bit in this register are used for the index, the next 6 bits for

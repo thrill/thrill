@@ -96,6 +96,7 @@ thrill_build_test_group(common/tests
   common/meta_test.cpp
   common/qsort_test.cpp
   common/radix_sort_test.cpp
+  common/siphash_test.cpp
   common/splay_tree_test.cpp
   common/stats_counter_test.cpp
   common/stats_timer_test.cpp
