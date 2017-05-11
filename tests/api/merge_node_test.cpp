@@ -48,7 +48,7 @@ void DoMergeAndCheckResult(
     // check if balancing condition was met
     LOG0 << "count: " << count << " expected: " << res.size() / num_workers;
     size_t expectedCount = res.size() / num_workers;
-    ASSERT_LE(common::abs_diff(expectedCount, count), num_workers + 50);
+    ASSERT_LE(tlx::abs_diff(expectedCount, count), num_workers + 50);
 }
 
 TEST(MergeNode, TwoBalancedIntegerArrays) {

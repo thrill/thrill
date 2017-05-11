@@ -23,12 +23,6 @@ namespace common {
 
 /******************************************************************************/
 
-//! absolute difference, which also works for unsigned types
-template <typename T>
-T abs_diff(const T& a, const T& b) {
-    return a > b ? a - b : b - a;
-}
-
 //! Add x + y but truncate result upwards such that it fits into original
 //! datatype
 template <typename IntegerType, unsigned bits = (8* sizeof(IntegerType))>

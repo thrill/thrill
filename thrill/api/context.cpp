@@ -22,6 +22,7 @@
 #include <thrill/io/iostats.hpp>
 #include <thrill/vfs/file_io.hpp>
 
+#include <tlx/math/abs_diff.hpp>
 #include <tlx/string/format_si_iec_units.hpp>
 #include <tlx/string/parse_si_iec_units.hpp>
 #include <tlx/string/split.hpp>
@@ -1166,7 +1167,7 @@ void Context::Launch(const std::function<void(Context&)>& job_startpoint) {
 
         if (stats.net_traffic_rx != stats.net_traffic_tx)
             LOG1 << "Manager::Traffic() tx/rx asymmetry = "
-                 << common::abs_diff(stats.net_traffic_tx, stats.net_traffic_rx);
+                 << tlx::abs_diff(stats.net_traffic_tx, stats.net_traffic_rx);
 
         if (mem_config().verbose_) {
             std::cerr

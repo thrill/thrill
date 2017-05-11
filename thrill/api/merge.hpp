@@ -25,6 +25,8 @@
 #include <thrill/core/multiway_merge.hpp>
 #include <thrill/data/dyn_block_reader.hpp>
 #include <thrill/data/file.hpp>
+
+#include <tlx/math/abs_diff.hpp>
 #include <tlx/meta/call_foreach_with_index.hpp>
 #include <tlx/meta/vexpand.hpp>
 
@@ -607,7 +609,7 @@ private:
             finished = true;
             for (size_t i = 0; i < p - 1; i++) {
                 size_t a = global_ranks[i], b = target_ranks[i];
-                if (common::abs_diff(a, b) > kNumInputs + 1) {
+                if (tlx::abs_diff(a, b) > kNumInputs + 1) {
                     finished = false;
                     break;
                 }
