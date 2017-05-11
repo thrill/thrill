@@ -15,7 +15,6 @@
 #define THRILL_NET_TCP_SELECT_DISPATCHER_HEADER
 
 #include <thrill/common/config.hpp>
-#include <thrill/common/die.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/porting.hpp>
 #include <thrill/mem/allocator.hpp>
@@ -26,6 +25,7 @@
 #include <thrill/net/tcp/select.hpp>
 #include <thrill/net/tcp/socket.hpp>
 #include <tlx/delegate.hpp>
+#include <tlx/die.hpp>
 
 #include <unistd.h>
 

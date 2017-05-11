@@ -12,7 +12,6 @@
 #ifndef THRILL_DATA_FILE_HEADER
 #define THRILL_DATA_FILE_HEADER
 
-#include <thrill/common/die.hpp>
 #include <thrill/common/function_traits.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/data/block.hpp>
@@ -20,6 +19,8 @@
 #include <thrill/data/block_sink.hpp>
 #include <thrill/data/block_writer.hpp>
 #include <thrill/data/dyn_block_reader.hpp>
+
+#include <tlx/die.hpp>
 
 #include <cassert>
 #include <deque>

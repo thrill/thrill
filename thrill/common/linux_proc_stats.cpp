@@ -13,7 +13,6 @@
 
 #include <thrill/common/linux_proc_stats.hpp>
 
-#include <thrill/common/die.hpp>
 #include <thrill/common/json_logger.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/profile_task.hpp>
@@ -21,6 +20,7 @@
 #include <thrill/common/string.hpp>
 #include <thrill/common/string_view.hpp>
 
+#include <tlx/die.hpp>
 #include <tlx/string/starts_with.hpp>
 #include <tlx/string/trim.hpp>
 

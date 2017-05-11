@@ -11,7 +11,6 @@
 
 #include <thrill/vfs/file_io.hpp>
 
-#include <thrill/common/die.hpp>
 #include <thrill/common/string.hpp>
 #include <thrill/vfs/bzip2_filter.hpp>
 #include <thrill/vfs/gzip_filter.hpp>
@@ -19,6 +18,7 @@
 #include <thrill/vfs/s3_file.hpp>
 #include <thrill/vfs/sys_file.hpp>
 
+#include <tlx/die.hpp>
 #include <tlx/string/ends_with.hpp>
 #include <tlx/string/starts_with.hpp>
 

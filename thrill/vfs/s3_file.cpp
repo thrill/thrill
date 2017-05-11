@@ -10,10 +10,10 @@
 
 #include <thrill/vfs/s3_file.hpp>
 
-#include <thrill/common/die.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/string.hpp>
 
+#include <tlx/die.hpp>
 #include <tlx/string/split.hpp>
 #include <tlx/string/starts_with.hpp>
 

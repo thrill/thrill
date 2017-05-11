@@ -11,12 +11,12 @@
 
 #include <thrill/vfs/sys_file.hpp>
 
-#include <thrill/common/die.hpp>
 #include <thrill/common/porting.hpp>
 #include <thrill/common/string.hpp>
 #include <thrill/common/system_exception.hpp>
 #include <thrill/vfs/simple_glob.hpp>
 
+#include <tlx/die.hpp>
 #include <tlx/string/ends_with.hpp>
 
 #include <fcntl.h>

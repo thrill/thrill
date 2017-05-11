@@ -10,9 +10,10 @@
 
 #include <thrill/vfs/hdfs3_file.hpp>
 
-#include <thrill/common/die.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/string.hpp>
+
+#include <tlx/die.hpp>
 
 #if THRILL_HAVE_LIBHDFS3
 #include <hdfs/hdfs.h>

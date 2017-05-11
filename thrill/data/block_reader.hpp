@@ -13,13 +13,13 @@
 #define THRILL_DATA_BLOCK_READER_HEADER
 
 #include <thrill/common/config.hpp>
-#include <thrill/common/die.hpp>
 #include <thrill/common/item_serialization_tools.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/data/block.hpp>
 #include <thrill/data/serialization.hpp>
 
 #include <tlx/define.hpp>
+#include <tlx/die.hpp>
 #include <tlx/string/hexdump.hpp>
 
 #include <algorithm>

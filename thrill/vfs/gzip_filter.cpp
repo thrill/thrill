@@ -10,7 +10,7 @@
 
 #include <thrill/vfs/gzip_filter.hpp>
 
-#include <thrill/common/die.hpp>
+#include <tlx/die.hpp>
 
 #if THRILL_HAVE_ZLIB
 #include <zlib.h>

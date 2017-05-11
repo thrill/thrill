@@ -9,9 +9,9 @@
  ******************************************************************************/
 
 #include <thrill/common/concurrent_bounded_queue.hpp>
-#include <thrill/common/die.hpp>
 #include <thrill/net/mock/group.hpp>
 
+#include <tlx/die.hpp>
 #include <tlx/string/hexdump.hpp>
 
 #include <algorithm>

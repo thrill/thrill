@@ -10,7 +10,7 @@
 
 #include <thrill/vfs/bzip2_filter.hpp>
 
-#include <thrill/common/die.hpp>
+#include <tlx/die.hpp>
 
 #if THRILL_HAVE_BZIP2
 #include <bzlib.h>

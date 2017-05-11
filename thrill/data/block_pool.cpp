@@ -8,7 +8,6 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <thrill/common/die.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/math.hpp>
 #include <thrill/data/block.hpp>
@@ -18,6 +17,7 @@
 #include <thrill/mem/aligned_allocator.hpp>
 #include <thrill/mem/pool.hpp>
 
+#include <tlx/die.hpp>
 #include <tlx/lru_cache.hpp>
 #include <tlx/math/is_power_of_two.hpp>
 #include <tlx/string/join_generic.hpp>

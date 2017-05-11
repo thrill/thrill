@@ -13,11 +13,11 @@
 #include <thrill/api/generate.hpp>
 #include <thrill/api/reduce_by_key.hpp>
 #include <thrill/api/size.hpp>
-#include <thrill/common/die.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/common/string_view.hpp>
 #include <tlx/cmdline_parser.hpp>
+#include <tlx/die.hpp>
 
 #include <algorithm>
 #include <array>
