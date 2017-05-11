@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/api/hyperloglog_test.cpp
+ * thrill/api/hyperloglog.hpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -8,7 +8,6 @@
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
-
 
 #pragma once
 #ifndef THRILL_API_HYPERLOGLOG_HEADER
@@ -24,14 +23,19 @@
 
 namespace thrill {
 namespace api {
-uint64_t siphash(const unsigned char key[16], const unsigned char *m,
-                 size_t len);
-}
 
-template <typename Value> uint64_t hash(const Value &val) {
-    const unsigned char key[16] = {0, 0, 0, 0, 0, 0, 0, 0x4,
-                                   0, 0, 0, 0, 0, 0, 0, 0x7};
-    return api::siphash(key, reinterpret_cast<const unsigned char *>(&val),
+uint64_t siphash(const unsigned char key[16], const unsigned char* m,
+                 size_t len);
+
+} // namespace api
+
+template <typename Value>
+uint64_t hash(const Value& val) {
+    const unsigned char key[16] = {
+        0, 0, 0, 0, 0, 0, 0, 0x4,
+        0, 0, 0, 0, 0, 0, 0, 0x7
+    };
+    return api::siphash(key, reinterpret_cast<const unsigned char*>(&val),
                         sizeof(Value));
 }
 
@@ -56,7 +60,8 @@ std::pair<size_t, uint8_t> decodeHash(SparseRegister reg) {
         uint32_t sparseValue = (reg >> 1) & lowerNBitMask<31 - sparsePrecision>;
         denseValue = sparseValue + (sparsePrecision - densePrecision);
         index = (reg >> (32 - densePrecision)) & lowerNBitMask<densePrecision>;
-    } else {
+    }
+    else {
         // First zero bottom bits, then shift the bits used for the new index to
         // the
         // left
@@ -65,24 +70,25 @@ std::pair<size_t, uint8_t> decodeHash(SparseRegister reg) {
         denseValue = __builtin_clz(topBitsValue) + 1;
         index = (reg >> (32 - densePrecision)) & lowerNBitMask<densePrecision>;
     }
-    return {index, denseValue};
+    return std::make_pair(index, denseValue);
 }
 
 template <size_t precision>
 std::pair<uint32_t, uint8_t> splitSparseRegister(SparseRegister reg) {
     uint8_t value = (reg & lowerNBitMask<32 - precision>) >> 1;
     uint32_t idx = reg >> (32 - precision);
-    return {idx, value};
+    return std::make_pair(idx, value);
 }
 
 template <size_t sparsePrecision, size_t densePrecision>
 uint32_t encodePair(uint32_t index, uint8_t value) {
     uint32_t decidingBits =
-        lowerNBitMask<sparsePrecision - densePrecision> &
+        lowerNBitMask<sparsePrecision - densePrecision>&
         index; // x_{63 - densePrecision}...x_{64 - sparsePrecision}
     if (decidingBits == 0) {
         return index << (32 - sparsePrecision) | (value << 1) | 1;
-    } else {
+    }
+    else {
         uint32_t shifted =
             index << (32 -
                       sparsePrecision); // x_63...x_{64 - sparsePrecision} || 0
@@ -111,21 +117,22 @@ uint32_t encodeHash(uint64_t hash) {
 
 template <size_t precision>
 std::vector<SparseRegister>
-mergeSameIndices(const std::vector<SparseRegister> &sparseList) {
+mergeSameIndices(const std::vector<SparseRegister>& sparseList) {
     if (sparseList.empty()) {
-        return {};
+        return { };
     }
     auto it = sparseList.begin();
-    std::vector<SparseRegister> mergedSparseList = {*it};
+    std::vector<SparseRegister> mergedSparseList = { *it };
     ++it;
     std::pair<size_t, uint8_t> lastEntry =
         splitSparseRegister<precision>(mergedSparseList.back());
-    for (; it != sparseList.end(); ++it) {
+    for ( ; it != sparseList.end(); ++it) {
         auto decoded = splitSparseRegister<precision>(*it);
         assert(decoded.first >= lastEntry.first);
         if (decoded.first > lastEntry.first) {
             mergedSparseList.emplace_back(*it);
-        } else {
+        }
+        else {
             assert(decoded.second >= lastEntry.second);
             mergedSparseList.back() = *it;
         }
@@ -134,12 +141,13 @@ mergeSameIndices(const std::vector<SparseRegister> &sparseList) {
     return mergedSparseList;
 }
 
-class VectorWriter : public common::ItemWriterToolsBase<VectorWriter> {
-    std::vector<uint8_t> &buffer;
+class VectorWriter : public common::ItemWriterToolsBase<VectorWriter>
+{
+    std::vector<uint8_t>& buffer;
 
-  public:
-    VectorWriter(std::vector<uint8_t> &buffer) : buffer(buffer) {}
-    VectorWriter &PutByte(uint8_t data) {
+public:
+    VectorWriter(std::vector<uint8_t>& buffer) : buffer(buffer) { }
+    VectorWriter& PutByte(uint8_t data) {
         buffer.emplace_back(data);
         return *this;
     }
@@ -147,36 +155,37 @@ class VectorWriter : public common::ItemWriterToolsBase<VectorWriter> {
 
 template <typename ForwardIt>
 class SparseListIterator
-    : public common::ItemReaderToolsBase<SparseListIterator<ForwardIt>>,
+    : public common::ItemReaderToolsBase<SparseListIterator<ForwardIt> >,
       public std::iterator<std::forward_iterator_tag, uint32_t, std::ptrdiff_t,
-                           void, void> {
+                           void, void>
+{
     ForwardIt iterator;
     uint32_t lastVal = 0;
     static_assert(std::is_same<typename ForwardIt::value_type, uint8_t>::value,
                   "ForwardIt must return uint8_t");
 
-  public:
-    explicit SparseListIterator(ForwardIt it) : iterator(it) {}
+public:
+    explicit SparseListIterator(ForwardIt it) : iterator(it) { }
     uint8_t GetByte() { return *iterator++; }
-    SparseListIterator<ForwardIt> &operator++() {
+    SparseListIterator<ForwardIt>& operator ++ () {
         lastVal = lastVal + this->GetVarint32();
         return *this;
     }
-    SparseListIterator<ForwardIt> operator++(int) {
+    SparseListIterator<ForwardIt> operator ++ (int) {
         SparseListIterator<ForwardIt> prev(*this);
         ++*this;
         return prev;
     }
-    uint32_t operator*() {
+    uint32_t operator * () {
         ForwardIt prevIt = iterator;
         uint32_t val = this->GetVarint32();
         iterator = prevIt;
         return lastVal + val;
     }
-    bool operator==(const SparseListIterator<ForwardIt> &other) {
+    bool operator == (const SparseListIterator<ForwardIt>& other) {
         return iterator == other.iterator;
     }
-    bool operator!=(const SparseListIterator<ForwardIt> &other) {
+    bool operator != (const SparseListIterator<ForwardIt>& other) {
         return !(*this == other);
     }
 };
@@ -186,30 +195,32 @@ SparseListIterator<ForwardIt> makeSparseListIterator(ForwardIt it) {
     return SparseListIterator<ForwardIt>(it);
 }
 
-class DecodedSparseList {
-    const std::vector<uint8_t> &sparseListBuffer;
+class DecodedSparseList
+{
+    const std::vector<uint8_t>& sparseListBuffer;
 
-  public:
-    DecodedSparseList(const std::vector<uint8_t> &sparseListBuf)
-        : sparseListBuffer(sparseListBuf) {}
+public:
+    DecodedSparseList(const std::vector<uint8_t>& sparseListBuf)
+        : sparseListBuffer(sparseListBuf) { }
     auto begin() { return makeSparseListIterator(sparseListBuffer.begin()); }
     auto end() { return makeSparseListIterator(sparseListBuffer.end()); }
 };
 
 // Perform a varint and a difference encoding
-std::vector<uint8_t> encodeSparseList(const std::vector<uint32_t> &sparseList);
+std::vector<uint8_t> encodeSparseList(const std::vector<uint32_t>& sparseList);
 
-template <size_t p> struct Registers {
-    unsigned sparseSize = 0;
-    RegisterFormat format;
+template <size_t p>
+struct Registers {
+    unsigned                    sparseSize = 0;
+    RegisterFormat              format;
     // Register values are always smaller than 64. We thus need log2(64) = 6
     // bits to store them. In particular an uint8_t is sufficient
-    std::vector<uint8_t> sparseListBuffer;
+    std::vector<uint8_t>        sparseListBuffer;
     std::vector<SparseRegister> tmpSet;
-    std::vector<uint8_t> entries;
-    Registers() : format(RegisterFormat::SPARSE) {}
-    size_t size() const { return entries.size(); }
-    void toDense() {
+    std::vector<uint8_t>        entries;
+    Registers() : format(RegisterFormat::SPARSE) { }
+    size_t                      size() const { return entries.size(); }
+    void                        toDense() {
         assert(format == RegisterFormat::SPARSE);
         format = RegisterFormat::DENSE;
         entries.resize(1 << p, 0);
@@ -220,7 +231,7 @@ template <size_t p> struct Registers {
             entries[decoded.first] = value;
         }
 
-        for (auto &val : tmpSet) {
+        for (auto& val : tmpSet) {
             auto decoded = decodeHash<25, p>(val);
             auto entry = entries[decoded.first];
             auto value = std::max(entry, decoded.second);
@@ -244,7 +255,8 @@ template <size_t p> struct Registers {
         return tmpSize > (denseSize / 4);
     }
 
-    template <typename ValueType> void insert(const ValueType &value) {
+    template <typename ValueType>
+    void insert(const ValueType& value) {
         // first p bits are the index
         uint64_t hashVal = hash<ValueType>(value);
         static_assert(sizeof(long long) * CHAR_BIT == 64,
@@ -289,10 +301,11 @@ template <size_t p> struct Registers {
 };
 
 namespace data {
+
 template <typename Archive, size_t p>
 struct Serialization<Archive, Registers<p>,
-                     typename std::enable_if<p <= 16>::type> {
-    static void Serialize(const Registers<p> &x, Archive &ar) {
+                     typename std::enable_if<p <= 16>::type>{
+    static void Serialize(const Registers<p>& x, Archive& ar) {
         Serialization<Archive, RegisterFormat>::Serialize(x.format, ar);
         switch (x.format) {
         case RegisterFormat::SPARSE:
@@ -307,7 +320,7 @@ struct Serialization<Archive, Registers<p>,
             break;
         }
     }
-    static Registers<p> Deserialize(Archive &ar) {
+    static Registers<p> Deserialize(Archive& ar) {
         Registers<p> out;
         out.format =
             std::move(Serialization<Archive, RegisterFormat>::Deserialize(ar));
@@ -329,10 +342,11 @@ struct Serialization<Archive, Registers<p>,
         }
         return out;
     }
-    static constexpr bool is_fixed_size = false;
+    static constexpr bool   is_fixed_size = false;
     static constexpr size_t fixed_size = 0;
 };
-}
+
+} // namespace data
 
 namespace api {
 
@@ -340,19 +354,27 @@ extern const std::array<double, 15> thresholds;
 extern const std::array<std::vector<double>, 15> rawEstimateData;
 extern const std::array<std::vector<double>, 15> biasData;
 
-template <size_t p> constexpr double alpha = 0.7213 / (1 + 1.079 / (1 << p));
-template <> constexpr double alpha<4> = 0.673;
-template <> constexpr double alpha<5> = 0.697;
-template <> constexpr double alpha<6> = 0.709;
+template <size_t p>
+constexpr double alpha = 0.7213 / (1 + 1.079 / (1 << p));
+template <>
+constexpr double alpha<4> = 0.673;
+template <>
+constexpr double alpha<5> = 0.697;
+template <>
+constexpr double alpha<6> = 0.709;
 
-template <size_t p> static double threshold() { return thresholds[p - 4]; }
+template <size_t p>
+static double threshold() {
+    return thresholds[p - 4];
+}
 
-int binarySearch(double rawEstimate, const std::vector<double> &estimatedData);
+int binarySearch(double rawEstimate, const std::vector<double>& estimatedData);
 
 double knearestNeighbor(int k, int index, double estimate,
-                        const std::vector<double> &bias,
-                        const std::vector<double> &estimateData);
-template <size_t p> static double estimateBias(double rawEstimate) {
+                        const std::vector<double>& bias,
+                        const std::vector<double>& estimateData);
+template <size_t p>
+static double estimateBias(double rawEstimate) {
     /**
      * 1. Find Elements in rawEstimateData (binary Search)
      * 2. k-nearest neighbor interpolation with k = 6
@@ -368,13 +390,14 @@ template <size_t p> static double estimateBias(double rawEstimate) {
 }
 
 template <size_t p>
-static Registers<p> combineRegisters(Registers<p> &registers1,
-                                     Registers<p> &registers2) {
+static Registers<p> combineRegisters(Registers<p>& registers1,
+                                     Registers<p>& registers2) {
     if (registers1.format == RegisterFormat::SPARSE &&
         registers2.format == RegisterFormat::DENSE) {
         registers1.toDense();
-    } else if (registers1.format == RegisterFormat::DENSE &&
-               registers2.format == RegisterFormat::SPARSE) {
+    }
+    else if (registers1.format == RegisterFormat::DENSE &&
+             registers2.format == RegisterFormat::SPARSE) {
         registers2.toDense();
     }
     assert(registers1.format == registers2.format);
@@ -409,25 +432,26 @@ static Registers<p> combineRegisters(Registers<p> &registers1,
  * \ingroup api_layer
  */
 template <size_t p, typename ValueType>
-class HyperLogLogNode final : public ActionResultNode<Registers<p>> {
+class HyperLogLogNode final : public ActionResultNode<Registers<p> >
+{
     static constexpr bool debug = false;
 
-    using Super = ActionResultNode<Registers<p>>;
+    using Super = ActionResultNode<Registers<p> >;
     using Super::context_;
 
-  public:
+public:
     template <typename ParentDIA>
-    HyperLogLogNode(const ParentDIA &parent, const char *label)
-        : Super(parent.ctx(), label, {parent.id()}, {parent.node()}),
-          registers{} {
+    HyperLogLogNode(const ParentDIA& parent, const char* label)
+        : Super(parent.ctx(), label, { parent.id() }, { parent.node() }),
+          registers { } {
         // Hook PreOp(s)
-        auto pre_op_fn = [this](const ValueType &input) { PreOp(input); };
+        auto pre_op_fn = [this](const ValueType& input) { PreOp(input); };
 
         auto lop_chain = parent.stack().push(pre_op_fn).fold();
         parent.node()->AddChild(this, lop_chain);
     }
 
-    void PreOp(const ValueType &input) { registers.insert(input); }
+    void PreOp(const ValueType& input) { registers.insert(input); }
 
     //! Executes the sum operation.
     void Execute() final {
@@ -436,9 +460,9 @@ class HyperLogLogNode final : public ActionResultNode<Registers<p>> {
     }
 
     //! Returns result of global sum.
-    const Registers<p> &result() const final { return registers; }
+    const Registers<p>& result() const final { return registers; }
 
-  private:
+private:
     Registers<p> registers;
 };
 
@@ -447,7 +471,7 @@ template <size_t p>
 double DIA<ValueType, Stack>::HyperLogLog() const {
     assert(IsValid());
 
-    auto node = common::MakeCounting<HyperLogLogNode<p, ValueType>>(
+    auto node = common::MakeCounting<HyperLogLogNode<p, ValueType> >(
         *this, "HyperLogLog");
     node->RunScope();
     auto reducedRegisters = node->result();
@@ -468,23 +492,23 @@ double DIA<ValueType, Stack>::HyperLogLog() const {
 
     std::pair<double, unsigned int> pairEV =
         distributedEntries
-            .Map([this](const uint64_t &entry) {
+        .Map([this](const uint64_t& entry) {
+                 return std::pair<double, unsigned int>(
+                     std::pow(2.0, -static_cast<double>(entry)),
+                     entry == 0 ? 1 : 0);
+             })
+        .AllReduce(
+            [this](const std::pair<double, unsigned int>& valA,
+                   const std::pair<double, unsigned int>& valB) {
                 return std::pair<double, unsigned int>(
-                    std::pow(2.0, -static_cast<double>(entry)),
-                    entry == 0 ? 1 : 0);
-            })
-            .AllReduce(
-                [this](const std::pair<double, unsigned int> &valA,
-                       const std::pair<double, unsigned int> &valB) {
-                    return std::pair<double, unsigned int>(
-                        valA.first + valB.first, valA.second + valB.second);
-                },
-                std::pair<double, unsigned int>(0.0, 0));
+                    valA.first + valB.first, valA.second + valB.second);
+            },
+            std::pair<double, unsigned int>(0.0, 0));
 
     double E = pairEV.first;
     unsigned V = pairEV.second;
 
-    E = alpha<p> * m * m / E;
+    E = alpha<p>* m * m / E;
     double E_ = E;
     if (E <= 5 * m) {
         double bias = estimateBias<p>(E);
@@ -499,7 +523,8 @@ double DIA<ValueType, Stack>::HyperLogLog() const {
 
     if (H <= threshold<p>()) {
         return H;
-    } else {
+    }
+    else {
         return E_;
     }
 }

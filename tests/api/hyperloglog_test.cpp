@@ -25,83 +25,85 @@ using namespace thrill; // NOLINT
 double relativeError(double trueVal, double estimate) {
     return estimate / trueVal - 1;
 }
+
 TEST(Operations, HyperLogLog) {
-    std::function<void(Context &)> start_func = [](Context &ctx) {
-        static constexpr bool debug = true;
-        size_t n = 100000;
+    auto start_func =
+        [](Context& ctx) {
+            static constexpr bool debug = true;
+            size_t n = 100000;
 
-        auto indices = Generate(ctx, n);
+            auto indices = Generate(ctx, n);
 
-        double estimate = indices.HyperLogLog<4>();
-        LOG << "hyperloglog with p=" << 4 << ": " << estimate
-            << ", relative error: " << relativeError(n, estimate);
-        estimate = indices.HyperLogLog<6>();
-        LOG << "hyperloglog with p=" << 6 << ": " << estimate
-            << ", relative error: " << relativeError(n, estimate);
-        estimate = indices.HyperLogLog<8>();
-        LOG << "hyperloglog with p=" << 8 << ": " << estimate
-            << ", relative error: " << relativeError(n, estimate);
-        estimate = indices.HyperLogLog<10>();
-        LOG << "hyperloglog with p=" << 10 << ": " << estimate
-            << ", relative error: " << relativeError(n, estimate);
-        estimate = indices.HyperLogLog<12>();
-        LOG << "hyperloglog with p=" << 12 << ": " << estimate
-            << ", relative error: " << relativeError(n, estimate);
-        estimate = indices.HyperLogLog<14>();
-        LOG << "hyperloglog with p=" << 14 << ": " << estimate
-            << ", relative error: " << relativeError(n, estimate);
-        estimate = indices.HyperLogLog<16>();
-        LOG << "hyperloglog with p=" << 16 << ": " << estimate
-            << ", relative error: " << relativeError(n, estimate);
+            double estimate = indices.HyperLogLog<4>();
+            LOG << "hyperloglog with p=" << 4 << ": " << estimate
+                << ", relative error: " << relativeError(n, estimate);
+            estimate = indices.HyperLogLog<6>();
+            LOG << "hyperloglog with p=" << 6 << ": " << estimate
+                << ", relative error: " << relativeError(n, estimate);
+            estimate = indices.HyperLogLog<8>();
+            LOG << "hyperloglog with p=" << 8 << ": " << estimate
+                << ", relative error: " << relativeError(n, estimate);
+            estimate = indices.HyperLogLog<10>();
+            LOG << "hyperloglog with p=" << 10 << ": " << estimate
+                << ", relative error: " << relativeError(n, estimate);
+            estimate = indices.HyperLogLog<12>();
+            LOG << "hyperloglog with p=" << 12 << ": " << estimate
+                << ", relative error: " << relativeError(n, estimate);
+            estimate = indices.HyperLogLog<14>();
+            LOG << "hyperloglog with p=" << 14 << ": " << estimate
+                << ", relative error: " << relativeError(n, estimate);
+            estimate = indices.HyperLogLog<16>();
+            LOG << "hyperloglog with p=" << 16 << ": " << estimate
+                << ", relative error: " << relativeError(n, estimate);
 
-        LOG << "###################################################";
-        LOG << "hyperloglog for small counts";
-        LOG << "";
+            LOG << "###################################################";
+            LOG << "hyperloglog for small counts";
+            LOG << "";
 
-        n = 1000;
+            n = 1000;
 
-        indices = Generate(ctx, n);
+            indices = Generate(ctx, n);
 
-        estimate = indices.HyperLogLog<4>();
-        LOG << "hyperloglog with p=" << 4 << ": " << estimate
-            << ", relative error: " << relativeError(n, estimate);
-        estimate = indices.HyperLogLog<6>();
-        LOG << "hyperloglog with p=" << 6 << ": " << estimate
-            << ", relative error: " << relativeError(n, estimate);
-        estimate = indices.HyperLogLog<8>();
-        LOG << "hyperloglog with p=" << 8 << ": " << estimate
-            << ", relative error: " << relativeError(n, estimate);
-        estimate = indices.HyperLogLog<10>();
-        LOG << "hyperloglog with p=" << 10 << ": " << estimate
-            << ", relative error: " << relativeError(n, estimate);
-        estimate = indices.HyperLogLog<12>();
-        LOG << "hyperloglog with p=" << 12 << ": " << estimate
-            << ", relative error: " << relativeError(n, estimate);
-        estimate = indices.HyperLogLog<14>();
-        LOG << "hyperloglog with p=" << 14 << ": " << estimate
-            << ", relative error: " << relativeError(n, estimate);
-        estimate = indices.HyperLogLog<14>();
-        LOG << "hyperloglog with p=" << 14 << ": " << estimate
-            << ", relative error: " << relativeError(n, estimate);
+            estimate = indices.HyperLogLog<4>();
+            LOG << "hyperloglog with p=" << 4 << ": " << estimate
+                << ", relative error: " << relativeError(n, estimate);
+            estimate = indices.HyperLogLog<6>();
+            LOG << "hyperloglog with p=" << 6 << ": " << estimate
+                << ", relative error: " << relativeError(n, estimate);
+            estimate = indices.HyperLogLog<8>();
+            LOG << "hyperloglog with p=" << 8 << ": " << estimate
+                << ", relative error: " << relativeError(n, estimate);
+            estimate = indices.HyperLogLog<10>();
+            LOG << "hyperloglog with p=" << 10 << ": " << estimate
+                << ", relative error: " << relativeError(n, estimate);
+            estimate = indices.HyperLogLog<12>();
+            LOG << "hyperloglog with p=" << 12 << ": " << estimate
+                << ", relative error: " << relativeError(n, estimate);
+            estimate = indices.HyperLogLog<14>();
+            LOG << "hyperloglog with p=" << 14 << ": " << estimate
+                << ", relative error: " << relativeError(n, estimate);
+            estimate = indices.HyperLogLog<14>();
+            LOG << "hyperloglog with p=" << 14 << ": " << estimate
+                << ", relative error: " << relativeError(n, estimate);
+        };
 
-    };
-
-    thrill::Run([&](thrill::Context &ctx) { start_func(ctx); });
+    thrill::Run([&](thrill::Context& ctx) { start_func(ctx); });
 }
 
 TEST(Operations, encodeHash) {
     // decidingBits = 0 => 1 as last Bit, vale (aka number of leading zeroes) should be 5
-    uint64_t random =  0b0000100000000000000000000000100000000000000000000000000000000000;
+    uint64_t random = 0b0000100000000000000000000000100000000000000000000000000000000000;
     uint32_t encoded = encodeHash<24, 16>(random);
     uint32_t manualEncoded = 0b00001000000000000000000000001011;
     ASSERT_EQ(manualEncoded, encoded);
 
     // decidingBits = 1 => 0 as last Bit, dont care about value
-    random =  0b0000100000000000000010000000100000000000000000000000000000000000;
+    random = 0b0000100000000000000010000000100000000000000000000000000000000000;
     encoded = encodeHash<24, 16>(random);
     manualEncoded = 0b00001000000000000000100000000000;
     ASSERT_EQ(manualEncoded, encoded);
 }
+
 TEST(Operations, decodeHash) {
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -158,3 +160,5 @@ TEST(Operations, sparseListEncoding) {
         ASSERT_EQ(input, decoded);
     }
 }
+
+/******************************************************************************/

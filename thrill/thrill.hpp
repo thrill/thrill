@@ -38,6 +38,7 @@ print "#include <$_>\n" foreach sort glob("thrill/api/"."*.hpp");
 #include <thrill/api/group_by_iterator.hpp>
 #include <thrill/api/group_by_key.hpp>
 #include <thrill/api/group_to_index.hpp>
+#include <thrill/api/hyperloglog.hpp>
 #include <thrill/api/max.hpp>
 #include <thrill/api/merge.hpp>
 #include <thrill/api/min.hpp>

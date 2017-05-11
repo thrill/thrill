@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/api/hyperloglog_test.cpp
+ * thrill/api/hyperloglog.cpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -13,7 +13,8 @@
 
 namespace thrill {
 namespace api {
-int binarySearch(double rawEstimate, const std::vector<double> &estimatedData) {
+
+int binarySearch(double rawEstimate, const std::vector<double>& estimatedData) {
     int length = estimatedData.size();
 
     int middle = length / 2;
@@ -23,7 +24,8 @@ int binarySearch(double rawEstimate, const std::vector<double> &estimatedData) {
     while (upper - lower > 1) {
         if (rawEstimate < estimatedData[middle]) {
             upper = middle - 1;
-        } else {
+        }
+        else {
             lower = middle;
         }
         middle = (upper + lower) / 2;
@@ -33,8 +35,8 @@ int binarySearch(double rawEstimate, const std::vector<double> &estimatedData) {
 }
 
 double knearestNeighbor(int k, int index, double estimate,
-                        const std::vector<double> &bias,
-                        const std::vector<double> &estimateData) {
+                        const std::vector<double>& bias,
+                        const std::vector<double>& estimateData) {
     double sum = 0;
     int estimateDataLength = estimateData.size();
 
@@ -45,21 +47,24 @@ double knearestNeighbor(int k, int index, double estimate,
         double distLower;
         if (lowerIndex >= 0) {
             distLower = std::abs(estimate - estimateData[lowerIndex]);
-        } else {
+        }
+        else {
             distLower = std::numeric_limits<double>::infinity();
         }
 
         double distUpper;
         if (upperIndex < estimateDataLength) {
             distUpper = std::abs(estimateData[upperIndex] - estimate);
-        } else {
+        }
+        else {
             distUpper = std::numeric_limits<double>::infinity();
         }
 
         if (distLower <= distUpper) {
             sum += bias[lowerIndex];
             lowerIndex--;
-        } else {
+        }
+        else {
             sum += bias[upperIndex];
             upperIndex++;
         }
@@ -67,11 +72,12 @@ double knearestNeighbor(int k, int index, double estimate,
     }
     return sum / neighbors;
 }
-}
 
-std::vector<uint8_t> encodeSparseList(const std::vector<uint32_t> &sparseList) {
+} // namespace api
+
+std::vector<uint8_t> encodeSparseList(const std::vector<uint32_t>& sparseList) {
     if (sparseList.empty()) {
-        return {};
+        return { };
     }
     assert(std::is_sorted(sparseList.begin(), sparseList.end()));
     std::vector<uint8_t> sparseListBuffer;
@@ -80,10 +86,13 @@ std::vector<uint8_t> encodeSparseList(const std::vector<uint32_t> &sparseList) {
     auto it = sparseList.begin();
     uint32_t prevVal = *it++;
     writer.PutVarint32(prevVal);
-    for (; it != sparseList.end(); ++it) {
+    for ( ; it != sparseList.end(); ++it) {
         writer.PutVarint32(*it - prevVal);
         prevVal = *it;
     }
     return sparseListBuffer;
 }
-}
+
+} // namespace thrill
+
+/******************************************************************************/

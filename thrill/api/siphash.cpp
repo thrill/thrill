@@ -1,5 +1,5 @@
 /*******************************************************************************
- * tests/api/hyperloglog_test.cpp
+ * thrill/api/siphash.cpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -14,14 +14,15 @@
 
 namespace thrill {
 namespace api {
+
 // This siphash imlementation is taken from
 // https://github.com/floodyberry/siphash
 #define ROTL64(a, b) (((a) << (b)) | ((a) >> (64 - b)))
-static uint64_t U8TO64_LE(const unsigned char *p) {
-    return *(const uint64_t *)p;
+static uint64_t U8TO64_LE(const unsigned char* p) {
+    return *(const uint64_t*)p;
 }
 
-uint64_t siphash(const unsigned char key[16], const unsigned char *m,
+uint64_t siphash(const unsigned char key[16], const unsigned char* m,
                  size_t len) {
     uint64_t v0, v1, v2, v3;
     uint64_t mi, k0, k1;
@@ -37,20 +38,20 @@ uint64_t siphash(const unsigned char key[16], const unsigned char *m,
 
     last7 = (uint64_t)(len & 0xff) << 56;
 
-#define sipcompress()                                                          \
-    v0 += v1;                                                                  \
-    v2 += v3;                                                                  \
-    v1 = ROTL64(v1, 13);                                                       \
-    v3 = ROTL64(v3, 16);                                                       \
-    v1 ^= v0;                                                                  \
-    v3 ^= v2;                                                                  \
-    v0 = ROTL64(v0, 32);                                                       \
-    v2 += v1;                                                                  \
-    v0 += v3;                                                                  \
-    v1 = ROTL64(v1, 17);                                                       \
-    v3 = ROTL64(v3, 21);                                                       \
-    v1 ^= v2;                                                                  \
-    v3 ^= v0;                                                                  \
+#define sipcompress()    \
+    v0 += v1;            \
+    v2 += v3;            \
+    v1 = ROTL64(v1, 13); \
+    v3 = ROTL64(v3, 16); \
+    v1 ^= v0;            \
+    v3 ^= v2;            \
+    v0 = ROTL64(v0, 32); \
+    v2 += v1;            \
+    v0 += v3;            \
+    v1 = ROTL64(v1, 17); \
+    v3 = ROTL64(v3, 21); \
+    v1 ^= v2;            \
+    v3 ^= v0;            \
     v2 = ROTL64(v2, 32);
 
     for (i = 0, blocks = (len & ~7); i < blocks; i += 8) {
@@ -76,12 +77,15 @@ uint64_t siphash(const unsigned char key[16], const unsigned char *m,
         last7 |= (uint64_t)m[i + 0];
     case 0:
     default:;
-    };
+    }
     v3 ^= last7;
     sipcompress() sipcompress() v0 ^= last7;
     v2 ^= 0xff;
     sipcompress() sipcompress() sipcompress() sipcompress() return v0 ^ v1 ^
-        v2 ^ v3;
+           v2 ^ v3;
 }
-}
-}
+
+} // namespace api
+} // namespace thrill
+
+/******************************************************************************/
