@@ -432,12 +432,11 @@ class HyperLogLogNode final : public ActionResultNode<Registers<p> >
 public:
     template <typename ParentDIA>
     HyperLogLogNode(const ParentDIA& parent, const char* label)
-        : Super(parent.ctx(), label, { parent.id() }, { parent.node() }),
-          registers { } {
+        : Super(parent.ctx(), label, { parent.id() }, { parent.node() }) {
         // Hook PreOp(s)
         auto pre_op_fn = [this](const ValueType& input) {
-            registers.insert(input);
-        };
+                             registers.insert(input);
+                         };
 
         auto lop_chain = parent.stack().push(pre_op_fn).fold();
         parent.node()->AddChild(this, lop_chain);
