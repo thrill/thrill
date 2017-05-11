@@ -27,7 +27,7 @@
 
 #include <thrill/api/group_by_iterator.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/core/losertree.hpp>
+#include <tlx/loser_tree.hpp>
 
 #include <algorithm>
 #include <iterator>
@@ -1261,7 +1261,7 @@ multiway_merge_loser_tree_combined(
     {
         DiffType unguarded_length = std::min(length, total_length - overhang);
         target_end = multiway_merge_loser_tree_unguarded<
-            typename LoserTreeTraitsUnguarded<Stable, value_type, Comparator>::Type>(
+            tlx::LoserTreeUnguarded<Stable, value_type, Comparator> >(
             seqs_begin, seqs_end, target, unguarded_length, comp);
         overhang = length - unguarded_length;
     }
@@ -1276,7 +1276,7 @@ multiway_merge_loser_tree_combined(
     // THRILL_DEBUG_ASSERT(stxxl::is_sorted(target, target_end, comp));
 
     target_end = multiway_merge_loser_tree<
-        typename LoserTreeTraits<Stable, value_type, Comparator>::Type>(
+        tlx::LoserTree<Stable, value_type, Comparator> >(
         seqs_begin, seqs_end, target_end, overhang, comp);
 
     // THRILL_DEBUG_ASSERT(target_end == target + length);
@@ -1308,7 +1308,7 @@ multiway_merge_loser_tree_sentinel(
 
     RandomAccessIterator3 target_end
         = multiway_merge_loser_tree_unguarded<
-        typename LoserTreeTraitsUnguarded<Stable, value_type, Comparator>::Type>(
+        tlx::LoserTreeUnguarded<Stable, value_type, Comparator> >(
         seqs_begin, seqs_end, target, length, comp);
 
     // THRILL_DEBUG_ASSERT(target_end == target + length);
@@ -1370,7 +1370,7 @@ sequential_file_multiway_merge(RandomAccessIteratorIterator seqs_begin,
     default:
     {
         return_target = file_multiway_merge_loser_tree<
-            typename LoserTreeTraits<Stable, value_type, Comparator>::Type>(
+            tlx::LoserTree<Stable, value_type, Comparator> >(
             seqs_begin, seqs_end, target, length, comp);
         break;
     }
@@ -1487,7 +1487,7 @@ sequential_multiway_merge(RandomAccessIteratorIterator seqs_begin,
         //     break;
         // case SETTINGS::LOSER_TREE:
         return_target = multiway_merge_loser_tree<
-            typename LoserTreeTraits<Stable, value_type, Comparator>::Type>(
+            tlx::LoserTree<Stable, value_type, Comparator> >(
             seqs_begin, seqs_end, target, length, comp);
         break;
         // case SETTINGS::LOSER_TREE_COMBINED:
