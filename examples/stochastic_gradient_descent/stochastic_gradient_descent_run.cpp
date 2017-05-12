@@ -15,8 +15,8 @@
 #include <thrill/api/generate.hpp>
 #include <thrill/api/read_lines.hpp>
 
-#include <tlx/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
+#include <tlx/cmdline_parser.hpp>
 
 #include <algorithm>
 #include <iomanip>
@@ -214,19 +214,19 @@ int main(int argc, char* argv[]) {
 
     size_t num = 100;
     cp.add_size_t('n', "num", num,
-                 "number of points to generate");
+                  "number of points to generate");
 
     size_t dimensions = 1;
     cp.add_size_t('d', "dim", dimensions,
-                 "dimensions of weights 1-10, default: 1");
+                  "dimensions of weights 1-10, default: 1");
 
     size_t iterations = 100;
     cp.add_size_t('i', "iterations", iterations,
-                 "iterations, default: 100");
+                  "iterations, default: 100");
 
     size_t repetitions = 1;
     cp.add_size_t('r', "repetitions", repetitions,
-                 "repetitions, for timing purpose only.");
+                  "repetitions, for timing purpose only.");
 
     double mini_batch_fraction = 1;
     cp.add_double('f', "frac", mini_batch_fraction,
