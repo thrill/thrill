@@ -107,7 +107,8 @@ bool BFSNextLevel(DIA<BfsNode>& graph, size_t& currentLevel,
             // its index
             return pair1.node == INVALID ? pair2 : pair1;
         },
-        graphSize);
+        graphSize,
+        NodeParentPair { INVALID, INVALID });
 
     currentLevel++;
 
@@ -155,7 +156,7 @@ bool PrepareNextTree(DIA<BfsNode>& graph, size_t& startIndex,
             }
 
             return node;
-        });
+        }).Collapse();
 
     return true;
 }
@@ -283,7 +284,7 @@ size_t doubleSweepDiameter(
                      emitNode.treeIndex = 0;
                  }
                  return emitNode;
-             });
+             }).Collapse();
 
     auto secondBFS = BFS(secondGraph, graphSize, startIndex);
 
