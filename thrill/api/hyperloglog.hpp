@@ -476,26 +476,13 @@ double DIA<ValueType, Stack>::HyperLogLog() const {
     const size_t m = 1 << p;
     assert(reducedRegisters.size() == m);
 
-    DIA<uint8_t> distributedEntries =
-        Distribute<uint8_t>(this->ctx(), reducedRegisters.entries);
+    double E = 0.0;
+    unsigned V = 0;
 
-    std::pair<double, unsigned int> pairEV =
-        distributedEntries
-        .Map([this](const uint64_t& entry) {
-                 return std::pair<double, unsigned int>(
-                     std::pow(2.0, -static_cast<double>(entry)),
-                     entry == 0 ? 1 : 0);
-             })
-        .AllReduce(
-            [this](const std::pair<double, unsigned int>& valA,
-                   const std::pair<double, unsigned int>& valB) {
-                return std::pair<double, unsigned int>(
-                    valA.first + valB.first, valA.second + valB.second);
-            },
-            std::pair<double, unsigned int>(0.0, 0));
-
-    double E = pairEV.first;
-    unsigned V = pairEV.second;
+    for (const uint64_t& entry : reducedRegisters.entries) {
+        E += std::pow(2.0, -static_cast<double>(entry));
+        V += (entry == 0 ? 1 : 0);
+    }
 
     E = alpha<p>() * m * m / E;
     double E_ = E;
