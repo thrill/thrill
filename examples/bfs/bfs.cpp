@@ -22,9 +22,10 @@
 #include <thrill/api/size.hpp>
 #include <thrill/api/sort.hpp>
 #include <thrill/api/sum.hpp>
-#include <thrill/api/write_lines_one.hpp>
+#include <thrill/api/write_lines.hpp>
 #include <thrill/api/zip.hpp>
 #include <thrill/api/zip_with_index.hpp>
+#include <thrill/common/cmdline_parser.hpp>
 
 #include <algorithm>
 #include <iterator>
@@ -102,7 +103,8 @@ bool BFSNextLevel(DIA<BfsNode>& graph, size_t& currentLevel,
             return pair.node == INVALID ? 0 : pair.node;
         },
         [](const NodeParentPair& pair1, const NodeParentPair& pair2) {
-            // pair1.node is INVALID iff it is the default constructed value for its index
+            // pair1.node is INVALID iff it is the default constructed value for
+            // its index
             return pair1.node == INVALID ? pair2 : pair1;
         },
         graphSize);
@@ -125,7 +127,9 @@ bool BFSNextLevel(DIA<BfsNode>& graph, size_t& currentLevel,
 }
 
 // returns true if not all nodes have been reached yet
-bool PrepareNextTree(DIA<BfsNode>& graph, size_t& startIndex, const size_t currentTreeIndex) {
+bool PrepareNextTree(DIA<BfsNode>& graph, size_t& startIndex,
+                     const size_t currentTreeIndex) {
+
     BfsNode validDummy;
     validDummy.level = 0;
 
@@ -156,10 +160,11 @@ bool PrepareNextTree(DIA<BfsNode>& graph, size_t& startIndex, const size_t curre
     return true;
 }
 
-void outputBFSResult(DIA<BfsNode>& graph, size_t trees, std::string pathOut) {
-    if (pathOut == "") {
+void outputBFSResult(DIA<BfsNode>& graph, size_t num_trees,
+                     std::string output_path) {
+
+    if (output_path.empty())
         return;
-    }
 
     auto grouped =
         graph
@@ -167,13 +172,12 @@ void outputBFSResult(DIA<BfsNode>& graph, size_t trees, std::string pathOut) {
         .template GroupToIndex<std::string>(
             [](const BfsNode& i) { return i.treeIndex; },
             [](auto& iter, const size_t& key) mutable {
-                std::stringstream str;
+                std::ostringstream str;
                 str << "BFS tree " << key << ":\n";
 
                 std::vector<std::pair<size_t, size_t> > nodes;
 
-                while (iter.HasNext())
-                {
+                while (iter.HasNext()) {
                     BfsNode node = iter.Next();
                     nodes.emplace_back(node.level, node.nodeIndex);
                 }
@@ -199,50 +203,58 @@ void outputBFSResult(DIA<BfsNode>& graph, size_t trees, std::string pathOut) {
 
                 return str.str();
             },
-            trees);
-    grouped.WriteLinesOne(pathOut);
+            num_trees);
+
+    grouped.WriteLines(output_path);
 }
 
-/*  runs A BFS on graph starting at startIndex
-    if fullBFS is true then all nodes will eventually be reached possibly resulting in a forest instead of a simple tree
+/*!
+ * runs A BFS on graph starting at startIndex. If full_bfs is true then all
+ * nodes will eventually be reached possibly resulting in a forest instead of a
+ * simple tree
 */
-BfsResult BFS(DIA<BfsNode>& graph, size_t graphSize, VertexId startIndex, bool fullBFS = false) {
+BfsResult BFS(DIA<BfsNode>& graph, size_t graphSize,
+              VertexId startIndex, bool full_bfs = false) {
+
     std::vector<TreeInfo> treeInfos;
     size_t currentTreeIndex = 0;
 
     do {
         size_t currentLevel = 0;
 
-        while (BFSNextLevel(graph, currentLevel, currentTreeIndex, graphSize)) { }
+        while (BFSNextLevel(graph, currentLevel, currentTreeIndex, graphSize))
+        { }
 
         treeInfos.emplace_back(TreeInfo { startIndex, currentLevel });
 
         currentTreeIndex++;
-    } while (fullBFS && PrepareNextTree(graph, startIndex, currentTreeIndex));
+    } while (full_bfs && PrepareNextTree(graph, startIndex, currentTreeIndex));
 
     return BfsResult({ graph, treeInfos });
 }
 
-BfsResult BFS(thrill::Context& ctx, std::string pathIn, std::string pathOut,
-              VertexId startIndex, bool fullBFS = false) {
-    size_t graphSize;
-    DIA<BfsNode> graph = LoadBFSGraph(ctx, graphSize, pathIn, startIndex);
-    auto result = BFS(graph, graphSize, startIndex, fullBFS);
-    outputBFSResult(result.graph, result.treeInfos.size(), pathOut);
+BfsResult BFS(thrill::Context& ctx,
+              std::string input_path, std::string output_path,
+              VertexId startIndex, bool full_bfs = false) {
 
+    size_t graphSize;
+    DIA<BfsNode> graph = LoadBFSGraph(ctx, graphSize, input_path, startIndex);
+
+    auto result = BFS(graph, graphSize, startIndex, full_bfs);
+    outputBFSResult(result.graph, result.treeInfos.size(), output_path);
     return result;
 }
 
 size_t doubleSweepDiameter(
     thrill::Context& ctx,
-    std::string pathIn, std::string pathOut, std::string pathOut2,
+    std::string input_path, std::string output_path, std::string pathOut2,
     VertexId startIndex) {
 
     size_t graphSize;
-    DIA<BfsNode> graph = LoadBFSGraph(ctx, graphSize, pathIn, startIndex);
+    DIA<BfsNode> graph = LoadBFSGraph(ctx, graphSize, input_path, startIndex);
     auto firstBFS = BFS(graph, graphSize, startIndex);
 
-    outputBFSResult(firstBFS.graph, firstBFS.treeInfos.size(), pathOut);
+    outputBFSResult(firstBFS.graph, firstBFS.treeInfos.size(), output_path);
 
     // choose node from last level as new start index
     auto targetLevel = firstBFS.treeInfos.front().levels - 1;
@@ -283,31 +295,30 @@ size_t doubleSweepDiameter(
 }
 
 int main(int argc, char* argv[]) {
-    std::string pathIn = "input.graph"; // read graph from this file
-    std::string pathOut = "";           // output bfs tree to this file
-    bool fullBFS = false;               // traverse all nodes even if this produces a disconnected bfs forest
 
-    argc = std::min(argc, 4);
+    thrill::common::CmdlineParser clp;
 
-    std::string tmp;
+    std::string input_path;
+    clp.AddParamString("input", input_path,
+                       "read graph from this file");
 
-    switch (argc) {
-    case 4:
-        tmp = argv[3];
-        fullBFS = !(tmp == "false" || tmp == "0");
-    case 3:
-        pathOut = argv[2];
-    case 2:
-        pathIn = argv[1];
-        break;
-    default:
-        break;
-    }
+    std::string output_path;
+    clp.AddOptParamString("output", output_path,
+                          "output bfs tree to this file");
+
+    bool full_bfs = false;
+    clp.AddFlag('f', "full-bfs", full_bfs,
+                "traverse all nodes even if this produces a disconnected bfs forest");
+
+    if (!clp.Process(argc, argv))
+        return -1;
+
+    clp.PrintResult();
 
     return thrill::Run(
         [&](thrill::Context& ctx) {
-            BFS(ctx, pathIn, pathOut, 0, fullBFS);
-            // doubleSweepDiameter(ctx, pathIn, pathOut, "bfs2.graph", 1);
+            BFS(ctx, input_path, output_path, /* startIndex */ 0, full_bfs);
+            // doubleSweepDiameter(ctx, input_path, output_path, "bfs2.graph", 1);
         });
 }
 
