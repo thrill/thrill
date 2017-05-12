@@ -42,7 +42,7 @@ struct BfsResult {
 
 // load graph from file
 DIA<BfsNode> LoadBFSGraph(thrill::Context& ctx, size_t& graphSize,
-                          const std::string& path, Node startIndex) {
+                          const std::string& path, VertexId startIndex) {
 
     // read graph lines from file and add index
     auto lines =
@@ -60,8 +60,8 @@ DIA<BfsNode> LoadBFSGraph(thrill::Context& ctx, size_t& graphSize,
             std::istringstream iss(input.first);
             BfsNode node;
 
-            node.edges = EdgeList(std::istream_iterator<Node>(iss),
-                                  std::istream_iterator<Node>());
+            node.edges = EdgeList(std::istream_iterator<VertexId>(iss),
+                                  std::istream_iterator<VertexId>());
             node.nodeIndex = input.second;
 
             if (node.nodeIndex == startIndex)
@@ -206,7 +206,7 @@ void outputBFSResult(DIA<BfsNode>& graph, size_t trees, std::string pathOut) {
 /*  runs A BFS on graph starting at startIndex
     if fullBFS is true then all nodes will eventually be reached possibly resulting in a forest instead of a simple tree
 */
-BfsResult BFS(DIA<BfsNode>& graph, size_t graphSize, Node startIndex, bool fullBFS = false) {
+BfsResult BFS(DIA<BfsNode>& graph, size_t graphSize, VertexId startIndex, bool fullBFS = false) {
     std::vector<TreeInfo> treeInfos;
     size_t currentTreeIndex = 0;
 
@@ -224,7 +224,7 @@ BfsResult BFS(DIA<BfsNode>& graph, size_t graphSize, Node startIndex, bool fullB
 }
 
 BfsResult BFS(thrill::Context& ctx, std::string pathIn, std::string pathOut,
-              Node startIndex, bool fullBFS = false) {
+              VertexId startIndex, bool fullBFS = false) {
     size_t graphSize;
     DIA<BfsNode> graph = LoadBFSGraph(ctx, graphSize, pathIn, startIndex);
     auto result = BFS(graph, graphSize, startIndex, fullBFS);
@@ -236,7 +236,7 @@ BfsResult BFS(thrill::Context& ctx, std::string pathIn, std::string pathOut,
 size_t doubleSweepDiameter(
     thrill::Context& ctx,
     std::string pathIn, std::string pathOut, std::string pathOut2,
-    Node startIndex) {
+    VertexId startIndex) {
 
     size_t graphSize;
     DIA<BfsNode> graph = LoadBFSGraph(ctx, graphSize, pathIn, startIndex);

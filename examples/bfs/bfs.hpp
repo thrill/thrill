@@ -22,12 +22,12 @@ namespace examples {
 namespace bfs {
 
 const size_t INVALID = std::numeric_limits<size_t>::max();
-using Node = size_t;
-using EdgeList = std::vector<Node>;
+using VertexId = size_t;
+using EdgeList = std::vector<VertexId>;
 
 struct NodeParentPair {
-    Node node;
-    Node parent;
+    VertexId node;
+    VertexId parent;
 };
 
 std::ostream& operator << (std::ostream& os, const NodeParentPair& pair) {
@@ -38,9 +38,9 @@ class BfsNode
 {
 public:
     EdgeList edges;
-    Node nodeIndex = INVALID;
+    VertexId nodeIndex = INVALID;
     size_t treeIndex = INVALID;
-    Node parent = INVALID;
+    VertexId parent = INVALID;
     size_t level = INVALID;
 
     BfsNode() = default;
