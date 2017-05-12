@@ -248,7 +248,7 @@ BfsResult BFS(thrill::Context& ctx,
 
 size_t doubleSweepDiameter(
     thrill::Context& ctx,
-    std::string input_path, std::string output_path, std::string pathOut2,
+    std::string input_path, std::string output_path, std::string output_path2,
     VertexId startIndex) {
 
     size_t graphSize;
@@ -290,7 +290,10 @@ size_t doubleSweepDiameter(
 
     auto diameter = secondBFS.treeInfos.front().levels;
 
-    outputBFSResult(secondBFS.graph, secondBFS.treeInfos.size(), pathOut2);
+    outputBFSResult(secondBFS.graph, secondBFS.treeInfos.size(), output_path2);
+
+    if (ctx.my_rank() == 0)
+        LOG1 << "RESULT diameter=" << diameter;
 
     return diameter;
 }
@@ -305,11 +308,19 @@ int main(int argc, char* argv[]) {
 
     std::string output_path;
     clp.AddOptParamString("output", output_path,
-                          "output bfs tree to this file");
+                          "output BFS tree to this file");
+
+    std::string output_path2;
+    clp.AddOptParamString("output2", output_path2,
+                          "output second BFS tree of diameter sweep to this file");
 
     bool full_bfs = false;
     clp.AddFlag('f', "full-bfs", full_bfs,
                 "traverse all nodes even if this produces a disconnected bfs forest");
+
+    bool diameter = false;
+    clp.AddFlag('d', "diameter", diameter,
+                "calculate approximate diameter using two BFS sweeps");
 
     if (!clp.Process(argc, argv))
         return -1;
@@ -318,8 +329,11 @@ int main(int argc, char* argv[]) {
 
     return thrill::Run(
         [&](thrill::Context& ctx) {
-            BFS(ctx, input_path, output_path, /* startIndex */ 0, full_bfs);
-            // doubleSweepDiameter(ctx, input_path, output_path, "bfs2.graph", 1);
+            if (!diameter)
+                BFS(ctx, input_path, output_path, /* startIndex */ 0, full_bfs);
+            else
+                doubleSweepDiameter(ctx, input_path, output_path, output_path2,
+                                    /* startIndex */ 0);
         });
 }
 
