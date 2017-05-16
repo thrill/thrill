@@ -3,43 +3,50 @@
 language: cpp
 
 sudo: false
+dist: trusty
 
 matrix:
   include:
-    # gcc 4.9 with AddressSanitizer, Debug & Release
-    - env: CMAKE_CC="gcc-4.9" CMAKE_CXX="g++-4.9" BUILD_TYPE="Debug" COMPILER_FLAGS="-fsanitize=address"
+    # gcc 4.9 with AddressSanitizer, Debug
+    - env: CMAKE_CC="gcc-4.9" CMAKE_CXX="g++-4.9" BUILD_TYPE="Debug" COMPILER_FLAGS="-fsanitize=address" CMAKE_ARGS="-DTHRILL_TRY_COMPILE_HEADERS=OFF"
       os: linux
-      addons: &gcc49
+      addons:
         apt:
           sources:
             - ubuntu-toolchain-r-test
-            - george-edison55-precise-backports # cmake 3.2.3 / doxygen 1.8.3
           packages:
-            - cmake
-            - cmake-data
-            - g++-4.9
-            - libssl-dev
+           - g++-4.9
+           - libssl-dev
 
-    # gcc 5.x without AddressSanitizer, Debug & Release, with SWIG and OpenMPI
-    - env: CMAKE_CC="gcc-5" CMAKE_CXX="g++-5" BUILD_TYPE="Debug" COMPILER_FLAGS=""
+    # gcc 5.x, Debug & Release, with OpenMPI
+    - env: CMAKE_CC="gcc-5" CMAKE_CXX="g++-5" BUILD_TYPE="Debug" COMPILER_FLAGS="-O1"
       os: linux
       addons: &gcc5
         apt:
           sources:
             - ubuntu-toolchain-r-test
-            - george-edison55-precise-backports # cmake 3.2.3 / doxygen 1.8.3
           packages:
-            - cmake
-            - cmake-data
             - g++-5
             - openmpi-bin
             - libopenmpi-dev
             - libbz2-dev
             - libssl-dev
 
-    - env: CMAKE_CC="gcc-5" CMAKE_CXX="g++-5" BUILD_TYPE="Release" COMPILER_FLAGS=""
+    # - env: CMAKE_CC="gcc-5" CMAKE_CXX="g++-5" BUILD_TYPE="Release" COMPILER_FLAGS=""
       os: linux
       addons: *gcc5
+
+    # gcc 6.x, Debug with -O1
+    - env: CMAKE_CC="gcc-6" CMAKE_CXX="g++-6" BUILD_TYPE="Debug" COMPILER_FLAGS="-O1"
+      os: linux
+      addons: &gcc6
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-6
+            - libbz2-dev
+            - libssl-dev
 
     # clang 3.7 without AddressSanitizer, Debug & Release
     - env: CMAKE_CC="clang-3.7" CMAKE_CXX="clang++-3.7" BUILD_TYPE="Debug" COMPILER_FLAGS="" CMAKE_ARGS="-DTHRILL_FULL_BUILD=ON" BUILD_DOXYGEN="1"
@@ -49,10 +56,8 @@ matrix:
           sources:
             - ubuntu-toolchain-r-test
             - llvm-toolchain-precise-3.7
-            - george-edison55-precise-backports # cmake 3.2.3 / doxygen 1.8.3
+            - george-edison55-precise-backports # doxygen 1.8.3
           packages:
-            - cmake
-            - cmake-data
             - clang-3.7
             - libbz2-dev
             - libssl-dev
