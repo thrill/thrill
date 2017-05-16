@@ -12,7 +12,6 @@
 #include <thrill/api/hyperloglog.hpp>
 
 namespace thrill {
-namespace api {
 
 const std::array<double, 15> thresholds = {
     { 10, 20, 40, 80, 220, 400, 900, 1800,
@@ -1288,8 +1287,6 @@ template double estimateBias<16>(double);
 template double estimateBias<17>(double);
 template double estimateBias<18>(double);
 template double estimateBias<19>(double);
-
-} // namespace api
 
 std::vector<uint8_t> encodeSparseList(const std::vector<uint32_t>& sparseList) {
     if (sparseList.empty()) {

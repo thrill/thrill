@@ -204,6 +204,35 @@ public:
 // Perform a varint and a difference encoding
 std::vector<uint8_t> encodeSparseList(const std::vector<uint32_t>& sparseList);
 
+extern const std::array<double, 15> thresholds;
+extern const std::array<std::vector<double>, 15> rawEstimateData;
+extern const std::array<std::vector<double>, 15> biasData;
+
+template <size_t p>
+constexpr double alpha() {
+    return 0.7213 / (1 + 1.079 / (1 << p));
+}
+template <>
+constexpr double alpha<4>() {
+    return 0.673;
+}
+template <>
+constexpr double alpha<5>() {
+    return 0.697;
+}
+template <>
+constexpr double alpha<6>() {
+    return 0.709;
+}
+
+template <size_t p>
+static double threshold() {
+    return thresholds[p - 4];
+}
+
+template <size_t p>
+double estimateBias(double rawEstimate);
+
 template <size_t p>
 class Registers
 {
@@ -285,6 +314,7 @@ public:
             break;
         }
     }
+
     void mergeSparse() {
         DecodedSparseList sparseList(sparseListBuffer);
         assert(std::is_sorted(sparseList.begin(), sparseList.end()));
@@ -298,7 +328,106 @@ public:
         sparseSize = vec.size();
         sparseListBuffer = encodeSparseList(vec);
     }
+
+    void mergeDense(const Registers<p>& b) {
+        assert(format == RegisterFormat::DENSE);
+        const size_t m = 1 << p;
+        assert(m == size() && m == b.size());
+        for (size_t i = 0; i < m; ++i) {
+            entries[i] = std::max(entries[i], b.entries[i]);
+        }
+    }
+
+    double result() {
+        if (format == RegisterFormat::SPARSE) {
+            mergeSparse();
+            // 25 is precision of sparse representation
+            const size_t m = 1 << 25;
+            unsigned sparseListCount = sparseSize;
+            unsigned V = m - sparseListCount;
+            return m * log(static_cast<double>(m) / V);
+        }
+
+        const size_t m = 1 << p;
+        assert(size() == m);
+
+        double E = 0.0;
+        unsigned V = 0;
+
+        for (const uint64_t& entry : entries) {
+            E += std::pow(2.0, -static_cast<double>(entry));
+            V += (entry == 0 ? 1 : 0);
+        }
+
+        E = alpha<p>() * m * m / E;
+        double E_ = E;
+        if (E <= 5 * m) {
+            double bias = estimateBias<p>(E);
+            E_ -= bias;
+        }
+
+        double H = E_;
+        if (V != 0) {
+            // linear count
+            H = m * log(static_cast<double>(m) / V);
+        }
+
+        if (H <= threshold<p>()) {
+            return H;
+        }
+        else {
+            return E_;
+        }
+    }
 };
+
+//! combine two HyperloglogRegisters, switches between sparse/dense
+//! representations
+template <size_t p>
+Registers<p> operator + (
+    const Registers<p>& registers1, const Registers<p>& registers2) {
+
+    if (registers1.format == RegisterFormat::SPARSE &&
+        registers2.format == RegisterFormat::SPARSE) {
+
+        Registers<p> result = registers1;
+
+        DecodedSparseList sparseList2(registers2.sparseListBuffer);
+        result.tmpSet.insert(result.tmpSet.end(),
+                             sparseList2.begin(), sparseList2.end());
+        result.tmpSet.insert(result.tmpSet.end(),
+                             registers2.tmpSet.begin(), registers2.tmpSet.end());
+        result.mergeSparse();
+        if (result.shouldConvertToDense()) {
+            result.toDense();
+        }
+        return result;
+    }
+    else if (registers1.format == RegisterFormat::SPARSE &&
+             registers2.format == RegisterFormat::DENSE) {
+
+        Registers<p> result = registers1;
+        result.toDense();
+        result.mergeDense(registers2);
+        return result;
+    }
+    else if (registers1.format == RegisterFormat::DENSE &&
+             registers2.format == RegisterFormat::SPARSE) {
+
+        Registers<p> result = registers2;
+        result.toDense();
+        result.mergeDense(registers1);
+        return result;
+    }
+    else if (registers1.format == RegisterFormat::DENSE &&
+             registers2.format == RegisterFormat::DENSE) {
+
+        Registers<p> result = registers1;
+        result.mergeDense(registers2);
+        return result;
+    }
+    die("Impossible.");
+}
 
 namespace data {
 
@@ -350,74 +479,6 @@ struct Serialization<Archive, Registers<p>,
 
 namespace api {
 
-extern const std::array<double, 15> thresholds;
-extern const std::array<std::vector<double>, 15> rawEstimateData;
-extern const std::array<std::vector<double>, 15> biasData;
-
-template <size_t p>
-constexpr double alpha() {
-    return 0.7213 / (1 + 1.079 / (1 << p));
-}
-template <>
-constexpr double alpha<4>() {
-    return 0.673;
-}
-template <>
-constexpr double alpha<5>() {
-    return 0.697;
-}
-template <>
-constexpr double alpha<6>() {
-    return 0.709;
-}
-
-template <size_t p>
-static double threshold() {
-    return thresholds[p - 4];
-}
-
-template <size_t p>
-double estimateBias(double rawEstimate);
-
-template <size_t p>
-static Registers<p> combineRegisters(Registers<p>& registers1,
-                                     Registers<p>& registers2) {
-    if (registers1.format == RegisterFormat::SPARSE &&
-        registers2.format == RegisterFormat::DENSE) {
-        registers1.toDense();
-    }
-    else if (registers1.format == RegisterFormat::DENSE &&
-             registers2.format == RegisterFormat::SPARSE) {
-        registers2.toDense();
-    }
-    assert(registers1.format == registers2.format);
-    switch (registers1.format) {
-    case RegisterFormat::SPARSE: {
-        DecodedSparseList sparseList2(registers2.sparseListBuffer);
-        registers1.tmpSet.insert(registers1.tmpSet.end(), sparseList2.begin(),
-                                 sparseList2.end());
-        registers1.tmpSet.insert(registers1.tmpSet.end(),
-                                 registers2.tmpSet.begin(),
-                                 registers2.tmpSet.end());
-        registers1.mergeSparse();
-        if (registers1.shouldConvertToDense()) {
-            registers1.toDense();
-        }
-        break;
-    }
-    case RegisterFormat::DENSE:
-        const size_t m = 1 << p;
-        assert(m == registers1.size());
-        assert(m == registers2.size());
-        for (size_t i = 0; i < m; ++i) {
-            registers1.entries[i] =
-                std::max(registers1.entries[i], registers2.entries[i]);
-        }
-        break;
-    }
-    return registers1;
-}
-
 /*!
  * \ingroup api_layer
  */
@@ -445,7 +506,7 @@ public:
     //! Executes the sum operation.
     void Execute() final {
         // process the reduce
-        registers = context_.net.AllReduce(registers, combineRegisters<p>);
+        registers = context_.net.AllReduce(registers);
     }
 
     //! Returns result of global sum.
@@ -463,46 +524,8 @@ double DIA<ValueType, Stack>::HyperLogLog() const {
     auto node = tlx::make_counting<HyperLogLogNode<p, ValueType> >(
         *this, "HyperLogLog");
     node->RunScope();
-    auto reducedRegisters = node->result();
-
-    if (reducedRegisters.format == RegisterFormat::SPARSE) {
-        reducedRegisters.mergeSparse();
-        const size_t m = 1 << 25; // 25 is precision of sparse representation
-        unsigned sparseListCount = reducedRegisters.sparseSize;
-        unsigned V = m - sparseListCount;
-        return m * log(static_cast<double>(m) / V);
-    }
-
-    const size_t m = 1 << p;
-    assert(reducedRegisters.size() == m);
-
-    double E = 0.0;
-    unsigned V = 0;
-
-    for (const uint64_t& entry : reducedRegisters.entries) {
-        E += std::pow(2.0, -static_cast<double>(entry));
-        V += (entry == 0 ? 1 : 0);
-    }
-
-    E = alpha<p>() * m * m / E;
-    double E_ = E;
-    if (E <= 5 * m) {
-        double bias = estimateBias<p>(E);
-        E_ -= bias;
-    }
-
-    double H = E_;
-    if (V != 0) {
-        // linear count
-        H = m * log(static_cast<double>(m) / V);
-    }
-
-    if (H <= threshold<p>()) {
-        return H;
-    }
-    else {
-        return E_;
-    }
+    auto registers = node->result();
+    return registers.result();
 }
 
 } // namespace api
