@@ -12,11 +12,11 @@
 #ifndef THRILL_DATA_BLOCK_HEADER
 #define THRILL_DATA_BLOCK_HEADER
 
-#include <thrill/common/counting_ptr.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/data/byte_block.hpp>
 #include <thrill/mem/manager.hpp>
 #include <thrill/mem/pool.hpp>
+#include <tlx/counting_ptr.hpp>
 
 #include <cassert>
 #include <ostream>
@@ -31,7 +31,7 @@ namespace data {
 class PinnedBlock;
 class PinRequest;
 using PinRequestPtr =
-          common::CountingPtr<PinRequest, mem::GPoolDeleter<PinRequest> >;
+          tlx::CountingPtr<PinRequest, mem::GPoolDeleter<PinRequest> >;
 
 /*!
  * Block combines a reference to a read-only \ref ByteBlock and book-keeping
@@ -328,7 +328,7 @@ private:
     friend class BlockPool;
 };
 
-class PinRequest : public common::ReferenceCount
+class PinRequest : public tlx::ReferenceCounter
 {
 public:
     //! wait and get the PinnedBlock. this may block until the read is complete.
@@ -340,7 +340,7 @@ public:
     ByteBlockPtr& byte_block() { return block_.byte_block(); }
 
 private:
-    //! calls BlockPool::OnReadComplete used to common::delegate
+    //! calls BlockPool::OnReadComplete used to tlx::delegate
     void OnComplete(io::Request* req, bool success);
 
     PinRequest(BlockPool* block_pool, PinnedBlock&& block, bool ready = true)

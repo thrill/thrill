@@ -25,9 +25,9 @@
 #include <thrill/api/print.hpp>
 #include <thrill/api/read_binary.hpp>
 #include <thrill/api/write_binary.hpp>
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/uint_types.hpp>
+#include <tlx/cmdline_parser.hpp>
 
 #include <algorithm>
 #include <limits>
@@ -270,72 +270,72 @@ int main(int argc, char* argv[]) {
 
     using namespace thrill; // NOLINT
 
-    common::CmdlineParser cp;
+    tlx::CmdlineParser cp;
 
-    cp.SetDescription("A collection of suffix array construction algorithms.");
-    cp.SetAuthor("Florian Kurpicz <florian.kurpicz@tu-dortmund.de>");
-    cp.SetAuthor("Timo Bingmann <tb@panthema.net>");
+    cp.set_description("A collection of suffix array construction algorithms.");
+    cp.set_author("Florian Kurpicz <florian.kurpicz@tu-dortmund.de>");
+    cp.set_author("Timo Bingmann <tb@panthema.net>");
 
     SuffixSorting ss;
 
-    cp.AddParamString("input", ss.input_path_,
-                      "Path to input file (or verbatim text).\n"
-                      "The special inputs "
-                      "'random', 'random10', 'random2' and 'unary' "
-                      "generate such text on-the-fly.");
+    cp.add_param_string("input", ss.input_path_,
+                        "Path to input file (or verbatim text).\n"
+                        "The special inputs "
+                        "'random', 'random10', 'random2' and 'unary' "
+                        "generate such text on-the-fly.");
 
-    cp.AddString('a', "algorithm", ss.algorithm_,
-                 "The algorithm which is used to construct the suffix array. "
-                 "Available are: "
-                 "[fl]ick (default), [de]mentiev, dementiev with [dis]carding, "
-                 "[q]uadrupling, [qd] quadrupling with carding, "
-                 "[dc3], and [dc7]");
+    cp.add_string('a', "algorithm", ss.algorithm_,
+                  "The algorithm which is used to construct the suffix array. "
+                  "Available are: "
+                  "[fl]ick (default), [de]mentiev, dementiev with [dis]carding, "
+                  "[q]uadrupling, [qd] quadrupling with carding, "
+                  "[dc3], and [dc7]");
 
-    cp.AddSizeT('b', "bytes", ss.sa_index_bytes_,
-                "Suffix array bytes per index: "
-                "4 (32-bit) (default), 5 (40-bit), 6 (48-bit), 8 (64-bit)");
+    cp.add_size_t('b', "bytes", ss.sa_index_bytes_,
+                  "Suffix array bytes per index: "
+                  "4 (32-bit) (default), 5 (40-bit), 6 (48-bit), 8 (64-bit)");
 
-    cp.AddString('B', "bwt", ss.output_bwt_,
-                 "Compute the Burrows–Wheeler transform in addition to the "
-                 "suffix array, and write to file.");
+    cp.add_string('B', "bwt", ss.output_bwt_,
+                  "Compute the Burrows–Wheeler transform in addition to the "
+                  "suffix array, and write to file.");
 
-    cp.AddFlag('c', "check", ss.check_flag_,
-               "Check suffix array for correctness.");
+    cp.add_bool('c', "check", ss.check_flag_,
+                "Check suffix array for correctness.");
 
-    cp.AddFlag('d', "debug", examples::suffix_sorting::debug_print,
-               "Print debug info.");
+    cp.add_bool('d', "debug", examples::suffix_sorting::debug_print,
+                "Print debug info.");
 
-    cp.AddString('i', "input-copy", ss.input_copy_path_,
-                 "Write input text to given path.");
+    cp.add_string('i', "input-copy", ss.input_copy_path_,
+                  "Write input text to given path.");
 
-    cp.AddString('o', "output", ss.output_path_,
-                 "Output suffix array [and if constructed Burrows–Wheeler "
-                 "transform] to given path.");
+    cp.add_string('o', "output", ss.output_path_,
+                  "Output suffix array [and if constructed Burrows–Wheeler "
+                  "transform] to given path.");
 
-    cp.AddBytes('s', "size", ss.sizelimit_,
-                "Cut input text to given size, e.g. 2 GiB.");
+    cp.add_bytes('s', "size", ss.sizelimit_,
+                 "Cut input text to given size, e.g. 2 GiB.");
 
-    cp.AddFlag('t', "text", ss.text_output_flag_,
-               "Print out suffix array [and if constructed Burrows-Wheeler "
-               "transform] in readable text.");
+    cp.add_bool('t', "text", ss.text_output_flag_,
+                "Print out suffix array [and if constructed Burrows-Wheeler "
+                "transform] in readable text.");
 
-    cp.AddFlag('v', "verbatim", ss.input_verbatim_,
-               "Consider \"input\" as verbatim text to construct "
-               "suffix array on.");
+    cp.add_bool('v', "verbatim", ss.input_verbatim_,
+                "Consider \"input\" as verbatim text to construct "
+                "suffix array on.");
 
-    cp.AddString('w', "wavelet", ss.output_wavelet_tree_,
-                 "Compute the Wavelet Tree of the Burrows-Wheeler transform, "
-                 "and write to file.");
+    cp.add_string('w', "wavelet", ss.output_wavelet_tree_,
+                  "Compute the Wavelet Tree of the Burrows-Wheeler transform, "
+                  "and write to file.");
 
-    cp.AddFlag('p', "packed", ss.pack_input_,
-               "Fit as many characters of the input in the bytes used per index"
-               " in the suffix array.");
+    cp.add_bool('p', "packed", ss.pack_input_,
+                "Fit as many characters of the input in the bytes used per index"
+                " in the suffix array.");
 
-    cp.AddFlag('l', "lcp", ss.lcp_computation_,
-               "Compute the LCP array in addition to the SA. Currently this "
-               "requires the construction of the BWT.");
+    cp.add_bool('l', "lcp", ss.lcp_computation_,
+                "Compute the LCP array in addition to the SA. Currently this "
+                "requires the construction of the BWT.");
 
-    if (!cp.Process(argc, argv))
+    if (!cp.process(argc, argv))
         return -1;
 
     return Run([&](Context& ctx) { return ss.Run(ctx); });

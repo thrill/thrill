@@ -79,21 +79,16 @@ endmacro(thrill_build_test_group)
 
 ### list of tests in subdirectories
 
-thrill_build_plain(common/cmdline_parser_example)
 thrill_build_test_group(common/tests
   common/aggregate_test
   common/binary_heap_test.cpp
-  common/cmdline_parser_test.cpp
   common/concurrent_bounded_queue_test.cpp
   common/concurrent_queue_test.cpp
-  common/counting_ptr_test.cpp
-  common/delegate_test.cpp
   common/function_traits_test.cpp
+  common/hash_test.cpp
   common/json_logger_test.cpp
-  common/lru_cache_test.cpp
   common/math_test.cpp
   common/matrix_test.cpp
-  common/meta_test.cpp
   common/qsort_test.cpp
   common/radix_sort_test.cpp
   common/siphash_test.cpp
@@ -102,7 +97,6 @@ thrill_build_test_group(common/tests
   common/stats_timer_test.cpp
   common/string_view_test.cpp
   common/thread_barrier_test.cpp
-  common/thread_pool_test.cpp
   common/timed_counter_test.cpp
   common/uint_types_test.cpp
   common/zipf_distribution_test.cpp
@@ -110,7 +104,6 @@ thrill_build_test_group(common/tests
 
 thrill_build_test(mem/allocator_test)
 thrill_build_test(mem/pool_test)
-thrill_build_test(mem/stack_allocator_test)
 if(NOT MSVC)
   thrill_build_test(mem/malloc_tracker_test)
 endif()
@@ -174,13 +167,15 @@ thrill_build_test(data/multiplexer_test)
 thrill_build_test(data/serialization_cereal_test)
 thrill_build_test(data/serialization_test)
 
+thrill_build_test(core/bit_stream_test)
+thrill_build_test(core/duplicate_detection_test)
 thrill_build_test(core/reduce_hash_table_test)
 thrill_build_test(core/reduce_post_phase_test)
 thrill_build_test(core/reduce_pre_phase_test)
 thrill_build_test(core/multiway_merge_test)
 
-thrill_build_test(api/function_stack_test)
 thrill_build_test(api/groupby_node_test)
+thrill_build_test(api/join_test)
 thrill_build_test(api/merge_node_test)
 thrill_build_test(api/operations_test)
 thrill_build_test(api/hyperloglog_test)
@@ -193,6 +188,7 @@ thrill_build_test(api/zip_node_test)
 thrill_build_test(examples/k_means_test)
 thrill_build_test(examples/page_rank_test)
 thrill_build_test(examples/select_test)
+thrill_build_test(examples/triangle_count_test)
 thrill_build_test(examples/word_count_test)
 
 ### Copy input files into tests binary directory: CMAKE_BINARY_DIR/tests/

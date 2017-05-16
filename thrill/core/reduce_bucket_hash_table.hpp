@@ -251,10 +251,12 @@ public:
      * items per bucket is reached.
      *
      * \param kv Value to be inserted into the table.
+         *
+         * \return true if a new key was inserted to the table
      */
-    void Insert(const TableItem& kv) {
+    bool Insert(const TableItem& kv) {
 
-        while (THRILL_UNLIKELY(mem::memory_exceeded && num_items_ != 0))
+        while (TLX_UNLIKELY(mem::memory_exceeded && num_items_ != 0))
             SpillAnyPartition();
 
         typename IndexFunction::Result h = index_function_(
@@ -280,7 +282,7 @@ public:
                 if (key_equal_function_(key(kv), key(*bi)))
                 {
                     *bi = reduce(*bi, kv);
-                    return;
+                    return false;
                 }
             }
             current = current->next;
@@ -324,6 +326,8 @@ public:
         // flush current partition if max partition fill rate reached
         while (items_per_partition_[h.partition_id] > limit_items_per_partition_)
             SpillPartition(h.partition_id);
+
+        return true;
     }
 
     //! Deallocate memory

@@ -63,7 +63,7 @@ public:
     // so just disable it and all it's nice implications
     void SetPriorityOp(PriorityOp op) final {
         // _priority_op = op;
-        common::UNUSED(op);
+        tlx::unused(op);
     }
     void AddRequest(RequestPtr& req) final;
     bool CancelRequest(Request* req) final;

@@ -55,7 +55,12 @@ public:
 
     //! Receive a whole data::File of ValueType, but only if our stack is empty.
     bool OnPreOpFile(const data::File& file, size_t /* parent_index */) final {
-        if (!parent_stack_empty_) return false;
+        if (!parent_stack_empty_) {
+            LOGC(common::g_debug_push_file)
+                << "Size rejected File from parent "
+                << "due to non-empty function stack.";
+            return false;
+        }
         local_size_ = file.num_items();
         return true;
     }
@@ -96,7 +101,7 @@ size_t DIA<ValueType, Stack>::Size() const {
     assert(IsValid());
 
     using SizeNode = api::SizeNode<ValueType>;
-    auto node = common::MakeCounting<SizeNode>(*this);
+    auto node = tlx::make_counting<SizeNode>(*this);
     node->RunScope();
     return node->result();
 }
@@ -106,7 +111,7 @@ Future<size_t> DIA<ValueType, Stack>::SizeFuture() const {
     assert(IsValid());
 
     using SizeNode = api::SizeNode<ValueType>;
-    auto node = common::MakeCounting<SizeNode>(*this);
+    auto node = tlx::make_counting<SizeNode>(*this);
     return Future<size_t>(node);
 }
 

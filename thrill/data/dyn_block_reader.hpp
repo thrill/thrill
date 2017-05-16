@@ -27,7 +27,7 @@ namespace data {
  * This is a pure virtual base which will be used to fetch Blocks for the
  * BlockReader from different sources.
  */
-class DynBlockSourceInterface : public common::ReferenceCount
+class DynBlockSourceInterface : public tlx::ReferenceCounter
 {
 public:
     virtual ~DynBlockSourceInterface() { }
@@ -52,7 +52,7 @@ public:
     DynBlockSource() { }
 
     explicit DynBlockSource(
-        common::CountingPtr<DynBlockSourceInterface>&& block_source_ptr)
+        tlx::CountingPtr<DynBlockSourceInterface>&& block_source_ptr)
         : block_source_ptr_(std::move(block_source_ptr)) { }
 
     PinnedBlock NextBlock() {
@@ -64,7 +64,7 @@ public:
     }
 
 private:
-    common::CountingPtr<DynBlockSourceInterface> block_source_ptr_;
+    tlx::CountingPtr<DynBlockSourceInterface> block_source_ptr_;
 };
 
 //! Instantiation of BlockReader for reading from the polymorphic source.
@@ -107,10 +107,10 @@ private:
  * variadic parameters are passed to the constructor of the existing
  * BlockSource.
  */
-template <typename BlockSource, typename ... Params>
+template <typename BlockSource, typename... Params>
 DynBlockSource ConstructDynBlockSource(Params&& ... params) {
     return DynBlockSource(
-        common::MakeCounting<DynBlockSourceAdapter<BlockSource> >(
+        tlx::make_counting<DynBlockSourceAdapter<BlockSource> >(
             BlockSource(std::forward<Params>(params) ...)));
 }
 
@@ -119,7 +119,7 @@ DynBlockSource ConstructDynBlockSource(Params&& ... params) {
  * variadic parameters are passed to the constructor of the existing
  * BlockSource.
  */
-template <typename BlockSource, typename ... Params>
+template <typename BlockSource, typename... Params>
 DynBlockReader ConstructDynBlockReader(Params&& ... params) {
     return DynBlockReader(
         ConstructDynBlockSource<BlockSource>(std::forward<Params>(params) ...));

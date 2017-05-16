@@ -104,7 +104,7 @@ public:
 
     using ReduceConfig = ReduceConfig_;
     using TableItem =
-              typename common::If<
+              typename std::conditional<
                   VolatileKey, std::pair<Key, Value>, Value>::type;
     using MakeTableItem = ReduceMakeTableItem<Value, TableItem, VolatileKey>;
 
@@ -233,6 +233,10 @@ public:
             if (file.num_items()) return true;
         }
         return false;
+    }
+
+    bool has_spilled_data_on_partition(size_t partition_id) {
+        return partition_files_[partition_id].num_items() != 0;
     }
 
     //! \}

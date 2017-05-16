@@ -41,8 +41,8 @@ public:
     template <typename ParentDIA>
     explicit CacheNode(const ParentDIA& parent)
         : Super(parent.ctx(), "Cache", { parent.id() }, { parent.node() }),
-          parent_stack_empty_(ParentDIA::stack_empty) {
-
+          parent_stack_empty_(ParentDIA::stack_empty)
+    {
         auto save_fn = [this](const ValueType& input) {
                            writer_.Put(input);
                        };
@@ -51,7 +51,12 @@ public:
     }
 
     bool OnPreOpFile(const data::File& file, size_t /* parent_index */) final {
-        if (!parent_stack_empty_) return false;
+        if (!parent_stack_empty_) {
+            LOGC(common::g_debug_push_file)
+                << "Cache rejected File from parent "
+                << "due to non-empty function stack.";
+            return false;
+        }
         assert(file_.num_items() == 0);
         file_ = file.Copy();
         return true;
@@ -99,7 +104,7 @@ DIA<ValueType> DIA<ValueType, Stack>::Cache() const {
     }
 #endif
     return DIA<ValueType>(
-        common::MakeCounting<api::CacheNode<ValueType> >(*this));
+        tlx::make_counting<api::CacheNode<ValueType> >(*this));
 }
 
 } // namespace api

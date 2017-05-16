@@ -15,9 +15,9 @@
 #include <thrill/api/dia.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/size.hpp>
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/stats_timer.hpp>
+#include <tlx/cmdline_parser.hpp>
 
 #include <benchmarks/chaining/helper.hpp>
 
@@ -27,17 +27,17 @@ using namespace thrill; // NOLINT
 
 int main(int argc, char* argv[]) {
 
-    common::CmdlineParser clp;
+    tlx::CmdlineParser clp;
 
     std::string input;
-    clp.AddParamString("input", input,
-                       "number of elements");
+    clp.add_param_string("input", input,
+                         "number of elements");
 
-    if (!clp.Process(argc, argv)) {
+    if (!clp.process(argc, argv)) {
         return -1;
     }
 
-    clp.PrintResult();
+    clp.print_result();
 
     size_t count = std::stoi(input);
 

@@ -87,7 +87,7 @@ public:
         table_.Initialize(limit_memory_bytes);
     }
 
-    void Insert(const TableItem& kv) {
+    bool Insert(const TableItem& kv) {
         return table_.Insert(kv);
     }
 

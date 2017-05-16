@@ -15,6 +15,8 @@
 #include <thrill/data/multiplexer_header.hpp>
 #include <thrill/data/stream.hpp>
 
+#include <tlx/string/hexdump.hpp>
+
 namespace thrill {
 namespace data {
 
@@ -70,7 +72,7 @@ void StreamSink::AppendPinnedBlock(const PinnedBlock& block, bool is_last_block)
         << " block=" << block
         << " is_last_block=" << is_last_block;
 
-    sLOG << "sending block" << common::Hexdump(block.ToString());
+    sLOG << "sending block" << tlx::hexdump(block.ToString());
 
     StreamMultiplexerHeader header(magic_, block);
     header.stream_id = id_;

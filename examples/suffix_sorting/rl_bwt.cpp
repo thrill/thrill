@@ -19,9 +19,9 @@
 #include <thrill/api/window.hpp>
 #include <thrill/api/write_binary.hpp>
 #include <thrill/api/zip.hpp>
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/ring_buffer.hpp>
+#include <tlx/cmdline_parser.hpp>
 
 #include <algorithm>
 #include <limits>
@@ -44,10 +44,10 @@ struct IndexChar {
         std::ostream& os, const IndexChar& ri) {
         return os << '(' << ri.index << '|' << ri.c << ')';
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 template <typename InputDIA>
-auto ConstructRLBWT(const InputDIA &input_dia) {
+auto ConstructRLBWT(const InputDIA& input_dia) {
 
     Context& ctx = input_dia.ctx();
 
@@ -80,19 +80,19 @@ auto ConstructRLBWT(const InputDIA &input_dia) {
 }
 
 int main(int argc, char* argv[]) {
-    common::CmdlineParser cp;
+    tlx::CmdlineParser cp;
 
-    cp.SetAuthor("Simon Gog <gog@kit.edu>");
+    cp.set_author("Simon Gog <gog@kit.edu>");
 
     std::string input_path;
     size_t output_result = 0;
 
-    cp.AddOptParamString("input", input_path,
-                         "Path to input file.");
-    cp.AddOptParamSizeT("output_result", output_result,
-                        "Output result.");
+    cp.add_opt_param_string("input", input_path,
+                            "Path to input file.");
+    cp.add_opt_param_size_t("output_result", output_result,
+                            "Output result.");
 
-    if (!cp.Process(argc, argv))
+    if (!cp.process(argc, argv))
         return -1;
 
     return Run(

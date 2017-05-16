@@ -12,7 +12,7 @@
 #ifndef THRILL_COMMON_AGGREGATE_HEADER
 #define THRILL_COMMON_AGGREGATE_HEADER
 
-#include <thrill/common/defines.hpp>
+#include <tlx/define/likely.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -47,7 +47,7 @@ public:
         count_++;
         min_ = std::min(min_, value);
         max_ = std::max(max_, value);
-        if (THRILL_UNLIKELY(count_ == 1)) {
+        if (TLX_UNLIKELY(count_ == 1)) {
             mean_ = value;
         }
         else {

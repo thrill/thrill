@@ -41,14 +41,14 @@ void SyscallFile::serve(void* buffer, offset_type offset, size_type bytes,
             THRILL_THROW_ERRNO(
                 IoError,
                 "this=" << this <<
-                " call=::lseek(fd,offset,SEEK_SET)" <<
-                " path=" << path_ <<
-                " fd=" << file_des_ <<
-                " offset=" << offset <<
-                " buffer=" << cbuffer <<
-                " bytes=" << bytes <<
-                " type=" << ((type == Request::READ) ? "READ" : "WRITE") <<
-                " rc=" << rc);
+                    " call=::lseek(fd,offset,SEEK_SET)" <<
+                    " path=" << path_ <<
+                    " fd=" << file_des_ <<
+                    " offset=" << offset <<
+                    " buffer=" << cbuffer <<
+                    " bytes=" << bytes <<
+                    " type=" << ((type == Request::READ) ? "READ" : "WRITE") <<
+                    " rc=" << rc);
         }
 
         if (type == Request::READ)
@@ -63,14 +63,14 @@ void SyscallFile::serve(void* buffer, offset_type offset, size_type bytes,
                 THRILL_THROW_ERRNO(
                     IoError,
                     "this=" << this <<
-                    " call=::read(fd,buffer,bytes)" <<
-                    " path=" << path_ <<
-                    " fd=" << file_des_ <<
-                    " offset=" << offset <<
-                    " buffer=" << buffer <<
-                    " bytes=" << bytes <<
-                    " type=" << "READ" <<
-                    " rc=" << rc);
+                        " call=::read(fd,buffer,bytes)" <<
+                        " path=" << path_ <<
+                        " fd=" << file_des_ <<
+                        " offset=" << offset <<
+                        " buffer=" << buffer <<
+                        " bytes=" << bytes <<
+                        " type=" << "READ" <<
+                        " rc=" << rc);
             }
             bytes = (size_type)(bytes - rc);
             offset += rc;
@@ -96,14 +96,14 @@ void SyscallFile::serve(void* buffer, offset_type offset, size_type bytes,
                 THRILL_THROW_ERRNO(
                     IoError,
                     "this=" << this <<
-                    " call=::write(fd,buffer,bytes)" <<
-                    " path=" << path_ <<
-                    " fd=" << file_des_ <<
-                    " offset=" << offset <<
-                    " buffer=" << buffer <<
-                    " bytes=" << bytes <<
-                    " type=" << "WRITE" <<
-                    " rc=" << rc);
+                        " call=::write(fd,buffer,bytes)" <<
+                        " path=" << path_ <<
+                        " fd=" << file_des_ <<
+                        " offset=" << offset <<
+                        " buffer=" << buffer <<
+                        " bytes=" << bytes <<
+                        " type=" << "WRITE" <<
+                        " rc=" << rc);
             }
             bytes = (size_type)(bytes - rc);
             offset += rc;

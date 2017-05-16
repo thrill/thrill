@@ -20,17 +20,6 @@ namespace thrill {
 namespace common {
 
 /******************************************************************************/
-// LIKELY and UNLIKELY
-
-#if defined(__GNUC__) || defined(__clang__)
-#define THRILL_LIKELY(c)   __builtin_expect((c), 1)
-#define THRILL_UNLIKELY(c) __builtin_expect((c), 0)
-#else
-#define THRILL_LIKELY(c)   c
-#define THRILL_UNLIKELY(c) c
-#endif
-
-/******************************************************************************/
 // detect ThreadSanitizer
 
 #ifndef THRILL_HAVE_THREAD_SANITIZER
@@ -52,49 +41,6 @@ namespace common {
 #endif
 
 #endif  // THRILL_HAVE_THREAD_SANITIZER
-
-/******************************************************************************/
-// __attribute__ ((packed))
-
-#if defined(__GNUC__) || defined(__clang__)
-#define THRILL_ATTRIBUTE_PACKED __attribute__ ((packed))
-#else
-#define THRILL_ATTRIBUTE_PACKED
-#endif
-
-/******************************************************************************/
-// __attribute__ ((warn_unused_result))
-
-#if defined(__GNUC__) || defined(__clang__)
-#define THRILL_ATTRIBUTE_WARN_UNUSED_RESULT __attribute__ ((warn_unused_result))
-#else
-#define THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
-#endif
-
-/******************************************************************************/
-// __attribute__ ((always_inline))
-
-#if defined(__GNUC__) || defined(__clang__)
-#define THRILL_ATTRIBUTE_ALWAYS_INLINE __attribute__ ((always_inline))
-#else
-#define THRILL_ATTRIBUTE_ALWAYS_INLINE
-#endif
-
-/******************************************************************************/
-// __attribute__ ((format(printf, #, #))
-
-#if defined(__GNUC__) || defined(__clang__)
-#define THRILL_ATTRIBUTE_FORMAT_PRINTF(X, Y) \
-    __attribute__ ((format(printf, X, Y))) // NOLINT
-#else
-#define THRILL_ATTRIBUTE_FORMAT_PRINTF(X, Y)
-#endif
-
-/******************************************************************************/
-// UNUSED(variable)
-
-template <typename U>
-void UNUSED(U&&) { }
 
 /******************************************************************************/
 // std::is_trivially_copyable<T> work-around for libstdc++ < 5.0

@@ -20,9 +20,13 @@
 #include <thrill/api/dop_node.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/meta.hpp>
 #include <thrill/common/string.hpp>
 #include <thrill/data/file.hpp>
+#include <tlx/meta/apply_tuple.hpp>
+#include <tlx/meta/call_for_range.hpp>
+#include <tlx/meta/call_foreach_with_index.hpp>
+#include <tlx/meta/vexpand.hpp>
+#include <tlx/meta/vmap_for_range.hpp>
 
 #include <algorithm>
 #include <array>
@@ -83,15 +87,15 @@ class ZipNode final : public DOpNode<ValueType>
     template <size_t Index>
     using ZipArgN =
               typename common::FunctionTraits<ZipFunction>::template arg_plain<Index>;
-    using ZipArgs =
-              typename common::FunctionTraits<ZipFunction>::args_plain;
+    using ZipArgsTuple =
+              typename common::FunctionTraits<ZipFunction>::args_tuple_plain;
 
 public:
     /*!
      * Constructor for a ZipNode.
      */
-    template <typename ParentDIA0, typename ... ParentDIAs>
-    ZipNode(const ZipFunction& zip_function, const ZipArgs& padding,
+    template <typename ParentDIA0, typename... ParentDIAs>
+    ZipNode(const ZipFunction& zip_function, const ZipArgsTuple& padding,
             const ParentDIA0& parent0, const ParentDIAs& ... parents)
         : Super(parent0.ctx(), "Zip",
                 { parent0.id(), parents.id() ... },
@@ -110,8 +114,8 @@ public:
             files_.emplace_back(context_.GetFile(this));
 
         // Hook PreOp(s)
-        common::VariadicCallForeachIndex(
-            RegisterParent(this), parent0, parents ...);
+        tlx::call_foreach_with_index(
+            RegisterParent(this), parent0, parents...);
     }
 
     void StartPreOp(size_t parent_index) final {
@@ -121,7 +125,12 @@ public:
     //! Receive a whole data::File of ValueType, but only if our stack is empty.
     bool OnPreOpFile(const data::File& file, size_t parent_index) final {
         assert(parent_index < kNumInputs);
-        if (!parent_stack_empty_[parent_index]) return false;
+        if (!parent_stack_empty_[parent_index]) {
+            LOGC(common::g_debug_push_file)
+                << "Zip rejected File from parent "
+                << "due to non-empty function stack.";
+            return false;
+        }
 
         // accept file
         assert(files_[parent_index].num_items() == 0);
@@ -151,8 +160,8 @@ public:
                 ReaderNext<data::File::Reader> reader_next(*this, readers);
 
                 while (reader_next.HasNext()) {
-                    auto v = common::VariadicMapEnumerate<kNumInputs>(reader_next);
-                    this->PushItem(common::ApplyTuple(zip_function_, v));
+                    auto v = tlx::vmap_for_range<kNumInputs>(reader_next);
+                    this->PushItem(tlx::apply_tuple(zip_function_, v));
                     ++result_count;
                 }
             }
@@ -165,8 +174,8 @@ public:
                 ReaderNext<data::CatStream::CatReader> reader_next(*this, readers);
 
                 while (reader_next.HasNext()) {
-                    auto v = common::VariadicMapEnumerate<kNumInputs>(reader_next);
-                    this->PushItem(common::ApplyTuple(zip_function_, v));
+                    auto v = tlx::vmap_for_range<kNumInputs>(reader_next);
+                    this->PushItem(tlx::apply_tuple(zip_function_, v));
                     ++result_count;
                 }
             }
@@ -187,7 +196,7 @@ private:
     ZipFunction zip_function_;
 
     //! padding for shorter DIAs
-    const ZipArgs padding_;
+    const ZipArgsTuple padding_;
 
     //! Whether the parent stack is empty
     const std::array<bool, kNumInputs> parent_stack_empty_;
@@ -205,7 +214,7 @@ private:
     //! \{
 
     //! exclusive prefix sum over the number of items in workers
-    std::array<size_t, kNumInputs> dia_size_prefixsum_;
+    std::array<size_t, kNumInputs> size_prefixsum_;
 
     //! shortest size of Zipped inputs
     size_t result_size_;
@@ -239,7 +248,6 @@ private:
             // close the function stacks with our pre ops and register it at
             // parent nodes for output
             auto lop_chain = parent.stack().push(pre_op_fn).fold();
-
             parent.node()->AddChild(node_, lop_chain, Index::index);
         }
 
@@ -252,50 +260,31 @@ private:
     void DoScatter() {
         const size_t workers = context_.num_workers();
 
-        size_t local_begin = std::min(result_size_, dia_size_prefixsum_[Index]);
+        // range of items on local node
+        size_t local_begin = std::min(result_size_, size_prefixsum_[Index]);
         size_t local_end = std::min(
-            result_size_,
-            dia_size_prefixsum_[Index] + files_[Index].num_items());
-        size_t local_size = local_end - local_begin;
+            result_size_, size_prefixsum_[Index] + files_[Index].num_items());
 
-        //! number of elements per worker (rounded up)
-        size_t per_pe = (result_size_ + workers - 1) / workers;
-        //! offsets for scattering
+        // number of elements per worker (double)
+        double per_pe =
+            static_cast<double>(result_size_) / static_cast<double>(workers);
+        // offsets for scattering
         std::vector<size_t> offsets(workers + 1, 0);
 
-        size_t offset = 0;
-        size_t count = std::min(per_pe - local_begin % per_pe, local_size);
-        size_t target = local_begin / per_pe;
-
-        sLOG << "input" << Index
-             << "local_begin" << local_begin << "local_end" << local_end
-             << "local_size" << local_size
-             << "result_size_" << result_size_ << "pre_pe" << per_pe
-             << "count" << count << "target" << target;
-
-        //! do as long as there are elements to be scattered, includes elements
-        //! kept on this worker
-        while (local_size > 0 && target < workers) {
-            ++target;
-            offsets[target] = offset + count;
-            local_begin += count;
-            local_size -= count;
-            offset += count;
-            count = std::min(per_pe - local_begin % per_pe, local_size);
+        for (size_t i = 0; i <= workers; ++i) {
+            // calculate range we have to send to each PE
+            size_t cut = static_cast<size_t>(std::ceil(i * per_pe));
+            offsets[i] =
+                cut < local_begin ? 0 : std::min(cut, local_end) - local_begin;
         }
 
-        //! fill offset vector, no more scattering here
-        while (target < workers) {
-            ++target;
-            offsets[target] = target == 0 ? 0 : offsets[target - 1];
-        }
+        LOG << "per_pe=" << per_pe
+            << " offsets[" << Index << "] = " << common::VecToStr(offsets);
 
-        LOG << "offsets[" << Index << "] = " << common::VecToStr(offsets);
-
-        //! target stream id
+        // target stream id
         streams_[Index] = context_.GetNewCatStream(this);
 
-        //! scatter elements to other workers, if necessary
+        // scatter elements to other workers, if necessary
         using ZipArg = ZipArgN<Index>;
         streams_[Index]->template Scatter<ZipArg>(
             files_[Index], offsets, /* consume */ true);
@@ -319,44 +308,44 @@ private:
 
         using ArraySizeT = std::array<size_t, kNumInputs>;
 
-        //! number of elements of this worker
-        ArraySizeT dia_local_size;
+        // number of elements of this worker
+        ArraySizeT local_size;
         for (size_t i = 0; i < kNumInputs; ++i) {
-            dia_local_size[i] = files_[i].num_items();
-            sLOG << "input" << i << "dia_local_size" << dia_local_size[i];
+            local_size[i] = files_[i].num_items();
+            sLOG << "input" << i << "local_size" << local_size[i];
 
             if (stats_enabled) {
                 context_.PrintCollectiveMeanStdev(
-                    "Zip() local_size", dia_local_size[i]);
+                    "Zip() local_size", local_size[i]);
             }
         }
 
-        //! inclusive prefixsum of number of elements: we have items from
-        //! [dia_size_prefixsum - local_size, dia_size_prefixsum). And get the
-        //! total number of items in DIAs, over all worker.
-        dia_size_prefixsum_ = dia_local_size;
-        ArraySizeT dia_total_size = context_.net.ExPrefixSumTotal(
-            dia_size_prefixsum_,
+        // exclusive prefixsum of number of elements: we have items from
+        // [size_prefixsum, size_prefixsum + local_size). And get the total
+        // number of items in each DIAs, over all worker.
+        size_prefixsum_ = local_size;
+        ArraySizeT total_size = context_.net.ExPrefixSumTotal(
+            size_prefixsum_,
             ArraySizeT(), common::ComponentSum<ArraySizeT>());
 
-        size_t max_dia_total_size =
-            *std::max_element(dia_total_size.begin(), dia_total_size.end());
+        size_t max_total_size =
+            *std::max_element(total_size.begin(), total_size.end());
 
         // return only the minimum size of all DIAs.
         result_size_ =
-            Pad ? max_dia_total_size
-            : *std::min_element(dia_total_size.begin(), dia_total_size.end());
+            Pad ? max_total_size
+            : *std::min_element(total_size.begin(), total_size.end());
 
         // warn if DIAs have unequal size
-        if (!Pad && UnequalCheck && result_size_ != max_dia_total_size) {
+        if (!Pad && UnequalCheck && result_size_ != max_total_size) {
             die("Zip(): input DIAs have unequal size: "
-                << common::VecToStr(dia_total_size));
+                << common::VecToStr(total_size));
         }
 
         if (result_size_ == 0) return;
 
         // perform scatters to exchange data, with different types.
-        common::VariadicCallEnumerate<kNumInputs>(
+        tlx::call_for_range<kNumInputs>(
             [=](auto index) {
                 (void)index;
                 this->DoScatter<decltype(index)::index>();
@@ -431,17 +420,12 @@ private:
  * \ingroup dia_dops
  */
 template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
-          typename ... DIAs>
-auto Zip(const ZipFunction &zip_function,
-         const DIA<FirstDIAType, FirstDIAStack>&first_dia,
-         const DIAs &... dias) {
+          typename... DIAs>
+auto Zip(const ZipFunction& zip_function,
+         const DIA<FirstDIAType, FirstDIAStack>& first_dia,
+         const DIAs& ... dias) {
 
-    using VarForeachExpander = int[];
-
-    first_dia.AssertValid();
-    (void)VarForeachExpander {
-        (dias.AssertValid(), 0) ...
-    };
+    tlx::vexpand((first_dia.AssertValid(), 0), (dias.AssertValid(), 0) ...);
 
     static_assert(
         std::is_convertible<
@@ -453,16 +437,16 @@ auto Zip(const ZipFunction &zip_function,
     using ZipResult
               = typename common::FunctionTraits<ZipFunction>::result_type;
 
-    using ZipArgs =
-              typename common::FunctionTraits<ZipFunction>::args_plain;
+    using ZipArgsTuple =
+              typename common::FunctionTraits<ZipFunction>::args_tuple_plain;
 
     using ZipNode = api::ZipNode<
               ZipResult, ZipFunction,
               /* Pad */ false, /* UnequalCheck */ true, /* NoRebalance */ false,
               1 + sizeof ... (DIAs)>;
 
-    auto node = common::MakeCounting<ZipNode>(
-        zip_function, ZipArgs(), first_dia, dias ...);
+    auto node = tlx::make_counting<ZipNode>(
+        zip_function, ZipArgsTuple(), first_dia, dias...);
 
     return DIA<ZipResult>(node);
 }
@@ -489,18 +473,13 @@ auto Zip(const ZipFunction &zip_function,
  * \ingroup dia_dops
  */
 template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
-          typename ... DIAs>
+          typename... DIAs>
 auto Zip(struct CutTag,
-         const ZipFunction &zip_function,
-         const DIA<FirstDIAType, FirstDIAStack>&first_dia,
-         const DIAs &... dias) {
+         const ZipFunction& zip_function,
+         const DIA<FirstDIAType, FirstDIAStack>& first_dia,
+         const DIAs& ... dias) {
 
-    using VarForeachExpander = int[];
-
-    first_dia.AssertValid();
-    (void)VarForeachExpander {
-        (dias.AssertValid(), 0) ...
-    };
+    tlx::vexpand((first_dia.AssertValid(), 0), (dias.AssertValid(), 0) ...);
 
     static_assert(
         std::is_convertible<
@@ -512,16 +491,16 @@ auto Zip(struct CutTag,
     using ZipResult
               = typename common::FunctionTraits<ZipFunction>::result_type;
 
-    using ZipArgs =
-              typename common::FunctionTraits<ZipFunction>::args_plain;
+    using ZipArgsTuple =
+              typename common::FunctionTraits<ZipFunction>::args_tuple_plain;
 
     using ZipNode = api::ZipNode<
               ZipResult, ZipFunction,
               /* Pad */ false, /* UnequalCheck */ false, /* NoRebalance */ false,
               1 + sizeof ... (DIAs)>;
 
-    auto node = common::MakeCounting<ZipNode>(
-        zip_function, ZipArgs(), first_dia, dias ...);
+    auto node = tlx::make_counting<ZipNode>(
+        zip_function, ZipArgsTuple(), first_dia, dias...);
 
     return DIA<ZipResult>(node);
 }
@@ -548,18 +527,13 @@ auto Zip(struct CutTag,
  * \ingroup dia_dops
  */
 template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
-          typename ... DIAs>
+          typename... DIAs>
 auto Zip(struct PadTag,
-         const ZipFunction &zip_function,
-         const DIA<FirstDIAType, FirstDIAStack>&first_dia,
-         const DIAs &... dias) {
+         const ZipFunction& zip_function,
+         const DIA<FirstDIAType, FirstDIAStack>& first_dia,
+         const DIAs& ... dias) {
 
-    using VarForeachExpander = int[];
-
-    first_dia.AssertValid();
-    (void)VarForeachExpander {
-        (dias.AssertValid(), 0) ...
-    };
+    tlx::vexpand((first_dia.AssertValid(), 0), (dias.AssertValid(), 0) ...);
 
     static_assert(
         std::is_convertible<
@@ -571,16 +545,16 @@ auto Zip(struct PadTag,
     using ZipResult =
               typename common::FunctionTraits<ZipFunction>::result_type;
 
-    using ZipArgs =
-              typename common::FunctionTraits<ZipFunction>::args_plain;
+    using ZipArgsTuple =
+              typename common::FunctionTraits<ZipFunction>::args_tuple_plain;
 
     using ZipNode = api::ZipNode<
               ZipResult, ZipFunction,
               /* Pad */ true, /* UnequalCheck */ false, /* NoRebalance */ false,
               1 + sizeof ... (DIAs)>;
 
-    auto node = common::MakeCounting<ZipNode>(
-        zip_function, ZipArgs(), first_dia, dias ...);
+    auto node = tlx::make_counting<ZipNode>(
+        zip_function, ZipArgsTuple(), first_dia, dias...);
 
     return DIA<ZipResult>(node);
 }
@@ -610,20 +584,15 @@ auto Zip(struct PadTag,
  * \ingroup dia_dops
  */
 template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
-          typename ... DIAs>
+          typename... DIAs>
 auto Zip(
     struct PadTag,
-    const ZipFunction &zip_function,
-    const typename common::FunctionTraits<ZipFunction>::args_plain & padding,
-    const DIA<FirstDIAType, FirstDIAStack>&first_dia,
-    const DIAs &... dias) {
+    const ZipFunction& zip_function,
+    const typename common::FunctionTraits<ZipFunction>::args_tuple_plain& padding,
+    const DIA<FirstDIAType, FirstDIAStack>& first_dia,
+    const DIAs& ... dias) {
 
-    using VarForeachExpander = int[];
-
-    first_dia.AssertValid();
-    (void)VarForeachExpander {
-        (dias.AssertValid(), 0) ...
-    };
+    tlx::vexpand((first_dia.AssertValid(), 0), (dias.AssertValid(), 0) ...);
 
     static_assert(
         std::is_convertible<
@@ -640,8 +609,8 @@ auto Zip(
               /* Pad */ true, /* UnequalCheck */ false, /* NoRebalance */ false,
               1 + sizeof ... (DIAs)>;
 
-    auto node = common::MakeCounting<ZipNode>(
-        zip_function, padding, first_dia, dias ...);
+    auto node = tlx::make_counting<ZipNode>(
+        zip_function, padding, first_dia, dias...);
 
     return DIA<ZipResult>(node);
 }
@@ -669,19 +638,14 @@ auto Zip(
  * \ingroup dia_dops
  */
 template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
-          typename ... DIAs>
+          typename... DIAs>
 auto Zip(
     struct NoRebalanceTag,
-    const ZipFunction &zip_function,
-    const DIA<FirstDIAType, FirstDIAStack>&first_dia,
-    const DIAs &... dias) {
+    const ZipFunction& zip_function,
+    const DIA<FirstDIAType, FirstDIAStack>& first_dia,
+    const DIAs& ... dias) {
 
-    using VarForeachExpander = int[];
-
-    first_dia.AssertValid();
-    (void)VarForeachExpander {
-        (dias.AssertValid(), 0) ...
-    };
+    tlx::vexpand((first_dia.AssertValid(), 0), (dias.AssertValid(), 0) ...);
 
     static_assert(
         std::is_convertible<
@@ -693,16 +657,16 @@ auto Zip(
     using ZipResult =
               typename common::FunctionTraits<ZipFunction>::result_type;
 
-    using ZipArgs =
-              typename common::FunctionTraits<ZipFunction>::args_plain;
+    using ZipArgsTuple =
+              typename common::FunctionTraits<ZipFunction>::args_tuple_plain;
 
     using ZipNode = api::ZipNode<
               ZipResult, ZipFunction,
               /* Pad */ false, /* UnequalCheck */ false, /* NoRebalance */ true,
               1 + sizeof ... (DIAs)>;
 
-    auto node = common::MakeCounting<ZipNode>(
-        zip_function, ZipArgs(), first_dia, dias ...);
+    auto node = tlx::make_counting<ZipNode>(
+        zip_function, ZipArgsTuple(), first_dia, dias...);
 
     return DIA<ZipResult>(node);
 }
@@ -710,31 +674,31 @@ auto Zip(
 template <typename ValueType, typename Stack>
 template <typename ZipFunction, typename SecondDIA>
 auto DIA<ValueType, Stack>::Zip(
-    const SecondDIA &second_dia, const ZipFunction &zip_function) const {
+    const SecondDIA& second_dia, const ZipFunction& zip_function) const {
     return api::Zip(zip_function, *this, second_dia);
 }
 
 template <typename ValueType, typename Stack>
 template <typename ZipFunction, typename SecondDIA>
 auto DIA<ValueType, Stack>::Zip(
-    struct CutTag const &, const SecondDIA &second_dia,
-    const ZipFunction &zip_function) const {
+    struct CutTag const&, const SecondDIA& second_dia,
+    const ZipFunction& zip_function) const {
     return api::Zip(CutTag, zip_function, *this, second_dia);
 }
 
 template <typename ValueType, typename Stack>
 template <typename ZipFunction, typename SecondDIA>
 auto DIA<ValueType, Stack>::Zip(
-    struct PadTag const &, const SecondDIA &second_dia,
-    const ZipFunction &zip_function) const {
+    struct PadTag const&, const SecondDIA& second_dia,
+    const ZipFunction& zip_function) const {
     return api::Zip(PadTag, zip_function, *this, second_dia);
 }
 
 template <typename ValueType, typename Stack>
 template <typename ZipFunction, typename SecondDIA>
 auto DIA<ValueType, Stack>::Zip(
-    struct NoRebalanceTag const &, const SecondDIA &second_dia,
-    const ZipFunction &zip_function) const {
+    struct NoRebalanceTag const&, const SecondDIA& second_dia,
+    const ZipFunction& zip_function) const {
     return api::Zip(NoRebalanceTag, zip_function, *this, second_dia);
 }
 

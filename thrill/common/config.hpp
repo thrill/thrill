@@ -37,6 +37,12 @@ static constexpr bool g_profile_thread = true;
 //! Finding cache line size is hard - we assume 64 byte.
 static constexpr unsigned g_cache_line_size = 64;
 
+//! global flag to warn user when two DIANodes could push data directly via a
+//! File (skipping one data round trip) if the function stack were empty. This
+//! can be used to find lambda which could be be fused to reduce the number of
+//! data round trips.
+static constexpr bool g_debug_push_file = false;
+
 #if !defined(_MSC_VER)
 #define THRILL_HAVE_NET_TCP 1
 #endif
@@ -52,6 +58,20 @@ static constexpr unsigned g_cache_line_size = 64;
 
 #ifndef THRILL_WINDOWS
 #define THRILL_HAVE_MMAP_FILE 1
+#endif
+
+// MSVC doesn't define __SSE4_1__, so also check for __AVX__ // NOLINT
+#if defined(__SSE4_1__) || defined(__AVX__)
+#define THRILL_HAVE_SSE4_1
+#endif
+
+// MSVC doesn't define __SSE4_2__, so also check for __AVX__ // NOLINT
+#if defined(__SSE4_2__) || defined(__AVX__)
+#define THRILL_HAVE_SSE4_2
+#endif
+
+#if defined(__AVX2__)
+#define THRILL_HAVE_AVX2
 #endif
 
 } // namespace common

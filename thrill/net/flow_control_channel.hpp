@@ -211,7 +211,7 @@ public:
     ~FlowControlChannel();
 
 #ifdef SWIG
-#define THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
+#define TLX_ATTRIBUTE_WARN_UNUSED_RESULT
 #endif
 
     /*!
@@ -230,7 +230,7 @@ public:
      * \return The prefix sum for the position of this worker.
      */
     template <typename T, typename BinarySumOp = std::plus<T> >
-    T THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
+    T TLX_ATTRIBUTE_WARN_UNUSED_RESULT
     PrefixSum(const T& value, const T& initial = T(),
               const BinarySumOp& sum_op = BinarySumOp(),
               bool inclusive = true) {
@@ -248,7 +248,7 @@ public:
             [&]() {
                 RunTimer net_timer(timer_communication_);
 
-                    // global prefix
+                // global prefix
                 T** locals = reinterpret_cast<T**>(alloca(thread_count_ * sizeof(T*)));
 
                 for (size_t i = 0; i < thread_count_; i++) {
@@ -298,7 +298,7 @@ public:
      * \return The prefix sum for the position of this worker.
      */
     template <typename T, typename BinarySumOp = std::plus<T> >
-    T THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
+    T TLX_ATTRIBUTE_WARN_UNUSED_RESULT
     ExPrefixSum(const T& value, const T& initial = T(),
                 const BinarySumOp& sum_op = BinarySumOp()) {
         return PrefixSum(value, initial, sum_op, false);
@@ -320,7 +320,7 @@ public:
      * \return The prefix sum for the position of this worker.
      */
     template <typename T, typename BinarySumOp = std::plus<T> >
-    T THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
+    T TLX_ATTRIBUTE_WARN_UNUSED_RESULT
     ExPrefixSumTotal(T& value, const T& initial = T(),
                      const BinarySumOp& sum_op = BinarySumOp()) {
 
@@ -388,7 +388,7 @@ public:
      * \return The value sent by the master.
      */
     template <typename T>
-    T THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
+    T TLX_ATTRIBUTE_WARN_UNUSED_RESULT
     Broadcast(const T& value, size_t origin = 0) {
 
         RunTimer run_timer(timer_broadcast_);
@@ -410,7 +410,7 @@ public:
 
         barrier_.Await(
             [&]() {
-                    // copy from primary PE to all others
+                // copy from primary PE to all others
                 T res = *GetLocalShared<T>(step, primary_pe);
                 for (size_t i = 0; i < thread_count_; i++) {
                     *GetLocalShared<T>(step, i) = res;
@@ -434,7 +434,7 @@ public:
      * \return The result of the reduce operation.
      */
     template <typename T, typename BinarySumOp = std::plus<T> >
-    T THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
+    T TLX_ATTRIBUTE_WARN_UNUSED_RESULT
     Reduce(const T& value, size_t root = 0,
            const BinarySumOp& sum_op = BinarySumOp()) {
         assert(root < num_workers());
@@ -451,7 +451,7 @@ public:
             [&]() {
                 RunTimer net_timer(timer_communication_);
 
-                    // local reduce
+                // local reduce
                 T local_sum = *GetLocalShared<T>(step, 0);
                 for (size_t i = 1; i < thread_count_; i++) {
                     local_sum = sum_op(local_sum, *GetLocalShared<T>(step, i));
@@ -460,7 +460,7 @@ public:
                 // global reduce
                 group_.Reduce(local_sum, root / thread_count_, sum_op);
 
-                    // set the local value only at the root
+                // set the local value only at the root
                 if (root / thread_count_ == group_.my_host_rank())
                     *GetLocalShared<T>(step, root % thread_count_) = local_sum;
             });
@@ -481,7 +481,7 @@ public:
      * \return The result of the reduce operation.
      */
     template <typename T, typename BinarySumOp = std::plus<T> >
-    T THRILL_ATTRIBUTE_WARN_UNUSED_RESULT
+    T TLX_ATTRIBUTE_WARN_UNUSED_RESULT
     AllReduce(const T& value, const BinarySumOp& sum_op = BinarySumOp()) {
 
         RunTimer run_timer(timer_allreduce_);
@@ -496,7 +496,7 @@ public:
             [&]() {
                 RunTimer net_timer(timer_communication_);
 
-                    // local reduce
+                // local reduce
                 T local_sum = *GetLocalShared<T>(step, 0);
                 for (size_t i = 1; i < thread_count_; i++) {
                     local_sum = sum_op(local_sum, *GetLocalShared<T>(step, i));
@@ -505,7 +505,7 @@ public:
                 // global reduce
                 group_.AllReduce(local_sum, sum_op);
 
-                    // distribute back to local workers
+                // distribute back to local workers
                 for (size_t i = 0; i < thread_count_; i++) {
                     *GetLocalShared<T>(step, i) = local_sum;
                 }
@@ -683,7 +683,7 @@ extern template std::array<size_t, 4> FlowControlChannel::ExPrefixSumTotal(
     std::array<size_t, 4>&, const std::array<size_t, 4>&,
     const common::ComponentSum<std::array<size_t, 4> >&);
 
-extern template size_t FlowControlChannel::Broadcast(const size_t &, size_t);
+extern template size_t FlowControlChannel::Broadcast(const size_t&, size_t);
 
 extern template std::array<size_t, 2> FlowControlChannel::Broadcast(
     const std::array<size_t, 2>&, size_t);

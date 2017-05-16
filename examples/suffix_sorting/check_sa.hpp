@@ -30,8 +30,6 @@ bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
     using namespace thrill; // NOLINT
     using thrill::common::RingBuffer;
 
-    Context& ctx = input.ctx();
-
     using Char = typename InputDIA::ValueType;
     using Index = typename SuffixArrayDIA::ValueType;
 
@@ -39,23 +37,22 @@ bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
     struct IndexRank {
         Index index;
         Index rank;
-    } THRILL_ATTRIBUTE_PACKED;
+    } TLX_ATTRIBUTE_PACKED;
 
     struct Index3 {
         Index index;
         Index next;
         Char  ch;
-    } THRILL_ATTRIBUTE_PACKED;
+    } TLX_ATTRIBUTE_PACKED;
 
     uint64_t input_size = input.Keep().Size();
 
     auto isa_pair =
         suffix_array
         // build tuples with index: (SA[i]) -> (i, SA[i]),
-        .Zip(Generate(ctx, input_size),
-             [](const Index& sa, const size_t& i) {
-                 return IndexRank { sa, Index(i) };
-             })
+        .ZipWithIndex([](const Index& sa, const size_t& i) {
+                          return IndexRank { sa, Index(i) };
+                      })
         // take (i, SA[i]) and sort to (ISA[i], i)
         .Sort([](const IndexRank& a, const IndexRank& b) {
                   return a.index < b.index;
@@ -65,10 +62,9 @@ bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
     // permutation of [0,n)
     Index perm_check =
         isa_pair.Keep()
-        .Zip(Generate(ctx, input_size),
-             [](const IndexRank& ir, const size_t& index) -> Index {
-                 return ir.index == Index(index) ? 0 : 1;
-             })
+        .ZipWithIndex([](const IndexRank& ir, const size_t& index) -> Index {
+                          return ir.index == Index(index) ? 0 : 1;
+                      })
         // sum over all boolean values.
         .Max();
 
@@ -81,15 +77,13 @@ bool CheckSA(const InputDIA& input, const SuffixArrayDIA& suffix_array) {
 
     auto order_check =
         isa_pair
-        // extract ISA[i]
-        .Map([](const IndexRank& ir) { return ir.rank; })
         // build (ISA[i], ISA[i+1], T[i])
         .template FlatWindow<IndexPair>(
-            2, [input_size](size_t index, const RingBuffer<Index>& rb, auto emit) {
-                emit(IndexPair { rb[0], rb[1] });
+            2, [input_size](size_t index, const RingBuffer<IndexRank>& rb, auto emit) {
+                emit(IndexPair { rb[0].rank, rb[1].rank });
                 if (index == input_size - 2) {
                     // emit sentinel at end
-                    emit(IndexPair { rb[1], input_size });
+                    emit(IndexPair { rb[1].rank, input_size });
                 }
             })
         .Zip(input,

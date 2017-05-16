@@ -116,7 +116,7 @@ TEST(WordCount, RandomTextWriterTest) {
 
             auto reduced_words = WordCount(lines);
 
-            std::vector<WordCountPair> result = WordCount(lines).AllGather();
+            std::vector<WordCountPair> result = reduced_words.AllGather();
 
             // sort result, because reducing delivers any order
             std::sort(result.begin(), result.end());

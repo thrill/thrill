@@ -12,12 +12,14 @@
 #include <examples/word_count/random_text_writer.hpp>
 #include <examples/word_count/word_count.hpp>
 
+#include <thrill/api/cache.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/read_lines.hpp>
 #include <thrill/api/write_lines.hpp>
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/common/stats_timer.hpp>
 #include <thrill/common/string.hpp>
+#include <tlx/cmdline_parser.hpp>
 
 #include <algorithm>
 #include <random>
@@ -36,6 +38,8 @@ static void RunWordCount(
     const std::vector<std::string>& input_filelist, const std::string& output) {
     ctx.enable_consume();
 
+    common::StatsTimerStart timer;
+
     auto lines = ReadLines(ctx, input_filelist);
 
     auto word_pairs = WordCount(lines);
@@ -49,6 +53,16 @@ static void RunWordCount(
     }
     else {
         word_pairs.Execute();
+        ctx.net.Barrier();
+        if (ctx.my_rank() == 0) {
+            auto traffic = ctx.net_manager().Traffic();
+            LOG1 << "RESULT"
+                 << " benchmark=wordcount"
+                 << " time=" << timer.Milliseconds()
+                 << " files=" << input_filelist.size()
+                 << " traffic=" << traffic.first + traffic.second
+                 << " machines=" << ctx.num_hosts();
+        }
     }
 }
 
@@ -56,6 +70,8 @@ static void RunHashWordCount(
     api::Context& ctx,
     const std::vector<std::string>& input_filelist, const std::string& output) {
     ctx.enable_consume();
+
+    common::StatsTimerStart timer;
 
     auto lines = ReadLines(ctx, input_filelist);
 
@@ -70,6 +86,16 @@ static void RunHashWordCount(
     }
     else {
         word_pairs.Execute();
+        ctx.net.Barrier();
+        if (ctx.my_rank() == 0) {
+            auto traffic = ctx.net_manager().Traffic();
+            LOG1 << "RESULT"
+                 << " benchmark=wordcount_hash"
+                 << " time=" << timer.Milliseconds()
+                 << " files=" << input_filelist.size()
+                 << " traffic= " << traffic.first + traffic.second
+                 << " machines=" << ctx.num_hosts();
+        }
     }
 }
 
@@ -133,31 +159,31 @@ static void RunHashWordCountGenerated(
 
 int main(int argc, char* argv[]) {
 
-    common::CmdlineParser clp;
+    tlx::CmdlineParser clp;
 
     std::string output;
-    clp.AddString('o', "output", output,
-                  "output file pattern");
+    clp.add_string('o', "output", output,
+                   "output file pattern");
 
     std::vector<std::string> input;
-    clp.AddParamStringlist("input", input,
-                           "input file pattern(s)");
+    clp.add_param_stringlist("input", input,
+                             "input file pattern(s)");
 
     bool generate = false;
-    clp.AddFlag('g', "generate", generate,
-                "generate random words, first file pattern "
-                "specifies approximately how many.");
+    clp.add_bool('g', "generate", generate,
+                 "generate random words, first file pattern "
+                 "specifies approximately how many.");
 
     bool hash_words = false;
-    clp.AddFlag('H', "hash_words", hash_words,
-                "explicitly calculate hash values for words "
-                "to accelerate reduction.");
+    clp.add_bool('H', "hash_words", hash_words,
+                 "explicitly calculate hash values for words "
+                 "to accelerate reduction.");
 
-    if (!clp.Process(argc, argv)) {
+    if (!clp.process(argc, argv)) {
         return -1;
     }
 
-    clp.PrintResult();
+    clp.print_result();
 
     return api::Run(
         [&](api::Context& ctx) {
@@ -173,9 +199,9 @@ int main(int argc, char* argv[]) {
             }
             else {
                 if (hash_words)
-                    RunWordCount(ctx, input, output);
-                else
                     RunHashWordCount(ctx, input, output);
+                else
+                    RunWordCount(ctx, input, output);
             }
         });
 }

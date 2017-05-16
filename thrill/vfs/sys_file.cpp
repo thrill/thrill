@@ -11,11 +11,13 @@
 
 #include <thrill/vfs/sys_file.hpp>
 
-#include <thrill/common/die.hpp>
 #include <thrill/common/porting.hpp>
 #include <thrill/common/string.hpp>
 #include <thrill/common/system_exception.hpp>
 #include <thrill/vfs/simple_glob.hpp>
+
+#include <tlx/die.hpp>
+#include <tlx/string/ends_with.hpp>
 
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -241,13 +243,13 @@ ReadStreamPtr SysOpenReadStream(
 
     const char* decompressor;
 
-    if (common::EndsWith(path, ".xz")) {
+    if (tlx::ends_with(path, ".xz")) {
         decompressor = "xz";
     }
-    else if (common::EndsWith(path, ".lzo")) {
+    else if (tlx::ends_with(path, ".lzo")) {
         decompressor = "lzop";
     }
-    else if (common::EndsWith(path, ".lz4")) {
+    else if (tlx::ends_with(path, ".lz4")) {
         decompressor = "lz4";
     }
     else {
@@ -261,7 +263,7 @@ ReadStreamPtr SysOpenReadStream(
             ::lseek(fd, range.begin, SEEK_CUR);
         }
 
-        return common::MakeCounting<SysFile>(fd);
+        return tlx::make_counting<SysFile>(fd);
     }
 
 #if defined(_MSC_VER)
@@ -312,7 +314,7 @@ ReadStreamPtr SysOpenReadStream(
         ::lseek(pipefd[0], range.begin, SEEK_CUR);
     }
 
-    return common::MakeCounting<SysFile>(pipefd[0], pid);
+    return tlx::make_counting<SysFile>(pipefd[0], pid);
 #endif
 }
 
@@ -331,13 +333,13 @@ WriteStreamPtr SysOpenWriteStream(const std::string& path) {
 
     const char* compressor;
 
-    if (common::EndsWith(path, ".xz")) {
+    if (tlx::ends_with(path, ".xz")) {
         compressor = "xz";
     }
-    else if (common::EndsWith(path, ".lzo")) {
+    else if (tlx::ends_with(path, ".lzo")) {
         compressor = "lzop";
     }
-    else if (common::EndsWith(path, ".lz4")) {
+    else if (tlx::ends_with(path, ".lz4")) {
         compressor = "lz4";
     }
     else {
@@ -346,7 +348,7 @@ WriteStreamPtr SysOpenWriteStream(const std::string& path) {
 
         sLOG << "SysFile::OpenForWrite(): filefd" << fd;
 
-        return common::MakeCounting<SysFile>(fd);
+        return tlx::make_counting<SysFile>(fd);
     }
 
 #if defined(_MSC_VER)
@@ -392,7 +394,7 @@ WriteStreamPtr SysOpenWriteStream(const std::string& path) {
     // close file descriptor (it is used by the fork)
     ::close(fd);
 
-    return common::MakeCounting<SysFile>(pipefd[1], pid);
+    return tlx::make_counting<SysFile>(pipefd[1], pid);
 #endif
 }
 

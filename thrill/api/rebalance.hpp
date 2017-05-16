@@ -48,7 +48,12 @@ public:
     }
 
     bool OnPreOpFile(const data::File& file, size_t /* parent_index */) final {
-        if (!parent_stack_empty_) return false;
+        if (!parent_stack_empty_) {
+            LOGC(common::g_debug_push_file)
+                << "Rebalance rejected File from parent "
+                << "due to non-empty function stack.";
+            return false;
+        }
         assert(file_.num_items() == 0);
         file_ = file.Copy();
         return true;
@@ -118,7 +123,7 @@ template <typename ValueType, typename Stack>
 auto DIA<ValueType, Stack>::Rebalance() const {
     assert(IsValid());
     using RebalanceNode = api::RebalanceNode<ValueType>;
-    return DIA<ValueType>(common::MakeCounting<RebalanceNode>(*this));
+    return DIA<ValueType>(tlx::make_counting<RebalanceNode>(*this));
 }
 
 } // namespace api

@@ -19,6 +19,8 @@
 #include <thrill/common/system_exception.hpp>
 #include <thrill/net/tcp/socket_address.hpp>
 
+#include <tlx/string/hexdump.hpp>
+
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -606,7 +608,7 @@ private:
     //! return hexdump or just [data] if not debugging
     static std::string MaybeHexdump(const void* data, size_t size) {
         if (debug_data)
-            return common::Hexdump(data, size);
+            return tlx::hexdump(data, size);
         else
             return "[data]";
     }

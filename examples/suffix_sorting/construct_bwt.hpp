@@ -36,12 +36,12 @@ InputDIA ConstructBWT(const InputDIA& input, const SuffixArrayDIA& suffix_array,
     struct IndexRank {
         Index index;
         Index rank;
-    } THRILL_ATTRIBUTE_PACKED;
+    } TLX_ATTRIBUTE_PACKED;
 
     struct IndexChar {
         Index index;
         Char  ch;
-    } THRILL_ATTRIBUTE_PACKED;
+    } TLX_ATTRIBUTE_PACKED;
 
     return suffix_array
            .Map([input_size](const Index& i) {

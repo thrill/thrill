@@ -53,7 +53,7 @@ void DispatcherThread::Terminate() {
 
 //! Register a relative timeout callback
 void DispatcherThread::AddTimer(
-    std::chrono::milliseconds timeout, TimerCallback cb) {
+    std::chrono::milliseconds timeout, const TimerCallback& cb) {
     Enqueue([=]() {
                 dispatcher_->AddTimer(timeout, cb);
             });
@@ -61,7 +61,7 @@ void DispatcherThread::AddTimer(
 }
 
 //! Register a buffered read callback and a default exception callback.
-void DispatcherThread::AddRead(Connection& c, AsyncCallback read_cb) {
+void DispatcherThread::AddRead(Connection& c, const AsyncCallback& read_cb) {
     Enqueue([=, &c]() {
                 dispatcher_->AddRead(c, read_cb);
             });
@@ -69,7 +69,7 @@ void DispatcherThread::AddRead(Connection& c, AsyncCallback read_cb) {
 }
 
 //! Register a buffered write callback and a default exception callback.
-void DispatcherThread::AddWrite(Connection& c, AsyncCallback write_cb) {
+void DispatcherThread::AddWrite(Connection& c, const AsyncCallback& write_cb) {
     Enqueue([=, &c]() {
                 dispatcher_->AddWrite(c, write_cb);
             });
@@ -86,7 +86,7 @@ void DispatcherThread::Cancel(Connection& c) {
 
 //! asynchronously read n bytes and deliver them to the callback
 void DispatcherThread::AsyncRead(
-    Connection& c, size_t size, AsyncReadCallback done_cb) {
+    Connection& c, size_t size, const AsyncReadCallback& done_cb) {
     Enqueue([=, &c]() {
                 dispatcher_->AsyncRead(c, size, done_cb);
             });
@@ -96,7 +96,7 @@ void DispatcherThread::AsyncRead(
 //! asynchronously read the full ByteBlock and deliver it to the callback
 void DispatcherThread::AsyncRead(
     Connection& c, size_t size, data::PinnedByteBlockPtr&& block,
-    AsyncReadByteBlockCallback done_cb) {
+    const AsyncReadByteBlockCallback& done_cb) {
     assert(block.valid());
     Enqueue([=, &c, b = std::move(block)]() mutable {
                 dispatcher_->AsyncRead(c, size, std::move(b), done_cb);
@@ -109,7 +109,7 @@ void DispatcherThread::AsyncRead(
 //! header and a payload Buffers that are hereby guaranteed to be written in
 //! order.
 void DispatcherThread::AsyncWrite(
-    Connection& c, Buffer&& buffer, AsyncWriteCallback done_cb) {
+    Connection& c, Buffer&& buffer, const AsyncWriteCallback& done_cb) {
     // the following captures the move-only buffer in a lambda.
     Enqueue([=, &c, b = std::move(buffer)]() mutable {
                 dispatcher_->AsyncWrite(c, std::move(b), done_cb);
@@ -121,7 +121,7 @@ void DispatcherThread::AsyncWrite(
 //! MOVED into the async writer.
 void DispatcherThread::AsyncWrite(
     Connection& c, Buffer&& buffer, data::PinnedBlock&& block,
-    AsyncWriteCallback done_cb) {
+    const AsyncWriteCallback& done_cb) {
     assert(block.IsValid());
     // the following captures the move-only buffer in a lambda.
     Enqueue([=, &c,
@@ -136,14 +136,14 @@ void DispatcherThread::AsyncWrite(
 //! into a Buffer!
 void DispatcherThread::AsyncWriteCopy(
     Connection& c, const void* buffer, size_t size,
-    AsyncWriteCallback done_cb) {
+    const AsyncWriteCallback& done_cb) {
     return AsyncWrite(c, Buffer(buffer, size), done_cb);
 }
 
 //! asynchronously write buffer and callback when delivered. COPIES the data
 //! into a Buffer!
 void DispatcherThread::AsyncWriteCopy(Connection& c, const std::string& str,
-                                      AsyncWriteCallback done_cb) {
+                                      const AsyncWriteCallback& done_cb) {
     return AsyncWriteCopy(c, str.data(), str.size(), done_cb);
 }
 
@@ -155,6 +155,8 @@ void DispatcherThread::Enqueue(Job&& job) {
 //! What happens in the dispatcher thread
 void DispatcherThread::Work() {
     common::NameThisThread(name_);
+    // pin DispatcherThread to last core
+    common::SetCpuAffinity(std::thread::hardware_concurrency() - 1);
 
     while (!terminate_ ||
            dispatcher_->HasAsyncWrites() || !jobqueue_.empty())

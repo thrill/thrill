@@ -18,8 +18,10 @@
 #define THRILL_NET_COLLECTIVE_HEADER
 
 #include <thrill/common/functional.hpp>
-#include <thrill/common/math.hpp>
 #include <thrill/net/group.hpp>
+#include <tlx/math/ffs.hpp>
+#include <tlx/math/is_power_of_two.hpp>
+#include <tlx/math/round_to_power_of_two.hpp>
 
 #include <functional>
 
@@ -202,7 +204,7 @@ void Group::BroadcastBinomialTree(T& value, size_t origin) {
     if (my_rank > 0) {
         // our predecessor is p with the lowest one bit flipped to zero. this
         // also counts the number of rounds we have to send out messages later.
-        r = common::ffs(my_rank) - 1;
+        r = tlx::ffs(my_rank) - 1;
         d <<= r;
         size_t from = ((my_rank ^ d) + origin) % num_hosts;
         sLOG << "Broadcast: rank" << my_rank << "receiving from" << from
@@ -210,7 +212,7 @@ void Group::BroadcastBinomialTree(T& value, size_t origin) {
         ReceiveFrom(from, &value);
     }
     else {
-        d = common::RoundUpToPowerOfTwo(num_hosts);
+        d = tlx::round_up_to_power_of_two(num_hosts);
     }
     // send to successors
     for (d >>= 1; d > 0; d >>= 1, ++r) {
@@ -383,7 +385,7 @@ void Group::AllReduceHypercube(T& value, BinarySumOp sum_op) {
 //! select allreduce implementation (often due to total number of processors)
 template <typename T, typename BinarySumOp>
 void Group::AllReduceSelect(T& value, BinarySumOp sum_op) {
-    if (common::IsPowerOfTwo(num_hosts()))
+    if (tlx::is_power_of_two(num_hosts()))
         AllReduceHypercube(value, sum_op);
     else
         AllReduceAtRoot(value, sum_op);

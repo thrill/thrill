@@ -84,7 +84,7 @@ class Future
 {
 public:
     using ActionResultNodePtr =
-              common::CountingPtr<ActionResultNode<ValueType> >;
+              tlx::CountingPtr<ActionResultNode<ValueType> >;
 
     explicit Future(const ActionResultNodePtr& node)
         : node_(node) { }
@@ -126,7 +126,7 @@ template <>
 class Future<void>
 {
 public:
-    using ActionNodePtr = common::CountingPtr<ActionNode>;
+    using ActionNodePtr = tlx::CountingPtr<ActionNode>;
 
     explicit Future(const ActionNodePtr& node)
         : node_(node) { }

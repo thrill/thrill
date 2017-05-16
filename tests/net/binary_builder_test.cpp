@@ -8,10 +8,14 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <gtest/gtest.h>
+#include <thrill/common/string.hpp>
 #include <thrill/net/buffer_builder.hpp>
 #include <thrill/net/buffer_reader.hpp>
 #include <thrill/net/fixed_buffer_builder.hpp>
+
+#include <tlx/string/hexdump.hpp>
+
+#include <gtest/gtest.h>
 
 using thrill::net::BufferBuilder;
 using thrill::net::BufferRef;
@@ -33,9 +37,16 @@ TEST(BufferBuilder, Test1) {
 
     BufferRef bbr = BufferRef(bb);
 
+    LOG1 << bbr.size();
+
     const unsigned char bb_data[] = {
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
         // bb.Put<unsigned int>(1)
         0x01, 0x00, 0x00, 0x00,
+#elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+        // bb.Put<unsigned int>(1)
+        0x00, 0x00, 0x00, 0x01,
+#endif
         // bb.PutString("test")
         0x04, 0x74, 0x65, 0x73, 0x74,
         // bb.PutVarint(42);
@@ -47,7 +58,10 @@ TEST(BufferBuilder, Test1) {
     BufferRef bb_verify(bb_data, sizeof(bb_data));
 
     if (bbr != bb_verify)
-        std::cout << bbr.ToString();
+        LOG1 << bbr.ToString();
+
+    LOG0 << tlx::hexdump(bbr.ToString());
+    LOG0 << tlx::hexdump(bb_verify.ToString());
 
     ASSERT_EQ(bbr, bb_verify);
 

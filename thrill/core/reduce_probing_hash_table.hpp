@@ -183,10 +183,12 @@ public:
      * fill ratio per partition is reached.
      *
      * \param kv Value to be inserted into the table.
+     *
+     * \return true if a new key was inserted to the table
      */
-    void Insert(const TableItem& kv) {
+    bool Insert(const TableItem& kv) {
 
-        while (THRILL_UNLIKELY(mem::memory_exceeded && num_items_ != 0))
+        while (TLX_UNLIKELY(mem::memory_exceeded && num_items_ != 0))
             SpillAnyPartition();
 
         typename IndexFunction::Result h = index_function_(
@@ -195,7 +197,8 @@ public:
 
         assert(h.partition_id < num_partitions_);
 
-        if (THRILL_UNLIKELY(key_equal_function_(key(kv), Key()))) {
+        if (TLX_UNLIKELY(key_equal_function_(key(kv), Key()))) {
+            bool new_unique = false;
             // handle pairs with sentinel key specially by reducing into last
             // element of items.
             TableItem& sentinel = items_[num_buckets_];
@@ -203,6 +206,7 @@ public:
                 // first occurrence of sentinel key
                 new (&sentinel)TableItem(kv);
                 sentinel_partition_ = h.partition_id;
+                new_unique = true;
             }
             else {
                 sentinel = reduce(sentinel, kv);
@@ -210,13 +214,13 @@ public:
             ++items_per_partition_[h.partition_id];
             ++num_items_;
 
-            while (THRILL_UNLIKELY(
+            while (TLX_UNLIKELY(
                        items_per_partition_[h.partition_id] >
                        limit_items_per_partition_[h.partition_id])) {
                 SpillPartition(h.partition_id);
             }
 
-            return;
+            return new_unique;
         }
 
         // calculate local index depending on the current subtable's size
@@ -233,17 +237,17 @@ public:
             if (key_equal_function_(key(*iter), key(kv)))
             {
                 *iter = reduce(*iter, kv);
-                return;
+                return false;
             }
 
             ++iter;
 
             // wrap around if beyond the current partition
-            if (THRILL_UNLIKELY(iter == pend))
+            if (TLX_UNLIKELY(iter == pend))
                 iter = pbegin;
 
             // flush partition and retry, if all slots are reserved
-            if (THRILL_UNLIKELY(iter == begin_iter)) {
+            if (TLX_UNLIKELY(iter == begin_iter)) {
                 SpillPartition(h.partition_id);
                 return Insert(kv);
             }
@@ -256,7 +260,7 @@ public:
         ++items_per_partition_[h.partition_id];
         ++num_items_;
 
-        while (THRILL_UNLIKELY(
+        while (TLX_UNLIKELY(
                    items_per_partition_[h.partition_id] >=
                    limit_items_per_partition_[h.partition_id])) {
             LOG << "Spill due to "
@@ -265,6 +269,8 @@ public:
                 << " among " << partition_size_[h.partition_id];
             SpillPartition(h.partition_id);
         }
+
+        return true;
     }
 
     //! Deallocate items and memory

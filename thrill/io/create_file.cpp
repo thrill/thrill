@@ -43,12 +43,12 @@ FileBasePtr CreateFile(const std::string& io_impl,
     return CreateFile(cfg, options, disk_allocator_id);
 }
 
-FileBasePtr CreateFile(DiskConfig& cfg, int mode, int disk_allocator_id) {
+FileBasePtr CreateFile(DiskConfig& config, int mode, int disk_allocator_id) {
     // apply disk_config settings to open mode
 
     mode &= ~(FileBase::DIRECT | FileBase::REQUIRE_DIRECT); // clear DIRECT and REQUIRE_DIRECT
 
-    switch (cfg.direct) {
+    switch (config.direct) {
     case DiskConfig::DIRECT_OFF:
         break;
     case DiskConfig::DIRECT_TRY:
@@ -61,113 +61,117 @@ FileBasePtr CreateFile(DiskConfig& cfg, int mode, int disk_allocator_id) {
 
     // automatically enumerate disks as separate device ids
 
-    if (cfg.device_id == FileBase::DEFAULT_DEVICE_ID)
+    if (config.device_id == FileBase::DEFAULT_DEVICE_ID)
     {
-        cfg.device_id = Config::GetInstance()->get_next_device_id();
+        config.device_id = Config::GetInstance()->get_next_device_id();
     }
     else
     {
-        Config::GetInstance()->update_max_device_id(cfg.device_id);
+        Config::GetInstance()->update_max_device_id(config.device_id);
     }
 
     // *** Select fileio Implementation
 
-    if (cfg.io_impl == "syscall")
+    if (config.io_impl == "syscall")
     {
         UfsFileBase* result =
-            new SyscallFile(cfg.path, mode, cfg.queue, disk_allocator_id,
-                            cfg.device_id);
+            new SyscallFile(config.path, mode, config.queue, disk_allocator_id,
+                            config.device_id);
         result->lock();
 
         // if marked as device but file is not -> throw!
-        if (cfg.raw_device && !result->is_device())
+        if (config.raw_device && !result->is_device())
         {
             delete result;
-            THRILL_THROWS(IoError, "Disk " << cfg.path << " was expected to be "
-                          "a raw block device, but it is a normal file!");
+            THRILL_THROWS(IoError, "Disk " << config.path << " was expected to "
+                          "be a raw block device, but it is a normal file!");
         }
 
         // if is raw_device -> get size and remove some flags.
         if (result->is_device())
         {
-            cfg.raw_device = true;
-            cfg.size = result->size();
-            cfg.autogrow = cfg.delete_on_exit = cfg.unlink_on_open = false;
+            config.raw_device = true;
+            config.size = result->size();
+            config.autogrow =
+                config.delete_on_exit = config.unlink_on_open = false;
         }
 
-        if (cfg.unlink_on_open)
+        if (config.unlink_on_open)
             result->unlink();
 
         return FileBasePtr(result);
     }
-    else if (cfg.io_impl == "memory")
+    else if (config.io_impl == "memory")
     {
-        MemoryFile* result = new MemoryFile(cfg.queue, disk_allocator_id, cfg.device_id);
+        MemoryFile* result =
+            new MemoryFile(config.queue, disk_allocator_id, config.device_id);
         result->lock();
         return FileBasePtr(result);
     }
 #if THRILL_HAVE_LINUXAIO_FILE
     // linuxaio can have the desired queue length, specified as queue_length=?
-    else if (cfg.io_impl == "linuxaio")
+    else if (config.io_impl == "linuxaio")
     {
         // linuxaio_queue is a singleton.
-        cfg.queue = FileBase::DEFAULT_LINUXAIO_QUEUE;
+        config.queue = FileBase::DEFAULT_LINUXAIO_QUEUE;
 
         UfsFileBase* result =
-            new LinuxaioFile(cfg.path, mode, cfg.queue, disk_allocator_id,
-                             cfg.device_id, cfg.queue_length);
+            new LinuxaioFile(config.path, mode, config.queue, disk_allocator_id,
+                             config.device_id, config.queue_length);
 
         result->lock();
 
         // if marked as device but file is not -> throw!
-        if (cfg.raw_device && !result->is_device())
+        if (config.raw_device && !result->is_device())
         {
             delete result;
-            THRILL_THROWS(IoError, "Disk " << cfg.path << " was expected to be "
-                          "a raw block device, but it is a normal file!");
+            THRILL_THROWS(IoError, "Disk " << config.path << " was expected to "
+                          "be a raw block device, but it is a normal file!");
         }
 
         // if is raw_device -> get size and remove some flags.
         if (result->is_device())
         {
-            cfg.raw_device = true;
-            cfg.size = result->size();
-            cfg.autogrow = cfg.delete_on_exit = cfg.unlink_on_open = false;
+            config.raw_device = true;
+            config.size = result->size();
+            config.autogrow =
+                config.delete_on_exit = config.unlink_on_open = false;
         }
 
-        if (cfg.unlink_on_open)
+        if (config.unlink_on_open)
             result->unlink();
 
         return FileBasePtr(result);
     }
 #endif
 #if THRILL_HAVE_MMAP_FILE
-    else if (cfg.io_impl == "mmap")
+    else if (config.io_impl == "mmap")
     {
         UfsFileBase* result =
-            new MmapFile(cfg.path, mode, cfg.queue, disk_allocator_id,
-                         cfg.device_id);
+            new MmapFile(config.path, mode, config.queue, disk_allocator_id,
+                         config.device_id);
         result->lock();
 
-        if (cfg.unlink_on_open)
+        if (config.unlink_on_open)
             result->unlink();
 
         return FileBasePtr(result);
     }
 #endif
 #if THRILL_HAVE_WINCALL_FILE
-    else if (cfg.io_impl == "wincall")
+    else if (config.io_impl == "wincall")
     {
         WfsFileBase* result =
-            new WincallFile(cfg.path, mode, cfg.queue, disk_allocator_id,
-                            cfg.device_id);
+            new WincallFile(config.path, mode, config.queue, disk_allocator_id,
+                            config.device_id);
         result->lock();
         return FileBasePtr(result);
     }
 #endif
 
     THRILL_THROW(std::runtime_error,
-                 "Unsupported disk I/O implementation '" << cfg.io_impl << "'.");
+                 "Unsupported disk I/O implementation '"
+                 << config.io_impl << "'.");
 }
 
 } // namespace io

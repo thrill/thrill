@@ -460,7 +460,7 @@ template <size_t p>
 double DIA<ValueType, Stack>::HyperLogLog() const {
     assert(IsValid());
 
-    auto node = common::MakeCounting<HyperLogLogNode<p, ValueType> >(
+    auto node = tlx::make_counting<HyperLogLogNode<p, ValueType> >(
         *this, "HyperLogLog");
     node->RunScope();
     auto reducedRegisters = node->result();

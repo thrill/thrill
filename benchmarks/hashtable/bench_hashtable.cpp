@@ -9,12 +9,12 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/core/reduce_by_hash_post_phase.hpp>
 #include <thrill/data/block_writer.hpp>
 #include <thrill/data/discard_sink.hpp>
 #include <thrill/data/file.hpp>
+#include <tlx/cmdline_parser.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -89,37 +89,37 @@ void RunBenchmark(api::Context& ctx, core::DefaultReduceConfig& base_config) {
 
 int main(int argc, char* argv[]) {
 
-    common::CmdlineParser clp;
+    tlx::CmdlineParser clp;
 
     core::DefaultReduceConfig config;
 
     std::string hashtable;
 
-    clp.AddBytes('s', "size", "S", size,
-                 "Set amount of bytes to be inserted, default = 64 MiB");
+    clp.add_bytes('s', "size", "S", size,
+                  "Set amount of bytes to be inserted, default = 64 MiB");
 
-    clp.AddString('t', "title", "T", title,
-                  "Load in byte to be inserted");
+    clp.add_string('t', "title", "T", title,
+                   "Load in byte to be inserted");
 
-    clp.AddString('h', "hash-table", "H", hashtable,
-                  "Set hashtable: probing or bucket");
+    clp.add_string('h', "hash-table", "H", hashtable,
+                   "Set hashtable: probing or bucket");
 
-    clp.AddUInt('w', "workers", "W", workers,
-                "Open hashtable with W workers, default = 1.");
+    clp.add_unsigned('w', "workers", "W", workers,
+                     "Open hashtable with W workers, default = 1.");
 
-    clp.AddDouble('f', "fill_rate", "F",
-                  config.limit_partition_fill_rate_,
-                  "set limit_partition_fill_rate, default = 0.5.");
+    clp.add_double('f', "fill_rate", "F",
+                   config.limit_partition_fill_rate_,
+                   "set limit_partition_fill_rate, default = 0.5.");
 
-    clp.AddDouble('b', "bucket_rate", "B",
-                  config.bucket_rate_,
-                  "set bucket_rate, default = 0.5.");
+    clp.add_double('b', "bucket_rate", "B",
+                   config.bucket_rate_,
+                   "set bucket_rate, default = 0.5.");
 
-    clp.AddBytes('r', "range", "N",
-                 item_range,
-                 "set upper bound on item values, default = UINT_MAX.");
+    clp.add_bytes('r', "range", "N",
+                  item_range,
+                  "set upper bound on item values, default = UINT_MAX.");
 
-    if (!clp.Process(argc, argv)) {
+    if (!clp.process(argc, argv)) {
         return -1;
     }
 

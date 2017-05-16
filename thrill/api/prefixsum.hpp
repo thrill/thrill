@@ -60,7 +60,12 @@ public:
     }
 
     bool OnPreOpFile(const data::File& file, size_t /* parent_index */) final {
-        if (!parent_stack_empty_) return false;
+        if (!parent_stack_empty_) {
+            LOGC(common::g_debug_push_file)
+                << "PrefixSum rejected File from parent "
+                << "due to non-empty function stack.";
+            return false;
+        }
         // copy complete Block references to writer_
         file_ = file.Copy();
         // read File for prefix sum.
@@ -124,7 +129,7 @@ private:
 template <typename ValueType, typename Stack>
 template <typename SumFunction>
 auto DIA<ValueType, Stack>::PrefixSum(
-    const SumFunction &sum_function, const ValueType &initial_element) const {
+    const SumFunction& sum_function, const ValueType& initial_element) const {
     assert(IsValid());
 
     using PrefixSumNode = api::PrefixSumNode<ValueType, SumFunction>;
@@ -148,7 +153,7 @@ auto DIA<ValueType, Stack>::PrefixSum(
             ValueType>::value,
         "SumFunction has the wrong input type");
 
-    auto node = common::MakeCounting<PrefixSumNode>(
+    auto node = tlx::make_counting<PrefixSumNode>(
         *this, sum_function, initial_element);
 
     return DIA<ValueType>(node);

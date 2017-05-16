@@ -20,9 +20,9 @@
 #include <thrill/api/action_node.hpp>
 #include <thrill/api/context.hpp>
 #include <thrill/api/dia_node.hpp>
-#include <thrill/api/function_stack.hpp>
 #include <thrill/common/function_traits.hpp>
 #include <thrill/common/functional.hpp>
+#include <tlx/meta/function_stack.hpp>
 
 #include <cassert>
 #include <functional>
@@ -38,12 +38,17 @@ namespace api {
 //! \{
 
 //! tag structure for ReduceByKey(), and ReduceToIndex()
-struct VolatileKeyTag {
-    VolatileKeyTag() { }
+template <bool Value>
+struct VolatileKeyFlag {
+    VolatileKeyFlag() { }
+    static const bool value = Value;
 };
 
-//! global const VolatileKeyTag instance
-const struct VolatileKeyTag VolatileKeyTag;
+//! global const VolatileKeyFlag instance
+const struct VolatileKeyFlag<true> VolatileKeyTag;
+
+//! global const VolatileKeyFlag instance
+const struct VolatileKeyFlag<false> NoVolatileKeyTag;
 
 //! tag structure for Window() and FlatWindow()
 struct DisjointTag {
@@ -85,6 +90,32 @@ struct LocalStorageTag {
 //! global const LocalStorageTag instance
 const struct LocalStorageTag LocalStorageTag;
 
+//! tag structure for ReduceByKey()
+template <bool Value>
+struct DuplicateDetectionFlag {
+    DuplicateDetectionFlag() { }
+    static const bool value = Value;
+};
+
+//! global const DuplicateDetectionFlag instance
+const struct DuplicateDetectionFlag<true> DuplicateDetectionTag;
+
+//! global const DuplicateDetectionFlag instance
+const struct DuplicateDetectionFlag<false> NoDuplicateDetectionTag;
+
+//! tag structure for GroupByKey(), and InnerJoin()
+template <bool Value>
+struct LocationDetectionFlag {
+    LocationDetectionFlag() { }
+    static const bool value = Value;
+};
+
+//! global const LocationDetectionFlag instance
+const struct LocationDetectionFlag<true> LocationDetectionTag;
+
+//! global const LocationDetectionFlag instance
+const struct LocationDetectionFlag<false> NoLocationDetectionTag;
+
 /*!
  * DIA is the interface between the user and the Thrill framework. A DIA can be
  * imagined as an immutable array, even though the data does not need to be
@@ -97,7 +128,8 @@ const struct LocalStorageTag LocalStorageTag;
  * \tparam ValueType Type of elements currently in this DIA.
  * \tparam Stack Type of the function chain.
  */
-template <typename ValueType_, typename Stack_ = FunctionStack<ValueType_> >
+template <typename ValueType_,
+          typename Stack_ = tlx::FunctionStack<ValueType_> >
 class DIA
 {
     friend class Context;
@@ -126,7 +158,7 @@ public:
     //! base item type StackInput which is transformed by the function stack
     //! lambdas further. But even pushing more lambdas does not change the stack
     //! input type.
-    using DIANodePtr = common::CountingPtr<DIANode<StackInput> >;
+    using DIANodePtr = tlx::CountingPtr<DIANode<StackInput> >;
 
     //! default-constructor: invalid DIA
     DIA() = default;
@@ -177,7 +209,7 @@ public:
      * DIANode, LOps link to the DIANode of the previous DIA.
       */
     explicit DIA(DIANodePtr&& node)
-        : DIA(std::move(node), FunctionStack<ValueType>(),
+        : DIA(std::move(node), tlx::FunctionStack<ValueType>(),
               node->id(), node->label()) { }
 
     /*!
@@ -298,7 +330,7 @@ public:
      * \ingroup dia_lops
      */
     template <typename MapFunction>
-    auto Map(const MapFunction &map_function) const {
+    auto Map(const MapFunction& map_function) const {
         assert(IsValid());
 
         using MapArgument
@@ -343,7 +375,7 @@ public:
      * \ingroup dia_lops
      */
     template <typename FilterFunction>
-    auto Filter(const FilterFunction &filter_function) const {
+    auto Filter(const FilterFunction& filter_function) const {
         assert(IsValid());
 
         using FilterArgument
@@ -394,7 +426,7 @@ public:
      * \ingroup dia_lops
      */
     template <typename ResultType = ValueType, typename FlatmapFunction>
-    auto FlatMap(const FlatmapFunction &flatmap_function) const {
+    auto FlatMap(const FlatmapFunction& flatmap_function) const {
         assert(IsValid());
 
         size_t new_id = context().next_dia_id();
@@ -432,7 +464,7 @@ public:
      * \ingroup dia_lops
      */
     template <typename SecondDIA>
-    auto Union(const SecondDIA &second_dia) const;
+    auto Union(const SecondDIA& second_dia) const;
 
     //! \}
 
@@ -753,8 +785,8 @@ public:
     template <typename KeyExtractor, typename ReduceFunction,
               typename ReduceConfig = class DefaultReduceConfig>
     auto ReduceByKey(
-        const KeyExtractor &key_extractor,
-        const ReduceFunction &reduce_function,
+        const KeyExtractor& key_extractor,
+        const ReduceFunction& reduce_function,
         const ReduceConfig& reduce_config = ReduceConfig()) const;
 
     /*!
@@ -789,10 +821,10 @@ public:
     template <typename KeyExtractor, typename ReduceFunction,
               typename ReduceConfig, typename KeyHashFunction>
     auto ReduceByKey(
-        const KeyExtractor &key_extractor,
-        const ReduceFunction &reduce_function,
-        const ReduceConfig &reduce_config,
-        const KeyHashFunction &key_hash_function) const;
+        const KeyExtractor& key_extractor,
+        const ReduceFunction& reduce_function,
+        const ReduceConfig& reduce_config,
+        const KeyHashFunction& key_hash_function) const;
 
     /*!
      * ReduceByKey is a DOp, which groups elements of the DIA with the
@@ -829,11 +861,11 @@ public:
               typename ReduceConfig,
               typename KeyHashFunction, typename KeyEqualFunction>
     auto ReduceByKey(
-        const KeyExtractor &key_extractor,
-        const ReduceFunction &reduce_function,
-        const ReduceConfig &reduce_config,
-        const KeyHashFunction &key_hash_function,
-        const KeyEqualFunction &key_equal_function) const;
+        const KeyExtractor& key_extractor,
+        const ReduceFunction& reduce_function,
+        const ReduceConfig& reduce_config,
+        const KeyHashFunction& key_hash_function,
+        const KeyEqualFunction& key_equal_function) const;
 
     /*!
      * ReduceByKey is a DOp, which groups elements of the DIA with the
@@ -849,42 +881,7 @@ public:
      * DIA consists of the PostOp of Reduce, as a reduced element can directly
      * be chained to the following LOps.
      *
-     * \param key_extractor Key extractor function, which maps each element to a
-     * key of possibly different type.
-     *
-     * \tparam ReduceFunction Type of the reduce_function. This is a function
-     * reducing two elements of L's result type to a single element of equal
-     * type.
-     *
-     * \param reduce_function Reduce function, which defines how the key buckets
-     * are reduced to a single element. This function is applied associative but
-     * not necessarily commutative.
-     *
-     * \param reduce_config Reduce configuration.
-     *
-     * \ingroup dia_dops
-     */
-    template <typename KeyExtractor, typename ReduceFunction,
-              typename ReduceConfig = class DefaultReduceConfig>
-    auto ReduceByKey(
-        struct VolatileKeyTag const &,
-        const KeyExtractor &key_extractor,
-        const ReduceFunction &reduce_function,
-        const ReduceConfig& reduce_config = ReduceConfig()) const;
-
-    /*!
-     * ReduceByKey is a DOp, which groups elements of the DIA with the
-     * key_extractor and reduces each key-bucket to a single element using the
-     * associative reduce_function. The reduce_function defines how two elements
-     * can be reduced to a single element of equal type.
-     *
-     * In contrast to ReduceBy, the reduce_function is allowed to change the key
-     * (Example: Integers with modulo function as key_extractor). Creates
-     * overhead as both key and value have to be sent in shuffle step. Since
-     * ReduceByKey is a DOp, it creates a new DIANode. The DIA returned by
-     * Reduce links to this newly created DIANode. The stack_ of the returned
-     * DIA consists of the PostOp of Reduce, as a reduced element can directly
-     * be chained to the following LOps.
+     * \param volatile_key_tag tag
      *
      * \param key_extractor Key extractor function, which maps each element to a
      * key of possibly different type.
@@ -901,16 +898,74 @@ public:
      *
      * \param key_hash_function Function to hash keys extracted by KeyExtractor.
      *
+     * \param key_equal_function Function to compare keys in reduce hash tables.
+     *
      * \ingroup dia_dops
      */
-    template <typename KeyExtractor, typename ReduceFunction,
-              typename ReduceConfig, typename KeyHashFunction>
+    template <bool VolatileKeyValue,
+              typename KeyExtractor, typename ReduceFunction,
+              typename ReduceConfig = class DefaultReduceConfig,
+              typename KeyHashFunction =
+                  std::hash<typename FunctionTraits<KeyExtractor>::result_type>,
+              typename KeyEqualFunction =
+                  std::equal_to<typename FunctionTraits<KeyExtractor>::result_type> >
     auto ReduceByKey(
-        struct VolatileKeyTag const &,
-        const KeyExtractor &key_extractor,
-        const ReduceFunction &reduce_function,
-        const ReduceConfig &reduce_config,
-        const KeyHashFunction &key_hash_function) const;
+        const VolatileKeyFlag<VolatileKeyValue>&,
+        const KeyExtractor& key_extractor,
+        const ReduceFunction& reduce_function,
+        const ReduceConfig& reduce_config = ReduceConfig(),
+        const KeyHashFunction& key_hash_function = KeyHashFunction(),
+        const KeyEqualFunction& key_equal_function = KeyEqualFunction()) const;
+
+    /*!
+     * ReduceByKey is a DOp, which groups elements of the DIA with the
+     * key_extractor and reduces each key-bucket to a single element using the
+     * associative reduce_function. The reduce_function defines how two elements
+     * can be reduced to a single element of equal type.
+     *
+     * In contrast to ReduceBy, the reduce_function is allowed to change the key
+     * (Example: Integers with modulo function as key_extractor). Creates
+     * overhead as both key and value have to be sent in shuffle step. Since
+     * ReduceByKey is a DOp, it creates a new DIANode. The DIA returned by
+     * Reduce links to this newly created DIANode. The stack_ of the returned
+     * DIA consists of the PostOp of Reduce, as a reduced element can directly
+     * be chained to the following LOps.
+     *
+     * \param volatile_key_tag tag
+     *
+     * \param key_extractor Key extractor function, which maps each element to a
+     * key of possibly different type.
+     *
+     * \tparam ReduceFunction Type of the reduce_function. This is a function
+     * reducing two elements of L's result type to a single element of equal
+     * type.
+     *
+     * \param reduce_function Reduce function, which defines how the key buckets
+     * are reduced to a single element. This function is applied associative but
+     * not necessarily commutative.
+     *
+     * \param reduce_config Reduce configuration.
+     *
+     * \param key_hash_function Function to hash keys extracted by KeyExtractor.
+     *
+     * \param key_equal_function Function to compare keys in reduce hash tables.
+     *
+     * \ingroup dia_dops
+     */
+    template <bool DuplicateDetectionValue,
+              typename KeyExtractor, typename ReduceFunction,
+              typename ReduceConfig = class DefaultReduceConfig,
+              typename KeyHashFunction =
+                  std::hash<typename FunctionTraits<KeyExtractor>::result_type>,
+              typename KeyEqualFunction =
+                  std::equal_to<typename FunctionTraits<KeyExtractor>::result_type> >
+    auto ReduceByKey(
+        const DuplicateDetectionFlag<DuplicateDetectionValue>&,
+        const KeyExtractor& key_extractor,
+        const ReduceFunction& reduce_function,
+        const ReduceConfig& reduce_config = ReduceConfig(),
+        const KeyHashFunction& key_hash_function = KeyHashFunction(),
+        const KeyEqualFunction& key_equal_function = KeyEqualFunction()) const;
 
     /*!
      * ReduceByKey is a DOp, which groups elements of the DIA with the
@@ -945,16 +1000,22 @@ public:
      *
      * \ingroup dia_dops
      */
-    template <typename KeyExtractor, typename ReduceFunction,
-              typename ReduceConfig,
-              typename KeyHashFunction, typename KeyEqualFunction>
+    template <bool VolatileKeyValue,
+              bool DuplicateDetectionValue,
+              typename KeyExtractor, typename ReduceFunction,
+              typename ReduceConfig = class DefaultReduceConfig,
+              typename KeyHashFunction =
+                  std::hash<typename FunctionTraits<KeyExtractor>::result_type>,
+              typename KeyEqualFunction =
+                  std::equal_to<typename FunctionTraits<KeyExtractor>::result_type> >
     auto ReduceByKey(
-        struct VolatileKeyTag const &,
-        const KeyExtractor &key_extractor,
-        const ReduceFunction &reduce_function,
-        const ReduceConfig &reduce_config,
-        const KeyHashFunction &key_hash_function,
-        const KeyEqualFunction &key_equal_function) const;
+        const VolatileKeyFlag<VolatileKeyValue>&,
+        const DuplicateDetectionFlag<DuplicateDetectionValue>&,
+        const KeyExtractor& key_extractor,
+        const ReduceFunction& reduce_function,
+        const ReduceConfig& reduce_config = ReduceConfig(),
+        const KeyHashFunction& key_hash_function = KeyHashFunction(),
+        const KeyEqualFunction& key_equal_function = KeyEqualFunction()) const;
 
     /*!
      * ReducePair is a DOp, which groups key-value-pairs in the input DIA by
@@ -981,7 +1042,7 @@ public:
     template <typename ReduceFunction,
               typename ReduceConfig = class DefaultReduceConfig>
     auto ReducePair(
-        const ReduceFunction &reduce_function,
+        const ReduceFunction& reduce_function,
         const ReduceConfig& reduce_config = ReduceConfig()) const;
 
     /*!
@@ -1008,13 +1069,12 @@ public:
      *
      * \ingroup dia_dops
      */
-    template <typename ReduceFunction,
-              typename ReduceConfig,
+    template <typename ReduceFunction, typename ReduceConfig,
               typename KeyHashFunction>
     auto ReducePair(
-        const ReduceFunction &reduce_function,
-        const ReduceConfig &reduce_config,
-        const KeyHashFunction &key_hash_function) const;
+        const ReduceFunction& reduce_function,
+        const ReduceConfig& reduce_config,
+        const KeyHashFunction& key_hash_function) const;
 
     /*!
      * ReducePair is a DOp, which groups key-value-pairs in the input DIA by
@@ -1042,14 +1102,52 @@ public:
      *
      * \ingroup dia_dops
      */
-    template <typename ReduceFunction,
-              typename ReduceConfig,
+    template <typename ReduceFunction, typename ReduceConfig,
               typename KeyHashFunction, typename KeyEqualFunction>
     auto ReducePair(
-        const ReduceFunction &reduce_function,
-        const ReduceConfig &reduce_config,
-        const KeyHashFunction &key_hash_function,
-        const KeyEqualFunction &key_equal_function) const;
+        const ReduceFunction& reduce_function,
+        const ReduceConfig& reduce_config,
+        const KeyHashFunction& key_hash_function,
+        const KeyEqualFunction& key_equal_function) const;
+
+    /*!
+     * ReducePair is a DOp, which groups key-value-pairs in the input DIA by
+     * their key and reduces each key-bucket to a single element using the
+     * associative reduce_function. The reduce_function defines how two elements
+     * can be reduced to a single element of equal type. The reduce_function is
+     * allowed to change the key. Since ReducePair is a DOp, it creates a new
+     * DIANode. The DIA returned by Reduce links to this newly created
+     * DIANode. The stack_ of the returned DIA consists of the PostOp of Reduce,
+     * as a reduced element can directly be chained to the following LOps.
+     *
+     * \tparam ReduceFunction Type of the reduce_function. This is a function
+     * reducing two elements of L's result type to a single element of equal
+     * type.
+     *
+     * \param reduce_function Reduce function, which defines how the key buckets
+     * are reduced to a single element. This function is applied associative but
+     * not necessarily commutative.
+     *
+     * \param reduce_config Reduce configuration.
+     *
+     * \param key_hash_function Function to hash keys extracted by KeyExtractor.
+     *
+     * \param key_equal_function Function to compare keys in reduce hash tables.
+     *
+     * \ingroup dia_dops
+     */
+    template <bool DuplicateDetectionValue,
+              typename ReduceFunction,
+              typename ReduceConfig = class DefaultReduceConfig,
+              typename KeyHashFunction,
+              typename KeyEqualFunction
+              >
+    auto ReducePair(
+        const DuplicateDetectionFlag<DuplicateDetectionValue>&,
+        const ReduceFunction& reduce_function,
+        const ReduceConfig& reduce_config = ReduceConfig(),
+        const KeyHashFunction& key_hash_function = KeyHashFunction(),
+        const KeyEqualFunction& key_equal_function = KeyEqualFunction()) const;
 
     /*!
      * ReduceToIndex is a DOp, which groups elements of the DIA with the
@@ -1090,8 +1188,8 @@ public:
     template <typename KeyExtractor, typename ReduceFunction,
               typename ReduceConfig = class DefaultReduceToIndexConfig>
     auto ReduceToIndex(
-        const KeyExtractor &key_extractor,
-        const ReduceFunction &reduce_function,
+        const KeyExtractor& key_extractor,
+        const ReduceFunction& reduce_function,
         size_t size,
         const ValueType& neutral_element = ValueType(),
         const ReduceConfig& reduce_config = ReduceConfig()) const;
@@ -1133,12 +1231,13 @@ public:
      *
      * \ingroup dia_dops
      */
-    template <typename KeyExtractor, typename ReduceFunction,
+    template <bool VolatileKeyValue,
+              typename KeyExtractor, typename ReduceFunction,
               typename ReduceConfig = class DefaultReduceToIndexConfig>
     auto ReduceToIndex(
-        struct VolatileKeyTag const &,
-        const KeyExtractor &key_extractor,
-        const ReduceFunction &reduce_function,
+        const VolatileKeyFlag<VolatileKeyValue>&,
+        const KeyExtractor& key_extractor,
+        const ReduceFunction& reduce_function,
         size_t size,
         const ValueType& neutral_element = ValueType(),
         const ReduceConfig& reduce_config = ReduceConfig()) const;
@@ -1174,10 +1273,89 @@ public:
      * \ingroup dia_dops
      */
     template <typename ValueOut, typename KeyExtractor,
-              typename GroupByFunction, typename HashFunction =
-                  std::hash<typename FunctionTraits<KeyExtractor>::result_type> >
-    auto GroupByKey(const KeyExtractor &key_extractor,
-                    const GroupByFunction &groupby_function) const;
+              typename GroupByFunction>
+    auto GroupByKey(const KeyExtractor& key_extractor,
+                    const GroupByFunction& groupby_function) const;
+
+    /*!
+     * GroupByKey is a DOp, which groups elements of the DIA by its key.
+     * After having grouped all elements of one key, all elements of one key
+     * will be processed according to the GroupByFunction and returns an output
+     * Contrary to Reduce, GroupBy allows usage of functions that require all
+     * elements of one key at once as GroupByFunction will be applied _after_
+     * all elements with the same key have been grouped. However because of this
+     * reason, the communication overhead is also higher. If possible, usage of
+     * Reduce is therefore recommended.
+     *
+     * As GroupBy is a DOp, it creates a new DIANode. The DIA returned by
+     * Reduce links to this newly created DIANode. The stack_ of the returned
+     * DIA consists of the PostOp of Reduce, as a reduced element can
+     * directly be chained to the following LOps.
+     *
+     * \tparam KeyExtractor Type of the key_extractor function.
+     * The key_extractor function is equal to a map function.
+     *
+     * \param key_extractor Key extractor function, which maps each element to a
+     * key of possibly different type.
+     *
+     * \tparam GroupByFunction Type of the groupby_function. This is a function
+     * taking an iterator for all elements of the same key as input.
+     *
+     * \param groupby_function Reduce function, which defines how the key
+     * buckets are grouped and processed.
+     *      input param: api::GroupByReader with functions HasNext() and Next()
+     *
+     * \param hash_function Hash method for Keys
+     *
+     * \ingroup dia_dops
+     */
+    template <typename ValueOut, typename KeyExtractor,
+              typename GroupByFunction, typename HashFunction>
+    auto GroupByKey(const KeyExtractor& key_extractor,
+                    const GroupByFunction& groupby_function,
+                    const HashFunction& hash_function) const;
+
+    /*!
+     * GroupByKey is a DOp, which groups elements of the DIA by its key.
+     * After having grouped all elements of one key, all elements of one key
+     * will be processed according to the GroupByFunction and returns an output
+     * Contrary to Reduce, GroupBy allows usage of functions that require all
+     * elements of one key at once as GroupByFunction will be applied _after_
+     * all elements with the same key have been grouped. However because of this
+     * reason, the communication overhead is also higher. If possible, usage of
+     * Reduce is therefore recommended.
+     *
+     * As GroupBy is a DOp, it creates a new DIANode. The DIA returned by
+     * Reduce links to this newly created DIANode. The stack_ of the returned
+     * DIA consists of the PostOp of Reduce, as a reduced element can
+     * directly be chained to the following LOps.
+     *
+     * \tparam KeyExtractor Type of the key_extractor function.
+     * The key_extractor function is equal to a map function.
+     *
+     * \param key_extractor Key extractor function, which maps each element to a
+     * key of possibly different type.
+     *
+     * \tparam GroupByFunction Type of the groupby_function. This is a function
+     * taking an iterator for all elements of the same key as input.
+     *
+     * \param groupby_function Reduce function, which defines how the key
+     * buckets are grouped and processed.
+     *      input param: api::GroupByReader with functions HasNext() and Next()
+     *
+     * \param hash_function Hash method for Keys
+     *
+     * \ingroup dia_dops
+     */
+    template <typename ValueOut, bool LocationDetectionTagValue,
+              typename KeyExtractor, typename GroupByFunction,
+              typename HashFunction =
+                  std::hash<typename FunctionTraits<KeyExtractor>::result_type>
+              >
+    auto GroupByKey(const LocationDetectionFlag<LocationDetectionTagValue>&,
+                    const KeyExtractor& key_extractor,
+                    const GroupByFunction& groupby_function,
+                    const HashFunction& hash_function = HashFunction()) const;
 
     /*!
      * GroupBy is a DOp, which groups elements of the DIA by its key.
@@ -1219,8 +1397,8 @@ public:
      */
     template <typename ValueOut, typename KeyExtractor,
               typename GroupByFunction>
-    auto GroupToIndex(const KeyExtractor &key_extractor,
-                      const GroupByFunction &groupby_function,
+    auto GroupToIndex(const KeyExtractor& key_extractor,
+                      const GroupByFunction& groupby_function,
                       const size_t size,
                       const ValueOut& neutral_element = ValueOut()) const;
 
@@ -1245,8 +1423,8 @@ public:
      * \ingroup dia_dops
      */
     template <typename ZipFunction, typename SecondDIA>
-    auto Zip(const SecondDIA &second_dia,
-             const ZipFunction &zip_function) const;
+    auto Zip(const SecondDIA& second_dia,
+             const ZipFunction& zip_function) const;
 
     /*!
      * Zips two DIAs in style of functional programming by applying zip_function
@@ -1269,8 +1447,8 @@ public:
      * \ingroup dia_dops
      */
     template <typename ZipFunction, typename SecondDIA>
-    auto Zip(struct CutTag const &, const SecondDIA &second_dia,
-             const ZipFunction &zip_function) const;
+    auto Zip(struct CutTag const&, const SecondDIA& second_dia,
+             const ZipFunction& zip_function) const;
 
     /*!
      * Zips two DIAs in style of functional programming by applying zip_function
@@ -1293,8 +1471,8 @@ public:
      * \ingroup dia_dops
      */
     template <typename ZipFunction, typename SecondDIA>
-    auto Zip(struct PadTag const &, const SecondDIA &second_dia,
-             const ZipFunction &zip_function) const;
+    auto Zip(struct PadTag const&, const SecondDIA& second_dia,
+             const ZipFunction& zip_function) const;
 
     /*!
      * Zips two DIAs in style of functional programming by applying zip_function
@@ -1319,8 +1497,8 @@ public:
      * \ingroup dia_dops
      */
     template <typename ZipFunction, typename SecondDIA>
-    auto Zip(struct NoRebalanceTag const &, const SecondDIA &second_dia,
-             const ZipFunction &zip_function) const;
+    auto Zip(struct NoRebalanceTag const&, const SecondDIA& second_dia,
+             const ZipFunction& zip_function) const;
 
     /*!
      * Zips each item of a DIA with its zero-based array index. This requires a
@@ -1333,7 +1511,7 @@ public:
      * \ingroup dia_dops
      */
     template <typename ZipFunction>
-    auto ZipWithIndex(const ZipFunction &zip_function) const;
+    auto ZipWithIndex(const ZipFunction& zip_function) const;
 
     /*!
      * Sort is a DOp, which sorts a given DIA according to the given compare_function.
@@ -1364,8 +1542,8 @@ public:
      * \ingroup dia_dops
      */
     template <typename CompareFunction, typename SortFunction>
-    auto Sort(const CompareFunction &compare_function,
-              const SortFunction &sort_algorithm) const;
+    auto Sort(const CompareFunction& compare_function,
+              const SortFunction& sort_algorithm) const;
 
     /*!
      * Merge is a DOp, which merges two sorted DIAs to a single sorted DIA.
@@ -1382,7 +1560,7 @@ public:
      * \ingroup dia_dops
      */
     template <typename Comparator = std::less<ValueType>, typename SecondDIA>
-    auto Merge(const SecondDIA &second_dia,
+    auto Merge(const SecondDIA& second_dia,
                const Comparator& comparator = Comparator()) const;
 
     /*!
@@ -1430,8 +1608,8 @@ public:
      */
     template <typename WindowFunction, typename PartialWindowFunction>
     auto Window(size_t window_size,
-                const WindowFunction &window_function,
-                const PartialWindowFunction &partial_window_function) const;
+                const WindowFunction& window_function,
+                const PartialWindowFunction& partial_window_function) const;
 
     /*!
      * Window is a DOp, which applies a window function to every k
@@ -1445,8 +1623,8 @@ public:
      * \ingroup dia_dops
      */
     template <typename WindowFunction>
-    auto Window(struct DisjointTag const &, size_t window_size,
-                const WindowFunction &window_function) const;
+    auto Window(struct DisjointTag const&, size_t window_size,
+                const WindowFunction& window_function) const;
 
     /*!
      * FlatWindow is a DOp, which applies a window function to every k
@@ -1481,8 +1659,8 @@ public:
     template <typename ValueOut, typename WindowFunction,
               typename PartialWindowFunction>
     auto FlatWindow(size_t window_size,
-                    const WindowFunction &window_function,
-                    const PartialWindowFunction &partial_window_function) const;
+                    const WindowFunction& window_function,
+                    const PartialWindowFunction& partial_window_function) const;
 
     /*!
      * FlatWindow is a DOp, which applies a window function to every k
@@ -1496,8 +1674,8 @@ public:
      * \ingroup dia_dops
      */
     template <typename ValueOut, typename WindowFunction>
-    auto FlatWindow(struct DisjointTag const &, size_t window_size,
-                    const WindowFunction &window_function) const;
+    auto FlatWindow(struct DisjointTag const&, size_t window_size,
+                    const WindowFunction& window_function) const;
 
     /*!
      * Concat is a DOp, which concatenates any number of DIAs to a single DIA.
@@ -1510,7 +1688,7 @@ public:
      * \ingroup dia_dops
      */
     template <typename SecondDIA>
-    auto Concat(const SecondDIA &second_dia) const;
+    auto Concat(const SecondDIA& second_dia) const;
 
     /*!
      * Rebalance is a DOp, which rebalances a single DIA among all workers; in
@@ -1572,7 +1750,13 @@ using api::DIA;
 using api::DisjointTag;
 
 //! imported from api namespace
+using api::VolatileKeyFlag;
+
+//! imported from api namespace
 using api::VolatileKeyTag;
+
+//! imported from api namespace
+using api::NoVolatileKeyTag;
 
 //! imported from api namespace
 using api::CutTag;
@@ -1582,6 +1766,24 @@ using api::PadTag;
 
 //! imported from api namespace
 using api::NoRebalanceTag;
+
+//! imported from api namespace
+using api::DuplicateDetectionFlag;
+
+//! imported from api namespace
+using api::DuplicateDetectionTag;
+
+//! imported from api namespace
+using api::NoDuplicateDetectionTag;
+
+//! imported from api namespace
+using api::LocationDetectionFlag;
+
+//! imported from api namespace
+using api::LocationDetectionTag;
+
+//! imported from api namespace
+using api::NoLocationDetectionTag;
 
 } // namespace thrill
 

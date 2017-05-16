@@ -8,9 +8,11 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/json_logger.hpp>
 #include <thrill/common/logger.hpp>
+#include <tlx/cmdline_parser.hpp>
+#include <tlx/string/escape_html.hpp>
+#include <tlx/string/format_si_iec_units.hpp>
 
 #include <cereal/external/rapidjson/document.h>
 #include <cereal/external/rapidjson/stringbuffer.h>
@@ -18,6 +20,7 @@
 
 #include <algorithm>
 #include <fstream>
+#include <iostream>
 #include <limits>
 #include <map>
 #include <string>
@@ -26,7 +29,7 @@
 #include <vector>
 
 using namespace thrill; // NOLINT
-using common::EscapeHtml;
+using tlx::escape_html;
 
 static inline uint32_t GetUint32(const rapidjson::Document& d, const char* key) {
     if (!d[key].IsUint()) return 0;
@@ -93,7 +96,11 @@ public:
 
 std::vector<CCmdline> c_Cmdline;
 
+//! static: the title shown over the plot
 std::string s_title;
+
+//! static: whether to show more detailed tables
+bool s_detail_tables = false;
 
 static inline
 std::string GetProgramName() {
@@ -248,7 +255,7 @@ public:
     }
 
     friend std::ostream& operator << (std::ostream& os, const CDIABase& c) {
-        return os << EscapeHtml(c.label) << '.' << c.id;
+        return os << escape_html(c.label) << '.' << c.id;
     }
 };
 
@@ -720,7 +727,7 @@ void AddStageLines(common::JsonLine& xAxis) {
 /******************************************************************************/
 
 template <typename Stats, typename Select>
-auto CalcSum(const std::vector<Stats>&c_Stats, const Select &select)
+auto CalcSum(const std::vector<Stats>& c_Stats, const Select& select)
 ->decltype(select(c_Stats[0])) {
     if (c_Stats.size() == 0) return 0;
 
@@ -732,7 +739,7 @@ auto CalcSum(const std::vector<Stats>&c_Stats, const Select &select)
 }
 
 template <typename Stats, typename Select>
-auto CalcAverage(const std::vector<Stats>&c_Stats, const Select &select)
+auto CalcAverage(const std::vector<Stats>& c_Stats, const Select& select)
 ->decltype(select(c_Stats[0])) {
     if (c_Stats.size() == 0) return 0;
 
@@ -768,7 +775,7 @@ std::string PageMain() {
     oss << "    <script src=\"https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.min.js\"></script>\n";
     oss << "    <![endif]-->\n";
     oss << "    \n";
-    oss << "    <title>" << EscapeHtml(GetProgramName()) << "</title>\n";
+    oss << "    <title>" << escape_html(GetProgramName()) << "</title>\n";
     oss << "  </head>\n";
     oss << "\n";
     oss << "<body>\n";
@@ -1081,13 +1088,13 @@ std::string PageMain() {
 
     auto two_cells_IEC =
         [&oss](const auto& v) {
-            oss << "<td>" << common::FormatIecUnits(v) << "B</td>";
+            oss << "<td>" << tlx::format_iec_units(v) << "B</td>";
             oss << "<td>" << std::fixed << v << " B</td>";
         };
 
     auto two_cells_IEC_per_sec =
         [&oss](const auto& v) {
-            oss << "<td>" << common::FormatIecUnits(v) << "B/s</td>";
+            oss << "<td>" << tlx::format_iec_units(v) << "B/s</td>";
             oss << "<td>" << std::fixed << v << " B/s</td>";
         };
 
@@ -1270,7 +1277,7 @@ std::string PageMain() {
 
     /**************************************************************************/
 
-    if (c_Stream.size() != 0)
+    if (s_detail_tables && c_Stream.size() != 0)
     {
         oss << "<h2>Stream Details</h2>\n";
 
@@ -1290,7 +1297,7 @@ std::string PageMain() {
 
     /**************************************************************************/
 
-    if (c_File.size() != 0)
+    if (s_detail_tables && c_File.size() != 0)
     {
         oss << "<h2>File Details</h2>\n";
 
@@ -1366,22 +1373,24 @@ std::string ResultLines() {
 /******************************************************************************/
 
 int main(int argc, char* argv[]) {
-    common::CmdlineParser clp;
-    clp.SetDescription("Thrill Json Profile Parser");
+    tlx::CmdlineParser clp;
+    clp.set_description("Thrill Json Profile Parser");
 
     std::vector<std::string> inputs;
-    clp.AddOptParamStringlist("inputs", inputs, "json inputs");
+    clp.add_opt_param_stringlist("inputs", inputs, "json inputs");
 
-    clp.AddString('t', "title", s_title, "override title");
+    clp.add_string('t', "title", s_title, "override title");
+
+    clp.add_bool('d', "detail", s_detail_tables, "show detail tables");
 
     bool output_RESULT_lines = false;
-    clp.AddFlag('r', "result", output_RESULT_lines,
-                "output data as RESULT lines");
+    clp.add_bool('r', "result", output_RESULT_lines,
+                 "output data as RESULT lines");
 
-    if (!clp.Process(argc, argv)) return -1;
+    if (!clp.process(argc, argv)) return -1;
 
     if (inputs.size() == 0) {
-        clp.PrintUsage(std::cerr);
+        clp.print_usage(std::cerr);
         std::cerr << "No paths given, reading json from stdin." << std::endl;
         inputs.push_back("stdin");
         LoadJsonProfile(std::cin);

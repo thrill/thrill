@@ -31,6 +31,10 @@ void SysGlob(const std::string& path, const GlobType& gtype,
  * calling a decompressor in a pipe, like "cat $f | gzip -dc |" in bash.
  *
  * \param path Path to open
+ *
+ * \param range Byte range to read. begin of range is use to seek to, end can be
+ * 0 for reading the whole file. Depending on the underlying fs, one can read
+ * past end without errors, it is not enforced.
  */
 ReadStreamPtr SysOpenReadStream(
     const std::string& path, const common::Range& range = common::Range());

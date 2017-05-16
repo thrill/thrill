@@ -163,6 +163,8 @@ size_t Pool::bytes_per_arena(size_t arena_size) {
 }
 
 void* Pool::allocate(size_t bytes) {
+    return malloc(bytes);
+
     std::unique_lock<std::mutex> lock(mutex_);
 
     if (debug) {
@@ -268,6 +270,8 @@ void* Pool::allocate(size_t bytes) {
 }
 
 void Pool::deallocate(void* ptr, size_t bytes) {
+    return free(ptr);
+
     if (ptr == nullptr) return;
 
     std::unique_lock<std::mutex> lock(mutex_);

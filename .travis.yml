@@ -42,7 +42,7 @@ matrix:
       addons: *gcc5
 
     # clang 3.7 without AddressSanitizer, Debug & Release
-    - env: CMAKE_CC="clang-3.7" CMAKE_CXX="clang++-3.7" BUILD_TYPE="Debug" COMPILER_FLAGS="" CMAKE_ARGS="-DTHRILL_FULL_BUILD=ON"
+    - env: CMAKE_CC="clang-3.7" CMAKE_CXX="clang++-3.7" BUILD_TYPE="Debug" COMPILER_FLAGS="" CMAKE_ARGS="-DTHRILL_FULL_BUILD=ON" BUILD_DOXYGEN="1"
       os: linux
       addons: &clang37
         apt:
@@ -56,6 +56,8 @@ matrix:
             - clang-3.7
             - libbz2-dev
             - libssl-dev
+            - doxygen
+            - graphviz
 
     # clang 3.7 without AddressSanitizer (there are some system-dependent LeakSanitizer errors)
     - env: CMAKE_CC="clang-3.7" CMAKE_CXX="clang++-3.7" BUILD_TYPE="Release" COMPILER_FLAGS="" CMAKE_ARGS="-DTHRILL_FULL_BUILD=ON"
@@ -97,6 +99,7 @@ before_script:
       -DCMAKE_C_COMPILER="$CMAKE_CC" -DCMAKE_CXX_COMPILER="$CMAKE_CXX"
       -DCMAKE_C_FLAGS="$COMPILER_FLAGS" -DCMAKE_CXX_FLAGS="$COMPILER_FLAGS"
       -DTHRILL_BUILD_EXAMPLES=ON -DTHRILL_BUILD_TESTS=ON
+      -DTHRILL_TRY_COMPILE_HEADERS=ON
       $CMAKE_ARGS ..
 
 script:
@@ -109,3 +112,10 @@ script:
       -DCTEST_SITE:STRING="travis-$TRAVIS_REPO_SLUG"
       -DCTEST_BUILD_NAME:STRING="$TRAVIS_OS_NAME-$CMAKE_CC-$BUILD_TYPE"
       -S ../misc/cmake/script.ctest -VV
+
+# Generate and deploy documentation
+after_success:
+  - cd $TRAVIS_BUILD_DIR
+  - if [ -n "$BUILD_DOXYGEN" -a "$TRAVIS_REPO_SLUG" == "thrill/thrill" -a "$TRAVIS_BRANCH" == "master" ]; then
+      ./misc/doxygen/mk-doxygen-travis.sh;
+    fi

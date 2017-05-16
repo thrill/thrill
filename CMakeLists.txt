@@ -100,13 +100,11 @@ if(NOT MSVC)
   # enable more warnings
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wpedantic")
 
-  # enable -march=native on Release builds
-  if(CMAKE_BUILD_TYPE STREQUAL "Release")
-    include(CheckCXXCompilerFlag)
-    check_cxx_compiler_flag(-march=native THRILL_HAS_MARCH_NATIVE)
-    if(THRILL_HAS_MARCH_NATIVE)
-      set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native")
-    endif()
+  # enable -march=native on Debug and Release builds
+  include(CheckCXXCompilerFlag)
+  check_cxx_compiler_flag("-march=native" THRILL_HAS_MARCH_NATIVE)
+  if(THRILL_HAS_MARCH_NATIVE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
   endif()
 
   # remove -rdynamic from linker flags (smaller binaries which cannot be loaded
@@ -384,6 +382,11 @@ list(APPEND THRILL_LINK_LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
 
 list(APPEND THRILL_LINK_LIBRARIES ${CMAKE_DL_LIBS})
 
+# use tlx
+
+add_subdirectory(extlib/tlx)
+list(APPEND THRILL_LINK_LIBRARIES tlx)
+
 # try to find jemalloc (optional)
 
 if(THRILL_USE_JEMALLOC)
@@ -545,7 +548,7 @@ endif()
 if(THRILL_USE_MPI)
   find_package(MPI REQUIRED)
 
-  list(APPEND THRILL_DEFINITIONS "THRILL_HAVE_HAVE_NET_MPI=1")
+  list(APPEND THRILL_DEFINITIONS "THRILL_HAVE_NET_MPI=1")
   list(APPEND THRILL_INCLUDE_DIRS ${MPI_INCLUDE_PATH})
   list(APPEND THRILL_LINK_LIBRARIES ${MPI_LIBRARIES})
 endif()
@@ -651,29 +654,43 @@ add_subdirectory(misc)
 
 if(THRILL_TRY_COMPILE_HEADERS)
 
-  include(CheckCXXSourceCompiles)
-  set(CMAKE_REQUIRED_FLAGS ${CMAKE_CXX_FLAGS})
-  set(CMAKE_REQUIRED_INCLUDES ${CMAKE_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/extlib/cereal/include)
-  set(CMAKE_REQUIRED_LIBRARIES
-    ${CMAKE_BINARY_DIR}/thrill/libthrill.a ${THRILL_LINK_LIBRARIES})
+  file(MAKE_DIRECTORY "${PROJECT_BINARY_DIR}/try_compile")
 
-  file(GLOB_RECURSE header_files FOLLOW_SYMLINKS "thrill/*.hpp")
-  list(SORT header_files)
+  file(GLOB_RECURSE header_files
+    RELATIVE "${PROJECT_SOURCE_DIR}" FOLLOW_SYMLINKS "thrill/*.hpp")
 
-  foreach(file ${header_files})
-    # replace / to _ to fix warnings
-    string(REPLACE "/" "_" compilename "${file}")
-    string(REPLACE "." "_" compilename "${compilename}")
+  # Define function to FILTER lists
+  function(GetFilteredList resultVar filter)
+    set(result)
+    foreach(ITR ${ARGN})
+      if(NOT (ITR MATCHES ${filter}))
+        list(APPEND result ${ITR})
+      endif()
+    endforeach()
+    set(${resultVar} ${result} PARENT_SCOPE)
+  endfunction()
 
-    check_cxx_source_compiles(
-      "#include \"${file}\"
-      int main() { return 0; }" IsSelfContained${compilename})
+  if(NOT MPI_FOUND)
+    GetFilteredList(header_files "^thrill/net/mpi/" ${header_files})
+  endif()
 
-    if(NOT IsSelfContained${compilename})
-      message(FATAL
-        "Compilation FAILED for ${file}\n\nCompiler output:\n${OUTPUT}")
-    endif()
+  foreach(header_file ${header_files})
+    # replace / and . with _ to get a valid target and file name
+    string(REPLACE "/" "_" compile_name "${header_file}")
+    string(REPLACE "." "_" compile_name "${compile_name}")
+
+    set(target_name "thrill_try_compile_${compile_name}")
+    set(source_name "${PROJECT_BINARY_DIR}/try_compile/${target_name}.cpp")
+
+    file(WRITE ${source_name}
+      "#include <${header_file}>
+       int main() { return 0; }")
+
+    add_executable(${target_name} ${source_name})
+    target_link_libraries(${target_name} thrill)
+    set_property(TARGET ${target_name}
+      PROPERTY RUNTIME_OUTPUT_DIRECTORY "try_compile/")
+
   endforeach()
 
 endif(THRILL_TRY_COMPILE_HEADERS)

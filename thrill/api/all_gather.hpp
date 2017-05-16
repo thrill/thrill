@@ -67,7 +67,12 @@ public:
     }
 
     bool OnPreOpFile(const data::File& file, size_t /* parent_index */) final {
-        if (!parent_stack_empty_) return false;
+        if (!parent_stack_empty_) {
+            LOGC(common::g_debug_push_file)
+                << "AllGather rejected File from parent "
+                << "due to non-empty function stack.";
+            return false;
+        }
         for (size_t i = 0; i < emitters_.size(); i++) {
             emitters_[i].AppendBlocks(file.blocks());
         }
@@ -115,7 +120,7 @@ std::vector<ValueType> DIA<ValueType, Stack>::AllGather() const {
 
     std::vector<ValueType> output;
 
-    auto node = common::MakeCounting<AllGatherNode>(
+    auto node = tlx::make_counting<AllGatherNode>(
         *this, &output, /* ownership */ false);
 
     node->RunScope();
@@ -129,7 +134,7 @@ void DIA<ValueType, Stack>::AllGather(std::vector<ValueType>* out_vector) const 
 
     using AllGatherNode = api::AllGatherNode<ValueType>;
 
-    auto node = common::MakeCounting<AllGatherNode>(
+    auto node = tlx::make_counting<AllGatherNode>(
         *this, out_vector, /* ownership */ false);
 
     node->RunScope();
@@ -144,7 +149,7 @@ DIA<ValueType, Stack>::AllGatherFuture() const {
 
     std::vector<ValueType>* output = new std::vector<ValueType>();
 
-    auto node = common::MakeCounting<AllGatherNode>(
+    auto node = tlx::make_counting<AllGatherNode>(
         *this, output, /* ownership */ true);
 
     return Future<std::vector<ValueType> >(node);

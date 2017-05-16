@@ -13,6 +13,8 @@
 #include <thrill/data/block_queue.hpp>
 #include <thrill/data/file.hpp>
 
+#include <tlx/string/hexdump.hpp>
+
 #include <algorithm>
 #include <functional>
 #include <string>
@@ -77,13 +79,18 @@ TEST_F(File, PutSomeItemsGetItems) {
         0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31,
         0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31,
         0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31,
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
         // fw.Put<uint16_t>(42);
         0x2A, 0x00
+#elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+        // fw.Put<uint16_t>(42);
+        0x00, 0x2A
+#endif
     };
 
     if (0) {
         for (size_t i = 0; i != file.num_blocks(); ++i) {
-            std::cout << common::Hexdump(file.block(i).PinWait(0).ToString())
+            std::cout << tlx::hexdump(file.block(i).PinWait(0).ToString())
                       << std::endl;
         }
     }

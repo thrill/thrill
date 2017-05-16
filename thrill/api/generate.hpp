@@ -82,8 +82,8 @@ private:
  * \ingroup dia_sources
  */
 template <typename GenerateFunction>
-auto Generate(Context & ctx, size_t size,
-              const GenerateFunction &generate_function) {
+auto Generate(Context& ctx, size_t size,
+              const GenerateFunction& generate_function) {
 
     using GenerateResult =
               typename common::FunctionTraits<GenerateFunction>::result_type;
@@ -102,7 +102,7 @@ auto Generate(Context & ctx, size_t size,
             >::value,
         "GenerateFunction needs a const unsigned long int& (aka. size_t) as input");
 
-    auto node = common::MakeCounting<GenerateNode>(
+    auto node = tlx::make_counting<GenerateNode>(
         ctx, generate_function, size);
 
     return DIA<GenerateResult>(node);
@@ -119,7 +119,7 @@ auto Generate(Context & ctx, size_t size,
  * \ingroup dia_sources
  */
 static inline
-auto Generate(Context & ctx, size_t size) {
+auto Generate(Context& ctx, size_t size) {
     return Generate(ctx, size, [](const size_t& index) { return index; });
 }
 

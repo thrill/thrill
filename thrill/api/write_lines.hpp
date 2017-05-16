@@ -61,7 +61,7 @@ public:
 
         max_buffer_size_ =
             std::min(data::default_block_size,
-                     common::RoundUpToPowerOfTwo(target_file_size_));
+                     tlx::round_up_to_power_of_two(target_file_size_));
 
         // close the function stack with our pre op and register it at parent
         // node for output
@@ -80,8 +80,8 @@ public:
     void PreOp(const std::string& input) {
         stats_total_elements_++;
 
-        if (THRILL_UNLIKELY(current_buffer_size_ + input.size() + 1
-                            >= max_buffer_size_)) {
+        if (TLX_UNLIKELY(current_buffer_size_ + input.size() + 1
+                         >= max_buffer_size_)) {
             stats_total_writes_++;
             stats_total_bytes_ += current_buffer_size_;
             timer.Start();
@@ -90,7 +90,7 @@ public:
             write_buffer_.set_size(0);
             current_file_size_ += current_buffer_size_;
             current_buffer_size_ = 0;
-            if (THRILL_UNLIKELY(current_file_size_ >= target_file_size_)) {
+            if (TLX_UNLIKELY(current_file_size_ >= target_file_size_)) {
                 LOG << "Closing file" << out_serial_;
                 stream_->close();
                 std::string new_path = vfs::FillFilePattern(
@@ -101,7 +101,7 @@ public:
             }
             // String is too long to fit into buffer, write directly, add '\n' to
             // start of next buffer.
-            if (THRILL_UNLIKELY(input.size() >= max_buffer_size_)) {
+            if (TLX_UNLIKELY(input.size() >= max_buffer_size_)) {
                 stats_total_writes_++;
                 stats_total_bytes_ += input.size();
                 current_file_size_ += input.size() + 1;
@@ -183,7 +183,7 @@ void DIA<ValueType, Stack>::WriteLines(
 
     using WriteLinesNode = api::WriteLinesNode<ValueType>;
 
-    auto node = common::MakeCounting<WriteLinesNode>(
+    auto node = tlx::make_counting<WriteLinesNode>(
         *this, filepath, target_file_size);
 
     node->RunScope();
@@ -199,7 +199,7 @@ Future<void> DIA<ValueType, Stack>::WriteLinesFuture(
 
     using WriteLinesNode = api::WriteLinesNode<ValueType>;
 
-    auto node = common::MakeCounting<WriteLinesNode>(
+    auto node = tlx::make_counting<WriteLinesNode>(
         *this, filepath, target_file_size);
 
     return Future<void>(node);

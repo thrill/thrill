@@ -18,8 +18,9 @@
 #include <thrill/api/sort.hpp>
 #include <thrill/api/window.hpp>
 #include <thrill/api/write_binary.hpp>
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
+#include <tlx/cmdline_parser.hpp>
+#include <tlx/math/integer_log2.hpp>
 
 #include <algorithm>
 #include <limits>
@@ -35,12 +36,12 @@ static constexpr bool debug = true;
 using namespace thrill; // NOLINT
 
 template <typename InputDIA>
-auto ConstructWaveletTree(const InputDIA &input_dia) {
+auto ConstructWaveletTree(const InputDIA& input_dia) {
 
     uint64_t max_value = input_dia.Max();
     sLOG << "max_value" << max_value;
 
-    uint64_t level = common::IntegerLog2Ceil(max_value);
+    uint64_t level = tlx::integer_log2_ceil(max_value);
     uint64_t mask = (~uint64_t(0)) << level;
     uint64_t maskbit = uint64_t(1) << level;
 
@@ -84,17 +85,17 @@ auto ConstructWaveletTree(const InputDIA &input_dia) {
 }
 
 int main(int argc, char* argv[]) {
-    common::CmdlineParser cp;
+    tlx::CmdlineParser cp;
 
-    cp.SetAuthor("Timo Bingmann <tb@panthema.net>");
-    cp.SetAuthor("Simon Gog <gog@kit.edu>");
+    cp.set_author("Timo Bingmann <tb@panthema.net>");
+    cp.set_author("Simon Gog <gog@kit.edu>");
 
     std::string input_path;
 
-    cp.AddOptParamString("input", input_path,
-                         "Path to input file.");
+    cp.add_opt_param_string("input", input_path,
+                            "Path to input file.");
 
-    if (!cp.Process(argc, argv))
+    if (!cp.process(argc, argv))
         return -1;
 
     return Run(

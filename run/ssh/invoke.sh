@@ -20,8 +20,9 @@ verbose=1
 dir=
 user=$(whoami)
 with_perf=0
+with_perf_graph=0
 
-while getopts "u:h:H:cvCw:p" opt; do
+while getopts "u:h:H:cvC:w:pP" opt; do
     case "$opt" in
     h)  # this overrides the user environment variable
         THRILL_SSHLIST=$OPTARG
@@ -41,8 +42,10 @@ while getopts "u:h:H:cvCw:p" opt; do
         ;;
     p)  with_perf=1
         ;;
+    P)  with_perf_graph=1
+        ;;
     w)  # this overrides the user environment variable
-        THRILL_WORKERS_PER_HOST=$OPTARG
+        export THRILL_WORKERS_PER_HOST=$OPTARG
         ;;
     :)  echo "Option -$OPTARG requires an argument." >&2
         exit 1
@@ -62,6 +65,8 @@ if [ -z "$cmd" ]; then
     echo "More Options:"
     echo "  -c         copy program to hosts and execute"
     echo "  -C <path>  remote directory to change into (else: exe's dir)"
+    echo "  -p         run with perf"
+    echo "  -P         run with perf -g (profile callgraph)"
     echo "  -h <list>  space-delimited list of nodes"
     echo "  -H <list>  list of internal IPs passed to Thrill exe (else: -h list)"
     echo "  -u <name>  ssh user name"
@@ -70,10 +75,10 @@ if [ -z "$cmd" ]; then
     exit 1
 fi
 
-if [ ! -e "$cmd" ]; then
-  echo "Thrill executable \"$cmd\" does not exist?" >&2
-  exit 1
-fi
+#if [ ! -e "$cmd" ]; then
+ # echo "Thrill executable \"$cmd\" does not exist?" >&2
+  #exit 1
+#fi
 
 # get absolute path
 if [[ "$(uname)" == "Darwin" ]]; then
@@ -127,35 +132,43 @@ trap '[ $(jobs -p | wc -l) != 0 ] && kill $(jobs -p)' SIGINT SIGTERM EXIT
 for hostport in $THRILL_SSHLIST; do
   host=$(echo $hostport | awk 'BEGIN { FS=":" } { printf "%s", $1 }')
   if [ $verbose -ne 0 ]; then
-    echo "Connecting to $user@$host to invoke $cmd"
+    echo "Connecting to $user@$host to invoke $dir$cmdbase"
   fi
   THRILL_EXPORTS=$(env | awk -F= '/^THRILL_/ { printf("%s", $1 "=\"" $2 "\" ") }')
   THRILL_EXPORTS="${THRILL_EXPORTS}THRILL_RANK=\"$rank\" THRILL_DIE_WITH_PARENT=1"
-  REMOTEPID="/tmp/$cmdbase.$hostport.$$.pid"
   RUN_PREFIX="exec"
   if [ "$with_perf" == "1" ]; then
       # run with perf
+      RUN_PREFIX="exec perf record -o perf-$rank.data"
+  fi
+  if [ "$with_perf_graph" == "1" ]; then
+      # run with perf
       RUN_PREFIX="exec perf record -g -o perf-$rank.data"
   fi
+
   if [ "$copy" == "1" ]; then
       REMOTENAME="/tmp/$cmdbase.$hostport.$$"
+      echo "HOSTPORT: $hostport"
+      echo "REMOTENAME: $REMOTENAME"
       THRILL_EXPORTS="$THRILL_EXPORTS THRILL_UNLINK_BINARY=\"$REMOTENAME\""
       # copy the program to the remote, and execute it at the remote end.
-      ( scp -o BatchMode=yes -o StrictHostKeyChecking=no -o TCPKeepAlive=yes -o Compression=yes \
-            "$cmd" "$host:$REMOTENAME" &&
+      (
+        scp -o BatchMode=yes -o StrictHostKeyChecking=no -o TCPKeepAlive=yes -o Compression=yes \
+            "$cmd" "$user@$host:$REMOTENAME" &&
         ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o TCPKeepAlive=yes \
-            $host \
+            $user@$host \
             "export $THRILL_EXPORTS && chmod +x \"$REMOTENAME\" && cd $dir && $RUN_PREFIX \"$REMOTENAME\" $*" &&
         if [ -n "$THRILL_LOG" ]; then
             scp -o BatchMode=yes -o StrictHostKeyChecking=no -o TCPKeepAlive=yes -o Compression=yes \
-                "$host:/tmp/$THRILL_LOG-*" "."
+                "$user@$host:/tmp/$THRILL_LOG-*" "."
         fi
       ) &
   else
+      command="$dir$cmdbase"
       ssh \
           -o BatchMode=yes -o StrictHostKeyChecking=no \
-          $host \
-          "export $THRILL_EXPORTS && cd $dir && $RUN_PREFIX $cmd $*" &
+          $user@$host \
+          "export $THRILL_EXPORTS && cd $dir && $RUN_PREFIX $command $*" &
   fi
   # save PID of ssh child for later
   SSHPIDS[$rank]=$!

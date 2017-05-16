@@ -98,7 +98,7 @@ public:
 #endif
 
     //! create host log
-    std::string MakeHostLogPath(size_t worker_rank);
+    std::string MakeHostLogPath(size_t host_rank);
 
     //! Returns local_host_id_
     size_t local_host_id() const { return local_host_id_; }
@@ -320,7 +320,7 @@ public:
     //! Returns a reference to a new CatStream or MixStream, selectable via
     //! template parameter.
     template <typename Stream>
-    common::CountingPtr<Stream> GetNewStream(size_t dia_id);
+    tlx::CountingPtr<Stream> GetNewStream(size_t dia_id);
 
     //! the block manager keeps all data blocks moving through the system.
     data::BlockPool& block_pool() { return block_pool_; }
@@ -332,6 +332,8 @@ public:
 
     //! returns the host-global memory manager
     mem::Manager& mem_manager() { return mem_manager_; }
+
+    net::Manager& net_manager() { return net_manager_; }
 
     //! given a global range [0,global_size) and p PEs to split the range, calculate
     //! the [local_begin,local_end) index range assigned to the PE i. Takes the

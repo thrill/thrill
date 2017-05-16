@@ -6,6 +6,7 @@
  * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2015 Huyen Chau Nguyen <hello@chau-nguyen.de>
+ * Copyright (C) 2016 Alexander Noe <aleexnoe@gmail.com>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
@@ -19,11 +20,16 @@
 #include <thrill/api/group_by_iterator.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/core/location_detection.hpp>
+#include <thrill/core/reduce_functional.hpp>
+#include <thrill/data/file.hpp>
 
 #include <algorithm>
+#include <deque>
 #include <functional>
 #include <type_traits>
 #include <typeinfo>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -34,9 +40,11 @@ namespace api {
  * \ingroup api_layer
  */
 template <typename ValueType,
-          typename KeyExtractor, typename GroupFunction, typename HashFunction>
+          typename KeyExtractor, typename GroupFunction, typename HashFunction,
+          bool UseLocationDetection>
 class GroupByNode final : public DOpNode<ValueType>
 {
+private:
     static constexpr bool debug = false;
 
     using Super = DOpNode<ValueType>;
@@ -59,6 +67,49 @@ class GroupByNode final : public DOpNode<ValueType>
         const GroupByNode& node_;
     };
 
+    class HashCount
+    {
+    public:
+        using HashType = size_t;
+        using CounterType = uint8_t;
+
+        size_t hash;
+        CounterType count;
+
+        static constexpr size_t counter_bits_ = 8 * sizeof(CounterType);
+
+        HashCount operator + (const HashCount& b) const {
+            assert(hash == b.hash);
+            return HashCount { hash, common::AddTruncToType(count, b.count) };
+        }
+
+        HashCount& operator += (const HashCount& b) {
+            assert(hash == b.hash);
+            count = common::AddTruncToType(count, b.count);
+            return *this;
+        }
+
+        bool operator < (const HashCount& b) const { return hash < b.hash; }
+
+        //! method to check if this hash count should be broadcasted to all
+        //! workers interested -- for GroupByKey -> always.
+        bool NeedBroadcast() const {
+            return true;
+        }
+
+        //! Read count from BitReader
+        template <typename BitReader>
+        void ReadBits(BitReader& reader) {
+            count = reader.GetBits(counter_bits_);
+        }
+
+        //! Write count and dia_mask to BitWriter
+        template <typename BitWriter>
+        void WriteBits(BitWriter& writer) const {
+            writer.PutBits(count, counter_bits_);
+        }
+    };
+
 public:
     /*!
      * Constructor for a GroupByNode. Sets the DataManager, parent, stack,
@@ -72,7 +123,9 @@ public:
         : Super(parent.ctx(), "GroupByKey", { parent.id() }, { parent.node() }),
           key_extractor_(key_extractor),
           groupby_function_(groupby_function),
-          hash_function_(hash_function)
+          hash_function_(hash_function),
+          location_detection_(parent.ctx(), Super::id()),
+          pre_file_(context_.GetFile(this))
     {
         // Hook PreOp
         auto pre_op_fn = [=](const ValueIn& input) {
@@ -86,22 +139,65 @@ public:
 
     void StartPreOp(size_t /* id */) final {
         emitter_ = stream_->GetWriters();
+        pre_writer_ = pre_file_.GetWriter();
+        if (UseLocationDetection)
+            location_detection_.Initialize(DIABase::mem_limit_);
     }
 
     //! Send all elements to their designated PEs
     void PreOp(const ValueIn& v) {
-        const Key k = key_extractor_(v);
-        const size_t recipient = hash_function_(k) % emitter_.size();
-        emitter_[recipient].Put(v);
+        size_t hash = hash_function_(key_extractor_(v));
+        if (UseLocationDetection) {
+            pre_writer_.Put(v);
+            location_detection_.Insert(HashCount { hash, 1 });
+        }
+        else {
+            const size_t recipient = hash % emitter_.size();
+            emitter_[recipient].Put(v);
+        }
     }
 
     void StopPreOp(size_t /* id */) final {
-        // data has been pushed during pre-op -> close emitters
-        for (size_t i = 0; i < emitter_.size(); i++)
-            emitter_[i].Close();
+        pre_writer_.Close();
+    }
+
+    DIAMemUse PreOpMemUse() final {
+        return DIAMemUse::Max();
+    }
+
+    DIAMemUse ExecuteMemUse() final {
+        return DIAMemUse::Max();
+    }
+
+    DIAMemUse PushDataMemUse() final {
+        if (files_.size() <= 1) {
+            // direct push, no merge necessary
+            return 0;
+        }
+        else {
+            // need to perform multiway merging
+            return DIAMemUse::Max();
+        }
     }
 
     void Execute() override {
+        if (UseLocationDetection) {
+            std::unordered_map<size_t, size_t> target_processors;
+            size_t max_hash = location_detection_.Flush(target_processors);
+            auto file_reader = pre_file_.GetConsumeReader();
+            while (file_reader.HasNext()) {
+                ValueIn in = file_reader.template Next<ValueIn>();
+                Key key = key_extractor_(in);
+
+                size_t hr = hash_function_(key) % max_hash;
+                auto target_processor = target_processors.find(hr);
+                emitter_[target_processor->second].Put(in);
+            }
+        }
+        // data has been pushed during pre-op -> close emitters
+        for (size_t i = 0; i < emitter_.size(); i++)
+            emitter_[i].Close();
+
         MainOp();
     }
 
@@ -118,12 +214,49 @@ public:
         }
         else {
             // otherwise sort all runs using multiway merge
-            LOG << "start multiwaymerge";
-            std::vector<data::File::ConsumeReader> seq;
+            size_t merge_degree, prefetch;
+
+            // merge batches of files if necessary
+            while (files_.size() > MaxMergeDegreePrefetch().first)
+            {
+                std::tie(merge_degree, prefetch) = MaxMergeDegreePrefetch();
+
+                sLOG1 << "Partial multi-way-merge of"
+                      << merge_degree << "files with prefetch" << prefetch;
+
+                // create merger for first merge_degree_ Files
+                std::vector<data::File::ConsumeReader> seq;
+                seq.reserve(merge_degree);
+
+                for (size_t t = 0; t < merge_degree; ++t)
+                    seq.emplace_back(files_[t].GetConsumeReader(0));
+
+                StartPrefetch(seq, prefetch);
+
+                auto puller = core::make_multiway_merge_tree<ValueIn>(
+                    seq.begin(), seq.end(), ValueComparator(*this));
+
+                // create new File for merged items
+                files_.emplace_back(context_.GetFile(this));
+                auto writer = files_.back().GetWriter();
+
+                while (puller.HasNext()) {
+                    writer.Put(puller.Next());
+                }
+                writer.Close();
+
+                // this clear is important to release references to the files.
+                seq.clear();
+
+                // remove merged files
+                files_.erase(files_.begin(), files_.begin() + merge_degree);
+            }
+
+            std::vector<data::File::Reader> seq;
             seq.reserve(num_runs);
 
             for (size_t t = 0; t < num_runs; ++t)
-                seq.emplace_back(files_[t].GetConsumeReader());
+                seq.emplace_back(files_[t].GetReader(consume));
 
             LOG << "start multiwaymerge for real";
             auto puller = core::make_multiway_merge_tree<ValueIn>(
@@ -159,11 +292,17 @@ private:
     GroupFunction groupby_function_;
     HashFunction hash_function_;
 
+    core::LocationDetection<HashCount> location_detection_;
+
     data::CatStreamPtr stream_ { context_.GetNewCatStream(this) };
     std::vector<data::Stream::Writer> emitter_;
-    std::vector<data::File> files_;
+    std::deque<data::File> files_;
     data::File sorted_elems_ { context_.GetFile(this) };
     size_t totalsize_ = 0;
+
+    //! location detection and associated files
+    data::File pre_file_;
+    data::File::Writer pre_writer_;
 
     void RunUserFunc(data::File& f, bool consume) {
         auto r = f.GetReader(consume);
@@ -190,14 +329,12 @@ private:
         std::sort(v.begin(), v.end(), ValueComparator(*this));
         totalsize_ += v.size();
 
-        data::File f = context_.GetFile(this);
-        data::File::Writer w = f.GetWriter();
+        files_.emplace_back(context_.GetFile(this));
+        data::File::Writer w = files_.back().GetWriter();
         for (const ValueIn& e : v) {
             w.Put(e);
         }
         w.Close();
-
-        files_.emplace_back(std::move(f));
     }
 
     //! Receive elements from other workers.
@@ -230,18 +367,36 @@ private:
             << " time=" << timer
             << " number_files=" << files_.size();
     }
+
+    //! calculate maximum merging degree from available memory and the number of
+    //! files. additionally calculate the prefetch size of each File.
+    std::pair<size_t, size_t> MaxMergeDegreePrefetch() {
+        size_t avail_blocks = DIABase::mem_limit_ / data::default_block_size;
+        if (files_.size() >= avail_blocks) {
+            // more files than blocks available -> partial merge of avail_blocks
+            // Files with prefetch = 0, which is one read Block per File.
+            return std::make_pair(avail_blocks, 0u);
+        }
+        else {
+            // less files than available Blocks -> split blocks equally among
+            // Files.
+            return std::make_pair(
+                files_.size(),
+                std::min<size_t>(16u, (avail_blocks / files_.size()) - 1));
+        }
+    }
 };
 
 /******************************************************************************/
 
 template <typename ValueType, typename Stack>
-template <typename ValueOut, typename KeyExtractor,
-          typename GroupFunction, typename HashFunction>
+template <typename ValueOut, bool LocationDetectionValue,
+          typename KeyExtractor, typename GroupFunction, typename HashFunction>
 auto DIA<ValueType, Stack>::GroupByKey(
-    const KeyExtractor &key_extractor,
-    const GroupFunction &groupby_function) const {
-
-    using DOpResult = ValueOut;
+    const LocationDetectionFlag<LocationDetectionValue>&,
+    const KeyExtractor& key_extractor,
+    const GroupFunction& groupby_function,
+    const HashFunction& hash_function) const {
 
     static_assert(
         std::is_same<
@@ -251,12 +406,36 @@ auto DIA<ValueType, Stack>::GroupByKey(
         "KeyExtractor has the wrong input type");
 
     using GroupByNode = api::GroupByNode<
-              DOpResult, KeyExtractor, GroupFunction, HashFunction>;
+              ValueOut, KeyExtractor, GroupFunction, HashFunction,
+              LocationDetectionValue>;
 
-    auto node = common::MakeCounting<GroupByNode>(
-        *this, key_extractor, groupby_function);
+    auto node = tlx::make_counting<GroupByNode>(
+        *this, key_extractor, groupby_function, hash_function);
 
-    return DIA<DOpResult>(node);
+    return DIA<ValueOut>(node);
+}
+
+template <typename ValueType, typename Stack>
+template <typename ValueOut, typename KeyExtractor,
+          typename GroupFunction, typename HashFunction>
+auto DIA<ValueType, Stack>::GroupByKey(
+    const KeyExtractor& key_extractor,
+    const GroupFunction& groupby_function,
+    const HashFunction& hash_function) const {
+    // forward to other method _without_ location detection
+    return GroupByKey<ValueOut>(
+        NoLocationDetectionTag, key_extractor, groupby_function, hash_function);
+}
+
+template <typename ValueType, typename Stack>
+template <typename ValueOut, typename KeyExtractor, typename GroupFunction>
+auto DIA<ValueType, Stack>::GroupByKey(
+    const KeyExtractor& key_extractor,
+    const GroupFunction& groupby_function) const {
+    // forward to other method _without_ location detection
+    return GroupByKey<ValueOut>(
+        NoLocationDetectionTag, key_extractor, groupby_function,
+        std::hash<typename FunctionTraits<KeyExtractor>::result_type>());
 }
 
 } // namespace api
