@@ -21,6 +21,7 @@
 #include <thrill/api/distribute.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/siphash.hpp>
+#include <tlx/math/clz.hpp>
 
 namespace thrill {
 
@@ -65,7 +66,7 @@ std::pair<size_t, uint8_t> decodeHash(SparseRegister reg) {
         // the left
         uint32_t topBitsValue =
             (reg & upperNBitMask(sparsePrecision)) << densePrecision;
-        denseValue = __builtin_clz(topBitsValue) + 1;
+        denseValue = tlx::clz(topBitsValue) + 1;
         index = (reg >> (32 - densePrecision)) & lowerNBitMask(densePrecision);
     }
     return std::make_pair(index, denseValue);
@@ -105,7 +106,7 @@ uint32_t encodeHash(uint64_t hash) {
     static_assert(sizeof(long long) * CHAR_BIT == 64,
                   "64 bit long long are required for hyperloglog.");
     uint8_t leadingZeroes =
-        valueBits == 0 ? (64 - sparsePrecision) : __builtin_clzll(valueBits);
+        valueBits == 0 ? (64 - sparsePrecision) : tlx::clz(valueBits);
     uint32_t index = (hash >> (64 - sparsePrecision));
     return encodePair<sparsePrecision, densePrecision>(index, leadingZeroes + 1);
 }
@@ -307,7 +308,7 @@ public:
         case RegisterFormat::DENSE:
             uint64_t index = hashVal >> (64 - p);
             uint64_t val = hashVal << p;
-            uint8_t leadingZeroes = val == 0 ? (64 - p) : __builtin_clzll(val);
+            uint8_t leadingZeroes = val == 0 ? (64 - p) : tlx::clz(val);
             assert(leadingZeroes >= 0 && leadingZeroes <= (64 - p));
             entries[index] =
                 std::max<uint8_t>(leadingZeroes + 1, entries[index]);
