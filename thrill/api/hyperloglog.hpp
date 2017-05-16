@@ -394,10 +394,10 @@ Registers<p> operator + (
         Registers<p> result = registers1;
 
         DecodedSparseList sparseList2(registers2.sparseListBuffer);
-        result.tmpSet.insert(result.tmpSet.end(),
-                             sparseList2.begin(), sparseList2.end());
-        result.tmpSet.insert(result.tmpSet.end(),
-                             registers2.tmpSet.begin(), registers2.tmpSet.end());
+        std::copy(sparseList2.begin(), sparseList2.end(),
+                  std::back_inserter(result.tmpSet));
+        std::copy(registers2.tmpSet.begin(), registers2.tmpSet.end(),
+                  std::back_inserter(result.tmpSet));
         result.mergeSparse();
         if (result.shouldConvertToDense()) {
             result.toDense();
