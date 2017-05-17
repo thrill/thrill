@@ -13,6 +13,8 @@
 #ifndef THRILL_API_HYPERLOGLOG_HEADER
 #define THRILL_API_HYPERLOGLOG_HEADER
 
+#include <thrill/api/action_node.hpp>
+#include <thrill/api/dia.hpp>
 #include <thrill/core/hyperloglog.hpp>
 
 namespace thrill {

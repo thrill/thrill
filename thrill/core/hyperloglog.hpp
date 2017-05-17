@@ -13,14 +13,13 @@
 #ifndef THRILL_CORE_HYPERLOGLOG_HEADER
 #define THRILL_CORE_HYPERLOGLOG_HEADER
 
-#include <thrill/common/functional.hpp>
-#include <thrill/common/item_serialization_tools.hpp>
 #include <thrill/common/siphash.hpp>
-#include <thrill/data/serialization.hpp>
+#include <thrill/data/serialization_fwd.hpp>
 #include <tlx/die.hpp>
 #include <tlx/math/clz.hpp>
 
 #include <cmath>
+#include <vector>
 
 namespace thrill {
 namespace core {
@@ -45,17 +44,9 @@ template <size_t p>
 class HyperLogLogRegisters
 {
 public:
-    unsigned sparseSize = 0;
-    HyperLogLogRegisterFormat format;
-    // Register values are always smaller than 64. We thus need log2(64) = 6
-    // bits to store them. In particular an uint8_t is sufficient
-    std::vector<uint8_t> sparseListBuffer;
-    std::vector<HyperLogLogSparseRegister> tmpSet;
-    std::vector<uint8_t> entries;
+    HyperLogLogRegisters() : format_(HyperLogLogRegisterFormat::SPARSE) { }
 
-    HyperLogLogRegisters() : format(HyperLogLogRegisterFormat::SPARSE) { }
-
-    size_t size() const { return entries.size(); }
+    size_t size() const { return entries_.size(); }
 
     void toDense();
 
@@ -73,12 +64,27 @@ public:
 
     void mergeDense(const HyperLogLogRegisters<p>& b);
 
+    //! calculate count estimation result adjusted for bias
     double result();
 
     //! combine two HyperloglogRegisters, switches between sparse/dense
     //! representations
     HyperLogLogRegisters operator + (
         const HyperLogLogRegisters<p>& registers2) const;
+
+    //! declare friendship with serializers
+    template <typename Archive, size_t q>
+    friend struct data::Serialization;
+
+private:
+    unsigned sparse_size_ = 0;
+    HyperLogLogRegisterFormat format_;
+
+    // Register values are always smaller than 64. We thus need log2(64) = 6
+    // bits to store them. In particular an uint8_t is sufficient
+    std::vector<uint8_t> sparseListBuffer_;
+    std::vector<HyperLogLogSparseRegister> deltaSet_;
+    std::vector<uint8_t> entries_;
 };
 
 /******************************************************************************/

@@ -13,6 +13,7 @@
 #define THRILL_DATA_SERIALIZATION_HEADER
 
 #include <thrill/common/functional.hpp>
+#include <thrill/data/serialization_fwd.hpp>
 #include <tlx/meta/has_member.hpp>
 
 #include <array>
@@ -27,11 +28,6 @@ namespace data {
 
 //! \addtogroup data_layer
 //! \{
-
-/*************** Base Template and Callable Serialize/Deserialize *************/
-
-template <typename Archive, typename T, typename Enable = void>
-struct Serialization;
 
 /******************* Serialization of plain old data types ********************/
 

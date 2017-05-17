@@ -15,7 +15,7 @@
 #include <cereal/cereal.hpp>
 #include <cereal/details/traits.hpp>
 #include <thrill/common/functional.hpp>
-#include <thrill/data/serialization.hpp>
+#include <thrill/data/serialization_fwd.hpp>
 #include <tlx/meta/is_std_array.hpp>
 #include <tlx/meta/is_std_pair.hpp>
 #include <tlx/meta/is_std_tuple.hpp>

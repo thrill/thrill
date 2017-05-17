@@ -11,6 +11,9 @@
 
 #include <thrill/core/hyperloglog.hpp>
 
+#include <thrill/common/functional.hpp>
+#include <thrill/common/item_serialization_tools.hpp>
+#include <thrill/data/serialization.hpp>
 #include <thrill/net/buffer_builder.hpp>
 #include <thrill/net/buffer_reader.hpp>
 
@@ -1641,13 +1644,13 @@ SparseListIterator<ForwardIt> makeSparseListIterator(ForwardIt it) {
 
 class DecodedSparseList
 {
-    const std::vector<uint8_t>& sparseListBuffer;
+    const std::vector<uint8_t>& sparseListBuffer_;
 
 public:
     DecodedSparseList(const std::vector<uint8_t>& sparseListBuf)
-        : sparseListBuffer(sparseListBuf) { }
-    auto begin() { return makeSparseListIterator(sparseListBuffer.begin()); }
-    auto end() { return makeSparseListIterator(sparseListBuffer.end()); }
+        : sparseListBuffer_(sparseListBuf) { }
+    auto begin() { return makeSparseListIterator(sparseListBuffer_.begin()); }
+    auto end() { return makeSparseListIterator(sparseListBuffer_.end()); }
 };
 
 std::vector<uint8_t> encodeSparseList(const std::vector<uint32_t>& sparseList) {
@@ -1655,9 +1658,9 @@ std::vector<uint8_t> encodeSparseList(const std::vector<uint32_t>& sparseList) {
         return { };
     }
     assert(std::is_sorted(sparseList.begin(), sparseList.end()));
-    std::vector<uint8_t> sparseListBuffer;
-    sparseListBuffer.reserve(sparseList.size());
-    VectorWriter writer(sparseListBuffer);
+    std::vector<uint8_t> sparseListBuffer_;
+    sparseListBuffer_.reserve(sparseList.size());
+    VectorWriter writer(sparseListBuffer_);
     auto it = sparseList.begin();
     uint32_t prevVal = *it++;
     writer.PutVarint32(prevVal);
@@ -1665,7 +1668,7 @@ std::vector<uint8_t> encodeSparseList(const std::vector<uint32_t>& sparseList) {
         writer.PutVarint32(*it - prevVal);
         prevVal = *it;
     }
-    return sparseListBuffer;
+    return sparseListBuffer_;
 }
 
 std::vector<uint32_t> decodeSparseList(const std::vector<uint8_t>& sparseList) {
@@ -1683,39 +1686,39 @@ std::vector<uint32_t> decodeSparseList(const std::vector<uint8_t>& sparseList) {
 
 template <size_t p>
 void HyperLogLogRegisters<p>::toDense() {
-    assert(format == HyperLogLogRegisterFormat::SPARSE);
-    format = HyperLogLogRegisterFormat::DENSE;
-    entries.resize(1 << p, 0);
-    for (auto val : hyperloglog::DecodedSparseList(sparseListBuffer)) {
+    assert(format_ == HyperLogLogRegisterFormat::SPARSE);
+    format_ = HyperLogLogRegisterFormat::DENSE;
+    entries_.resize(1 << p, 0);
+    for (auto val : hyperloglog::DecodedSparseList(sparseListBuffer_)) {
         auto decoded = hyperloglog::decodeHash<25, p>(val);
-        auto entry = entries[decoded.first];
+        auto entry = entries_[decoded.first];
         auto value = std::max(entry, decoded.second);
-        entries[decoded.first] = value;
+        entries_[decoded.first] = value;
     }
 
-    for (auto& val : tmpSet) {
+    for (auto& val : deltaSet_) {
         auto decoded = hyperloglog::decodeHash<25, p>(val);
-        auto entry = entries[decoded.first];
+        auto entry = entries_[decoded.first];
         auto value = std::max(entry, decoded.second);
-        entries[decoded.first] = value;
+        entries_[decoded.first] = value;
     }
-    sparseListBuffer.clear();
-    tmpSet.clear();
-    sparseListBuffer.shrink_to_fit();
-    tmpSet.shrink_to_fit();
+    sparseListBuffer_.clear();
+    deltaSet_.clear();
+    sparseListBuffer_.shrink_to_fit();
+    deltaSet_.shrink_to_fit();
 }
 
 template <size_t p>
 bool HyperLogLogRegisters<p>::shouldConvertToDense() {
-    size_t tmpSize = tmpSet.size() * sizeof(HyperLogLogSparseRegister);
-    size_t sparseSize = tmpSize + sparseListBuffer.size() * sizeof(uint8_t);
+    size_t tmpSize = deltaSet_.size() * sizeof(HyperLogLogSparseRegister);
+    size_t sparseSize = tmpSize + sparseListBuffer_.size() * sizeof(uint8_t);
     size_t denseSize = (1 << p) * sizeof(uint8_t);
     return sparseSize > denseSize;
 }
 
 template <size_t p>
 bool HyperLogLogRegisters<p>::shouldMerge() {
-    size_t tmpSize = tmpSet.size() * sizeof(HyperLogLogSparseRegister);
+    size_t tmpSize = deltaSet_.size() * sizeof(HyperLogLogSparseRegister);
     size_t denseSize = (1 << p) * sizeof(uint8_t);
     return tmpSize > (denseSize / 4);
 }
@@ -1725,10 +1728,10 @@ void HyperLogLogRegisters<p>::insert_hash(const uint64_t& hash_value) {
     // first p bits are the index
     static_assert(sizeof(long long) * CHAR_BIT == 64,
                   "64 Bit long long are required for hyperloglog.");
-    switch (format) {
+    switch (format_) {
     case HyperLogLogRegisterFormat::SPARSE: {
-        sparseSize++;
-        tmpSet.emplace_back(hyperloglog::encodeHash<25, p>(hash_value));
+        sparse_size_++;
+        deltaSet_.emplace_back(hyperloglog::encodeHash<25, p>(hash_value));
 
         if (shouldMerge()) {
             mergeSparse();
@@ -1744,44 +1747,44 @@ void HyperLogLogRegisters<p>::insert_hash(const uint64_t& hash_value) {
         uint64_t val = hash_value << p;
         uint8_t leadingZeroes = val == 0 ? (64 - p) : tlx::clz(val);
         assert(leadingZeroes >= 0 && leadingZeroes <= (64 - p));
-        entries[index] =
-            std::max<uint8_t>(leadingZeroes + 1, entries[index]);
+        entries_[index] =
+            std::max<uint8_t>(leadingZeroes + 1, entries_[index]);
         break;
     }
 }
 
 template <size_t p>
 void HyperLogLogRegisters<p>::mergeSparse() {
-    hyperloglog::DecodedSparseList sparseList(sparseListBuffer);
+    hyperloglog::DecodedSparseList sparseList(sparseListBuffer_);
     assert(std::is_sorted(sparseList.begin(), sparseList.end()));
-    std::sort(tmpSet.begin(), tmpSet.end());
+    std::sort(deltaSet_.begin(), deltaSet_.end());
     std::vector<HyperLogLogSparseRegister> resultVec;
-    std::merge(sparseList.begin(), sparseList.end(), tmpSet.begin(),
-               tmpSet.end(), std::back_inserter(resultVec));
-    tmpSet.clear();
-    tmpSet.shrink_to_fit();
+    std::merge(sparseList.begin(), sparseList.end(), deltaSet_.begin(),
+               deltaSet_.end(), std::back_inserter(resultVec));
+    deltaSet_.clear();
+    deltaSet_.shrink_to_fit();
     std::vector<HyperLogLogSparseRegister> vec = hyperloglog::mergeSameIndices<25>(resultVec);
-    sparseSize = vec.size();
-    sparseListBuffer = hyperloglog::encodeSparseList(vec);
+    sparse_size_ = vec.size();
+    sparseListBuffer_ = hyperloglog::encodeSparseList(vec);
 }
 
 template <size_t p>
 void HyperLogLogRegisters<p>::mergeDense(const HyperLogLogRegisters<p>& b) {
-    assert(format == HyperLogLogRegisterFormat::DENSE);
+    assert(format_ == HyperLogLogRegisterFormat::DENSE);
     const size_t m = 1 << p;
     assert(m == size() && m == b.size());
     for (size_t i = 0; i < m; ++i) {
-        entries[i] = std::max(entries[i], b.entries[i]);
+        entries_[i] = std::max(entries_[i], b.entries_[i]);
     }
 }
 
 template <size_t p>
 double HyperLogLogRegisters<p>::result() {
-    if (format == HyperLogLogRegisterFormat::SPARSE) {
+    if (format_ == HyperLogLogRegisterFormat::SPARSE) {
         mergeSparse();
         // 25 is precision of sparse representation
         const size_t m = 1 << 25;
-        unsigned sparseListCount = sparseSize;
+        unsigned sparseListCount = sparse_size_;
         unsigned V = m - sparseListCount;
         return m * log(static_cast<double>(m) / V);
     }
@@ -1792,7 +1795,7 @@ double HyperLogLogRegisters<p>::result() {
     double E = 0.0;
     unsigned V = 0;
 
-    for (const uint64_t& entry : entries) {
+    for (const uint64_t& entry : entries_) {
         E += std::pow(2.0, -static_cast<double>(entry));
         V += (entry == 0 ? 1 : 0);
     }
@@ -1824,40 +1827,40 @@ template <size_t p>
 HyperLogLogRegisters<p>
 HyperLogLogRegisters<p>::operator + (const HyperLogLogRegisters<p>& registers2) const {
 
-    if (format == HyperLogLogRegisterFormat::SPARSE &&
-        registers2.format == HyperLogLogRegisterFormat::SPARSE) {
+    if (format_ == HyperLogLogRegisterFormat::SPARSE &&
+        registers2.format_ == HyperLogLogRegisterFormat::SPARSE) {
 
         HyperLogLogRegisters<p> result = *this;
 
-        hyperloglog::DecodedSparseList sparseList2(registers2.sparseListBuffer);
+        hyperloglog::DecodedSparseList sparseList2(registers2.sparseListBuffer_);
         std::copy(sparseList2.begin(), sparseList2.end(),
-                  std::back_inserter(result.tmpSet));
-        std::copy(registers2.tmpSet.begin(), registers2.tmpSet.end(),
-                  std::back_inserter(result.tmpSet));
+                  std::back_inserter(result.deltaSet_));
+        std::copy(registers2.deltaSet_.begin(), registers2.deltaSet_.end(),
+                  std::back_inserter(result.deltaSet_));
         result.mergeSparse();
         if (result.shouldConvertToDense()) {
             result.toDense();
         }
         return result;
     }
-    else if (format == HyperLogLogRegisterFormat::SPARSE &&
-             registers2.format == HyperLogLogRegisterFormat::DENSE) {
+    else if (format_ == HyperLogLogRegisterFormat::SPARSE &&
+             registers2.format_ == HyperLogLogRegisterFormat::DENSE) {
 
         HyperLogLogRegisters<p> result = *this;
         result.toDense();
         result.mergeDense(registers2);
         return result;
     }
-    else if (format == HyperLogLogRegisterFormat::DENSE &&
-             registers2.format == HyperLogLogRegisterFormat::SPARSE) {
+    else if (format_ == HyperLogLogRegisterFormat::DENSE &&
+             registers2.format_ == HyperLogLogRegisterFormat::SPARSE) {
 
         HyperLogLogRegisters<p> result = registers2;
         result.toDense();
         result.mergeDense(*this);
         return result;
     }
-    else if (format == HyperLogLogRegisterFormat::DENSE &&
-             registers2.format == HyperLogLogRegisterFormat::DENSE) {
+    else if (format_ == HyperLogLogRegisterFormat::DENSE &&
+             registers2.format_ == HyperLogLogRegisterFormat::DENSE) {
 
         HyperLogLogRegisters<p> result = *this;
         result.mergeDense(registers2);
@@ -1890,18 +1893,20 @@ template class HyperLogLogRegisters<18>;
 
 namespace data {
 
+using core::HyperLogLogRegisterFormat;
+
 template <typename Archive, size_t p>
 void Serialization<Archive, core::HyperLogLogRegisters<p> >::
 Serialize(const core::HyperLogLogRegisters<p>& x, Archive& ar) {
-    Serialization<Archive, core::HyperLogLogRegisterFormat>::Serialize(x.format, ar);
-    switch (x.format) {
-    case core::HyperLogLogRegisterFormat::SPARSE:
-        Serialization<Archive, decltype(x.sparseListBuffer)>::Serialize(
-            x.sparseListBuffer, ar);
-        Serialization<Archive, decltype(x.tmpSet)>::Serialize(x.tmpSet, ar);
+    Serialization<Archive, HyperLogLogRegisterFormat>::Serialize(x.format_, ar);
+    switch (x.format_) {
+    case HyperLogLogRegisterFormat::SPARSE:
+        Serialization<Archive, decltype(x.sparseListBuffer_)>::Serialize(
+            x.sparseListBuffer_, ar);
+        Serialization<Archive, decltype(x.deltaSet_)>::Serialize(x.deltaSet_, ar);
         break;
-    case core::HyperLogLogRegisterFormat::DENSE:
-        for (auto it = x.entries.begin(); it != x.entries.end(); ++it) {
+    case HyperLogLogRegisterFormat::DENSE:
+        for (auto it = x.entries_.begin(); it != x.entries_.end(); ++it) {
             Serialization<Archive, uint64_t>::Serialize(*it, ar);
         }
         break;
@@ -1912,20 +1917,19 @@ template <typename Archive, size_t p>
 core::HyperLogLogRegisters<p>
 Serialization<Archive, core::HyperLogLogRegisters<p> >::Deserialize(Archive& ar) {
     core::HyperLogLogRegisters<p> out;
-    out.format =
-        std::move(Serialization<Archive, core::HyperLogLogRegisterFormat>::Deserialize(ar));
-    switch (out.format) {
-    case core::HyperLogLogRegisterFormat::SPARSE:
-        out.sparseListBuffer = std::move(
-            Serialization<Archive,
-                          decltype(out.sparseListBuffer)>::Deserialize(ar));
-        out.tmpSet = std::move(
-            Serialization<Archive, decltype(out.tmpSet)>::Deserialize(ar));
+    out.format_ =
+        std::move(Serialization<Archive, HyperLogLogRegisterFormat>::Deserialize(ar));
+    switch (out.format_) {
+    case HyperLogLogRegisterFormat::SPARSE:
+        out.sparseListBuffer_ = std::move(
+            Serialization<Archive, decltype(out.sparseListBuffer_)>::Deserialize(ar));
+        out.deltaSet_ = std::move(
+            Serialization<Archive, decltype(out.deltaSet_)>::Deserialize(ar));
         break;
-    case core::HyperLogLogRegisterFormat::DENSE:
-        out.entries.resize(1 << p);
+    case HyperLogLogRegisterFormat::DENSE:
+        out.entries_.resize(1 << p);
         for (size_t i = 0; i != out.size(); ++i) {
-            out.entries[i] = std::move(
+            out.entries_[i] = std::move(
                 Serialization<Archive, uint64_t>::Deserialize(ar));
         }
         break;
@@ -1933,13 +1937,14 @@ Serialization<Archive, core::HyperLogLogRegisters<p> >::Deserialize(Archive& ar)
     return out;
 }
 
-// instantiations
-#define MAKE_INSTANTIATIONS(X)                                                      \
-    template void Serialization<net::BufferBuilder, core::HyperLogLogRegisters<X> > \
-    ::Serialize(const core::HyperLogLogRegisters<X>&, net::BufferBuilder&);         \
-                                                                                    \
-    template core::HyperLogLogRegisters<X>                                          \
-    Serialization<net::BufferReader, core::HyperLogLogRegisters<X> >                \
+// make serialization instantiations
+#define MAKE_INSTANTIATIONS(X)                                              \
+    template void Serialization<                                            \
+        net::BufferBuilder, core::HyperLogLogRegisters<X> >                 \
+    ::Serialize(const core::HyperLogLogRegisters<X>&, net::BufferBuilder&); \
+                                                                            \
+    template core::HyperLogLogRegisters<X>                                  \
+    Serialization<net::BufferReader, core::HyperLogLogRegisters<X> >        \
     ::Deserialize(net::BufferReader&);
 
 MAKE_INSTANTIATIONS(4)
