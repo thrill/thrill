@@ -13,16 +13,14 @@
 #ifndef THRILL_CORE_HYPERLOGLOG_HEADER
 #define THRILL_CORE_HYPERLOGLOG_HEADER
 
-#include <cmath>
-#include <iostream>
-#include <limits.h>
-
 #include <thrill/common/functional.hpp>
 #include <thrill/common/item_serialization_tools.hpp>
 #include <thrill/common/siphash.hpp>
 #include <thrill/data/serialization.hpp>
 #include <tlx/die.hpp>
 #include <tlx/math/clz.hpp>
+
+#include <cmath>
 
 namespace thrill {
 namespace core {
