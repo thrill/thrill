@@ -1,5 +1,5 @@
 /*******************************************************************************
- * thrill/api/hyperloglog.cpp
+ * thrill/core/hyperloglog.cpp
  *
  * Part of Project Thrill - http://project-thrill.org
  *
@@ -9,7 +9,7 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <thrill/api/hyperloglog.hpp>
+#include <thrill/core/hyperloglog.hpp>
 
 namespace thrill {
 
