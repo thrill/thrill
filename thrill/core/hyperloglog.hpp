@@ -13,26 +13,16 @@
 #ifndef THRILL_CORE_HYPERLOGLOG_HEADER
 #define THRILL_CORE_HYPERLOGLOG_HEADER
 
-#include <thrill/common/siphash.hpp>
 #include <thrill/data/serialization_fwd.hpp>
 #include <tlx/die.hpp>
 #include <tlx/math/clz.hpp>
+#include <tlx/siphash.hpp>
 
 #include <cmath>
 #include <vector>
 
 namespace thrill {
 namespace core {
-
-template <typename Value>
-uint64_t hash(const Value& val) {
-    const unsigned char key[16] = {
-        0, 0, 0, 0, 0, 0, 0, 0x4,
-        0, 0, 0, 0, 0, 0, 0, 0x7
-    };
-    return common::siphash(
-        key, reinterpret_cast<const unsigned char*>(&val), sizeof(val));
-}
 
 // The high 25 bit in this register are used for the index, the next 6 bits for
 // the value and the last bit is currently unused
@@ -56,7 +46,7 @@ public:
     template <typename ValueType>
     void insert(const ValueType& value) {
         // first p bits are the index
-        insert_hash(hash<ValueType>(value));
+        insert_hash(tlx::siphash(value));
     }
 
     void insert_hash(const uint64_t& hash_value);
