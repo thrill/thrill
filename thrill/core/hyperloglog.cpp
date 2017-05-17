@@ -1559,6 +1559,15 @@ uint32_t encodeHash(uint64_t hash) {
     return encodePair<sparsePrecision, densePrecision>(index, leadingZeroes + 1);
 }
 
+// instantiations for tests
+template uint32_t encodeHash<25, 4>(uint64_t);
+template uint32_t encodeHash<25, 12>(uint64_t);
+template uint32_t encodeHash<25, 16>(uint64_t);
+
+template std::pair<size_t, uint8_t> decodeHash<25, 4>(HyperLogLogSparseRegister);
+template std::pair<size_t, uint8_t> decodeHash<25, 12>(HyperLogLogSparseRegister);
+template std::pair<size_t, uint8_t> decodeHash<25, 16>(HyperLogLogSparseRegister);
+
 /******************************************************************************/
 // Utilities for SparseLists
 

@@ -63,7 +63,7 @@ public:
         const HyperLogLogRegisters<p>& registers2) const;
 
     //! declare friendship with serializers
-    template <typename Archive, size_t q>
+    template <typename Archive, typename T, typename Enable>
     friend struct data::Serialization;
 
 private:
