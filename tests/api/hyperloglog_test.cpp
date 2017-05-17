@@ -136,13 +136,13 @@ TEST(Operations, HyperLogLog) {
 TEST(Operations, encodeHash) {
     // decidingBits = 0 => 1 as last Bit, vale (aka number of leading zeroes) should be 5
     uint64_t random = 0b0000100000000000000000000000100000000000000000000000000000000000;
-    uint32_t encoded = encodeHash<24, 16>(random);
-    uint32_t manualEncoded = 0b00001000000000000000000000001011;
+    uint32_t encoded = core::hyperloglog::encodeHash<25, 16>(random);
+    uint32_t manualEncoded = 0b00001000000000000000000000001001;
     ASSERT_EQ(manualEncoded, encoded);
 
     // decidingBits = 1 => 0 as last Bit, dont care about value
     random = 0b0000100000000000000010000000100000000000000000000000000000000000;
-    encoded = encodeHash<24, 16>(random);
+    encoded = core::hyperloglog::encodeHash<25, 16>(random);
     manualEncoded = 0b00001000000000000000100000000000;
     ASSERT_EQ(manualEncoded, encoded);
 }
@@ -159,8 +159,8 @@ TEST(Operations, decodeHash) {
         uint8_t value =
             valueBits == 0 ? (64 - densePrecision) : __builtin_clzll(valueBits);
         value++;
-        uint32_t encoded = encodeHash<25, 4>(random);
-        auto decoded = decodeHash<25, 4>(encoded);
+        uint32_t encoded = core::hyperloglog::encodeHash<25, 4>(random);
+        auto decoded = core::hyperloglog::decodeHash<25, 4>(encoded);
         ASSERT_EQ(index, decoded.first);
         ASSERT_EQ(value, decoded.second);
     }
@@ -172,8 +172,8 @@ TEST(Operations, decodeHash) {
         uint8_t value =
             valueBits == 0 ? (64 - densePrecision) : __builtin_clzll(valueBits);
         value++;
-        uint32_t encoded = encodeHash<25, 12>(random);
-        auto decoded = decodeHash<25, 12>(encoded);
+        uint32_t encoded = core::hyperloglog::encodeHash<25, 12>(random);
+        auto decoded = core::hyperloglog::decodeHash<25, 12>(encoded);
         ASSERT_EQ(index, decoded.first);
         ASSERT_EQ(value, decoded.second);
     }
@@ -193,13 +193,10 @@ TEST(Operations, sparseListEncoding) {
             input.emplace_back(dis(gen));
         }
         std::sort(input.begin(), input.end());
-        std::vector<uint8_t> encoded = encodeSparseList(input);
+        std::vector<uint8_t> encoded = core::hyperloglog::encodeSparseList(input);
 
-        std::vector<uint32_t> decoded;
-        DecodedSparseList decodedSparseList(encoded);
-        for (auto val : decodedSparseList) {
-            decoded.emplace_back(val);
-        }
+        // check decoding
+        std::vector<uint32_t> decoded = core::hyperloglog::decodeSparseList(encoded);
         ASSERT_EQ(input, decoded);
     }
 }

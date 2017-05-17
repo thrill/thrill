@@ -22,11 +22,12 @@ namespace api {
  * \ingroup api_layer
  */
 template <size_t p, typename ValueType>
-class HyperLogLogNode final : public ActionResultNode<Registers<p> >
+class HyperLogLogNode final
+    : public ActionResultNode<core::HyperLogLogRegisters<p> >
 {
     static constexpr bool debug = false;
 
-    using Super = ActionResultNode<Registers<p> >;
+    using Super = ActionResultNode<core::HyperLogLogRegisters<p> >;
     using Super::context_;
 
 public:
@@ -35,7 +36,7 @@ public:
         : Super(parent.ctx(), label, { parent.id() }, { parent.node() }) {
         // Hook PreOp(s)
         auto pre_op_fn = [this](const ValueType& input) {
-                             registers.insert(input);
+                             registers_.insert(input);
                          };
 
         auto lop_chain = parent.stack().push(pre_op_fn).fold();
@@ -45,14 +46,15 @@ public:
     //! Executes the sum operation.
     void Execute() final {
         // process the reduce
-        registers = context_.net.AllReduce(registers);
+        registers_ = context_.net.AllReduce(registers_);
     }
 
     //! Returns result of global sum.
-    const Registers<p>& result() const final { return registers; }
+    const core::HyperLogLogRegisters<p>& result() const final
+    { return registers_; }
 
 private:
-    Registers<p> registers;
+    core::HyperLogLogRegisters<p> registers_;
 };
 
 template <typename ValueType, typename Stack>

@@ -11,7 +11,15 @@
 
 #include <thrill/core/hyperloglog.hpp>
 
+#include <thrill/net/buffer_builder.hpp>
+#include <thrill/net/buffer_reader.hpp>
+
 namespace thrill {
+namespace core {
+namespace hyperloglog {
+
+/******************************************************************************/
+// Data Tables to Correct Skew
 
 const std::array<double, 15> thresholds = {
     { 10, 20, 40, 80, 220, 400, 900, 1800,
@@ -1256,6 +1264,28 @@ double knearestNeighbor(int k, int index, double estimate,
 }
 
 template <size_t p>
+constexpr double alpha() {
+    return 0.7213 / (1 + 1.079 / (1 << p));
+}
+template <>
+constexpr double alpha<4>() {
+    return 0.673;
+}
+template <>
+constexpr double alpha<5>() {
+    return 0.697;
+}
+template <>
+constexpr double alpha<6>() {
+    return 0.709;
+}
+
+template <size_t p>
+static double threshold() {
+    return thresholds[p - 4];
+}
+
+template <size_t p>
 double estimateBias(double rawEstimate) {
     /*
      * 1. Find Elements in rawEstimateData (binary Search)
@@ -1271,22 +1301,172 @@ double estimateBias(double rawEstimate) {
         6, lowerEstimateIndex, rawEstimate, bias, estimatedData);
 }
 
-template double estimateBias<4>(double);
-template double estimateBias<5>(double);
-template double estimateBias<6>(double);
-template double estimateBias<7>(double);
-template double estimateBias<8>(double);
-template double estimateBias<9>(double);
-template double estimateBias<10>(double);
-template double estimateBias<11>(double);
-template double estimateBias<12>(double);
-template double estimateBias<13>(double);
-template double estimateBias<14>(double);
-template double estimateBias<15>(double);
-template double estimateBias<16>(double);
-template double estimateBias<17>(double);
-template double estimateBias<18>(double);
-template double estimateBias<19>(double);
+/******************************************************************************/
+// Hash Splitting
+
+constexpr uint64_t lowerNBitMask(uint64_t n) {
+    return (static_cast<uint64_t>(1) << n) - 1;
+}
+
+constexpr uint32_t upperNBitMask(uint32_t n) {
+    return ~(static_cast<uint32_t>((1 << (32 - n)) - 1));
+}
+
+template <size_t sparsePrecision, size_t densePrecision>
+std::pair<size_t, uint8_t> decodeHash(HyperLogLogSparseRegister reg) {
+    static_assert(sparsePrecision >= densePrecision,
+                  "densePrecision must not be greater than sparsePrecision");
+    uint32_t denseValue;
+    uint32_t lowestBit = reg & 1;
+    uint32_t index;
+    if (lowestBit == 1) {
+        uint32_t sparseValue = (reg >> 1) & lowerNBitMask(31 - sparsePrecision);
+        denseValue = sparseValue + (sparsePrecision - densePrecision);
+        index = (reg >> (32 - densePrecision)) & lowerNBitMask(densePrecision);
+    }
+    else {
+        // First zero bottom bits, then shift the bits used for the new index to
+        // the left
+        uint32_t topBitsValue =
+            (reg & upperNBitMask(sparsePrecision)) << densePrecision;
+        denseValue = tlx::clz(topBitsValue) + 1;
+        index = (reg >> (32 - densePrecision)) & lowerNBitMask(densePrecision);
+    }
+    return std::make_pair(index, denseValue);
+}
+
+template <size_t precision>
+std::pair<uint32_t, uint8_t> splitSparseRegister(const HyperLogLogSparseRegister& reg) {
+    uint8_t value = (reg & lowerNBitMask(32 - precision)) >> 1;
+    uint32_t idx = reg >> (32 - precision);
+    return std::make_pair(idx, value);
+}
+
+template <size_t sparsePrecision, size_t densePrecision>
+uint32_t encodePair(uint32_t index, uint8_t value) {
+    // x_{63 - densePrecision}...x_{64 - sparsePrecision}
+    uint32_t decidingBits =
+        lowerNBitMask(sparsePrecision - densePrecision) & index;
+    if (decidingBits == 0) {
+        return index << (32 - sparsePrecision) | (value << 1) | 1;
+    }
+    else {
+        // x_63...x_{64 - sparsePrecision} || 0
+        uint32_t shifted = index << (32 - sparsePrecision);
+        return shifted;
+    }
+}
+
+template <size_t sparsePrecision, size_t densePrecision>
+uint32_t encodeHash(uint64_t hash) {
+    static_assert(sparsePrecision <= 32,
+                  "sparse precision must be smaller than 32");
+    static_assert(densePrecision < sparsePrecision,
+                  "dense precision must be smaller than sparse precision");
+
+    // precision bits are used for the index, the rest is used as the value
+    uint64_t valueBits = hash << sparsePrecision;
+    static_assert(sizeof(long long) * CHAR_BIT == 64,
+                  "64 bit long long are required for hyperloglog.");
+    uint8_t leadingZeroes =
+        valueBits == 0 ? (64 - sparsePrecision) : tlx::clz(valueBits);
+    uint32_t index = (hash >> (64 - sparsePrecision));
+    return encodePair<sparsePrecision, densePrecision>(index, leadingZeroes + 1);
+}
+
+/******************************************************************************/
+// Utilities for SparseLists
+
+template <size_t precision>
+std::vector<HyperLogLogSparseRegister>
+mergeSameIndices(const std::vector<HyperLogLogSparseRegister>& sparseList) {
+    if (sparseList.empty()) {
+        return { };
+    }
+    auto it = sparseList.begin();
+    std::vector<HyperLogLogSparseRegister> mergedSparseList = { *it };
+    ++it;
+    std::pair<size_t, uint8_t> lastEntry =
+        splitSparseRegister<precision>(mergedSparseList.back());
+    for ( ; it != sparseList.end(); ++it) {
+        auto decoded = splitSparseRegister<precision>(*it);
+        assert(decoded.first >= lastEntry.first);
+        if (decoded.first > lastEntry.first) {
+            mergedSparseList.emplace_back(*it);
+        }
+        else {
+            assert(decoded.second >= lastEntry.second);
+            mergedSparseList.back() = *it;
+        }
+        lastEntry = decoded;
+    }
+    return mergedSparseList;
+}
+
+class VectorWriter : public common::ItemWriterToolsBase<VectorWriter>
+{
+    std::vector<uint8_t>& buffer;
+
+public:
+    VectorWriter(std::vector<uint8_t>& buffer) : buffer(buffer) { }
+    VectorWriter& PutByte(uint8_t data) {
+        buffer.emplace_back(data);
+        return *this;
+    }
+};
+
+template <typename ForwardIt>
+class SparseListIterator
+    : public common::ItemReaderToolsBase<SparseListIterator<ForwardIt> >,
+      public std::iterator<std::forward_iterator_tag, uint32_t, std::ptrdiff_t,
+                           void, void>
+{
+    ForwardIt iterator;
+    uint32_t lastVal = 0;
+    static_assert(std::is_same<typename ForwardIt::value_type, uint8_t>::value,
+                  "ForwardIt must return uint8_t");
+
+public:
+    explicit SparseListIterator(ForwardIt it) : iterator(it) { }
+    uint8_t GetByte() { return *iterator++; }
+    SparseListIterator<ForwardIt>& operator ++ () {
+        lastVal = lastVal + this->GetVarint32();
+        return *this;
+    }
+    SparseListIterator<ForwardIt> operator ++ (int) {
+        SparseListIterator<ForwardIt> prev(*this);
+        ++*this;
+        return prev;
+    }
+    uint32_t operator * () {
+        ForwardIt prevIt = iterator;
+        uint32_t val = this->GetVarint32();
+        iterator = prevIt;
+        return lastVal + val;
+    }
+    bool operator == (const SparseListIterator<ForwardIt>& other) {
+        return iterator == other.iterator;
+    }
+    bool operator != (const SparseListIterator<ForwardIt>& other) {
+        return !(*this == other);
+    }
+};
+
+template <typename ForwardIt>
+SparseListIterator<ForwardIt> makeSparseListIterator(ForwardIt it) {
+    return SparseListIterator<ForwardIt>(it);
+}
+
+class DecodedSparseList
+{
+    const std::vector<uint8_t>& sparseListBuffer;
+
+public:
+    DecodedSparseList(const std::vector<uint8_t>& sparseListBuf)
+        : sparseListBuffer(sparseListBuf) { }
+    auto begin() { return makeSparseListIterator(sparseListBuffer.begin()); }
+    auto end() { return makeSparseListIterator(sparseListBuffer.end()); }
+};
 
 std::vector<uint8_t> encodeSparseList(const std::vector<uint32_t>& sparseList) {
     if (sparseList.empty()) {
@@ -1306,6 +1486,297 @@ std::vector<uint8_t> encodeSparseList(const std::vector<uint32_t>& sparseList) {
     return sparseListBuffer;
 }
 
+std::vector<uint32_t> decodeSparseList(const std::vector<uint8_t>& sparseList) {
+    std::vector<uint32_t> decoded;
+    for (auto val : core::hyperloglog::DecodedSparseList(sparseList)) {
+        decoded.emplace_back(val);
+    }
+    return decoded;
+}
+
+} // namespace hyperloglog
+
+/******************************************************************************/
+// HyperLogLog Class Methods
+
+template <size_t p>
+void HyperLogLogRegisters<p>::toDense() {
+    assert(format == HyperLogLogRegisterFormat::SPARSE);
+    format = HyperLogLogRegisterFormat::DENSE;
+    entries.resize(1 << p, 0);
+    for (auto val : hyperloglog::DecodedSparseList(sparseListBuffer)) {
+        auto decoded = hyperloglog::decodeHash<25, p>(val);
+        auto entry = entries[decoded.first];
+        auto value = std::max(entry, decoded.second);
+        entries[decoded.first] = value;
+    }
+
+    for (auto& val : tmpSet) {
+        auto decoded = hyperloglog::decodeHash<25, p>(val);
+        auto entry = entries[decoded.first];
+        auto value = std::max(entry, decoded.second);
+        entries[decoded.first] = value;
+    }
+    sparseListBuffer.clear();
+    tmpSet.clear();
+    sparseListBuffer.shrink_to_fit();
+    tmpSet.shrink_to_fit();
+}
+
+template <size_t p>
+bool HyperLogLogRegisters<p>::shouldConvertToDense() {
+    size_t tmpSize = tmpSet.size() * sizeof(HyperLogLogSparseRegister);
+    size_t sparseSize = tmpSize + sparseListBuffer.size() * sizeof(uint8_t);
+    size_t denseSize = (1 << p) * sizeof(uint8_t);
+    return sparseSize > denseSize;
+}
+
+template <size_t p>
+bool HyperLogLogRegisters<p>::shouldMerge() {
+    size_t tmpSize = tmpSet.size() * sizeof(HyperLogLogSparseRegister);
+    size_t denseSize = (1 << p) * sizeof(uint8_t);
+    return tmpSize > (denseSize / 4);
+}
+
+template <size_t p>
+void HyperLogLogRegisters<p>::insert_hash(const uint64_t& hash_value) {
+    // first p bits are the index
+    static_assert(sizeof(long long) * CHAR_BIT == 64,
+                  "64 Bit long long are required for hyperloglog.");
+    switch (format) {
+    case HyperLogLogRegisterFormat::SPARSE: {
+        sparseSize++;
+        tmpSet.emplace_back(hyperloglog::encodeHash<25, p>(hash_value));
+
+        if (shouldMerge()) {
+            mergeSparse();
+        }
+
+        if (shouldConvertToDense()) {
+            toDense();
+        }
+        break;
+    }
+    case HyperLogLogRegisterFormat::DENSE:
+        uint64_t index = hash_value >> (64 - p);
+        uint64_t val = hash_value << p;
+        uint8_t leadingZeroes = val == 0 ? (64 - p) : tlx::clz(val);
+        assert(leadingZeroes >= 0 && leadingZeroes <= (64 - p));
+        entries[index] =
+            std::max<uint8_t>(leadingZeroes + 1, entries[index]);
+        break;
+    }
+}
+
+template <size_t p>
+void HyperLogLogRegisters<p>::mergeSparse() {
+    hyperloglog::DecodedSparseList sparseList(sparseListBuffer);
+    assert(std::is_sorted(sparseList.begin(), sparseList.end()));
+    std::sort(tmpSet.begin(), tmpSet.end());
+    std::vector<HyperLogLogSparseRegister> resultVec;
+    std::merge(sparseList.begin(), sparseList.end(), tmpSet.begin(),
+               tmpSet.end(), std::back_inserter(resultVec));
+    tmpSet.clear();
+    tmpSet.shrink_to_fit();
+    std::vector<HyperLogLogSparseRegister> vec = hyperloglog::mergeSameIndices<25>(resultVec);
+    sparseSize = vec.size();
+    sparseListBuffer = hyperloglog::encodeSparseList(vec);
+}
+
+template <size_t p>
+void HyperLogLogRegisters<p>::mergeDense(const HyperLogLogRegisters<p>& b) {
+    assert(format == HyperLogLogRegisterFormat::DENSE);
+    const size_t m = 1 << p;
+    assert(m == size() && m == b.size());
+    for (size_t i = 0; i < m; ++i) {
+        entries[i] = std::max(entries[i], b.entries[i]);
+    }
+}
+
+template <size_t p>
+double HyperLogLogRegisters<p>::result() {
+    if (format == HyperLogLogRegisterFormat::SPARSE) {
+        mergeSparse();
+        // 25 is precision of sparse representation
+        const size_t m = 1 << 25;
+        unsigned sparseListCount = sparseSize;
+        unsigned V = m - sparseListCount;
+        return m * log(static_cast<double>(m) / V);
+    }
+
+    const size_t m = 1 << p;
+    assert(size() == m);
+
+    double E = 0.0;
+    unsigned V = 0;
+
+    for (const uint64_t& entry : entries) {
+        E += std::pow(2.0, -static_cast<double>(entry));
+        V += (entry == 0 ? 1 : 0);
+    }
+
+    E = hyperloglog::alpha<p>() * m * m / E;
+    double E_ = E;
+    if (E <= 5 * m) {
+        double bias = hyperloglog::estimateBias<p>(E);
+        E_ -= bias;
+    }
+
+    double H = E_;
+    if (V != 0) {
+        // linear count
+        H = m * log(static_cast<double>(m) / V);
+    }
+
+    if (H <= hyperloglog::threshold<p>()) {
+        return H;
+    }
+    else {
+        return E_;
+    }
+}
+
+//! combine two HyperloglogRegisters, switches between sparse/dense
+//! representations
+template <size_t p>
+HyperLogLogRegisters<p>
+HyperLogLogRegisters<p>::operator + (const HyperLogLogRegisters<p>& registers2) const {
+
+    if (format == HyperLogLogRegisterFormat::SPARSE &&
+        registers2.format == HyperLogLogRegisterFormat::SPARSE) {
+
+        HyperLogLogRegisters<p> result = *this;
+
+        hyperloglog::DecodedSparseList sparseList2(registers2.sparseListBuffer);
+        std::copy(sparseList2.begin(), sparseList2.end(),
+                  std::back_inserter(result.tmpSet));
+        std::copy(registers2.tmpSet.begin(), registers2.tmpSet.end(),
+                  std::back_inserter(result.tmpSet));
+        result.mergeSparse();
+        if (result.shouldConvertToDense()) {
+            result.toDense();
+        }
+        return result;
+    }
+    else if (format == HyperLogLogRegisterFormat::SPARSE &&
+             registers2.format == HyperLogLogRegisterFormat::DENSE) {
+
+        HyperLogLogRegisters<p> result = *this;
+        result.toDense();
+        result.mergeDense(registers2);
+        return result;
+    }
+    else if (format == HyperLogLogRegisterFormat::DENSE &&
+             registers2.format == HyperLogLogRegisterFormat::SPARSE) {
+
+        HyperLogLogRegisters<p> result = registers2;
+        result.toDense();
+        result.mergeDense(*this);
+        return result;
+    }
+    else if (format == HyperLogLogRegisterFormat::DENSE &&
+             registers2.format == HyperLogLogRegisterFormat::DENSE) {
+
+        HyperLogLogRegisters<p> result = *this;
+        result.mergeDense(registers2);
+        return result;
+    }
+    die("Impossible.");
+}
+
+/*----------------------------------------------------------------------------*/
+
+template class HyperLogLogRegisters<4>;
+template class HyperLogLogRegisters<5>;
+template class HyperLogLogRegisters<6>;
+template class HyperLogLogRegisters<7>;
+template class HyperLogLogRegisters<8>;
+template class HyperLogLogRegisters<9>;
+template class HyperLogLogRegisters<10>;
+template class HyperLogLogRegisters<11>;
+template class HyperLogLogRegisters<12>;
+template class HyperLogLogRegisters<13>;
+template class HyperLogLogRegisters<14>;
+template class HyperLogLogRegisters<15>;
+template class HyperLogLogRegisters<16>;
+template class HyperLogLogRegisters<17>;
+template class HyperLogLogRegisters<18>;
+
+} // namespace core
+
+/*----------------------------------------------------------------------------*/
+
+namespace data {
+
+template <typename Archive, size_t p>
+void Serialization<Archive, core::HyperLogLogRegisters<p> >::
+Serialize(const core::HyperLogLogRegisters<p>& x, Archive& ar) {
+    Serialization<Archive, core::HyperLogLogRegisterFormat>::Serialize(x.format, ar);
+    switch (x.format) {
+    case core::HyperLogLogRegisterFormat::SPARSE:
+        Serialization<Archive, decltype(x.sparseListBuffer)>::Serialize(
+            x.sparseListBuffer, ar);
+        Serialization<Archive, decltype(x.tmpSet)>::Serialize(x.tmpSet, ar);
+        break;
+    case core::HyperLogLogRegisterFormat::DENSE:
+        for (auto it = x.entries.begin(); it != x.entries.end(); ++it) {
+            Serialization<Archive, uint64_t>::Serialize(*it, ar);
+        }
+        break;
+    }
+}
+
+template <typename Archive, size_t p>
+core::HyperLogLogRegisters<p>
+Serialization<Archive, core::HyperLogLogRegisters<p> >::Deserialize(Archive& ar) {
+    core::HyperLogLogRegisters<p> out;
+    out.format =
+        std::move(Serialization<Archive, core::HyperLogLogRegisterFormat>::Deserialize(ar));
+    switch (out.format) {
+    case core::HyperLogLogRegisterFormat::SPARSE:
+        out.sparseListBuffer = std::move(
+            Serialization<Archive,
+                          decltype(out.sparseListBuffer)>::Deserialize(ar));
+        out.tmpSet = std::move(
+            Serialization<Archive, decltype(out.tmpSet)>::Deserialize(ar));
+        break;
+    case core::HyperLogLogRegisterFormat::DENSE:
+        out.entries.resize(1 << p);
+        for (size_t i = 0; i != out.size(); ++i) {
+            out.entries[i] = std::move(
+                Serialization<Archive, uint64_t>::Deserialize(ar));
+        }
+        break;
+    }
+    return out;
+}
+
+// instantiations
+#define MAKE_INSTANTIATIONS(X)                                                      \
+    template void Serialization<net::BufferBuilder, core::HyperLogLogRegisters<X> > \
+    ::Serialize(const core::HyperLogLogRegisters<X>&, net::BufferBuilder&);         \
+                                                                                    \
+    template core::HyperLogLogRegisters<X>                                          \
+    Serialization<net::BufferReader, core::HyperLogLogRegisters<X> >                \
+    ::Deserialize(net::BufferReader&);
+
+MAKE_INSTANTIATIONS(4)
+MAKE_INSTANTIATIONS(5)
+MAKE_INSTANTIATIONS(6)
+MAKE_INSTANTIATIONS(7)
+MAKE_INSTANTIATIONS(8)
+MAKE_INSTANTIATIONS(9)
+MAKE_INSTANTIATIONS(10)
+MAKE_INSTANTIATIONS(11)
+MAKE_INSTANTIATIONS(12)
+MAKE_INSTANTIATIONS(13)
+MAKE_INSTANTIATIONS(14)
+MAKE_INSTANTIATIONS(15)
+MAKE_INSTANTIATIONS(16)
+MAKE_INSTANTIATIONS(17)
+MAKE_INSTANTIATIONS(18)
+
+} // namespace data
 } // namespace thrill
 
 /******************************************************************************/
