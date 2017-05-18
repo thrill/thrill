@@ -648,6 +648,15 @@ public:
         const ValueType& initial_value = ValueType()) const;
 
     /*!
+     * Compute the approximate number of distinct elements in the DIA.
+     *
+     * \param p Number of bits to use for index. Should be between 4 and 16.
+     * \ingroup dia_actions
+     */
+    template <size_t p>
+    double HyperLogLog() const;
+
+    /*!
      * WriteLinesOne is an Action, which writes std::strings to a single output
      * file.
      *

@@ -116,6 +116,12 @@ void Connection::SyncSendRecv(const void* send_data, size_t send_size,
     SyncRecv(recv_data, recv_size);
 }
 
+void Connection::SyncRecvSend(const void* send_data, size_t send_size,
+                              void* recv_data, size_t recv_size) {
+    SyncRecv(recv_data, recv_size);
+    SyncSend(send_data, send_size, NoFlags);
+}
+
 /******************************************************************************/
 // mock::Group
 
