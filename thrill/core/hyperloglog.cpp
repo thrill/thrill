@@ -58,26 +58,6 @@ constexpr double alpha<6>() {
 
 /*----------------------------------------------------------------------------*/
 
-static inline int binarySearch(
-    double rawEstimate, const double* estimatedData, size_t length) {
-
-    int middle = length / 2;
-    int lower = 0;
-    int upper = length - 1;
-
-    while (upper - lower > 1) {
-        if (rawEstimate < estimatedData[middle]) {
-            upper = middle - 1;
-        }
-        else {
-            lower = middle;
-        }
-        middle = (upper + lower) / 2;
-    }
-
-    return lower;
-}
-
 static inline double knearestNeighbor(
     int k, int index, double estimate,
     const double* bias, const double* estimateData, size_t estimateDataLength) {
@@ -125,8 +105,9 @@ static inline double estimateBiasCalculation(
      * 2. k-nearest neighbor interpolation with k = 6
      * Estimation with: which data? from biasData!
      */
-    int lowerEstimateIndex = binarySearch(
-        rawEstimate, estimatedData, estimateSize);
+    int lowerEstimateIndex =
+        std::lower_bound(estimatedData, estimatedData + estimateSize,
+                         rawEstimate) - estimatedData;
 
     return knearestNeighbor(
         6, lowerEstimateIndex, rawEstimate,
