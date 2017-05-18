@@ -1815,17 +1815,17 @@ double HyperLogLogRegisters<p>::result() {
 //! representations
 template <size_t p>
 HyperLogLogRegisters<p>
-HyperLogLogRegisters<p>::operator + (const HyperLogLogRegisters<p>& registers2) const {
+HyperLogLogRegisters<p>::operator + (const HyperLogLogRegisters<p>& regs2) const {
 
     if (format_ == HyperLogLogRegisterFormat::SPARSE &&
-        registers2.format_ == HyperLogLogRegisterFormat::SPARSE) {
+        regs2.format_ == HyperLogLogRegisterFormat::SPARSE) {
 
         HyperLogLogRegisters<p> result = *this;
 
-        hyperloglog::DecodedSparseList sparseList2(registers2.sparseListBuffer_);
+        hyperloglog::DecodedSparseList sparseList2(regs2.sparseListBuffer_);
         std::copy(sparseList2.begin(), sparseList2.end(),
                   std::back_inserter(result.deltaSet_));
-        std::copy(registers2.deltaSet_.begin(), registers2.deltaSet_.end(),
+        std::copy(regs2.deltaSet_.begin(), regs2.deltaSet_.end(),
                   std::back_inserter(result.deltaSet_));
         result.mergeSparse();
         if (result.shouldConvertToDense()) {
@@ -1834,26 +1834,26 @@ HyperLogLogRegisters<p>::operator + (const HyperLogLogRegisters<p>& registers2) 
         return result;
     }
     else if (format_ == HyperLogLogRegisterFormat::SPARSE &&
-             registers2.format_ == HyperLogLogRegisterFormat::DENSE) {
+             regs2.format_ == HyperLogLogRegisterFormat::DENSE) {
 
         HyperLogLogRegisters<p> result = *this;
         result.toDense();
-        result.mergeDense(registers2);
+        result.mergeDense(regs2);
         return result;
     }
     else if (format_ == HyperLogLogRegisterFormat::DENSE &&
-             registers2.format_ == HyperLogLogRegisterFormat::SPARSE) {
+             regs2.format_ == HyperLogLogRegisterFormat::SPARSE) {
 
-        HyperLogLogRegisters<p> result = registers2;
+        HyperLogLogRegisters<p> result = regs2;
         result.toDense();
         result.mergeDense(*this);
         return result;
     }
     else if (format_ == HyperLogLogRegisterFormat::DENSE &&
-             registers2.format_ == HyperLogLogRegisterFormat::DENSE) {
+             regs2.format_ == HyperLogLogRegisterFormat::DENSE) {
 
         HyperLogLogRegisters<p> result = *this;
-        result.mergeDense(registers2);
+        result.mergeDense(regs2);
         return result;
     }
     die("Impossible.");
