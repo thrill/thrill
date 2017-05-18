@@ -11,6 +11,7 @@
 
 #include <thrill/api/generate.hpp>
 #include <thrill/api/hyperloglog.hpp>
+#include <tlx/math/clz.hpp>
 
 #include <gtest/gtest.h>
 
@@ -157,7 +158,7 @@ TEST(Operations, decodeHash) {
         uint32_t index = random >> (64 - densePrecision);
         uint64_t valueBits = random << densePrecision;
         uint8_t value =
-            valueBits == 0 ? (64 - densePrecision) : __builtin_clzll(valueBits);
+            valueBits == 0 ? (64 - densePrecision) : tlx::clz(valueBits);
         value++;
         uint32_t encoded = core::hyperloglog::encodeHash<25, 4>(random);
         auto decoded = core::hyperloglog::decodeHash<25, 4>(encoded);
@@ -170,7 +171,7 @@ TEST(Operations, decodeHash) {
         uint32_t index = random >> (64 - densePrecision);
         uint64_t valueBits = random << densePrecision;
         uint8_t value =
-            valueBits == 0 ? (64 - densePrecision) : __builtin_clzll(valueBits);
+            valueBits == 0 ? (64 - densePrecision) : tlx::clz(valueBits);
         value++;
         uint32_t encoded = core::hyperloglog::encodeHash<25, 12>(random);
         auto decoded = core::hyperloglog::decodeHash<25, 12>(encoded);
