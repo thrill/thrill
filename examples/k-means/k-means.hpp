@@ -18,7 +18,6 @@
 #include <thrill/api/collapse.hpp>
 #include <thrill/api/reduce_by_key.hpp>
 #include <thrill/api/sample.hpp>
-#include <thrill/api/all_gather.hpp>
 #include <thrill/api/sum.hpp>
 #include <thrill/common/vector.hpp>
 
@@ -183,16 +182,16 @@ auto KMeans(const DIA<Point, InStack>& input_points, size_t dimensions,
     using ClosestCentroid = ClosestCentroid<Point>;
     using CentroidAccumulated = CentroidAccumulated<Point>;
 
-    DIA<Point> centroids = points.Keep().Sample(num_clusters);
+	std::vector<Point> local_centroids = 
+		points.Keep().Sample(num_clusters).AllGather();
 
-	std::vector<Point> local_centroids = centroids.AllGather();
-	std::vector<Point> old_local_centroids(local_centroids);
+    for (size_t iter = 0; iter < iterations && !break_condition; ++iter) {
 
-    for (size_t iter = 0; iter < iterations; ++iter) {
+		std::vector<Point> old_local_centroids(local_centroids);
 
         // calculate the closest centroid for each point
         auto closest = points.Keep().Map(
-            [local_centroids = std::move(local_centroids)](const Point& p) {
+            [local_centroids](const Point& p) {
                 assert(local_centroids.size());
                 double min_dist = p.DistanceSquare(local_centroids[0]);
                 size_t closest_id = 0;
@@ -210,7 +209,7 @@ auto KMeans(const DIA<Point, InStack>& input_points, size_t dimensions,
             });
 
         // Calculate new centroids as the mean of all points associated with it.
-        centroids =
+        auto centroids =
             closest
             .ReduceByKey(
                 [](const ClosestCentroid& cc) { return cc.cluster_id; },
@@ -222,18 +221,23 @@ auto KMeans(const DIA<Point, InStack>& input_points, size_t dimensions,
                     };
                 })
             .Map([](const ClosestCentroid& cc) {
-                     return cc.center.p / static_cast<double>(cc.center.count);
+                     return CentroidAccumulated{
+						 cc.center.p / static_cast<double>(cc.center.count),
+						 cc.cluster_id };
                  })
             .Collapse();
 
 		// Check whether centroid positions changed significantly,
 		// if yes do another iteration
 		break_condition = true;
-		local_centroids = centroids.AllGather();
+		auto unsortedCentroids = centroids.AllGather();
+		
+		for (auto &uc : unsortedCentroids) {
+			local_centroids[uc.count] = uc.p;
+		}
+
 		for (size_t i = 0; i < local_centroids.size(); ++i) {
 			if (local_centroids[i].Distance(old_local_centroids[i]) > epsilon) {
-				old_local_centroids.insert(old_local_centroids.begin(),
-					local_centroids.begin(), local_centroids.end());
 				break_condition = false;
 				break;
 			}
