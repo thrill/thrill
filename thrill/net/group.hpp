@@ -120,38 +120,6 @@ public:
         connection(src).Receive(data);
     }
 
-    /*!
-     * Sends and Receives a serializable type from the given peer and returns the value after reduction
-     *
-     * \param src The peer to receive the fixed length type from.
-     * \param data A pointer to the location where the received data should be stored.
-     */
-    template <typename T, typename BinarySumOp = std::plus<T> >
-    T sendReceiveReduce(size_t peer, T value, BinarySumOp sum_op) {
-        T recv_data;
-        connection(peer).SendReceive(value, &recv_data);
-        if (my_host_rank() > peer)
-            return sum_op(recv_data, value);
-        else
-            return sum_op(value, recv_data);
-    }
-
-    /*!
-     * Receives a serializable type from the given peer and returns the value after reduction
-     *
-     * \param src The peer to receive the fixed length type from.
-     * \param data A pointer to the location where the received data should be stored.
-     */
-    template <typename T, typename BinarySumOp = std::plus<T> >
-    T receiveReduce(size_t peer, T value, BinarySumOp sum_op) {
-        T recv_data;
-        connection(peer).Receive(&recv_data);
-        if (my_host_rank() > peer)
-            return sum_op(recv_data, value);
-        else
-            return sum_op(value, recv_data);
-    }
-
     //! \}
 
     //! \name Synchronous Collective Communication Functions
@@ -222,8 +190,24 @@ public:
     template <typename T, typename BinarySumOp = std::plus<T> >
     void AllReduceElimination(T& value, BinarySumOp sum_op = BinarySumOp());
 
-    template <typename T, typename BinarySumOp = std::plus<T> >
-    void eliminationProcessHost(size_t hostId, size_t groupsSize, size_t remainingHostsCount, size_t sendTo, T* value, BinarySumOp sum_op = BinarySumOp());
+    /**************************************************************************/
+
+protected:
+    /*!
+     * Sends and Receives a serializable type from the given peer and returns
+     * the value after reduction
+     *
+     * \param src The peer to receive the fixed length type from.
+     * \param data A pointer to the location where the received data should be
+     * stored.
+     */
+    template <typename T, typename BinarySumOp>
+    T SendReceiveReduce(size_t peer, const T& value, BinarySumOp sum_op);
+
+    template <typename T, typename BinarySumOp>
+    void AllReduceEliminationProcess(
+        size_t host_id, size_t group_size, size_t remaining_hosts,
+        size_t send_to, T* value, BinarySumOp sum_op);
 
     //! \}
 
