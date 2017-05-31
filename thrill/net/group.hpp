@@ -207,7 +207,7 @@ protected:
     template <typename T, typename BinarySumOp>
     void AllReduceEliminationProcess(
         size_t host_id, size_t group_size, size_t remaining_hosts,
-        size_t send_to, T* value, BinarySumOp sum_op);
+        size_t send_to, T& value, BinarySumOp sum_op);
 
     //! \}
 

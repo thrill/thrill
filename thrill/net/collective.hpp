@@ -358,27 +358,24 @@ void Group::AllReduceHypercube(T& value, BinarySumOp sum_op) {
 
         // SendReceive value to worker with id id ^ d
         if (peer < num_hosts()) {
-            // sLOG << "ALL_REDUCE_HYPERCUBE: Host" << my_host_rank()
-            //      << ": Sending" << value << "to worker" << peer;
-
-            T recv_data;
-            if (my_host_rank() & d) {
-                connection(peer).SendReceive(value, &recv_data);
-            }
-            else {
-                connection(peer).ReceiveSend(value, &recv_data);
-            }
+            // LOG << "ALL_REDUCE_HYPERCUBE: Host" << my_host_rank()
+            //     << ": Sending" << value << " to worker" << peer;
 
             // The order of addition is important. The total sum of the smaller
             // hypercube always comes first.
-            if (my_host_rank() & d)
+            T recv_data;
+            if (my_host_rank() & d) {
+                connection(peer).SendReceive(value, &recv_data);
                 value = sum_op(recv_data, value);
-            else
+            }
+            else {
+                connection(peer).ReceiveSend(value, &recv_data);
                 value = sum_op(value, recv_data);
+            }
 
-            // sLOG << "ALL_REDUCE_HYPERCUBE: Host " << my_host_rank()
-            //      << ": Received " << recv_data
-            //      << " from worker " << peer << " value = " << value;
+            // LOG << "ALL_REDUCE_HYPERCUBE: Host " << my_host_rank()
+            //     << ": Received " << recv_data
+            //     << " from worker " << peer << " value = " << value;
         }
     }
 }
@@ -395,31 +392,28 @@ void Group::AllReduceHypercube(T& value, BinarySumOp sum_op) {
  */
 template <typename T, typename BinarySumOp>
 void Group::AllReduceElimination(T& value, BinarySumOp sum_op) {
-    AllReduceEliminationProcess(my_host_rank(), 1, num_hosts(), 0, &value, sum_op);
+    AllReduceEliminationProcess(
+        my_host_rank(), 1, num_hosts(), 0, value, sum_op);
 }
 
-/*!
- * Sends and Receives a serializable type from the given peer and returns
- * the value after reduction
- *
- * \param src The peer to receive the fixed length type from.
- * \param data A pointer to the location where the received data should be stored.
- */
 template <typename T, typename BinarySumOp>
 T Group::SendReceiveReduce(size_t peer, const T& value, BinarySumOp sum_op) {
     T recv_data;
-    connection(peer).SendReceive(value, &recv_data);
-    if (my_host_rank() > peer)
+    if (my_host_rank() > peer) {
+        connection(peer).SendReceive(value, &recv_data);
         return sum_op(recv_data, value);
-    else
+    }
+    else {
+        connection(peer).ReceiveSend(value, &recv_data);
         return sum_op(value, recv_data);
+    }
 }
 
 //! used for the recursive implementation of the elimination protocol
 template <typename T, typename BinarySumOp>
 void Group::AllReduceEliminationProcess(
     size_t host_id, size_t group_size, size_t remaining_hosts,
-    size_t send_to, T* value, BinarySumOp sum_op) {
+    size_t send_to, T& value, BinarySumOp sum_op) {
 
     // static const bool debug = false;
 
@@ -431,20 +425,18 @@ void Group::AllReduceEliminationProcess(
         // only hypercube
         size_t peer = host_id ^ group_size;
         if (peer < remaining_hosts) {
-            *value = SendReceiveReduce(peer, *value, sum_op);
+            value = SendReceiveReduce(peer, value, sum_op);
         }
     }
     else {
         // check if my rank is in 3-2 elimination zone
         size_t host_group = host_id / group_size;
         if (host_group >= group_count - 3) {
-            // take part in the elimination
+            // take part in the 3-2 elimination
             if (host_group == group_count - 1) {
                 size_t peer = (host_id ^ group_size) - 2 * group_size;
-                SendTo(peer, *value);
-                T recv_data;
-                ReceiveFrom(peer, &recv_data);
-                *value = recv_data;
+                SendTo(peer, value);
+                ReceiveFrom(peer, &value);
             }
             else if (host_group == group_count - 2) {
                 size_t peer = (host_id ^ group_size) + 2 * group_size;
@@ -452,26 +444,26 @@ void Group::AllReduceEliminationProcess(
                 T recv_data;
                 ReceiveFrom(peer, &recv_data);
                 if (my_host_rank() > peer)
-                    *value = sum_op(recv_data, *value);
+                    value = sum_op(recv_data, value);
                 else
-                    *value = sum_op(*value, recv_data);
+                    value = sum_op(value, recv_data);
 
-                // important for Gathering
+                // important for gathering
                 send_to = peer;
 
                 peer = host_id ^ group_size;
-                *value = SendReceiveReduce(peer, *value, sum_op);
+                value = SendReceiveReduce(peer, value, sum_op);
             }
             else if (host_group == group_count - 3) {
                 size_t peer = host_id ^ group_size;
-                *value = SendReceiveReduce(peer, *value, sum_op);
+                value = SendReceiveReduce(peer, value, sum_op);
             }
         }
         else {
             // no elimination, execute hypercube
             size_t peer = host_id ^ group_size;
             if (peer < remaining_hosts) {
-                *value = SendReceiveReduce(peer, *value, sum_op);
+                value = SendReceiveReduce(peer, value, sum_op);
             }
         }
         remaining_hosts -= group_size;
@@ -485,14 +477,14 @@ void Group::AllReduceEliminationProcess(
             value, sum_op);
     }
     else if (send_to != 0) {
-        SendTo(send_to, *value);
+        SendTo(send_to, value);
     }
 }
 
 //! select allreduce implementation (often due to total number of processors)
 template <typename T, typename BinarySumOp>
 void Group::AllReduceSelect(T& value, BinarySumOp sum_op) {
-    // always use 2-3-elimination reduction method.
+    // always use 3-2-elimination reduction method.
     AllReduceElimination(value, sum_op);
     /*if (tlx::is_power_of_two(num_hosts()))
         AllReduceHypercube(value, sum_op);
