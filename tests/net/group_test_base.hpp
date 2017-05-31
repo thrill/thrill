@@ -202,6 +202,14 @@ static void TestAllReduceHypercubeString(net::Group* net) {
     ASSERT_EQ(result.substr(0, net->num_hosts()), local_value);
 }
 
+//! let group of p hosts perform a AllReduce collective on std::string
+static void TestAllReduceEliminationString(net::Group* net) {
+    const std::string result = "abcdefghijklmnopqrstuvwxyz";
+    std::string local_value = result.substr(net->my_host_rank(), 1);
+    net->AllReduceElimination(local_value);
+    ASSERT_EQ(result.substr(0, net->num_hosts()), local_value);
+}
+
 /******************************************************************************/
 // Dispatcher Tests
 
