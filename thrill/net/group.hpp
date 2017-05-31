@@ -91,7 +91,7 @@ public:
     //! 1-factor based network exchange algorithm.
     size_t OneFactorPeer(size_t round) const {
         return common::CalcOneFactorPeer(round, my_host_rank(), num_hosts());
-    }   
+    }
 
     //! \}
 
@@ -127,7 +127,7 @@ public:
      * \param data A pointer to the location where the received data should be stored.
      */
     template <typename T, typename BinarySumOp = std::plus<T> >
-    T sendReceiveReduce(size_t peer, T value, BinarySumOp sum_op){
+    T sendReceiveReduce(size_t peer, T value, BinarySumOp sum_op) {
         T recv_data;
         connection(peer).SendReceive(value, &recv_data);
         if (my_host_rank() > peer)
@@ -143,7 +143,7 @@ public:
      * \param data A pointer to the location where the received data should be stored.
      */
     template <typename T, typename BinarySumOp = std::plus<T> >
-    T receiveReduce(size_t peer, T value, BinarySumOp sum_op){
+    T receiveReduce(size_t peer, T value, BinarySumOp sum_op) {
         T recv_data;
         connection(peer).Receive(&recv_data);
         if (my_host_rank() > peer)
@@ -223,7 +223,7 @@ public:
     void AllReduceElimination(T& value, BinarySumOp sum_op = BinarySumOp());
 
     template <typename T, typename BinarySumOp = std::plus<T> >
-    void eliminationProcessHost(size_t hostId, size_t groupsSize, size_t remainingHostsCount, size_t sendTo, T *value, BinarySumOp sum_op = BinarySumOp());
+    void eliminationProcessHost(size_t hostId, size_t groupsSize, size_t remainingHostsCount, size_t sendTo, T* value, BinarySumOp sum_op = BinarySumOp());
 
     //! \}
 

@@ -347,7 +347,8 @@ void Group::AllReduceHypercube(T& value, BinarySumOp sum_op) {
     // For each dimension of the hypercube, exchange data between workers with
     // different bits at position d
 
-    //static constexpr bool debug = true;
+    // static constexpr bool debug = false;
+
     for (size_t d = 1; d < num_hosts(); d <<= 1) {
         // communication peer for this round (hypercube dimension)
         size_t peer = my_host_rank() ^ d;
@@ -388,31 +389,32 @@ void Group::AllReduceElimination(T& value, BinarySumOp sum_op) {
 
 //! used for the recursive implementation of the elimination protocol
 template <typename T, typename BinarySumOp>
-void Group::eliminationProcessHost(size_t hostId, size_t groupsSize, size_t remainingHostsCount, size_t sendTo, T *value, BinarySumOp sum_op){
-    //bool debug = false;
+void Group::eliminationProcessHost(size_t hostId, size_t groupsSize, size_t remainingHostsCount, size_t sendTo, T* value, BinarySumOp sum_op) {
+    // bool debug = false;
     // sendTo == 0 => no eliminated host waiting to receive from current host, host 0 is never eliminated
 
-    size_t groupsCount = remainingHostsCount/groupsSize;
-    if (groupsCount % 2 == 0){
+    size_t groupsCount = remainingHostsCount / groupsSize;
+    if (groupsCount % 2 == 0) {
         // only hypercube
         size_t peer = hostId ^ groupsSize;
         if (peer < remainingHostsCount) {
             *value = sendReceiveReduce(peer, *value, sum_op);
         }
-    }else{
+    }
+    else {
         // check if my rank is in 3-2 elimination zone
-        size_t hostGroup = hostId/groupsSize;
-        if (hostGroup >=  groupsCount - 3){
+        size_t hostGroup = hostId / groupsSize;
+        if (hostGroup >= groupsCount - 3) {
             // take part in the elimination
             if (hostGroup == groupsCount - 1) {
-                size_t peer = (hostId ^ groupsSize) - 2*groupsSize;
+                size_t peer = (hostId ^ groupsSize) - 2 * groupsSize;
                 SendTo(peer, *value);
                 T recv_data;
                 ReceiveFrom(peer, &recv_data);
                 *value = recv_data;
-
-             } else if (hostGroup == groupsCount - 2) {
-                size_t peer = (hostId ^ groupsSize) + 2*groupsSize;
+            }
+            else if (hostGroup == groupsCount - 2) {
+                size_t peer = (hostId ^ groupsSize) + 2 * groupsSize;
 
                 *value = receiveReduce(peer, *value, sum_op);
 
@@ -421,14 +423,15 @@ void Group::eliminationProcessHost(size_t hostId, size_t groupsSize, size_t rema
 
                 peer = hostId ^ groupsSize;
                 *value = sendReceiveReduce(peer, *value, sum_op);
-
-              } else if (hostGroup == groupsCount - 3) {
-                  size_t peer = hostId ^ groupsSize;
-                  *value = sendReceiveReduce(peer, *value, sum_op);
-              }
-        } else {
+            }
+            else if (hostGroup == groupsCount - 3) {
+                size_t peer = hostId ^ groupsSize;
+                *value = sendReceiveReduce(peer, *value, sum_op);
+            }
+        }
+        else {
             // no elimination, execute hypercube
-            size_t peer = hostId ^groupsSize;
+            size_t peer = hostId ^ groupsSize;
             if (peer < remainingHostsCount) {
                 *value = sendReceiveReduce(peer, *value, sum_op);
             }
@@ -436,10 +439,11 @@ void Group::eliminationProcessHost(size_t hostId, size_t groupsSize, size_t rema
         remainingHostsCount -= groupsSize;
     }
     groupsSize <<= 1;
-                                                                            // Recursion
-    if (groupsSize < remainingHostsCount){
+    // Recursion
+    if (groupsSize < remainingHostsCount) {
         eliminationProcessHost(hostId, groupsSize, remainingHostsCount, sendTo, value, sum_op);
-    } else if (sendTo != 0){
+    }
+    else if (sendTo != 0) {
         SendTo(sendTo, *value);
     }
 }

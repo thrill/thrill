@@ -1,6 +1,6 @@
 #!/bin/bash -x
 ################################################################################
-# misc/mk-doxygen-travis.sh
+# misc/doxygen/mk-doxygen-travis.sh
 #
 # Script to automatically generate doxyen documentation on Travis and upload it
 # to Github Pages.
