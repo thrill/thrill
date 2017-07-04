@@ -27,7 +27,7 @@
 
 #include <thrill/api/group_by_iterator.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/core/losertree.hpp>
+#include <tlx/loser_tree.hpp>
 
 #include <algorithm>
 #include <iterator>
@@ -411,15 +411,15 @@ multiway_merge_3_variant(RandomAccessIteratorIterator seqs_begin,
             goto s210;
     }
 
-#define THRILL_MERGE3CASE(a, b, c, c0, c1)           \
-    s ## a ## b ## c:                                \
-    *target = *seq ## a;                             \
-    ++target;                                        \
-    --length;                                        \
-    ++seq ## a;                                      \
-    if (length == 0) goto finish;                    \
-    if (seq ## a c0 seq ## b) goto s ## a ## b ## c; \
-    if (seq ## a c1 seq ## c) goto s ## b ## a ## c; \
+#define THRILL_MERGE3CASE(a, b, c, c0, c1)            \
+    s ## a ## b ## c:                                 \
+    *target = *seq ## a;                              \
+    ++target;                                         \
+    --length;                                         \
+    ++seq ## a;                                       \
+    if (length == 0) goto finish;                     \
+    if (seq ## a c0 seq ## b) goto s ## a ## b ## c;  \
+    if (seq ## a c1 seq ## c) goto s ## b ## a ## c;  \
     goto s ## b ## c ## a;
 
     THRILL_MERGE3CASE(0, 1, 2, <=, <=);
@@ -557,12 +557,12 @@ file_multiway_merge_4_variant(RandomAccessIteratorIterator seqs_begin,
     seq2(seqs_begin[2].first, seqs_begin[2].second, comp),
     seq3(seqs_begin[3].first, seqs_begin[3].second, comp);
 
-#define THRILL_DECISION(a, b, c, d) do {                     \
-        if (seq ## d < seq ## a) goto s ## d ## a ## b ## c; \
-        if (seq ## d < seq ## b) goto s ## a ## d ## b ## c; \
-        if (seq ## d < seq ## c) goto s ## a ## b ## d ## c; \
-        goto s ## a ## b ## c ## d;                          \
-}                                                            \
+#define THRILL_DECISION(a, b, c, d) do {                      \
+        if (seq ## d < seq ## a) goto s ## d ## a ## b ## c;  \
+        if (seq ## d < seq ## b) goto s ## a ## d ## b ## c;  \
+        if (seq ## d < seq ## c) goto s ## a ## b ## d ## c;  \
+        goto s ## a ## b ## c ## d;                           \
+}                                                             \
     while (0)
 
     if (seq0 <= seq1)
@@ -587,15 +587,15 @@ file_multiway_merge_4_variant(RandomAccessIteratorIterator seqs_begin,
             THRILL_DECISION(2, 1, 0, 3);
     }
 
-#define THRILL_MERGE4CASE(a, b, c, d, c0, c1, c2)         \
-    s ## a ## b ## c ## d:                                \
-    if (length == 0) goto finish;                         \
-    target(*seq ## a);                                    \
-    --length;                                             \
-    ++seq ## a;                                           \
-    if (seq ## a c0 seq ## b) goto s ## a ## b ## c ## d; \
-    if (seq ## a c1 seq ## c) goto s ## b ## a ## c ## d; \
-    if (seq ## a c2 seq ## d) goto s ## b ## c ## a ## d; \
+#define THRILL_MERGE4CASE(a, b, c, d, c0, c1, c2)          \
+    s ## a ## b ## c ## d:                                 \
+    if (length == 0) goto finish;                          \
+    target(*seq ## a);                                     \
+    --length;                                              \
+    ++seq ## a;                                            \
+    if (seq ## a c0 seq ## b) goto s ## a ## b ## c ## d;  \
+    if (seq ## a c1 seq ## c) goto s ## b ## a ## c ## d;  \
+    if (seq ## a c2 seq ## d) goto s ## b ## c ## a ## d;  \
     goto s ## b ## c ## d ## a;
 
     THRILL_MERGE4CASE(0, 1, 2, 3, <=, <=, <=);
@@ -685,12 +685,12 @@ multiway_merge_4_variant(RandomAccessIteratorIterator seqs_begin,
     seq2(seqs_begin[2].first, seqs_begin[2].second, comp),
     seq3(seqs_begin[3].first, seqs_begin[3].second, comp);
 
-#define THRILL_DECISION(a, b, c, d) do {                     \
-        if (seq ## d < seq ## a) goto s ## d ## a ## b ## c; \
-        if (seq ## d < seq ## b) goto s ## a ## d ## b ## c; \
-        if (seq ## d < seq ## c) goto s ## a ## b ## d ## c; \
-        goto s ## a ## b ## c ## d;                          \
-}                                                            \
+#define THRILL_DECISION(a, b, c, d) do {                      \
+        if (seq ## d < seq ## a) goto s ## d ## a ## b ## c;  \
+        if (seq ## d < seq ## b) goto s ## a ## d ## b ## c;  \
+        if (seq ## d < seq ## c) goto s ## a ## b ## d ## c;  \
+        goto s ## a ## b ## c ## d;                           \
+}                                                             \
     while (0)
 
     if (seq0 <= seq1)
@@ -715,16 +715,16 @@ multiway_merge_4_variant(RandomAccessIteratorIterator seqs_begin,
             THRILL_DECISION(2, 1, 0, 3);
     }
 
-#define THRILL_MERGE4CASE(a, b, c, d, c0, c1, c2)         \
-    s ## a ## b ## c ## d:                                \
-    if (length == 0) goto finish;                         \
-    *target = *seq ## a;                                  \
-    ++target;                                             \
-    --length;                                             \
-    ++seq ## a;                                           \
-    if (seq ## a c0 seq ## b) goto s ## a ## b ## c ## d; \
-    if (seq ## a c1 seq ## c) goto s ## b ## a ## c ## d; \
-    if (seq ## a c2 seq ## d) goto s ## b ## c ## a ## d; \
+#define THRILL_MERGE4CASE(a, b, c, d, c0, c1, c2)          \
+    s ## a ## b ## c ## d:                                 \
+    if (length == 0) goto finish;                          \
+    *target = *seq ## a;                                   \
+    ++target;                                              \
+    --length;                                              \
+    ++seq ## a;                                            \
+    if (seq ## a c0 seq ## b) goto s ## a ## b ## c ## d;  \
+    if (seq ## a c1 seq ## c) goto s ## b ## a ## c ## d;  \
+    if (seq ## a c2 seq ## d) goto s ## b ## c ## a ## d;  \
     goto s ## b ## c ## d ## a;
 
     THRILL_MERGE4CASE(0, 1, 2, 3, <=, <=, <=);
@@ -1055,7 +1055,7 @@ file_multiway_merge_loser_tree(RandomAccessIteratorIterator seqs_begin,
 
     for (Source t = 0; t < k; ++t)
     {
-        if (THRILL_UNLIKELY(seqs_begin[t].first == seqs_begin[t].second))
+        if (TLX_UNLIKELY(seqs_begin[t].first == seqs_begin[t].second))
             lt.insert_start(*arbitrary_element, t, true);
         else
             lt.insert_start(*seqs_begin[t].first, t, false);
@@ -1123,7 +1123,7 @@ multiway_merge_loser_tree(RandomAccessIteratorIterator seqs_begin,
 
     for (Source t = 0; t < k; ++t)
     {
-        if (THRILL_UNLIKELY(seqs_begin[t].first == seqs_begin[t].second))
+        if (TLX_UNLIKELY(seqs_begin[t].first == seqs_begin[t].second))
             lt.insert_start(nullptr, t, true);
         else
             lt.insert_start(&*seqs_begin[t].first, t, false);
@@ -1261,7 +1261,7 @@ multiway_merge_loser_tree_combined(
     {
         DiffType unguarded_length = std::min(length, total_length - overhang);
         target_end = multiway_merge_loser_tree_unguarded<
-            typename LoserTreeTraitsUnguarded<Stable, value_type, Comparator>::Type>(
+            tlx::LoserTreeUnguarded<Stable, value_type, Comparator> >(
             seqs_begin, seqs_end, target, unguarded_length, comp);
         overhang = length - unguarded_length;
     }
@@ -1276,7 +1276,7 @@ multiway_merge_loser_tree_combined(
     // THRILL_DEBUG_ASSERT(stxxl::is_sorted(target, target_end, comp));
 
     target_end = multiway_merge_loser_tree<
-        typename LoserTreeTraits<Stable, value_type, Comparator>::Type>(
+        tlx::LoserTree<Stable, value_type, Comparator> >(
         seqs_begin, seqs_end, target_end, overhang, comp);
 
     // THRILL_DEBUG_ASSERT(target_end == target + length);
@@ -1308,7 +1308,7 @@ multiway_merge_loser_tree_sentinel(
 
     RandomAccessIterator3 target_end
         = multiway_merge_loser_tree_unguarded<
-        typename LoserTreeTraitsUnguarded<Stable, value_type, Comparator>::Type>(
+        tlx::LoserTreeUnguarded<Stable, value_type, Comparator> >(
         seqs_begin, seqs_end, target, length, comp);
 
     // THRILL_DEBUG_ASSERT(target_end == target + length);
@@ -1370,7 +1370,7 @@ sequential_file_multiway_merge(RandomAccessIteratorIterator seqs_begin,
     default:
     {
         return_target = file_multiway_merge_loser_tree<
-            typename LoserTreeTraits<Stable, value_type, Comparator>::Type>(
+            tlx::LoserTree<Stable, value_type, Comparator> >(
             seqs_begin, seqs_end, target, length, comp);
         break;
     }
@@ -1487,7 +1487,7 @@ sequential_multiway_merge(RandomAccessIteratorIterator seqs_begin,
         //     break;
         // case SETTINGS::LOSER_TREE:
         return_target = multiway_merge_loser_tree<
-            typename LoserTreeTraits<Stable, value_type, Comparator>::Type>(
+            tlx::LoserTree<Stable, value_type, Comparator> >(
             seqs_begin, seqs_end, target, length, comp);
         break;
         // case SETTINGS::LOSER_TREE_COMBINED:

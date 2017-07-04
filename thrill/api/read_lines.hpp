@@ -23,6 +23,8 @@
 #include <thrill/net/buffer_builder.hpp>
 #include <thrill/vfs/file_io.hpp>
 
+#include <tlx/string/join.hpp>
+
 #include <string>
 #include <utility>
 #include <vector>
@@ -53,7 +55,7 @@ public:
         filelist_ = vfs::Glob(globlist, vfs::GlobType::File);
 
         if (filelist_.size() == 0)
-            die("ReadLines: no files found in globs: " + common::Join(" ", globlist));
+            die("ReadLines: no files found in globs: " + tlx::join(' ', globlist));
 
         sLOG << "ReadLines: creating for" << globlist.size() << "globs"
              << "matching" << filelist_.size() << "files";
@@ -213,7 +215,7 @@ private:
                 // worker already covers it
                 while (!found_n) {
                     while (current_ < buffer_.end()) {
-                        if (THRILL_UNLIKELY(*current_++ == '\n')) {
+                        if (TLX_UNLIKELY(*current_++ == '\n')) {
                             found_n = true;
                             break;
                         }
@@ -238,8 +240,8 @@ private:
             total_elements_++;
             data_.clear();
             while (true) {
-                while (THRILL_LIKELY(current_ < buffer_.end())) {
-                    if (THRILL_UNLIKELY(*current_ == '\n')) {
+                while (TLX_LIKELY(current_ < buffer_.end())) {
+                    if (TLX_UNLIKELY(*current_ == '\n')) {
                         current_++;
                         return data_;
                     }
@@ -361,7 +363,7 @@ private:
             data_.clear();
             while (true) {
                 while (current_ < buffer_.end()) {
-                    if (THRILL_UNLIKELY(*current_ == '\n')) {
+                    if (TLX_UNLIKELY(*current_ == '\n')) {
                         current_++;
                         return data_;
                     }
@@ -449,7 +451,7 @@ private:
  */
 DIA<std::string> ReadLines(Context& ctx, const std::string& filepath) {
     return DIA<std::string>(
-        common::MakeCounting<ReadLinesNode>(
+        tlx::make_counting<ReadLinesNode>(
             ctx, filepath, /* local_storage */ false));
 }
 
@@ -465,21 +467,21 @@ DIA<std::string> ReadLines(Context& ctx, const std::string& filepath) {
 DIA<std::string> ReadLines(
     Context& ctx, const std::vector<std::string>& filepaths) {
     return DIA<std::string>(
-        common::MakeCounting<ReadLinesNode>(
+        tlx::make_counting<ReadLinesNode>(
             ctx, filepaths, /* local_storage */ false));
 }
 
 DIA<std::string> ReadLines(struct LocalStorageTag, Context& ctx,
                            const std::string& filepath) {
     return DIA<std::string>(
-        common::MakeCounting<ReadLinesNode>(
+        tlx::make_counting<ReadLinesNode>(
             ctx, filepath, /* local_storage */ true));
 }
 
 DIA<std::string> ReadLines(struct LocalStorageTag, Context& ctx,
                            const std::vector<std::string>& filepaths) {
     return DIA<std::string>(
-        common::MakeCounting<ReadLinesNode>(
+        tlx::make_counting<ReadLinesNode>(
             ctx, filepaths, /* local_storage */ true));
 }
 

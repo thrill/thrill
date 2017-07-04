@@ -27,6 +27,8 @@
 #include <thrill/core/reduce_table.hpp>
 #include <thrill/data/cat_stream.hpp>
 
+#include <tlx/math/integer_log2.hpp>
+
 #include <algorithm>
 #include <functional>
 #include <unordered_map>
@@ -248,7 +250,7 @@ public:
         }
 
         size_t worker_bitsize = std::max(
-            common::IntegerLog2Ceil(context_.num_workers()), (unsigned int)1);
+            tlx::integer_log2_ceil(context_.num_workers()), (unsigned int)1);
 
         // multi-way merge hash streams and detect hosts with most items per key
 
@@ -351,6 +353,11 @@ public:
         }
 
         return max_hash;
+    }
+
+    void Dispose() {
+        table_.Dispose();
+        std::vector<HashCount>().swap(hash_occ_);
     }
 
     //! Target vector for vector emitter

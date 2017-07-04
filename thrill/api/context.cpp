@@ -12,7 +12,6 @@
 #include <thrill/api/context.hpp>
 
 #include <thrill/api/dia_base.hpp>
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/linux_proc_stats.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/math.hpp>
@@ -22,6 +21,11 @@
 #include <thrill/common/system_exception.hpp>
 #include <thrill/io/iostats.hpp>
 #include <thrill/vfs/file_io.hpp>
+
+#include <tlx/math/abs_diff.hpp>
+#include <tlx/string/format_si_iec_units.hpp>
+#include <tlx/string/parse_si_iec_units.hpp>
+#include <tlx/string/split.hpp>
 
 // mock net backend is always available -tb :)
 #include <thrill/net/mock/group.hpp>
@@ -66,6 +70,7 @@
 
 #include <algorithm>
 #include <csignal>
+#include <iostream>
 #include <memory>
 #include <string>
 #include <thread>
@@ -128,7 +133,7 @@ RunLoopbackThreads(
             host_mem_config, num_hosts, workers_per_host);
 
     // launch thread for each of the workers on this host.
-    std::vector<std::thread> threads(num_hosts * workers_per_host);
+    std::vector<std::thread> threads(num_hosts* workers_per_host);
 
     for (size_t host = 0; host < num_hosts; ++host) {
         mem::by_string log_prefix = "host " + mem::to_string(host);
@@ -158,12 +163,12 @@ RunLoopbackThreads(
 static inline bool SetupBlockSize() {
 
     const char* env_block_size = getenv("THRILL_BLOCK_SIZE");
-    if (!env_block_size || !*env_block_size) return true;
+    if (env_block_size == nullptr || *env_block_size == 0) return true;
 
     char* endptr;
     data::default_block_size = std::strtoul(env_block_size, &endptr, 10);
 
-    if (!endptr || *endptr != 0 || data::default_block_size == 0) {
+    if (endptr == nullptr || *endptr != 0 || data::default_block_size == 0) {
         std::cerr << "Thrill: environment variable"
                   << " THRILL_BLOCK_SIZE=" << env_block_size
                   << " is not a valid number."
@@ -403,13 +408,13 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
 
     size_t my_host_rank = 0;
 
-    if (!env_rank)
+    if (env_rank == nullptr)
         env_rank = getenv("SLURM_PROCID");
 
-    if (env_rank && *env_rank) {
+    if (env_rank != nullptr && *env_rank != 0) {
         my_host_rank = std::strtoul(env_rank, &endptr, 10);
 
-        if (!endptr || *endptr != 0) {
+        if (endptr == nullptr || *endptr != 0) {
             std::cerr << "Thrill: environment variable THRILL_RANK=" << env_rank
                       << " is not a valid number."
                       << std::endl;
@@ -425,17 +430,17 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
 
     std::vector<std::string> hostlist;
 
-    if (env_hostlist && *env_hostlist) {
+    if (env_hostlist != nullptr && *env_hostlist != 0) {
         // first try to split by spaces, then by commas
-        std::vector<std::string> list = common::Split(env_hostlist, ' ');
+        std::vector<std::string> list = tlx::split(' ', env_hostlist);
 
         if (list.size() == 1) {
-            list = common::Split(env_hostlist, ',');
+            tlx::split(&list, ',', env_hostlist);
         }
 
         for (const std::string& host : list) {
             // skip empty splits
-            if (host.size() == 0) continue;
+            if (host.empty()) continue;
 
             if (host.find(':') == std::string::npos) {
                 std::cerr << "Thrill: invalid address \"" << host << "\""
@@ -463,9 +468,9 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
 
     size_t workers_per_host = 1;
 
-    if (env_workers_per_host && *env_workers_per_host) {
+    if (env_workers_per_host != nullptr && *env_workers_per_host != 0) {
         workers_per_host = std::strtoul(env_workers_per_host, &endptr, 10);
-        if (!endptr || *endptr != 0 || workers_per_host == 0) {
+        if (endptr == nullptr || *endptr != 0 || workers_per_host == 0) {
             std::cerr << "Thrill: environment variable"
                       << " THRILL_WORKERS_PER_HOST=" << env_workers_per_host
                       << " is not a valid number of workers per host."
@@ -741,7 +746,7 @@ const char * DetectNetBackend() {
     const char* env_rank = getenv("THRILL_RANK");
     const char* env_hostlist = getenv("THRILL_HOSTLIST");
 
-    if (env_rank || env_hostlist)
+    if (env_rank != nullptr || env_hostlist != nullptr)
         return "tcp";
     else
         return "local";
@@ -751,12 +756,12 @@ const char * DetectNetBackend() {
 int RunCheckDieWithParent() {
 
     const char* env_die_with_parent = getenv("THRILL_DIE_WITH_PARENT");
-    if (!env_die_with_parent || !*env_die_with_parent) return 0;
+    if (env_die_with_parent == nullptr || *env_die_with_parent == 0) return 0;
 
     char* endptr;
 
     long die_with_parent = std::strtol(env_die_with_parent, &endptr, 10);
-    if (!endptr || *endptr != 0 ||
+    if (endptr == nullptr || *endptr != 0 ||
         (die_with_parent != 0 && die_with_parent != 1)) {
         std::cerr << "Thrill: environment variable"
                   << " THRILL_DIE_WITH_PARENT=" << env_die_with_parent
@@ -765,10 +770,10 @@ int RunCheckDieWithParent() {
         return -1;
     }
 
-    if (!die_with_parent) return 0;
+    if (die_with_parent == 0) return 0;
 
 #if __linux__
-    if (prctl(PR_SET_PDEATHSIG, SIGTERM) != 0)
+    if (prctl(PR_SET_PDEATHSIG, SIGTERM) != 0) // NOLINT
         throw common::ErrnoException("Error calling prctl(PR_SET_PDEATHSIG)");
     return 1;
 #else
@@ -782,7 +787,7 @@ int RunCheckDieWithParent() {
 int RunCheckUnlinkBinary() {
 
     const char* env_unlink_binary = getenv("THRILL_UNLINK_BINARY");
-    if (!env_unlink_binary || !*env_unlink_binary) return 0;
+    if (env_unlink_binary == nullptr || *env_unlink_binary == 0) return 0;
 
     if (unlink(env_unlink_binary) != 0) {
         throw common::ErrnoException(
@@ -805,9 +810,9 @@ int Run(const std::function<void(Context&)>& job_startpoint) {
     const char* env_net = getenv("THRILL_NET");
 
     // if no backend configured: automatically select one.
-    if (!env_net || !*env_net) {
+    if (env_net == nullptr || *env_net == 0) {
         env_net = DetectNetBackend();
-        if (!env_net) return -1;
+        if (env_net == nullptr) return -1;
     }
 
     // run with selected backend
@@ -871,9 +876,9 @@ int MemoryConfig::setup_detect() {
 
     const char* env_ram = getenv("THRILL_RAM");
 
-    if (env_ram && *env_ram) {
+    if (env_ram != nullptr && *env_ram != 0) {
         uint64_t ram64;
-        if (!common::ParseSiIecUnits(env_ram, ram64)) {
+        if (!tlx::parse_si_iec_units(env_ram, &ram64)) {
             std::cerr << "Thrill: environment variable"
                       << " THRILL_RAM=" << env_ram
                       << " is not a valid amount of RAM memory."
@@ -902,12 +907,12 @@ int MemoryConfig::setup_detect() {
         sysctl(mib, 2, &physical_memory, &length, nullptr, 0);
         ram_ = static_cast<size_t>(physical_memory);
 #else
-        ram_ = sysconf(_SC_PHYS_PAGES) * (size_t)sysconf(_SC_PAGESIZE);
+        ram_ = sysconf(_SC_PHYS_PAGES) * static_cast<size_t>(sysconf(_SC_PAGESIZE));
 #endif
 
 #if __linux__
         // use getrlimit() to check user limit on address space
-        struct rlimit rl;
+        struct rlimit rl; // NOLINT
         if (getrlimit(RLIMIT_AS, &rl) == 0) {
             if (rl.rlim_cur != 0 && rl.rlim_cur * 3 / 4 < ram_) {
                 ram_ = rl.rlim_cur * 3 / 4;
@@ -954,11 +959,11 @@ void MemoryConfig::print(size_t workers_per_host) const {
 
     std::cerr
         << "Thrill: using "
-        << common::FormatIecUnits(ram_) << "B RAM total,"
-        << " BlockPool=" << common::FormatIecUnits(ram_block_pool_hard_) << "B,"
+        << tlx::format_iec_units(ram_) << "B RAM total,"
+        << " BlockPool=" << tlx::format_iec_units(ram_block_pool_hard_) << "B,"
         << " workers="
-        << common::FormatIecUnits(ram_workers_ / workers_per_host) << "B,"
-        << " floating=" << common::FormatIecUnits(ram_floating_) << "B."
+        << tlx::format_iec_units(ram_workers_ / workers_per_host) << "B,"
+        << " floating=" << tlx::format_iec_units(ram_floating_) << "B."
         << std::endl;
 }
 
@@ -992,7 +997,7 @@ HostContext::HostContext(
 
 std::string HostContext::MakeHostLogPath(size_t host_rank) {
     const char* env_log = getenv("THRILL_LOG");
-    if (!env_log) {
+    if (env_log == nullptr) {
         if (host_rank == 0 && mem_config().verbose_) {
             std::cerr << "Thrill: no THRILL_LOG was found, "
                       << "so no json log is written."
@@ -1016,16 +1021,16 @@ std::string HostContext::MakeHostLogPath(size_t host_rank) {
 // Context methods
 
 data::File Context::GetFile(DIABase* dia) {
-    return GetFile(dia ? dia->id() : 0);
+    return GetFile(dia != nullptr ? dia->id() : 0);
 }
 
 data::FilePtr Context::GetFilePtr(size_t dia_id) {
-    return common::MakeCounting<data::File>(
+    return tlx::make_counting<data::File>(
         block_pool_, local_worker_id_, dia_id);
 }
 
 data::FilePtr Context::GetFilePtr(DIABase* dia) {
-    return GetFilePtr(dia ? dia->id() : 0);
+    return GetFilePtr(dia != nullptr ? dia->id() : 0);
 }
 
 data::CatStreamPtr Context::GetNewCatStream(size_t dia_id) {
@@ -1033,7 +1038,7 @@ data::CatStreamPtr Context::GetNewCatStream(size_t dia_id) {
 }
 
 data::CatStreamPtr Context::GetNewCatStream(DIABase* dia) {
-    return GetNewCatStream(dia ? dia->id() : 0);
+    return GetNewCatStream(dia != nullptr ? dia->id() : 0);
 }
 
 data::MixStreamPtr Context::GetNewMixStream(size_t dia_id) {
@@ -1041,17 +1046,17 @@ data::MixStreamPtr Context::GetNewMixStream(size_t dia_id) {
 }
 
 data::MixStreamPtr Context::GetNewMixStream(DIABase* dia) {
-    return GetNewMixStream(dia ? dia->id() : 0);
+    return GetNewMixStream(dia != nullptr ? dia->id() : 0);
 }
 
 template <>
-common::CountingPtr<data::CatStream>
+tlx::CountingPtr<data::CatStream>
 Context::GetNewStream<data::CatStream>(size_t dia_id) {
     return GetNewCatStream(dia_id);
 }
 
 template <>
-common::CountingPtr<data::MixStream>
+tlx::CountingPtr<data::MixStream>
 Context::GetNewStream<data::MixStream>(size_t dia_id) {
     return GetNewMixStream(dia_id);
 }
@@ -1158,20 +1163,20 @@ void Context::Launch(const std::function<void(Context&)>& job_startpoint) {
     stats = net.Reduce(stats);
 
     if (my_rank() == 0) {
-        using common::FormatIecUnits;
+        using tlx::format_iec_units;
 
         if (stats.net_traffic_rx != stats.net_traffic_tx)
             LOG1 << "Manager::Traffic() tx/rx asymmetry = "
-                 << common::abs_diff(stats.net_traffic_tx, stats.net_traffic_rx);
+                 << tlx::abs_diff(stats.net_traffic_tx, stats.net_traffic_rx);
 
         if (mem_config().verbose_) {
             std::cerr
                 << "Thrill:"
                 << " ran " << stats.runtime << "s with max "
-                << FormatIecUnits(stats.max_block_bytes) << "B in DIA Blocks, "
-                << FormatIecUnits(stats.net_traffic_tx) << "B network traffic, "
-                << FormatIecUnits(stats.io_volume) << "B disk I/O, and "
-                << FormatIecUnits(stats.io_max_allocation) << "B max disk use."
+                << format_iec_units(stats.max_block_bytes) << "B in DIA Blocks, "
+                << format_iec_units(stats.net_traffic_tx) << "B network traffic, "
+                << format_iec_units(stats.io_volume) << "B disk I/O, and "
+                << format_iec_units(stats.io_max_allocation) << "B max disk use."
                 << std::endl;
         }
 

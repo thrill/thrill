@@ -20,10 +20,10 @@
 #include <thrill/api/dop_node.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/meta.hpp>
 #include <thrill/common/porting.hpp>
 #include <thrill/core/reduce_by_hash_post_phase.hpp>
 #include <thrill/core/reduce_pre_phase.hpp>
+#include <tlx/meta/is_std_pair.hpp>
 
 #include <functional>
 #include <thread>
@@ -72,7 +72,7 @@ private:
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
 
     using TableItem =
-              typename common::If<
+              typename std::conditional<
                   VolatileKey, std::pair<Key, ValueType>, ValueType>::type;
 
     using HashIndexFunction = core::ReduceByHash<Key, KeyHashFunction>;
@@ -235,9 +235,9 @@ private:
 template <typename ValueType, typename Stack>
 template <typename KeyExtractor, typename ReduceFunction, typename ReduceConfig>
 auto DIA<ValueType, Stack>::ReduceByKey(
-    const KeyExtractor &key_extractor,
-    const ReduceFunction &reduce_function,
-    const ReduceConfig &reduce_config) const {
+    const KeyExtractor& key_extractor,
+    const ReduceFunction& reduce_function,
+    const ReduceConfig& reduce_config) const {
     // forward to main function
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
     return ReduceByKey(
@@ -250,10 +250,10 @@ template <typename ValueType, typename Stack>
 template <typename KeyExtractor, typename ReduceFunction,
           typename ReduceConfig, typename KeyHashFunction>
 auto DIA<ValueType, Stack>::ReduceByKey(
-    const KeyExtractor &key_extractor,
-    const ReduceFunction &reduce_function,
-    const ReduceConfig &reduce_config,
-    const KeyHashFunction &key_hash_function) const {
+    const KeyExtractor& key_extractor,
+    const ReduceFunction& reduce_function,
+    const ReduceConfig& reduce_config,
+    const KeyHashFunction& key_hash_function) const {
     // forward to main function
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
     return ReduceByKey(
@@ -267,12 +267,12 @@ template <bool VolatileKeyValue,
           typename KeyExtractor, typename ReduceFunction, typename ReduceConfig,
           typename KeyHashFunction, typename KeyEqualFunction>
 auto DIA<ValueType, Stack>::ReduceByKey(
-    const VolatileKeyFlag<VolatileKeyValue>&volatile_key_flag,
-    const KeyExtractor &key_extractor,
-    const ReduceFunction &reduce_function,
-    const ReduceConfig &reduce_config,
-    const KeyHashFunction &key_hash_function,
-    const KeyEqualFunction &key_equal_funtion) const {
+    const VolatileKeyFlag<VolatileKeyValue>& volatile_key_flag,
+    const KeyExtractor& key_extractor,
+    const ReduceFunction& reduce_function,
+    const ReduceConfig& reduce_config,
+    const KeyHashFunction& key_hash_function,
+    const KeyEqualFunction& key_equal_funtion) const {
     // forward to main function
     return ReduceByKey(
         volatile_key_flag, NoDuplicateDetectionTag,
@@ -285,12 +285,12 @@ template <bool DuplicateDetectionValue,
           typename KeyExtractor, typename ReduceFunction, typename ReduceConfig,
           typename KeyHashFunction, typename KeyEqualFunction>
 auto DIA<ValueType, Stack>::ReduceByKey(
-    const DuplicateDetectionFlag<DuplicateDetectionValue>&duplicate_detection_flag,
-    const KeyExtractor &key_extractor,
-    const ReduceFunction &reduce_function,
-    const ReduceConfig &reduce_config,
-    const KeyHashFunction &key_hash_function,
-    const KeyEqualFunction &key_equal_funtion) const {
+    const DuplicateDetectionFlag<DuplicateDetectionValue>& duplicate_detection_flag,
+    const KeyExtractor& key_extractor,
+    const ReduceFunction& reduce_function,
+    const ReduceConfig& reduce_config,
+    const KeyHashFunction& key_hash_function,
+    const KeyEqualFunction& key_equal_funtion) const {
     // forward to main function
     return ReduceByKey(
         NoVolatileKeyTag, duplicate_detection_flag,
@@ -306,11 +306,11 @@ template <bool VolatileKeyValue,
 auto DIA<ValueType, Stack>::ReduceByKey(
     const VolatileKeyFlag<VolatileKeyValue>&,
     const DuplicateDetectionFlag<DuplicateDetectionValue>&,
-    const KeyExtractor &key_extractor,
-    const ReduceFunction &reduce_function,
-    const ReduceConfig &reduce_config,
-    const KeyHashFunction &key_hash_function,
-    const KeyEqualFunction &key_equal_funtion) const {
+    const KeyExtractor& key_extractor,
+    const ReduceFunction& reduce_function,
+    const ReduceConfig& reduce_config,
+    const KeyHashFunction& key_hash_function,
+    const KeyEqualFunction& key_equal_funtion) const {
     assert(IsValid());
 
     using DOpResult
@@ -348,7 +348,7 @@ auto DIA<ValueType, Stack>::ReduceByKey(
               KeyHashFunction, KeyEqualFunction,
               VolatileKeyValue, DuplicateDetectionValue>;
 
-    auto node = common::MakeCounting<ReduceNode>(
+    auto node = tlx::make_counting<ReduceNode>(
         *this, "ReduceByKey",
         key_extractor, reduce_function, reduce_config,
         key_hash_function, key_equal_funtion);
@@ -362,8 +362,8 @@ auto DIA<ValueType, Stack>::ReduceByKey(
 template <typename ValueType, typename Stack>
 template <typename ReduceFunction, typename ReduceConfig>
 auto DIA<ValueType, Stack>::ReducePair(
-    const ReduceFunction &reduce_function,
-    const ReduceConfig &reduce_config) const {
+    const ReduceFunction& reduce_function,
+    const ReduceConfig& reduce_config) const {
     // forward to main function
     using Key = typename ValueType::first_type;
     return ReducePair(reduce_function, reduce_config,
@@ -374,9 +374,9 @@ template <typename ValueType, typename Stack>
 template <typename ReduceFunction, typename ReduceConfig,
           typename KeyHashFunction>
 auto DIA<ValueType, Stack>::ReducePair(
-    const ReduceFunction &reduce_function,
-    const ReduceConfig &reduce_config,
-    const KeyHashFunction &key_hash_function) const {
+    const ReduceFunction& reduce_function,
+    const ReduceConfig& reduce_config,
+    const KeyHashFunction& key_hash_function) const {
     // forward to main function
     using Key = typename ValueType::first_type;
     return ReducePair(reduce_function, reduce_config,
@@ -387,10 +387,10 @@ template <typename ValueType, typename Stack>
 template <typename ReduceFunction, typename ReduceConfig,
           typename KeyHashFunction, typename KeyEqualFunction>
 auto DIA<ValueType, Stack>::ReducePair(
-    const ReduceFunction &reduce_function,
-    const ReduceConfig &reduce_config,
-    const KeyHashFunction &key_hash_function,
-    const KeyEqualFunction &key_equal_funtion) const {
+    const ReduceFunction& reduce_function,
+    const ReduceConfig& reduce_config,
+    const KeyHashFunction& key_hash_function,
+    const KeyEqualFunction& key_equal_funtion) const {
     // forward to main function
     return ReducePair(NoDuplicateDetectionTag,
                       reduce_function, reduce_config,
@@ -403,16 +403,16 @@ template <bool DuplicateDetectionValue,
           typename KeyHashFunction, typename KeyEqualFunction>
 auto DIA<ValueType, Stack>::ReducePair(
     const DuplicateDetectionFlag<DuplicateDetectionValue>&,
-    const ReduceFunction &reduce_function,
-    const ReduceConfig &reduce_config,
-    const KeyHashFunction &key_hash_function,
-    const KeyEqualFunction &key_equal_funtion) const {
+    const ReduceFunction& reduce_function,
+    const ReduceConfig& reduce_config,
+    const KeyHashFunction& key_hash_function,
+    const KeyEqualFunction& key_equal_funtion) const {
     assert(IsValid());
 
     using DOpResult
               = typename common::FunctionTraits<ReduceFunction>::result_type;
 
-    static_assert(common::is_std_pair<ValueType>::value,
+    static_assert(tlx::is_std_pair<ValueType>::value,
                   "ValueType is not a pair");
 
     static_assert(
@@ -448,7 +448,7 @@ auto DIA<ValueType, Stack>::ReducePair(
               ReduceConfig, KeyHashFunction, KeyEqualFunction,
               /* VolatileKey */ false, DuplicateDetectionValue>;
 
-    auto node = common::MakeCounting<ReduceNode>(
+    auto node = tlx::make_counting<ReduceNode>(
         *this, "ReducePair",
         key_extractor, reduce_pair_function, reduce_config,
         key_hash_function, key_equal_funtion);

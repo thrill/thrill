@@ -24,6 +24,8 @@
 #include <thrill/net/buffer_builder.hpp>
 #include <thrill/vfs/file_io.hpp>
 
+#include <tlx/string/join.hpp>
+
 #include <algorithm>
 #include <limits>
 #include <string>
@@ -78,7 +80,7 @@ public:
         vfs::FileList files = vfs::Glob(globlist, vfs::GlobType::File);
 
         if (files.size() == 0)
-            die("ReadBinary: no files found in globs: " + common::Join(" ", globlist));
+            die("ReadBinary: no files found in globs: " + tlx::join(' ', globlist));
 
         if (size_limit != no_size_limit_)
             files.total_size = std::min(files.total_size, size_limit);
@@ -348,7 +350,7 @@ DIA<ValueType> ReadBinary(
     Context& ctx, const std::vector<std::string>& filepath,
     uint64_t size_limit = ReadBinaryNode<ValueType>::no_size_limit_) {
 
-    auto node = common::MakeCounting<ReadBinaryNode<ValueType> >(
+    auto node = tlx::make_counting<ReadBinaryNode<ValueType> >(
         ctx, filepath, size_limit, /* local_storage */ false);
 
     return DIA<ValueType>(node);
@@ -360,7 +362,7 @@ DIA<ValueType> ReadBinary(
     const std::vector<std::string>& filepath,
     uint64_t size_limit = ReadBinaryNode<ValueType>::no_size_limit_) {
 
-    auto node = common::MakeCounting<ReadBinaryNode<ValueType> >(
+    auto node = tlx::make_counting<ReadBinaryNode<ValueType> >(
         ctx, filepath, size_limit, /* local_storage */ true);
 
     return DIA<ValueType>(node);
@@ -382,7 +384,7 @@ DIA<ValueType> ReadBinary(
     Context& ctx, const std::string& filepath,
     uint64_t size_limit = ReadBinaryNode<ValueType>::no_size_limit_) {
 
-    auto node = common::MakeCounting<ReadBinaryNode<ValueType> >(
+    auto node = tlx::make_counting<ReadBinaryNode<ValueType> >(
         ctx, filepath, size_limit, /* local_storage */ false);
 
     return DIA<ValueType>(node);
@@ -393,7 +395,7 @@ DIA<ValueType> ReadBinary(
     struct LocalStorageTag, Context& ctx, const std::string& filepath,
     uint64_t size_limit = ReadBinaryNode<ValueType>::no_size_limit_) {
 
-    auto node = common::MakeCounting<ReadBinaryNode<ValueType> >(
+    auto node = tlx::make_counting<ReadBinaryNode<ValueType> >(
         ctx, filepath, size_limit, /* local_storage */ true);
 
     return DIA<ValueType>(node);

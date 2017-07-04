@@ -139,7 +139,7 @@ private:
 template <typename ValueType, typename Stack>
 template <typename ZipFunction>
 auto DIA<ValueType, Stack>::ZipWithIndex(
-    const ZipFunction &zip_function) const {
+    const ZipFunction& zip_function) const {
 
     static_assert(
         common::FunctionTraits<ZipFunction>::arity == 2,
@@ -165,7 +165,7 @@ auto DIA<ValueType, Stack>::ZipWithIndex(
 
     using ZipWithIndexNode = api::ZipWithIndexNode<ZipResult, ZipFunction>;
 
-    auto node = common::MakeCounting<ZipWithIndexNode>(zip_function, *this);
+    auto node = tlx::make_counting<ZipWithIndexNode>(zip_function, *this);
 
     return DIA<ZipResult>(node);
 }

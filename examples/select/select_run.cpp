@@ -13,13 +13,13 @@
 #include <thrill/api/cache.hpp>
 #include <thrill/api/context.hpp>
 #include <thrill/api/generate.hpp>
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
+#include <tlx/cmdline_parser.hpp>
 
 using namespace thrill;           // NOLINT
 using namespace examples::select; // NOLINT
 
-static auto RunSelect(api::Context & ctx, size_t num_elems, size_t rank, bool max) {
+static auto RunSelect(api::Context& ctx, size_t num_elems, size_t rank, bool max) {
     auto data = Generate(ctx, num_elems).Cache();
     if (max) {
         auto result = Select(data, rank,
@@ -38,19 +38,19 @@ static auto RunSelect(api::Context & ctx, size_t num_elems, size_t rank, bool ma
 }
 
 int main(int argc, char* argv[]) {
-    common::CmdlineParser clp;
-    clp.SetVerboseProcess(false);
+    tlx::CmdlineParser clp;
+    clp.set_verbose_process(false);
 
     size_t num_elems = 1024 * 1024, rank = 10;
     bool max;
-    clp.AddSizeT('n', "num_elemes", num_elems, "Number of elements, default: 2^10");
-    clp.AddSizeT('k', "rank", rank, "Rank to select, default: 10");
-    clp.AddFlag('m', "max", max, "Select maximum, default off");
+    clp.add_size_t('n', "num_elemes", num_elems, "Number of elements, default: 2^10");
+    clp.add_size_t('k', "rank", rank, "Rank to select, default: 10");
+    clp.add_bool('m', "max", max, "Select maximum, default off");
 
-    if (!clp.Process(argc, argv)) {
+    if (!clp.process(argc, argv)) {
         return -1;
     }
-    clp.PrintResult();
+    clp.print_result();
 
     return api::Run(
         [&](api::Context& ctx) {

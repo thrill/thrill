@@ -10,7 +10,7 @@
 
 #include <gtest/gtest.h>
 #include <thrill/common/concurrent_queue.hpp>
-#include <thrill/common/thread_pool.hpp>
+#include <tlx/thread_pool.hpp>
 
 #include <atomic>
 #include <memory>
@@ -18,7 +18,7 @@
 using namespace thrill::common;
 
 TEST(ConcurrentQueue, ParallelPushPopAscIntegerAndCalculateTotalSum) {
-    ThreadPool pool(8);
+    tlx::ThreadPool pool(8);
 
     ConcurrentQueue<size_t, std::allocator<size_t> > queue;
     std::atomic<size_t> count(0);
@@ -30,7 +30,7 @@ TEST(ConcurrentQueue, ParallelPushPopAscIntegerAndCalculateTotalSum) {
     // have threads push items
 
     for (size_t i = 0; i != num_threads; ++i) {
-        pool.Enqueue([&queue]() {
+        pool.enqueue([&queue]() {
                          for (size_t i = 0; i != num_pushes; ++i) {
                              queue.push(i);
                          }
@@ -40,7 +40,7 @@ TEST(ConcurrentQueue, ParallelPushPopAscIntegerAndCalculateTotalSum) {
     // have threads try to pop items.
 
     for (size_t i = 0; i != num_threads; ++i) {
-        pool.Enqueue([&]() {
+        pool.enqueue([&]() {
                          while (count != num_threads * num_pushes) {
                              size_t item;
                              while (queue.try_pop(item)) {
@@ -51,7 +51,7 @@ TEST(ConcurrentQueue, ParallelPushPopAscIntegerAndCalculateTotalSum) {
                      });
     }
 
-    pool.LoopUntilEmpty();
+    pool.loop_until_empty();
 
     ASSERT_TRUE(queue.empty());
     ASSERT_EQ(count, num_threads * num_pushes);

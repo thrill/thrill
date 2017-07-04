@@ -65,7 +65,7 @@ public:
 
     static constexpr size_t total_size =
         header_size + 3 * sizeof(size_t);
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 static_assert(sizeof(MultiplexerHeader) == MultiplexerHeader::header_size,
               "MultiplexerHeader has invalid size");
@@ -110,7 +110,7 @@ public:
     size_t CalcHostRank(size_t workers_per_host) const {
         return sender_worker / workers_per_host;
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 static_assert(sizeof(StreamMultiplexerHeader) == MultiplexerHeader::total_size,
               "StreamMultiplexerHeader has invalid size");
@@ -144,7 +144,7 @@ public:
     bool IsEnd() const {
         return size == 0;
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 static_assert(
     sizeof(PartitionMultiplexerHeader) == MultiplexerHeader::total_size,

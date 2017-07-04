@@ -119,6 +119,11 @@ void Connection::SyncSendRecv(const void* send_data, size_t send_size,
     rx_bytes_ += recv_size;
 }
 
+void Connection::SyncRecvSend(const void* send_data, size_t send_size,
+                              void* recv_data, size_t recv_size) {
+    SyncSendRecv(send_data, send_size, recv_data, recv_size);
+}
+
 /******************************************************************************/
 // mpi::Group
 

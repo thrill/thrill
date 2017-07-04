@@ -11,12 +11,12 @@
 
 #include <thrill/api/context.hpp>
 #include <thrill/common/aggregate.hpp>
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/matrix.hpp>
 #include <thrill/common/stats_timer.hpp>
-#include <thrill/common/thread_pool.hpp>
 #include <thrill/data/block_queue.hpp>
+#include <tlx/cmdline_parser.hpp>
+#include <tlx/thread_pool.hpp>
 
 #include <algorithm>
 #include <iostream>
@@ -68,22 +68,22 @@ void PrintMatrix(const AggMatrix& m) {
 class DataGeneratorExperiment
 {
 public:
-    void AddCmdline(common::CmdlineParser& clp) {
+    void AddCmdline(tlx::CmdlineParser& clp) {
 
-        clp.AddBytes('b', "bytes", bytes_,
-                     "number of bytes to process (default 1024)");
+        clp.add_bytes('b', "bytes", bytes_,
+                      "number of bytes to process (default 1024)");
 
-        clp.AddSizeT('s', "block_size", data::default_block_size,
-                     "block size (system default)");
+        clp.add_size_t('s', "block_size", data::default_block_size,
+                       "block size (system default)");
 
-        clp.AddBytes('l', "lower", min_size_,
-                     "lower bound for variable element length (default 1)");
+        clp.add_bytes('l', "lower", min_size_,
+                      "lower bound for variable element length (default 1)");
 
-        clp.AddBytes('u', "upper", max_size_,
-                     "upper bound for variable element length (default 100)");
+        clp.add_bytes('u', "upper", max_size_,
+                      "upper bound for variable element length (default 100)");
 
-        clp.AddParamString("type", type_as_string_,
-                           "data type (size_t, string, pair, triple)");
+        clp.add_param_string("type", type_as_string_,
+                             "data type (size_t, string, pair, triple)");
     }
 
 protected:
@@ -112,19 +112,20 @@ class FileExperiment : public DataGeneratorExperiment
 public:
     int Run(int argc, char* argv[]) {
 
-        common::CmdlineParser clp;
+        tlx::CmdlineParser clp;
 
-        clp.SetDescription("thrill::data benchmark for disk I/O");
-        clp.SetAuthor("Tobias Sturm <mail@tobiassturm.de>");
+        clp.set_description("thrill::data benchmark for disk I/O");
+        clp.set_author("Tobias Sturm <mail@tobiassturm.de>");
 
         DataGeneratorExperiment::AddCmdline(clp);
 
-        clp.AddUInt('n', "iterations", iterations_, "Iterations (default: 1)");
+        clp.add_unsigned(
+            'n', "iterations", iterations_, "Iterations (default: 1)");
 
-        clp.AddParamString("reader", reader_type_,
-                           "reader type (consume, keep)");
+        clp.add_param_string("reader", reader_type_,
+                             "reader type (consume, keep)");
 
-        if (!clp.Process(argc, argv)) return -1;
+        if (!clp.process(argc, argv)) return -1;
 
         api::RunLocalSameThread(
             [=](api::Context& ctx) {
@@ -203,21 +204,23 @@ class BlockQueueExperiment : public DataGeneratorExperiment
 public:
     int Run(int argc, char* argv[]) {
 
-        common::CmdlineParser clp;
+        tlx::CmdlineParser clp;
 
-        clp.SetDescription("thrill::data benchmark for disk I/O");
-        clp.SetAuthor("Tobias Sturm <mail@tobiassturm.de>");
+        clp.set_description("thrill::data benchmark for disk I/O");
+        clp.set_author("Tobias Sturm <mail@tobiassturm.de>");
 
         DataGeneratorExperiment::AddCmdline(clp);
 
-        clp.AddUInt('n', "iterations", iterations_, "Iterations (default: 1)");
+        clp.add_unsigned(
+            'n', "iterations", iterations_, "Iterations (default: 1)");
 
-        clp.AddUInt('t', "threads", num_threads_, "Number of threads (default: 1)");
+        clp.add_unsigned(
+            't', "threads", num_threads_, "Number of threads (default: 1)");
 
-        clp.AddParamString("reader", reader_type_,
-                           "reader type (consume, keep)");
+        clp.add_param_string("reader", reader_type_,
+                             "reader type (consume, keep)");
 
-        if (!clp.Process(argc, argv)) return -1;
+        if (!clp.process(argc, argv)) return -1;
 
         api::RunLocalSameThread(
             [=](api::Context& ctx) {
@@ -243,13 +246,13 @@ public:
             abort();
         bool consume = reader_type_ == "consume";
 
-        common::ThreadPool threads(num_threads_ + 1);
+        tlx::ThreadPool pool(num_threads_ + 1);
         for (unsigned i = 0; i < iterations_; i++) {
             auto queue = data::BlockQueue(ctx.block_pool(), 0, /* dia_id */ 0);
             auto data = Generator<Type>(bytes_, min_size_, max_size_);
 
             StatsTimerStopped write_timer;
-            threads.Enqueue(
+            pool.enqueue(
                 [&]() {
                     auto writer = queue.GetWriter();
                     write_timer.Start();
@@ -263,7 +266,7 @@ public:
             std::chrono::microseconds::rep read_time = 0;
 
             for (size_t thread = 0; thread < num_threads_; thread++) {
-                threads.Enqueue(
+                pool.enqueue(
                     [&]() {
                         StatsTimerStart read_timer;
                         auto reader = queue.GetReader(consume, 0);
@@ -274,7 +277,7 @@ public:
                         read_time = std::max(read_time, read_timer.Microseconds());
                     });
             }
-            threads.LoopUntilEmpty();
+            pool.loop_until_empty();
             LOG1 << "RESULT"
                  << " experiment=" << "block_queue"
                  << " workers=" << ctx.num_workers()
@@ -314,20 +317,20 @@ class StreamOneFactorExperiment : public DataGeneratorExperiment
 public:
     int Run(int argc, char* argv[]) {
 
-        common::CmdlineParser clp;
+        tlx::CmdlineParser clp;
 
         DataGeneratorExperiment::AddCmdline(clp);
 
-        clp.AddUInt('r', "inner_repeats", inner_repeats_,
-                    "Repeat inner experiment a number of times.");
+        clp.add_unsigned('r', "inner_repeats", inner_repeats_,
+                         "Repeat inner experiment a number of times.");
 
-        clp.AddUInt('R', "outer_repeats", outer_repeats_,
-                    "Repeat whole experiment a number of times.");
+        clp.add_unsigned('R', "outer_repeats", outer_repeats_,
+                         "Repeat whole experiment a number of times.");
 
-        clp.AddParamString("reader", reader_type_,
-                           "reader type (consume, keep)");
+        clp.add_param_string("reader", reader_type_,
+                             "reader type (consume, keep)");
 
-        if (!clp.Process(argc, argv)) return -1;
+        if (!clp.process(argc, argv)) return -1;
 
         if (reader_type_ != "consume" && reader_type_ != "keep")
             abort();
@@ -531,19 +534,20 @@ class StreamAllToAllExperiment : public DataGeneratorExperiment
 public:
     int Run(int argc, char* argv[]) {
 
-        common::CmdlineParser clp;
+        tlx::CmdlineParser clp;
 
-        clp.SetDescription("thrill::data benchmark for disk I/O");
-        clp.SetAuthor("Tobias Sturm <mail@tobiassturm.de>");
+        clp.set_description("thrill::data benchmark for disk I/O");
+        clp.set_author("Tobias Sturm <mail@tobiassturm.de>");
 
         DataGeneratorExperiment::AddCmdline(clp);
 
-        clp.AddUInt('n', "iterations", iterations_, "Iterations (default: 1)");
+        clp.add_unsigned(
+            'n', "iterations", iterations_, "Iterations (default: 1)");
 
-        clp.AddParamString("reader", reader_type_,
-                           "reader type (consume, keep)");
+        clp.add_param_string("reader", reader_type_,
+                             "reader type (consume, keep)");
 
-        if (!clp.Process(argc, argv)) return -1;
+        if (!clp.process(argc, argv)) return -1;
 
         api::Run(
             [=](api::Context& ctx) {
@@ -579,8 +583,8 @@ public:
             auto stream = ctx.GetNewStream<Stream>(/* dia_id */ 0);
 
             // start reader thread
-            common::ThreadPool threads(ctx.num_workers() + 1);
-            threads.Enqueue(
+            tlx::ThreadPool pool(ctx.num_workers() + 1);
+            pool.enqueue(
                 [&]() {
                     read_timer.Start();
                     auto reader = stream->GetReader(consume);
@@ -593,7 +597,7 @@ public:
             auto writers = stream->GetWriters();
             std::chrono::microseconds::rep write_time = 0;
             for (size_t target = 0; target < ctx.num_workers(); target++) {
-                threads.Enqueue(
+                pool.enqueue(
                     [&, target]() {
                         auto data = Generator<Type>(
                             bytes_ / ctx.num_workers(), min_size_, max_size_);
@@ -608,7 +612,7 @@ public:
                         write_time = std::max(write_time, write_timer.Microseconds());
                     });
             }
-            threads.LoopUntilEmpty();
+            pool.loop_until_empty();
 
             total_timer.Stop();
             LOG1 << "RESULT"
@@ -645,19 +649,20 @@ class ScatterExperiment : public DataGeneratorExperiment
 public:
     int Run(int argc, char* argv[]) {
 
-        common::CmdlineParser clp;
+        tlx::CmdlineParser clp;
 
-        clp.SetDescription("thrill::data benchmark for disk I/O");
-        clp.SetAuthor("Tobias Sturm <mail@tobiassturm.de>");
+        clp.set_description("thrill::data benchmark for disk I/O");
+        clp.set_author("Tobias Sturm <mail@tobiassturm.de>");
 
         DataGeneratorExperiment::AddCmdline(clp);
 
-        clp.AddUInt('n', "iterations", iterations_, "Iterations (default: 1)");
+        clp.add_unsigned(
+            'n', "iterations", iterations_, "Iterations (default: 1)");
 
-        clp.AddParamString("reader", reader_type_,
-                           "reader type (consume, keep)");
+        clp.add_param_string("reader", reader_type_,
+                             "reader type (consume, keep)");
 
-        if (!clp.Process(argc, argv)) return -1;
+        if (!clp.process(argc, argv)) return -1;
 
         api::Run(
             [=](api::Context& ctx) {
@@ -706,8 +711,8 @@ public:
             // start reader thread
             StatsTimerStopped read_timer;
 
-            common::ThreadPool threads(2);
-            threads.Enqueue(
+            tlx::ThreadPool pool(2);
+            pool.enqueue(
                 [&]() {
                     read_timer.Start();
                     auto reader = stream->GetReader(consume);
@@ -718,7 +723,7 @@ public:
 
             // start writer threads: send to all workers
             std::chrono::microseconds::rep write_time = 0;
-            threads.Enqueue(
+            pool.enqueue(
                 [&]() {
                     writer.Close();
                     std::vector<size_t> offsets;
@@ -738,7 +743,8 @@ public:
                     write_timer.Stop();
                     write_time = std::max(write_time, write_timer.Microseconds());
                 });
-            threads.LoopUntilEmpty();
+
+            pool.loop_until_empty();
 
             total_timer.Stop();
             LOG1 << "RESULT"

@@ -8,4 +8,4 @@ Thrill is an EXPERIMENTAL C++ framework for algorithmic distributed Big Data bat
 It is currently being designed and developed as a research project at Karlsruhe Institute of Technology and is in early testing.
 More information on goals and mission see [http://project-thrill.org](http://project-thrill.org).
 
-For easy steps on Getting Started refer to the [**Live Documentation**](http://i10login.iti.kit.edu/thrill-doxygen/).
+For easy steps on Getting Started refer to the [**Live Documentation**](http://project-thrill.org/docs/master/).

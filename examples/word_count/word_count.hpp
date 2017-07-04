@@ -32,11 +32,11 @@ using WordCountPair = std::pair<std::string, size_t>;
 //! The most basic WordCount user program: reads a DIA containing std::string
 //! words, and returns a DIA containing WordCountPairs.
 template <typename InputStack>
-auto WordCount(const DIA<std::string, InputStack>&input) {
+auto WordCount(const DIA<std::string, InputStack>& input) {
 
     auto word_pairs = input.template FlatMap<WordCountPair>(
         [](const std::string& line, auto emit) -> void {
-                /* map lambda: emit each word */
+            /* map lambda: emit each word */
             common::SplitView(
                 line, ' ', [&](const common::StringView& sv) {
                     if (sv.size() == 0) return;
@@ -71,7 +71,7 @@ struct HashWordHasher {
 //! creates hash values from the words prior to reducing by hash and
 //! word. Returns a DIA containing WordCountPairs.
 template <typename InputStack>
-auto HashWordCountExample(const DIA<std::string, InputStack>&input) {
+auto HashWordCountExample(const DIA<std::string, InputStack>& input) {
 
     std::hash<std::string> string_hasher;
 

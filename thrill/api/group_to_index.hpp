@@ -251,10 +251,10 @@ template <typename ValueOut,
           typename KeyExtractor,
           typename GroupFunction>
 auto DIA<ValueType, Stack>::GroupToIndex(
-    const KeyExtractor &key_extractor,
-    const GroupFunction &groupby_function,
+    const KeyExtractor& key_extractor,
+    const GroupFunction& groupby_function,
     const size_t result_size,
-    const ValueOut &neutral_element) const {
+    const ValueOut& neutral_element) const {
 
     using DOpResult
               = ValueOut;
@@ -269,7 +269,7 @@ auto DIA<ValueType, Stack>::GroupToIndex(
     using GroupToIndexNode
               = GroupToIndexNode<DOpResult, KeyExtractor, GroupFunction>;
 
-    auto node = common::MakeCounting<GroupToIndexNode>(
+    auto node = tlx::make_counting<GroupToIndexNode>(
         *this, key_extractor, groupby_function, result_size, neutral_element);
 
     return DIA<DOpResult>(node);

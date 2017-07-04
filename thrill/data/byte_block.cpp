@@ -12,6 +12,8 @@
 #include <thrill/data/byte_block.hpp>
 #include <thrill/mem/pool.hpp>
 
+#include <tlx/string/join_generic.hpp>
+
 #include <sstream>
 #include <string>
 
@@ -56,7 +58,7 @@ void ByteBlock::Deleter::operator () (const ByteBlock* bb) const {
 }
 
 std::string ByteBlock::pin_count_str() const {
-    return "[" + common::Join(",", pin_count_) + "]";
+    return "[" + tlx::join(',', pin_count_) + "]";
 }
 
 void ByteBlock::IncPinCount(size_t local_worker_id) {

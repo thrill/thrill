@@ -10,7 +10,7 @@
 
 #include <thrill/vfs/bzip2_filter.hpp>
 
-#include <thrill/common/die.hpp>
+#include <tlx/die.hpp>
 
 #if THRILL_HAVE_BZIP2
 #include <bzlib.h>
@@ -131,7 +131,7 @@ private:
 
 WriteStreamPtr MakeBZip2WriteFilter(const WriteStreamPtr& stream) {
     die_unless(stream);
-    return common::MakeCounting<BZip2WriteFilter>(stream);
+    return tlx::make_counting<BZip2WriteFilter>(stream);
 }
 
 /******************************************************************************/
@@ -218,7 +218,7 @@ private:
 
 ReadStreamPtr MakeBZip2ReadFilter(const ReadStreamPtr& stream) {
     die_unless(stream);
-    return common::MakeCounting<BZip2ReadFilter>(stream);
+    return tlx::make_counting<BZip2ReadFilter>(stream);
 }
 
 /******************************************************************************/

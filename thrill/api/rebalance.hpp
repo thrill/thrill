@@ -123,7 +123,7 @@ template <typename ValueType, typename Stack>
 auto DIA<ValueType, Stack>::Rebalance() const {
     assert(IsValid());
     using RebalanceNode = api::RebalanceNode<ValueType>;
-    return DIA<ValueType>(common::MakeCounting<RebalanceNode>(*this));
+    return DIA<ValueType>(tlx::make_counting<RebalanceNode>(*this));
 }
 
 } // namespace api

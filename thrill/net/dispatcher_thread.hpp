@@ -16,12 +16,11 @@
 #define THRILL_NET_DISPATCHER_THREAD_HEADER
 
 #include <thrill/common/concurrent_queue.hpp>
-#include <thrill/common/delegate.hpp>
-#include <thrill/common/thread_pool.hpp>
 #include <thrill/data/block.hpp>
 #include <thrill/mem/allocator.hpp>
 #include <thrill/net/buffer.hpp>
 #include <thrill/net/connection.hpp>
+#include <tlx/delegate.hpp>
 
 #include <string>
 
@@ -32,22 +31,22 @@ namespace net {
 //! \{
 
 //! Signature of timer callbacks.
-using TimerCallback = common::Delegate<bool(), mem::GPoolAllocator<char> >;
+using TimerCallback = tlx::delegate<bool(), mem::GPoolAllocator<char> >;
 
 //! Signature of async connection readability/writability callbacks.
-using AsyncCallback = common::Delegate<bool(), mem::GPoolAllocator<char> >;
+using AsyncCallback = tlx::delegate<bool(), mem::GPoolAllocator<char> >;
 
 //! Signature of async read callbacks.
-using AsyncReadCallback = common::Delegate<
+using AsyncReadCallback = tlx::delegate<
           void(Connection& c, Buffer&& buffer), mem::GPoolAllocator<char> >;
 
 //! Signature of async read ByteBlock callbacks.
-using AsyncReadByteBlockCallback = common::Delegate<
+using AsyncReadByteBlockCallback = tlx::delegate<
           void(Connection& c, data::PinnedByteBlockPtr&& block),
           mem::GPoolAllocator<char> >;
 
 //! Signature of async write callbacks.
-using AsyncWriteCallback = common::Delegate<
+using AsyncWriteCallback = tlx::delegate<
           void(Connection&), mem::GPoolAllocator<char> >;
 
 /*!
@@ -60,7 +59,7 @@ class DispatcherThread
 
 public:
     //! Signature of async jobs to be run by the dispatcher thread.
-    using Job = common::Delegate<void(), mem::GPoolAllocator<char> >;
+    using Job = tlx::delegate<void(), mem::GPoolAllocator<char> >;
 
     DispatcherThread(
         mem::Manager& mem_manager,
@@ -88,7 +87,7 @@ public:
     //! \{
 
     //! Register a relative timeout callback
-    void AddTimer(std::chrono::milliseconds timeout, TimerCallback cb);
+    void AddTimer(std::chrono::milliseconds timeout, const TimerCallback& cb);
 
     //! \}
 
@@ -96,10 +95,10 @@ public:
     //! \{
 
     //! Register a buffered read callback and a default exception callback.
-    void AddRead(Connection& c, AsyncCallback read_cb);
+    void AddRead(Connection& c, const AsyncCallback& read_cb);
 
     //! Register a buffered write callback and a default exception callback.
-    void AddWrite(Connection& c, AsyncCallback write_cb);
+    void AddWrite(Connection& c, const AsyncCallback& write_cb);
 
     //! Cancel all callbacks on a given connection.
     void Cancel(Connection& c);
@@ -110,16 +109,17 @@ public:
     //! \{
 
     //! asynchronously read n bytes and deliver them to the callback
-    void AsyncRead(Connection& c, size_t size, AsyncReadCallback done_cb);
+    void AsyncRead(Connection& c, size_t size,
+                   const AsyncReadCallback& done_cb);
 
     //! asynchronously read the full ByteBlock and deliver it to the callback
     void AsyncRead(Connection& c, size_t size, data::PinnedByteBlockPtr&& block,
-                   AsyncReadByteBlockCallback done_cb);
+                   const AsyncReadByteBlockCallback& done_cb);
 
     //! asynchronously write byte and block and callback when delivered. The
     //! block is reference counted by the async writer.
     void AsyncWrite(Connection& c, Buffer&& buffer,
-                    AsyncWriteCallback done_cb = AsyncWriteCallback());
+                    const AsyncWriteCallback& done_cb = AsyncWriteCallback());
 
     //! asynchronously write TWO buffers and callback when delivered. The
     //! buffer2 are MOVED into the async writer. This is most useful to write a
@@ -127,19 +127,19 @@ public:
     //! order.
     void AsyncWrite(Connection& c,
                     Buffer&& buffer, data::PinnedBlock&& block,
-                    AsyncWriteCallback done_cb = AsyncWriteCallback());
+                    const AsyncWriteCallback& done_cb = AsyncWriteCallback());
 
     //! asynchronously write buffer and callback when delivered. COPIES the data
     //! into a Buffer!
     void AsyncWriteCopy(
         Connection& c, const void* buffer, size_t size,
-        AsyncWriteCallback done_cb = AsyncWriteCallback());
+        const AsyncWriteCallback& done_cb = AsyncWriteCallback());
 
     //! asynchronously write buffer and callback when delivered. COPIES the data
     //! into a Buffer!
     void AsyncWriteCopy(
         Connection& c, const std::string& str,
-        AsyncWriteCallback done_cb = AsyncWriteCallback());
+        const AsyncWriteCallback& done_cb = AsyncWriteCallback());
 
     //! \}
 

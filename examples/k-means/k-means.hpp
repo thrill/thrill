@@ -116,7 +116,7 @@ public:
     //! Calculate closest cluster to all points, returns DIA containing only the
     //! cluster ids.
     template <typename PointDIA>
-    auto Classify(const PointDIA &points) const {
+    auto Classify(const PointDIA& points) const {
         return points
                .Map([this](const Point& p) { return Classify(p); });
     }
@@ -124,7 +124,7 @@ public:
     //! Calculate closest cluster to all points, returns DIA contains pairs of
     //! points and their cluster id.
     template <typename PointDIA>
-    auto ClassifyPairs(const PointDIA &points) const {
+    auto ClassifyPairs(const PointDIA& points) const {
         return points
                .Map([this](const Point& p) {
                         return PointClusterId<Point>(p, Classify(p));
@@ -172,7 +172,7 @@ private:
 //! input and an output parameter. The method returns a std::pair<Point2D,
 //! size_t> = Point2DClusterId into the centroids for each input point.
 template <typename Point, typename InStack>
-auto KMeans(const DIA<Point, InStack>&input_points,
+auto KMeans(const DIA<Point, InStack>& input_points,
             size_t dimensions, size_t num_clusters, size_t iterations) {
 
     auto points = input_points.Cache();

@@ -32,6 +32,8 @@
 #include <thrill/api/union.hpp>
 #include <thrill/api/window.hpp>
 
+#include <tlx/string/join_generic.hpp>
+
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -612,7 +614,7 @@ TEST(Operations, WindowCorrectResults) {
             std::vector<Integer> out_vec = window.AllGather();
 
             if (ctx.my_rank() == 0)
-                sLOG << common::Join(" - ", out_vec);
+                sLOG << tlx::join(" - ", out_vec);
 
             for (size_t i = 0; i < out_vec.size(); i++) {
                 ASSERT_EQ(i, out_vec[i].value());
@@ -678,7 +680,7 @@ TEST(Operations, WindowCorrectResultsPartialWindows) {
             std::vector<Integer> out_vec = window.AllGather();
 
             if (ctx.my_rank() == 0)
-                sLOG << common::Join(" - ", out_vec);
+                sLOG << tlx::join(" - ", out_vec);
 
             for (size_t i = 0; i < out_vec.size(); i++) {
                 ASSERT_EQ(i, out_vec[i].value());
@@ -741,7 +743,7 @@ TEST(Operations, DisjointWindowCorrectResults) {
             std::vector<Integer> out_vec = window.AllGather();
 
             if (ctx.my_rank() == 0)
-                sLOG << common::Join(" - ", out_vec);
+                sLOG << tlx::join(" - ", out_vec);
 
             for (size_t i = 0; i < out_vec.size(); ++i) {
                 ASSERT_EQ(window_size * i, out_vec[i].value());

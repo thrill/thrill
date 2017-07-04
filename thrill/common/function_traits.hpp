@@ -30,8 +30,8 @@ struct FunctionTraits : public FunctionTraits<decltype(& T::operator ())>{ };
 #endif
 
 //! specialize for pointers to const member function
-template <typename ClassType, typename ReturnType, typename ... Args>
-struct FunctionTraits<ReturnType (ClassType::*)(Args ...) const>{
+template <typename ClassType, typename ReturnType, typename... Args>
+struct FunctionTraits<ReturnType (ClassType::*)(Args...) const>{
 
     //! arity is the number of arguments.
     static constexpr size_t arity = sizeof ... (Args);
@@ -40,12 +40,12 @@ struct FunctionTraits<ReturnType (ClassType::*)(Args ...) const>{
     using is_const = std::true_type;
 
     //! the tuple of arguments
-    using args_tuple = std::tuple<Args ...>;
+    using args_tuple = std::tuple<Args...>;
 
     //! the tuple of arguments: with remove_cv and remove_reference applied.
     using args_tuple_plain = std::tuple<
               typename std::remove_cv<
-                  typename std::remove_reference<Args>::type>::type ...>;
+                  typename std::remove_reference<Args>::type>::type...>;
 
     //! the i-th argument is equivalent to the i-th tuple element of a tuple
     //! composed of those arguments.
@@ -61,15 +61,15 @@ struct FunctionTraits<ReturnType (ClassType::*)(Args ...) const>{
 };
 
 //! specialize for pointers to mutable member function
-template <typename ClassType, typename ReturnType, typename ... Args>
-struct FunctionTraits<ReturnType (ClassType::*)(Args ...)>
-    : public FunctionTraits<ReturnType (ClassType::*)(Args ...) const>{
+template <typename ClassType, typename ReturnType, typename... Args>
+struct FunctionTraits<ReturnType (ClassType::*)(Args...)>
+    : public FunctionTraits<ReturnType (ClassType::*)(Args...) const>{
     using is_const = std::false_type;
 };
 
 //! specialize for function pointers
-template <typename ReturnType, typename ... Args>
-struct FunctionTraits<ReturnType (*)(Args ...)>{
+template <typename ReturnType, typename... Args>
+struct FunctionTraits<ReturnType (*)(Args...)>{
 
     //! arity is the number of arguments.
     static constexpr size_t arity = sizeof ... (Args);
@@ -78,12 +78,12 @@ struct FunctionTraits<ReturnType (*)(Args ...)>{
     using is_const = std::true_type;
 
     //! the tuple of arguments
-    using args_tuple = std::tuple<Args ...>;
+    using args_tuple = std::tuple<Args...>;
 
     //! the tuple of arguments: with remove_cv and remove_reference applied.
     using args_tuple_plain = std::tuple<
               typename std::remove_cv<
-                  typename std::remove_reference<Args>::type>::type ...>;
+                  typename std::remove_reference<Args>::type>::type...>;
 
     //! the i-th argument is equivalent to the i-th tuple element of a tuple
     //! composed of those arguments.

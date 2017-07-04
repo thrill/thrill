@@ -11,8 +11,7 @@
 
 set -ex
 
-git submodule init
-git submodule update
+git submodule update --init --recursive
 
 CMAKE_OPTS="-DTHRILL_BUILD_EXAMPLES=ON -DTHRILL_BUILD_TESTS=ON"
 
@@ -20,19 +19,19 @@ CMAKE_OPTS="-DTHRILL_BUILD_EXAMPLES=ON -DTHRILL_BUILD_TESTS=ON"
 set +x
 COMPILERS_LIST=
 for MAJOR in `seq 9 -1 4`; do
-    COMPILERS_LIST="$COMPILERS_LIST g++-$MAJOR"
+    COMPILERS_LIST="$COMPILERS_LIST $MAJOR"
     for MINOR in `seq 9 -1 0`; do
-        COMPILERS_LIST="$COMPILERS_LIST g++-$MAJOR.$MINOR"
+        COMPILERS_LIST="$COMPILERS_LIST $MAJOR.$MINOR"
         for PATCH in `seq 9 -1 0`; do
-            COMPILERS_LIST="$COMPILERS_LIST g++-$MAJOR.$MINOR.$PATCH"
+            COMPILERS_LIST="$COMPILERS_LIST $MAJOR.$MINOR.$PATCH"
         done
     done
 done
 #echo $COMPILERS_LIST
 
 for CMD in $COMPILERS_LIST; do
-    if command -v "$CMD" > /dev/null; then
-        CMAKE_OPTS="$CMAKE_OPTS -DCMAKE_CXX_COMPILER=$CMD"
+    if command -v "g++-$CMD" > /dev/null; then
+        CMAKE_OPTS="$CMAKE_OPTS -DCMAKE_C_COMPILER=gcc-$CMD -DCMAKE_CXX_COMPILER=g++-$CMD"
         break
     fi
 done

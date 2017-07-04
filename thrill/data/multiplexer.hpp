@@ -33,14 +33,14 @@ template <typename Stream>
 class StreamSet;
 
 class CatStream;
-using CatStreamPtr = common::CountingPtr<CatStream>;
+using CatStreamPtr = tlx::CountingPtr<CatStream>;
 using CatStreamSet = StreamSet<CatStream>;
-using CatStreamSetPtr = common::CountingPtr<CatStreamSet>;
+using CatStreamSetPtr = tlx::CountingPtr<CatStreamSet>;
 
 class MixStream;
-using MixStreamPtr = common::CountingPtr<MixStream>;
+using MixStreamPtr = tlx::CountingPtr<MixStream>;
 using MixStreamSet = StreamSet<MixStream>;
-using MixStreamSetPtr = common::CountingPtr<MixStreamSet>;
+using MixStreamSetPtr = tlx::CountingPtr<MixStreamSet>;
 
 class BlockQueue;
 class MixBlockQueueSink;

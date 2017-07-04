@@ -91,6 +91,9 @@ TEST(MockGroup, AllReduceString) {
 TEST(MockGroup, AllReduceHypercubeString) {
     MockTest(TestAllReduceHypercubeString);
 }
+TEST(MockGroup, AllReduceEliminationString) {
+    MockTest(TestAllReduceEliminationString);
+}
 TEST(MockGroup, DispatcherSyncSendAsyncRead) {
     MockTest(TestDispatcherSyncSendAsyncRead);
 }

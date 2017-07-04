@@ -394,9 +394,9 @@ template <typename ValueOut, bool LocationDetectionValue,
           typename KeyExtractor, typename GroupFunction, typename HashFunction>
 auto DIA<ValueType, Stack>::GroupByKey(
     const LocationDetectionFlag<LocationDetectionValue>&,
-    const KeyExtractor &key_extractor,
-    const GroupFunction &groupby_function,
-    const HashFunction &hash_function) const {
+    const KeyExtractor& key_extractor,
+    const GroupFunction& groupby_function,
+    const HashFunction& hash_function) const {
 
     static_assert(
         std::is_same<
@@ -409,7 +409,7 @@ auto DIA<ValueType, Stack>::GroupByKey(
               ValueOut, KeyExtractor, GroupFunction, HashFunction,
               LocationDetectionValue>;
 
-    auto node = common::MakeCounting<GroupByNode>(
+    auto node = tlx::make_counting<GroupByNode>(
         *this, key_extractor, groupby_function, hash_function);
 
     return DIA<ValueOut>(node);
@@ -419,9 +419,9 @@ template <typename ValueType, typename Stack>
 template <typename ValueOut, typename KeyExtractor,
           typename GroupFunction, typename HashFunction>
 auto DIA<ValueType, Stack>::GroupByKey(
-    const KeyExtractor &key_extractor,
-    const GroupFunction &groupby_function,
-    const HashFunction &hash_function) const {
+    const KeyExtractor& key_extractor,
+    const GroupFunction& groupby_function,
+    const HashFunction& hash_function) const {
     // forward to other method _without_ location detection
     return GroupByKey<ValueOut>(
         NoLocationDetectionTag, key_extractor, groupby_function, hash_function);
@@ -430,8 +430,8 @@ auto DIA<ValueType, Stack>::GroupByKey(
 template <typename ValueType, typename Stack>
 template <typename ValueOut, typename KeyExtractor, typename GroupFunction>
 auto DIA<ValueType, Stack>::GroupByKey(
-    const KeyExtractor &key_extractor,
-    const GroupFunction &groupby_function) const {
+    const KeyExtractor& key_extractor,
+    const GroupFunction& groupby_function) const {
     // forward to other method _without_ location detection
     return GroupByKey<ValueOut>(
         NoLocationDetectionTag, key_extractor, groupby_function,

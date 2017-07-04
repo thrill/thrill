@@ -17,6 +17,8 @@
 #include <thrill/data/stream.hpp>
 #include <thrill/mem/aligned_allocator.hpp>
 
+#include <tlx/math/round_to_power_of_two.hpp>
+
 #include <algorithm>
 #include <map>
 #include <vector>
@@ -38,7 +40,7 @@ class Repository
 {
 public:
     using Id = size_t;
-    using ObjectPtr = common::CountingPtr<Object>;
+    using ObjectPtr = tlx::CountingPtr<Object>;
 
     //! construct with initial ids 0.
     explicit Repository(size_t num_workers_per_node)
@@ -55,19 +57,19 @@ public:
     //! Get object with given id, if it does not exist, create it.
     //! \param object_id of the object
     //! \param construction parameters forwards to constructor
-    template <typename Subclass = Object, typename ... Types>
-    common::CountingPtr<Subclass>
+    template <typename Subclass = Object, typename... Types>
+    tlx::CountingPtr<Subclass>
     GetOrCreate(Id object_id, Types&& ... construction) {
         auto it = map_.find(object_id);
 
         if (it != map_.end()) {
             die_unless(dynamic_cast<Subclass*>(it->second.get()));
-            return common::CountingPtr<Subclass>(
+            return tlx::CountingPtr<Subclass>(
                 dynamic_cast<Subclass*>(it->second.get()));
         }
 
         // construct new object
-        common::CountingPtr<Subclass> value = common::MakeCounting<Subclass>(
+        tlx::CountingPtr<Subclass> value = tlx::make_counting<Subclass>(
             std::forward<Types>(construction) ...);
 
         map_.insert(std::make_pair(object_id, ObjectPtr(value)));
@@ -75,12 +77,12 @@ public:
     }
 
     template <typename Subclass = Object>
-    common::CountingPtr<Subclass> GetOrDie(Id object_id) {
+    tlx::CountingPtr<Subclass> GetOrDie(Id object_id) {
         auto it = map_.find(object_id);
 
         if (it != map_.end()) {
             die_unless(dynamic_cast<Subclass*>(it->second.get()));
-            return common::CountingPtr<Subclass>(
+            return tlx::CountingPtr<Subclass>(
                 dynamic_cast<Subclass*>(it->second.get()));
         }
 
@@ -170,7 +172,7 @@ CatStreamPtr Multiplexer::IntGetOrCreateCatStream(
     CatStreamPtr ptr = set->peer(local_worker_id);
     // update dia_id: the stream may have been created before the DIANode
     // associated with it.
-    if (!ptr->dia_id_)
+    if (ptr->dia_id_ == 0)
         ptr->set_dia_id(dia_id);
     return ptr;
 }
@@ -200,7 +202,7 @@ MixStreamPtr Multiplexer::IntGetOrCreateMixStream(
     MixStreamPtr ptr = set->peer(local_worker_id);
     // update dia_id: the stream may have been created before the DIANode
     // associated with it.
-    if (!ptr->dia_id_)
+    if (ptr->dia_id_ == 0)
         ptr->set_dia_id(dia_id);
     return ptr;
 }
@@ -217,7 +219,7 @@ void Multiplexer::AsyncReadMultiplexerHeader(Connection& s) {
     dispatcher_.AsyncRead(
         s, MultiplexerHeader::total_size,
         net::AsyncReadCallback::make<
-            Multiplexer, & Multiplexer::OnMultiplexerHeader>(this));
+            Multiplexer, &Multiplexer::OnMultiplexerHeader>(this));
 }
 
 void Multiplexer::OnMultiplexerHeader(Connection& s, net::Buffer&& buffer) {
@@ -243,7 +245,7 @@ void Multiplexer::OnMultiplexerHeader(Connection& s, net::Buffer&& buffer) {
     // round of allocation size to next power of two
     size_t alloc_size = header.size;
     if (alloc_size < THRILL_DEFAULT_ALIGN) alloc_size = THRILL_DEFAULT_ALIGN;
-    alloc_size = common::RoundUpToPowerOfTwo(alloc_size);
+    alloc_size = tlx::round_up_to_power_of_two(alloc_size);
 
     if (header.magic == MagicByte::CatStreamBlock)
     {

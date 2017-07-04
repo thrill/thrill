@@ -26,7 +26,7 @@ Stream::Stream(Multiplexer& multiplexer, const StreamId& id,
       remaining_closing_blocks_((num_hosts() - 1) * workers_per_host())
 { }
 
-Stream::~Stream() { }
+Stream::~Stream() = default;
 
 void Stream::OnAllClosed(const char* stream_type) {
     multiplexer_.logger()

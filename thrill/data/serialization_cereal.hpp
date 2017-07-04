@@ -15,7 +15,11 @@
 #include <cereal/cereal.hpp>
 #include <cereal/details/traits.hpp>
 #include <thrill/common/functional.hpp>
-#include <thrill/data/serialization.hpp>
+#include <thrill/data/serialization_fwd.hpp>
+#include <tlx/meta/is_std_array.hpp>
+#include <tlx/meta/is_std_pair.hpp>
+#include <tlx/meta/is_std_tuple.hpp>
+#include <tlx/meta/is_std_vector.hpp>
 
 #include <sstream>
 #include <string>
@@ -190,10 +194,10 @@ struct Serialization<Archive, T, typename std::enable_if<
                          cereal::traits::is_input_serializable<T, Archive>::value&&
                          !std::is_pod<T>::value&&
                          !std::is_same<T, std::string>::value&&
-                         !common::is_std_pair<T>::value&&
-                         !common::is_std_array<T>::value&&
-                         !common::is_std_vector<T>::value&&
-                         !common::is_std_tuple<T>::value
+                         !tlx::is_std_pair<T>::value&&
+                         !tlx::is_std_array<T>::value&&
+                         !tlx::is_std_vector<T>::value&&
+                         !tlx::is_std_tuple<T>::value
                          >::type>{
     static void Serialize(const T& t, Archive& ar) {
         // Create an output archive

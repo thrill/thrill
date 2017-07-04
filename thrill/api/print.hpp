@@ -28,7 +28,7 @@ void DIA<ValueType, Stack>::Print(const std::string& name, std::ostream& os) con
 
     std::vector<ValueType> output;
 
-    auto node = common::MakeCounting<GatherNode>(*this, "Print", 0, &output);
+    auto node = tlx::make_counting<GatherNode>(*this, "Print", 0, &output);
 
     node->RunScope();
 

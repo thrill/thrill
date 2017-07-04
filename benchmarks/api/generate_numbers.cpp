@@ -12,9 +12,9 @@
 #include <thrill/api/generate.hpp>
 #include <thrill/api/write_binary.hpp>
 #include <thrill/api/write_lines.hpp>
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/stats_timer.hpp>
+#include <tlx/cmdline_parser.hpp>
 
 #include <limits>
 #include <string>
@@ -25,20 +25,20 @@ using namespace thrill; // NOLINT
 
 int main(int argc, char* argv[]) {
 
-    common::CmdlineParser clp;
+    tlx::CmdlineParser clp;
 
-    unsigned int elements;
-    clp.AddParamUInt("n", elements, "Elements");
+    unsigned elements;
+    clp.add_param_unsigned("n", elements, "Elements");
 
     std::string output;
-    clp.AddParamString("output", output,
-                       "output file pattern");
+    clp.add_param_string("output", output,
+                         "output file pattern");
 
-    if (!clp.Process(argc, argv)) {
+    if (!clp.process(argc, argv)) {
         return -1;
     }
 
-    clp.PrintResult();
+    clp.print_result();
 
     api::Run([&output, &elements](api::Context& ctx) {
 

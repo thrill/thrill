@@ -129,7 +129,7 @@ private:
 template <typename ValueType, typename Stack>
 template <typename SumFunction>
 auto DIA<ValueType, Stack>::PrefixSum(
-    const SumFunction &sum_function, const ValueType &initial_element) const {
+    const SumFunction& sum_function, const ValueType& initial_element) const {
     assert(IsValid());
 
     using PrefixSumNode = api::PrefixSumNode<ValueType, SumFunction>;
@@ -153,7 +153,7 @@ auto DIA<ValueType, Stack>::PrefixSum(
             ValueType>::value,
         "SumFunction has the wrong input type");
 
-    auto node = common::MakeCounting<PrefixSumNode>(
+    auto node = tlx::make_counting<PrefixSumNode>(
         *this, sum_function, initial_element);
 
     return DIA<ValueType>(node);

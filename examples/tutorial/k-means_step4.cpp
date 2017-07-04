@@ -57,7 +57,7 @@ std::ostream& operator << (std::ostream& os, const ClosestCenter& cc) {
 }
 
 //! our main processing method
-auto Process(thrill::Context & ctx) {
+auto Process(thrill::Context& ctx) {
 
     std::default_random_engine rng(std::random_device { } ());
     std::uniform_real_distribution<double> dist(0.0, 1000.0);

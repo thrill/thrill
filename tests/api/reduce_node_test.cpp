@@ -141,7 +141,7 @@ template <ReduceTableImpl table_impl>
 class TestReduceToIndexCorrectResults
 {
 public:
-    void operator () (Context& ctx) {
+    void operator () (Context& ctx) const {
 
         auto integers = Generate(
             ctx, 16,

@@ -134,7 +134,7 @@ auto DIA<ValueType, Stack>::Sample(size_t sample_size) const {
 
     using SampleNode = api::SampleNode<ValueType>;
 
-    auto node = common::MakeCounting<SampleNode>(
+    auto node = tlx::make_counting<SampleNode>(
         *this, sample_size);
 
     return DIA<ValueType>(node);

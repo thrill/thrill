@@ -20,9 +20,13 @@
 #include <thrill/api/dop_node.hpp>
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/meta.hpp>
 #include <thrill/common/string.hpp>
 #include <thrill/data/file.hpp>
+#include <tlx/meta/apply_tuple.hpp>
+#include <tlx/meta/call_for_range.hpp>
+#include <tlx/meta/call_foreach_with_index.hpp>
+#include <tlx/meta/vexpand.hpp>
+#include <tlx/meta/vmap_for_range.hpp>
 
 #include <algorithm>
 #include <array>
@@ -90,7 +94,7 @@ public:
     /*!
      * Constructor for a ZipNode.
      */
-    template <typename ParentDIA0, typename ... ParentDIAs>
+    template <typename ParentDIA0, typename... ParentDIAs>
     ZipNode(const ZipFunction& zip_function, const ZipArgsTuple& padding,
             const ParentDIA0& parent0, const ParentDIAs& ... parents)
         : Super(parent0.ctx(), "Zip",
@@ -110,8 +114,8 @@ public:
             files_.emplace_back(context_.GetFile(this));
 
         // Hook PreOp(s)
-        common::VariadicCallForeachIndex(
-            RegisterParent(this), parent0, parents ...);
+        tlx::call_foreach_with_index(
+            RegisterParent(this), parent0, parents...);
     }
 
     void StartPreOp(size_t parent_index) final {
@@ -156,8 +160,8 @@ public:
                 ReaderNext<data::File::Reader> reader_next(*this, readers);
 
                 while (reader_next.HasNext()) {
-                    auto v = common::VariadicMapEnumerate<kNumInputs>(reader_next);
-                    this->PushItem(common::ApplyTuple(zip_function_, v));
+                    auto v = tlx::vmap_for_range<kNumInputs>(reader_next);
+                    this->PushItem(tlx::apply_tuple(zip_function_, v));
                     ++result_count;
                 }
             }
@@ -170,8 +174,8 @@ public:
                 ReaderNext<data::CatStream::CatReader> reader_next(*this, readers);
 
                 while (reader_next.HasNext()) {
-                    auto v = common::VariadicMapEnumerate<kNumInputs>(reader_next);
-                    this->PushItem(common::ApplyTuple(zip_function_, v));
+                    auto v = tlx::vmap_for_range<kNumInputs>(reader_next);
+                    this->PushItem(tlx::apply_tuple(zip_function_, v));
                     ++result_count;
                 }
             }
@@ -341,7 +345,7 @@ private:
         if (result_size_ == 0) return;
 
         // perform scatters to exchange data, with different types.
-        common::VariadicCallEnumerate<kNumInputs>(
+        tlx::call_for_range<kNumInputs>(
             [=](auto index) {
                 (void)index;
                 this->DoScatter<decltype(index)::index>();
@@ -416,17 +420,12 @@ private:
  * \ingroup dia_dops
  */
 template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
-          typename ... DIAs>
-auto Zip(const ZipFunction &zip_function,
-         const DIA<FirstDIAType, FirstDIAStack>&first_dia,
-         const DIAs &... dias) {
+          typename... DIAs>
+auto Zip(const ZipFunction& zip_function,
+         const DIA<FirstDIAType, FirstDIAStack>& first_dia,
+         const DIAs& ... dias) {
 
-    using VarForeachExpander = int[];
-
-    first_dia.AssertValid();
-    (void)VarForeachExpander {
-        (dias.AssertValid(), 0) ...
-    };
+    tlx::vexpand((first_dia.AssertValid(), 0), (dias.AssertValid(), 0) ...);
 
     static_assert(
         std::is_convertible<
@@ -446,8 +445,8 @@ auto Zip(const ZipFunction &zip_function,
               /* Pad */ false, /* UnequalCheck */ true, /* NoRebalance */ false,
               1 + sizeof ... (DIAs)>;
 
-    auto node = common::MakeCounting<ZipNode>(
-        zip_function, ZipArgsTuple(), first_dia, dias ...);
+    auto node = tlx::make_counting<ZipNode>(
+        zip_function, ZipArgsTuple(), first_dia, dias...);
 
     return DIA<ZipResult>(node);
 }
@@ -474,18 +473,13 @@ auto Zip(const ZipFunction &zip_function,
  * \ingroup dia_dops
  */
 template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
-          typename ... DIAs>
+          typename... DIAs>
 auto Zip(struct CutTag,
-         const ZipFunction &zip_function,
-         const DIA<FirstDIAType, FirstDIAStack>&first_dia,
-         const DIAs &... dias) {
+         const ZipFunction& zip_function,
+         const DIA<FirstDIAType, FirstDIAStack>& first_dia,
+         const DIAs& ... dias) {
 
-    using VarForeachExpander = int[];
-
-    first_dia.AssertValid();
-    (void)VarForeachExpander {
-        (dias.AssertValid(), 0) ...
-    };
+    tlx::vexpand((first_dia.AssertValid(), 0), (dias.AssertValid(), 0) ...);
 
     static_assert(
         std::is_convertible<
@@ -505,8 +499,8 @@ auto Zip(struct CutTag,
               /* Pad */ false, /* UnequalCheck */ false, /* NoRebalance */ false,
               1 + sizeof ... (DIAs)>;
 
-    auto node = common::MakeCounting<ZipNode>(
-        zip_function, ZipArgsTuple(), first_dia, dias ...);
+    auto node = tlx::make_counting<ZipNode>(
+        zip_function, ZipArgsTuple(), first_dia, dias...);
 
     return DIA<ZipResult>(node);
 }
@@ -533,18 +527,13 @@ auto Zip(struct CutTag,
  * \ingroup dia_dops
  */
 template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
-          typename ... DIAs>
+          typename... DIAs>
 auto Zip(struct PadTag,
-         const ZipFunction &zip_function,
-         const DIA<FirstDIAType, FirstDIAStack>&first_dia,
-         const DIAs &... dias) {
+         const ZipFunction& zip_function,
+         const DIA<FirstDIAType, FirstDIAStack>& first_dia,
+         const DIAs& ... dias) {
 
-    using VarForeachExpander = int[];
-
-    first_dia.AssertValid();
-    (void)VarForeachExpander {
-        (dias.AssertValid(), 0) ...
-    };
+    tlx::vexpand((first_dia.AssertValid(), 0), (dias.AssertValid(), 0) ...);
 
     static_assert(
         std::is_convertible<
@@ -564,8 +553,8 @@ auto Zip(struct PadTag,
               /* Pad */ true, /* UnequalCheck */ false, /* NoRebalance */ false,
               1 + sizeof ... (DIAs)>;
 
-    auto node = common::MakeCounting<ZipNode>(
-        zip_function, ZipArgsTuple(), first_dia, dias ...);
+    auto node = tlx::make_counting<ZipNode>(
+        zip_function, ZipArgsTuple(), first_dia, dias...);
 
     return DIA<ZipResult>(node);
 }
@@ -595,20 +584,15 @@ auto Zip(struct PadTag,
  * \ingroup dia_dops
  */
 template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
-          typename ... DIAs>
+          typename... DIAs>
 auto Zip(
     struct PadTag,
-    const ZipFunction &zip_function,
-    const typename common::FunctionTraits<ZipFunction>::args_tuple_plain & padding,
-    const DIA<FirstDIAType, FirstDIAStack>&first_dia,
-    const DIAs &... dias) {
+    const ZipFunction& zip_function,
+    const typename common::FunctionTraits<ZipFunction>::args_tuple_plain& padding,
+    const DIA<FirstDIAType, FirstDIAStack>& first_dia,
+    const DIAs& ... dias) {
 
-    using VarForeachExpander = int[];
-
-    first_dia.AssertValid();
-    (void)VarForeachExpander {
-        (dias.AssertValid(), 0) ...
-    };
+    tlx::vexpand((first_dia.AssertValid(), 0), (dias.AssertValid(), 0) ...);
 
     static_assert(
         std::is_convertible<
@@ -625,8 +609,8 @@ auto Zip(
               /* Pad */ true, /* UnequalCheck */ false, /* NoRebalance */ false,
               1 + sizeof ... (DIAs)>;
 
-    auto node = common::MakeCounting<ZipNode>(
-        zip_function, padding, first_dia, dias ...);
+    auto node = tlx::make_counting<ZipNode>(
+        zip_function, padding, first_dia, dias...);
 
     return DIA<ZipResult>(node);
 }
@@ -654,19 +638,14 @@ auto Zip(
  * \ingroup dia_dops
  */
 template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
-          typename ... DIAs>
+          typename... DIAs>
 auto Zip(
     struct NoRebalanceTag,
-    const ZipFunction &zip_function,
-    const DIA<FirstDIAType, FirstDIAStack>&first_dia,
-    const DIAs &... dias) {
+    const ZipFunction& zip_function,
+    const DIA<FirstDIAType, FirstDIAStack>& first_dia,
+    const DIAs& ... dias) {
 
-    using VarForeachExpander = int[];
-
-    first_dia.AssertValid();
-    (void)VarForeachExpander {
-        (dias.AssertValid(), 0) ...
-    };
+    tlx::vexpand((first_dia.AssertValid(), 0), (dias.AssertValid(), 0) ...);
 
     static_assert(
         std::is_convertible<
@@ -686,8 +665,8 @@ auto Zip(
               /* Pad */ false, /* UnequalCheck */ false, /* NoRebalance */ true,
               1 + sizeof ... (DIAs)>;
 
-    auto node = common::MakeCounting<ZipNode>(
-        zip_function, ZipArgsTuple(), first_dia, dias ...);
+    auto node = tlx::make_counting<ZipNode>(
+        zip_function, ZipArgsTuple(), first_dia, dias...);
 
     return DIA<ZipResult>(node);
 }
@@ -695,31 +674,31 @@ auto Zip(
 template <typename ValueType, typename Stack>
 template <typename ZipFunction, typename SecondDIA>
 auto DIA<ValueType, Stack>::Zip(
-    const SecondDIA &second_dia, const ZipFunction &zip_function) const {
+    const SecondDIA& second_dia, const ZipFunction& zip_function) const {
     return api::Zip(zip_function, *this, second_dia);
 }
 
 template <typename ValueType, typename Stack>
 template <typename ZipFunction, typename SecondDIA>
 auto DIA<ValueType, Stack>::Zip(
-    struct CutTag const &, const SecondDIA &second_dia,
-    const ZipFunction &zip_function) const {
+    struct CutTag const&, const SecondDIA& second_dia,
+    const ZipFunction& zip_function) const {
     return api::Zip(CutTag, zip_function, *this, second_dia);
 }
 
 template <typename ValueType, typename Stack>
 template <typename ZipFunction, typename SecondDIA>
 auto DIA<ValueType, Stack>::Zip(
-    struct PadTag const &, const SecondDIA &second_dia,
-    const ZipFunction &zip_function) const {
+    struct PadTag const&, const SecondDIA& second_dia,
+    const ZipFunction& zip_function) const {
     return api::Zip(PadTag, zip_function, *this, second_dia);
 }
 
 template <typename ValueType, typename Stack>
 template <typename ZipFunction, typename SecondDIA>
 auto DIA<ValueType, Stack>::Zip(
-    struct NoRebalanceTag const &, const SecondDIA &second_dia,
-    const ZipFunction &zip_function) const {
+    struct NoRebalanceTag const&, const SecondDIA& second_dia,
+    const ZipFunction& zip_function) const {
     return api::Zip(NoRebalanceTag, zip_function, *this, second_dia);
 }
 

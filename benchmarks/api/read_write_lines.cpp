@@ -11,8 +11,8 @@
 #include <thrill/api/context.hpp>
 #include <thrill/api/read_lines.hpp>
 #include <thrill/api/write_lines.hpp>
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/stats_timer.hpp>
+#include <tlx/cmdline_parser.hpp>
 
 #include <iostream>
 #include <string>
@@ -22,15 +22,15 @@ using namespace thrill;         // NOLINT
 //! Reads and Writes line data from disk and measures time for whole process
 int main(int argc, const char** argv) {
 
-    common::CmdlineParser clp;
-    clp.SetDescription("thrill::data benchmark for disk I/O");
-    clp.SetAuthor("Tobias Sturm <mail@tobiassturm.de>");
+    tlx::CmdlineParser clp;
+    clp.set_description("thrill::data benchmark for disk I/O");
+    clp.set_author("Tobias Sturm <mail@tobiassturm.de>");
     std::string input_file, output_file;
     int iterations;
-    clp.AddParamString("i", input_file, "Input file");
-    clp.AddParamString("o", output_file, "Output file");
-    clp.AddParamInt("n", iterations, "Iterations");
-    if (!clp.Process(argc, argv)) return -1;
+    clp.add_param_string("i", input_file, "Input file");
+    clp.add_param_string("o", output_file, "Output file");
+    clp.add_param_int("n", iterations, "Iterations");
+    if (!clp.process(argc, argv)) return -1;
 
     for (int i = 0; i < iterations; i++) {
         api::Run(

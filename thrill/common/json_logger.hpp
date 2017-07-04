@@ -14,6 +14,8 @@
 #ifndef THRILL_COMMON_JSON_LOGGER_HEADER
 #define THRILL_COMMON_JSON_LOGGER_HEADER
 
+#include <tlx/meta/vexpand.hpp>
+
 #include <array>
 #include <cassert>
 #include <fstream>
@@ -78,7 +80,7 @@ public:
 
     //! open JsonLogger with a super logger and some additional common key:value
     //! pairs
-    template <typename ... Args>
+    template <typename... Args>
     explicit JsonLogger(JsonLogger* super, const Args& ... args);
 
     //! create new JsonLine instance which will be written to this logger.
@@ -410,7 +412,7 @@ inline JsonLine& JsonLine::operator << (Type const& t) {
 /******************************************************************************/
 // JsonLogger
 
-template <typename ... Args>
+template <typename... Args>
 JsonLogger::JsonLogger(JsonLogger* super, const Args& ... args)
     : JsonLogger(super) {
 
@@ -418,10 +420,7 @@ JsonLogger::JsonLogger(JsonLogger* super, const Args& ... args)
     {
         // use JsonLine writer without a Logger to generate a valid string.
         JsonLine json(nullptr, oss);
-        using ForeachExpander = int[];
-        (void)ForeachExpander {
-            (json << (args), 0) ...
-        };
+        tlx::vexpand((json << (args), 0) ...);
     }
     common_ = JsonVerbatim(oss.str());
 }

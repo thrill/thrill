@@ -9,10 +9,11 @@
  ******************************************************************************/
 
 #include <thrill/api/context.hpp>
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/defines.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/qsort.hpp>
+#include <tlx/cmdline_parser.hpp>
+#include <tlx/string/format_si_iec_units.hpp>
 
 #include <algorithm>
 #include <limits>
@@ -59,7 +60,7 @@ struct Chars {
                    }
         };
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 //! A tuple with index (i,t_i,t_{i+1},t_{i+2}).
 template <typename Index, typename AlphabetType>
@@ -70,25 +71,25 @@ struct IndexChars {
     friend std::ostream& operator << (std::ostream& os, const IndexChars& tc) {
         return os << '[' << tc.index << '|' << tc.chars << ']';
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 int main(int argc, char* argv[]) {
 
     using namespace thrill; // NOLINT
 
-    common::CmdlineParser cp;
+    tlx::CmdlineParser cp;
 
-    cp.SetAuthor("Timo Bingmann <tb@panthema.net>");
+    cp.set_author("Timo Bingmann <tb@panthema.net>");
 
     uint64_t input_size = 50000000;
-    cp.AddBytes('s', "input_size", input_size,
-                "Number of DC7 tuples to sort.");
+    cp.add_bytes('s', "input_size", input_size,
+                 "Number of DC7 tuples to sort.");
 
     std::string algo = "1";
-    cp.AddString('a', "algo", algo,
-                 "select sort algo: '1' pivot, '2' pivots, '3' pivots");
+    cp.add_string('a', "algo", algo,
+                  "select sort algo: '1' pivot, '2' pivots, '3' pivots");
 
-    if (!cp.Process(argc, argv))
+    if (!cp.process(argc, argv))
         return -1;
 
     using IndexChars = ::IndexChars<uint32_t, uint8_t>;
@@ -108,7 +109,7 @@ int main(int argc, char* argv[]) {
     }
 
     LOG1 << "Sorting " << input_size << " DC7 tuples, total size = "
-         << common::FormatIecUnits(input_size * sizeof(IndexChars)) << 'B';
+         << tlx::format_iec_units(input_size * sizeof(IndexChars)) << 'B';
 
     return Run(
         [&](Context& ctx) {
