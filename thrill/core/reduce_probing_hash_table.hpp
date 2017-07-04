@@ -194,7 +194,7 @@ public:
 
         assert(h.partition_id < num_partitions_);
 
-        if (THRILL_UNLIKELY(key_equal_function_(key(kv), Key()))) {
+        if (TLX_UNLIKELY(key_equal_function_(key(kv), Key()))) {
             // handle pairs with sentinel key specially by reducing into last
             // element of items.
             TableItem& sentinel = items_[num_buckets_];
@@ -210,7 +210,7 @@ public:
             ++items_per_partition_[h.partition_id];
             ++num_items_;
 
-            while (THRILL_UNLIKELY(
+            while (TLX_UNLIKELY(
                        items_per_partition_[h.partition_id] >
                        limit_items_per_partition_[h.partition_id])) {
                 GrowAndRehash(h.partition_id);
@@ -239,11 +239,11 @@ public:
             ++iter;
 
             // wrap around if beyond the current partition
-            if (THRILL_UNLIKELY(iter == pend))
+            if (TLX_UNLIKELY(iter == pend))
                 iter = pbegin;
 
             // flush partition and retry, if all slots are reserved
-            if (THRILL_UNLIKELY(iter == begin_iter)) {
+            if (TLX_UNLIKELY(iter == begin_iter)) {
                 GrowAndRehash(h.partition_id);
                 return Insert(kv);
             }
@@ -256,7 +256,7 @@ public:
         ++items_per_partition_[h.partition_id];
         ++num_items_;
 
-        while (THRILL_UNLIKELY(
+        while (TLX_UNLIKELY(
                    items_per_partition_[h.partition_id] >=
                    limit_items_per_partition_[h.partition_id])) {
             LOG << "Grow due to "
@@ -337,7 +337,7 @@ public:
     //! Grow a partition after a spill or flush (if possible)
     void GrowPartition(size_t partition_id) {
 
-        if (THRILL_UNLIKELY(mem::memory_exceeded)) {
+        if (TLX_UNLIKELY(mem::memory_exceeded)) {
             SpillPartition(partition_id);
             return;
         }

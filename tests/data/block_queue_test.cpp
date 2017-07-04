@@ -10,9 +10,9 @@
  ******************************************************************************/
 
 #include <gtest/gtest.h>
-#include <thrill/common/thread_pool.hpp>
 #include <thrill/data/block_queue.hpp>
 #include <thrill/data/cat_block_source.hpp>
+#include <tlx/thread_pool.hpp>
 
 #include <string>
 
@@ -83,17 +83,17 @@ TEST_F(BlockQueue, WriteZeroItems) {
 }
 
 TEST_F(BlockQueue, ThreadedParallelBlockWriterAndBlockReader) {
-    common::ThreadPool pool(2);
+    tlx::ThreadPool pool(2);
     data::BlockQueue q(block_pool_, 0, /* dia_id */ 0);
 
-    pool.Enqueue(
+    pool.enqueue(
         [&q]() {
             data::BlockQueue::Writer bw = q.GetWriter(16);
             bw.Put(static_cast<int>(42));
             bw.Put(std::string("hello there BlockQueue"));
         });
 
-    pool.Enqueue(
+    pool.enqueue(
         [&q]() {
             {
                 data::BlockQueue::Reader br = q.GetReader(false, 0);
@@ -139,31 +139,31 @@ TEST_F(BlockQueue, ThreadedParallelBlockWriterAndBlockReader) {
             }
         });
 
-    pool.LoopUntilEmpty();
+    pool.loop_until_empty();
 }
 
 TEST_F(BlockQueue, OrderedMultiQueue_Multithreaded) {
     using namespace std::literals;
-    common::ThreadPool pool(3);
+    tlx::ThreadPool pool(3);
     data::BlockQueue q(block_pool_, 0, /* dia_id */ 0),
     q2(block_pool_, 0, /* dia_id */ 0);
 
     auto writer1 = q.GetWriter(16);
     auto writer2 = q2.GetWriter(16);
 
-    pool.Enqueue([&writer1]() {
+    pool.enqueue([&writer1]() {
                      writer1.Put(std::string("1.1"));
                      std::this_thread::sleep_for(25ms);
                      writer1.Put(std::string("1.2"));
                      writer1.Close();
                  });
-    pool.Enqueue([&writer2]() {
+    pool.enqueue([&writer2]() {
                      writer2.Put(std::string("2.1"));
                      writer2.Flush();
                      writer2.Put(std::string("2.2"));
                      writer2.Close();
                  });
-    pool.Enqueue([&q, &q2]() {
+    pool.enqueue([&q, &q2]() {
                      auto reader = data::BlockReader<CatBlockSource>(
                          CatBlockSource(
                              { MyBlockSource(q, 0), MyBlockSource(q2, 0) }));
@@ -172,21 +172,21 @@ TEST_F(BlockQueue, OrderedMultiQueue_Multithreaded) {
                      ASSERT_EQ("2.1", reader.Next<std::string>());
                      ASSERT_EQ("2.2", reader.Next<std::string>());
                  });
-    pool.LoopUntilEmpty();
+    pool.loop_until_empty();
 }
 
 TEST_F(BlockQueue, ThreadedParallelBlockWriterAndDynBlockReader) {
-    common::ThreadPool pool(2);
+    tlx::ThreadPool pool(2);
     data::BlockQueue q(block_pool_, 0, /* dia_id */ 0);
 
-    pool.Enqueue(
+    pool.enqueue(
         [&q]() {
             data::BlockQueue::Writer bw = q.GetWriter(16);
             bw.Put(static_cast<int>(42));
             bw.Put(std::string("hello there BlockQueue"));
         });
 
-    pool.Enqueue(
+    pool.enqueue(
         [&q]() {
             data::BlockQueue::Reader br = q.GetReader(false, 0);
 
@@ -201,7 +201,7 @@ TEST_F(BlockQueue, ThreadedParallelBlockWriterAndDynBlockReader) {
             ASSERT_FALSE(br.HasNext());
         });
 
-    pool.LoopUntilEmpty();
+    pool.loop_until_empty();
 }
 
 /******************************************************************************/

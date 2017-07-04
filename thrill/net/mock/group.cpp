@@ -9,8 +9,10 @@
  ******************************************************************************/
 
 #include <thrill/common/concurrent_bounded_queue.hpp>
-#include <thrill/common/die.hpp>
 #include <thrill/net/mock/group.hpp>
+
+#include <tlx/die.hpp>
+#include <tlx/string/hexdump.hpp>
 
 #include <algorithm>
 #include <condition_variable>
@@ -114,6 +116,12 @@ void Connection::SyncSendRecv(const void* send_data, size_t send_size,
     SyncRecv(recv_data, recv_size);
 }
 
+void Connection::SyncRecvSend(const void* send_data, size_t send_size,
+                              void* recv_data, size_t recv_size) {
+    SyncRecv(recv_data, recv_size);
+    SyncSend(send_data, send_size, NoFlags);
+}
+
 /******************************************************************************/
 // mock::Group
 
@@ -170,7 +178,7 @@ Group::ConstructLoopbackMesh(size_t num_hosts) {
 
 std::string Group::MaybeHexdump(const void* data, size_t size) {
     if (debug_data)
-        return common::Hexdump(data, size);
+        return tlx::hexdump(data, size);
     else
         return "[data]";
 }

@@ -143,7 +143,7 @@ public:
                  num_partitions, config, !duplicates,
                  index_function, key_equal_function) {
 
-        common::UNUSED(hash_function);
+        tlx::unused(hash_function);
 
         sLOG << "creating ReducePrePhase with" << emit.size() << "output emitters";
 

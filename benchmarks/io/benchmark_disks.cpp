@@ -16,13 +16,15 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/math.hpp>
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/io/block_manager.hpp>
 #include <thrill/io/request_operations.hpp>
 #include <thrill/io/typed_block.hpp>
 #include <thrill/mem/aligned_allocator.hpp>
+#include <tlx/cmdline_parser.hpp>
+#include <tlx/math/div_ceil.hpp>
+#include <tlx/string/format_si_iec_units.hpp>
 
 #include <algorithm>
 #include <iomanip>
@@ -78,8 +80,7 @@ int BenchmarkDisksBlocksizeAlloc(
     // calculate total bytes processed in a batch
     batch_size = raw_block_size * batch_size;
 
-    size_t num_blocks_per_batch = (size_t)common::IntegerDivRoundUp<uint64_t>(
-        batch_size, raw_block_size);
+    size_t num_blocks_per_batch = (size_t)tlx::div_ceil(batch_size, raw_block_size);
     batch_size = num_blocks_per_batch * raw_block_size;
 
     TypedBlock* buffer = reinterpret_cast<TypedBlock*>(
@@ -90,9 +91,9 @@ int BenchmarkDisksBlocksizeAlloc(
     uint64_t totalsizeread = 0, totalsizewrite = 0;
 
     std::cout << "# Batch size: "
-              << common::FormatIecUnits(batch_size) << " ("
+              << tlx::format_iec_units(batch_size) << " ("
               << num_blocks_per_batch << " blocks of "
-              << common::FormatIecUnits(raw_block_size) << ")"
+              << tlx::format_iec_units(raw_block_size) << ")"
               << " using " << AllocStrategy().name()
               << std::endl;
 
@@ -112,7 +113,7 @@ int BenchmarkDisksBlocksizeAlloc(
             const uint64_t current_batch_size_int = current_batch_size / sizeof(int);
 #endif
             const size_t current_num_blocks_per_batch =
-                (size_t)common::IntegerDivRoundUp<uint64_t>(current_batch_size, raw_block_size);
+                (size_t)tlx::div_ceil(current_batch_size, raw_block_size);
 
             size_t num_total_blocks = bids.size();
             bids.resize(num_total_blocks + current_num_blocks_per_batch);
@@ -250,30 +251,30 @@ int BenchmarkDisksAlloc(uint64_t length, uint64_t offset, uint64_t batch_size,
 int main(int argc, char* argv[]) {
     // parse command line
 
-    common::CmdlineParser cp;
+    tlx::CmdlineParser cp;
 
     uint64_t length = 0, offset = 0;
     unsigned int batch_size = 0;
     uint64_t block_size = 8 * MiB;
     std::string optrw = "rw", allocstr;
 
-    cp.AddParamBytes("size", length,
-                     "Amount of data to write/read from disks (e.g. 10GiB)");
-    cp.AddOptParamString(
+    cp.add_param_bytes("size", length,
+                       "Amount of data to write/read from disks (e.g. 10GiB)");
+    cp.add_opt_param_string(
         "r|w", optrw,
         "Only read or write blocks (default: both write and read)");
-    cp.AddOptParamString(
+    cp.add_opt_param_string(
         "alloc", allocstr,
         "Block allocation strategy: RC, SR, FR, S. (default: RC)");
 
-    cp.AddUInt('b', "batch", batch_size,
-               "Number of blocks written/read in one batch (default: D * B)");
-    cp.AddBytes('B', "block_size", block_size,
-                "Size of blocks written in one syscall. (default: B = 8MiB)");
-    cp.AddBytes('o', "offset", offset,
-                "Starting offset of operation range. (default: 0)");
+    cp.add_unsigned('b', "batch", batch_size,
+                    "Number of blocks written/read in one batch (default: D * B)");
+    cp.add_bytes('B', "block_size", block_size,
+                 "Size of blocks written in one syscall. (default: B = 8MiB)");
+    cp.add_bytes('o', "offset", offset,
+                 "Starting offset of operation range. (default: 0)");
 
-    cp.SetDescription(
+    cp.set_description(
         "This program will benchmark the disks configured by the standard "
         ".thrill disk configuration files mechanism. Blocks of 8 MiB are "
         "written and/or read in sequence using the block manager. The batch "
@@ -282,7 +283,7 @@ int main(int argc, char* argv[]) {
         "strategy. If size == 0, then writing/reading operation are done "
         "until an error occurs. ");
 
-    if (!cp.Process(argc, argv))
+    if (!cp.process(argc, argv))
         return -1;
 
     if (allocstr.size())
@@ -301,7 +302,7 @@ int main(int argc, char* argv[]) {
                 length, offset, batch_size, block_size, optrw);
 
         std::cout << "Unknown allocation strategy '" << allocstr << "'" << std::endl;
-        cp.PrintUsage();
+        cp.print_usage();
         return -1;
     }
 

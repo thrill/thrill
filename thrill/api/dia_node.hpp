@@ -13,8 +13,8 @@
 #define THRILL_API_DIA_NODE_HEADER
 
 #include <thrill/api/dia_base.hpp>
-#include <thrill/common/delegate.hpp>
 #include <thrill/data/file.hpp>
+#include <tlx/delegate.hpp>
 
 #include <algorithm>
 #include <string>
@@ -37,7 +37,7 @@ template <typename ValueType>
 class DIANode : public DIABase
 {
 public:
-    using Callback = common::Delegate<void(const ValueType&)>;
+    using Callback = tlx::delegate<void(const ValueType&)>;
 
     struct Child {
         //! reference to child node

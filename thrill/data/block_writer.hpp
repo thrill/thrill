@@ -185,7 +185,7 @@ public:
     //! \{
 
     //! Mark beginning of an item.
-    THRILL_ATTRIBUTE_ALWAYS_INLINE
+    TLX_ATTRIBUTE_ALWAYS_INLINE
     BlockWriter& MarkItem() {
         if (current_ == end_)
             Flush(), AllocateBlock();
@@ -200,7 +200,7 @@ public:
 
     //! Put appends a complete item, or fails with a FullException.
     template <typename T>
-    THRILL_ATTRIBUTE_ALWAYS_INLINE
+    TLX_ATTRIBUTE_ALWAYS_INLINE
     BlockWriter& Put(const T& x) {
         assert(!closed_);
 
@@ -213,7 +213,7 @@ public:
     //! PutNoSelfVerify appends a complete item without any self
     //! verification information, or fails with a FullException.
     template <typename T>
-    THRILL_ATTRIBUTE_ALWAYS_INLINE
+    TLX_ATTRIBUTE_ALWAYS_INLINE
     BlockWriter& PutNoSelfVerify(const T& x) {
         assert(!closed_);
 
@@ -225,7 +225,7 @@ public:
 
     //! appends a complete item, or fails safely with a FullException.
     template <typename T, bool NoSelfVerify = false>
-    THRILL_ATTRIBUTE_ALWAYS_INLINE
+    TLX_ATTRIBUTE_ALWAYS_INLINE
     BlockWriter& PutSafe(const T& x) {
         assert(!closed_);
 
@@ -297,7 +297,7 @@ public:
 
     //! appends a complete item, or aborts with a FullException.
     template <typename T, bool NoSelfVerify = false>
-    THRILL_ATTRIBUTE_ALWAYS_INLINE
+    TLX_ATTRIBUTE_ALWAYS_INLINE
     BlockWriter& PutUnsafe(const T& x) {
         assert(!closed_);
 
@@ -332,7 +332,7 @@ public:
 
         const Byte* cdata = reinterpret_cast<const Byte*>(data);
 
-        while (THRILL_UNLIKELY(current_ + size > end_)) {
+        while (TLX_UNLIKELY(current_ + size > end_)) {
             // partial copy of beginning of buffer
             size_t partial_size = end_ - current_;
             std::copy(cdata, cdata + partial_size, current_);
@@ -355,7 +355,7 @@ public:
     BlockWriter& PutByte(Byte data) {
         assert(!closed_);
 
-        if (THRILL_UNLIKELY(current_ == end_))
+        if (TLX_UNLIKELY(current_ == end_))
             Flush(), AllocateBlock();
 
         *current_++ = data;
@@ -378,7 +378,7 @@ public:
         assert(!closed_);
 
         // fast path for writing item into block if it fits.
-        if (THRILL_LIKELY(current_ + sizeof(Type) <= end_)) {
+        if (TLX_LIKELY(current_ + sizeof(Type) <= end_)) {
             *reinterpret_cast<Type*>(current_) = item;
 
             current_ += sizeof(Type);

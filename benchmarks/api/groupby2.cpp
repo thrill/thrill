@@ -15,9 +15,9 @@
 #include <thrill/api/size.hpp>
 #include <thrill/api/sum.hpp>
 #include <thrill/api/write_lines.hpp>
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/stats_timer.hpp>
+#include <tlx/cmdline_parser.hpp>
 
 #include <algorithm>
 #include <iostream>
@@ -36,7 +36,7 @@ using thrill::Context;
 using namespace thrill; // NOLINT
 
 int main(int argc, char* argv[]) {
-    common::CmdlineParser clp;
+    tlx::CmdlineParser clp;
 
     int n = 1;
 

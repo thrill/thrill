@@ -73,6 +73,15 @@ public:
           elem_(reader_.template Next<ValueIn>()),
           key_(key_extractor_(elem_)) { }
 
+    //! non-copyable: delete copy-constructor
+    GroupByIterator(const GroupByIterator&) = delete;
+    //! non-copyable: delete assignment operator
+    GroupByIterator& operator = (const GroupByIterator&) = delete;
+    //! move-constructor: default
+    GroupByIterator(GroupByIterator&&) = default;
+    //! move-assignment operator: default
+    GroupByIterator& operator = (GroupByIterator&&) = default;
+
     bool HasNext() {
         return (!is_reader_empty_ && equal_key_);
     }
@@ -148,6 +157,15 @@ public:
           equal_key_(true),
           elem_(reader_.Next()),
           key_(key_extractor_(elem_)) { }
+
+    //! non-copyable: delete copy-constructor
+    GroupByMultiwayMergeIterator(const GroupByMultiwayMergeIterator&) = delete;
+    //! non-copyable: delete assignment operator
+    GroupByMultiwayMergeIterator& operator = (const GroupByMultiwayMergeIterator&) = delete;
+    //! move-constructor: default
+    GroupByMultiwayMergeIterator(GroupByMultiwayMergeIterator&&) = default;
+    //! move-assignment operator: default
+    GroupByMultiwayMergeIterator& operator = (GroupByMultiwayMergeIterator&&) = default;
 
     bool HasNext() {
         return (!is_reader_empty_ && equal_key_);

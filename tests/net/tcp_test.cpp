@@ -83,6 +83,9 @@ TEST(RealTcpGroup, AllReduceString) {
 TEST(RealTcpGroup, AllReduceHypercubeString) {
     RealGroupTest(TestAllReduceHypercubeString);
 }
+TEST(RealTcpGroup, AllReduceEliminationString) {
+    RealGroupTest(TestAllReduceEliminationString);
+}
 TEST(RealTcpGroup, DispatcherSyncSendAsyncRead) {
     RealGroupTest(TestDispatcherSyncSendAsyncRead);
 }
@@ -124,6 +127,9 @@ TEST(LocalTcpGroup, AllReduceString) {
 }
 TEST(LocalTcpGroup, AllReduceHypercubeString) {
     LocalGroupTest(TestAllReduceHypercubeString);
+}
+TEST(LocalTcpGroup, AllReduceEliminationString) {
+    LocalGroupTest(TestAllReduceEliminationString);
 }
 TEST(LocalTcpGroup, DispatcherSyncSendAsyncRead) {
     LocalGroupTest(TestDispatcherSyncSendAsyncRead);

@@ -37,7 +37,7 @@ namespace io {
 
 RequestQueueImpl1Q::RequestQueueImpl1Q(int n)
     : thread_state_(NOT_RUNNING) {
-    common::UNUSED(n);
+    tlx::unused(n);
     StartThread(worker, static_cast<void*>(this), thread_, thread_state_);
 }
 

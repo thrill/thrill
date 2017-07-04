@@ -74,12 +74,12 @@ private:
  * \ingroup dia_sources
  */
 template <typename ValueType>
-auto EqualToDIA(Context & ctx,
-                const std::vector<ValueType>&in_vector) {
+auto EqualToDIA(Context& ctx,
+                const std::vector<ValueType>& in_vector) {
 
     using EqualToDIANode = api::EqualToDIANode<ValueType>;
 
-    return DIA<ValueType>(common::MakeCounting<EqualToDIANode>(ctx, in_vector));
+    return DIA<ValueType>(tlx::make_counting<EqualToDIANode>(ctx, in_vector));
 }
 
 /*!
@@ -96,13 +96,13 @@ auto EqualToDIA(Context & ctx,
  * \ingroup dia_sources
  */
 template <typename ValueType>
-auto EqualToDIA(Context & ctx,
+auto EqualToDIA(Context& ctx,
                 std::vector<ValueType>&& in_vector) {
 
     using EqualToDIANode = api::EqualToDIANode<ValueType>;
 
     return DIA<ValueType>(
-        common::MakeCounting<EqualToDIANode>(ctx, std::move(in_vector)));
+        tlx::make_counting<EqualToDIANode>(ctx, std::move(in_vector)));
 }
 
 } // namespace api

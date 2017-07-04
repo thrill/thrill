@@ -84,10 +84,10 @@ private:
  * previously. Not all DIABases have children (ActionNodes do not), hence,
  * children are first introduced in DIANode.
  */
-class DIABase : public common::ReferenceCount
+class DIABase : public tlx::ReferenceCounter
 {
 public:
-    using DIABasePtr = common::CountingPtr<DIABase>;
+    using DIABasePtr = tlx::CountingPtr<DIABase>;
 
     /*!
      * The constructor for a DIABase. Sets the parents for this node, but does
@@ -331,7 +331,7 @@ public:
     };
 };
 
-using DIABasePtr = common::CountingPtr<DIABase>;
+using DIABasePtr = tlx::CountingPtr<DIABase>;
 
 //! \}
 

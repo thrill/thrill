@@ -12,10 +12,10 @@
 #ifndef THRILL_DATA_BYTE_BLOCK_HEADER
 #define THRILL_DATA_BYTE_BLOCK_HEADER
 
-#include <thrill/common/counting_ptr.hpp>
 #include <thrill/io/bid.hpp>
 #include <thrill/io/file_base.hpp>
 #include <thrill/mem/pool.hpp>
+#include <tlx/counting_ptr.hpp>
 
 #include <string>
 #include <vector>
@@ -47,7 +47,7 @@ class BlockPool;
  *
  * ByteBlocks can be swapped to disk, which decreases their size to 0.
  */
-class ByteBlock : public common::ReferenceCount
+class ByteBlock : public tlx::ReferenceCounter
 {
     static constexpr bool debug = false;
 
@@ -60,8 +60,8 @@ public:
         void operator () (const ByteBlock* bb) const;
     };
 
-    using ByteBlockPtr = common::CountingPtr<ByteBlock, Deleter>;
-    using ByteBlockCPtr = common::CountingPtr<const ByteBlock, Deleter>;
+    using ByteBlockPtr = tlx::CountingPtr<ByteBlock, Deleter>;
+    using ByteBlockCPtr = tlx::CountingPtr<const ByteBlock, Deleter>;
 
 public:
     //! mutable data accessor to memory block

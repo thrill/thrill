@@ -9,6 +9,7 @@
  * Copyright (C) 2015 Robert Hangu <robert.hangu@gmail.com>
  * Copyright (C) 2015-2016 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2015 Lorenz Hübschle-Schneider <lorenz@4z2.de>
+ * Copyright (C) 2017 Nejmeddine Douma <nejmeddine.douma@gmail.com>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
@@ -18,8 +19,10 @@
 #define THRILL_NET_COLLECTIVE_HEADER
 
 #include <thrill/common/functional.hpp>
-#include <thrill/common/math.hpp>
 #include <thrill/net/group.hpp>
+#include <tlx/math/ffs.hpp>
+#include <tlx/math/is_power_of_two.hpp>
+#include <tlx/math/round_to_power_of_two.hpp>
 
 #include <functional>
 
@@ -202,7 +205,7 @@ void Group::BroadcastBinomialTree(T& value, size_t origin) {
     if (my_rank > 0) {
         // our predecessor is p with the lowest one bit flipped to zero. this
         // also counts the number of rounds we have to send out messages later.
-        r = common::ffs(my_rank) - 1;
+        r = tlx::ffs(my_rank) - 1;
         d <<= r;
         size_t from = ((my_rank ^ d) + origin) % num_hosts;
         sLOG << "Broadcast: rank" << my_rank << "receiving from" << from
@@ -210,7 +213,7 @@ void Group::BroadcastBinomialTree(T& value, size_t origin) {
         ReceiveFrom(from, &value);
     }
     else {
-        d = common::RoundUpToPowerOfTwo(num_hosts);
+        d = tlx::round_up_to_power_of_two(num_hosts);
     }
     // send to successors
     for (d >>= 1; d > 0; d >>= 1, ++r) {
@@ -337,6 +340,8 @@ void Group::AllReduceAtRoot(T& value, BinarySumOp sum_op) {
  * Perform an All-Reduce for powers of two. This is done with the Hypercube
  * algorithm from the ParAlg script.
  *
+ * \note This method is no longer used, but it is kept here for reference
+ *
  * \param value The value to be added to the aggregation
  * \param sum_op A custom summation operator
  */
@@ -353,35 +358,138 @@ void Group::AllReduceHypercube(T& value, BinarySumOp sum_op) {
 
         // SendReceive value to worker with id id ^ d
         if (peer < num_hosts()) {
-            // sLOG << "ALL_REDUCE_HYPERCUBE: Host" << my_host_rank()
-            //      << ": Sending" << value << "to worker" << peer;
-
-            T recv_data;
-            connection(peer).SendReceive(value, &recv_data);
+            // LOG << "ALL_REDUCE_HYPERCUBE: Host" << my_host_rank()
+            //     << ": Sending" << value << " to worker" << peer;
 
             // The order of addition is important. The total sum of the smaller
             // hypercube always comes first.
-            if (my_host_rank() & d)
+            T recv_data;
+            if (my_host_rank() & d) {
+                connection(peer).SendReceive(value, &recv_data);
                 value = sum_op(recv_data, value);
-            else
+            }
+            else {
+                connection(peer).ReceiveSend(value, &recv_data);
                 value = sum_op(value, recv_data);
+            }
 
-            // sLOG << "ALL_REDUCE_HYPERCUBE: Host " << my_host_rank()
-            //      << ": Received " << recv_data
-            //      << " from worker " << peer << " value = " << value;
+            // LOG << "ALL_REDUCE_HYPERCUBE: Host " << my_host_rank()
+            //     << ": Received " << recv_data
+            //     << " from worker " << peer << " value = " << value;
         }
     }
+}
 
-    // sLOG << "ALL_REDUCE_HYPERCUBE: value after all reduce " << value;
+/*!
+ * Perform an All-Reduce using the elimination protocol described in
+ * R. Rabenseifner and J. L. Traeff. "More Efficient Reduction Algorithms for
+ * Non-Power-of-Two Number of Processors in Message-Passing Parallel Systems."
+ * In Recent Advances in Parallel Virtual Machine and Message Passing Interface,
+ * 36–46. LNCS 3241. Springer, 2004.
+ *
+ * \param value The value to be added to the aggregation
+ * \param sum_op A custom summation operator
+ */
+template <typename T, typename BinarySumOp>
+void Group::AllReduceElimination(T& value, BinarySumOp sum_op) {
+    AllReduceEliminationProcess(
+        my_host_rank(), 1, num_hosts(), 0, value, sum_op);
+}
+
+template <typename T, typename BinarySumOp>
+T Group::SendReceiveReduce(size_t peer, const T& value, BinarySumOp sum_op) {
+    T recv_data;
+    if (my_host_rank() > peer) {
+        connection(peer).SendReceive(value, &recv_data);
+        return sum_op(recv_data, value);
+    }
+    else {
+        connection(peer).ReceiveSend(value, &recv_data);
+        return sum_op(value, recv_data);
+    }
+}
+
+//! used for the recursive implementation of the elimination protocol
+template <typename T, typename BinarySumOp>
+void Group::AllReduceEliminationProcess(
+    size_t host_id, size_t group_size, size_t remaining_hosts,
+    size_t send_to, T& value, BinarySumOp sum_op) {
+
+    // static const bool debug = false;
+
+    // send_to == 0 => no eliminated host waiting to receive from current host,
+    // host 0 is never eliminated
+
+    size_t group_count = remaining_hosts / group_size;
+    if (group_count % 2 == 0) {
+        // only hypercube
+        size_t peer = host_id ^ group_size;
+        if (peer < remaining_hosts) {
+            value = SendReceiveReduce(peer, value, sum_op);
+        }
+    }
+    else {
+        // check if my rank is in 3-2 elimination zone
+        size_t host_group = host_id / group_size;
+        if (host_group >= group_count - 3) {
+            // take part in the 3-2 elimination
+            if (host_group == group_count - 1) {
+                size_t peer = (host_id ^ group_size) - 2 * group_size;
+                SendTo(peer, value);
+                ReceiveFrom(peer, &value);
+            }
+            else if (host_group == group_count - 2) {
+                size_t peer = (host_id ^ group_size) + 2 * group_size;
+
+                T recv_data;
+                ReceiveFrom(peer, &recv_data);
+                if (my_host_rank() > peer)
+                    value = sum_op(recv_data, value);
+                else
+                    value = sum_op(value, recv_data);
+
+                // important for gathering
+                send_to = peer;
+
+                peer = host_id ^ group_size;
+                value = SendReceiveReduce(peer, value, sum_op);
+            }
+            else if (host_group == group_count - 3) {
+                size_t peer = host_id ^ group_size;
+                value = SendReceiveReduce(peer, value, sum_op);
+            }
+        }
+        else {
+            // no elimination, execute hypercube
+            size_t peer = host_id ^ group_size;
+            if (peer < remaining_hosts) {
+                value = SendReceiveReduce(peer, value, sum_op);
+            }
+        }
+        remaining_hosts -= group_size;
+    }
+    group_size <<= 1;
+
+    // recursion
+    if (group_size < remaining_hosts) {
+        AllReduceEliminationProcess(
+            host_id, group_size, remaining_hosts, send_to,
+            value, sum_op);
+    }
+    else if (send_to != 0) {
+        SendTo(send_to, value);
+    }
 }
 
 //! select allreduce implementation (often due to total number of processors)
 template <typename T, typename BinarySumOp>
 void Group::AllReduceSelect(T& value, BinarySumOp sum_op) {
-    if (common::IsPowerOfTwo(num_hosts()))
+    // always use 3-2-elimination reduction method.
+    AllReduceElimination(value, sum_op);
+    /*if (tlx::is_power_of_two(num_hosts()))
         AllReduceHypercube(value, sum_op);
     else
-        AllReduceAtRoot(value, sum_op);
+        AllReduceAtRoot(value, sum_op);*/
 }
 
 /*!

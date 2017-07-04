@@ -14,10 +14,11 @@
 #ifndef THRILL_CORE_BIT_STREAM_HEADER
 #define THRILL_CORE_BIT_STREAM_HEADER
 
-#include <thrill/common/die.hpp>
 #include <thrill/common/math.hpp>
 #include <thrill/data/block_reader.hpp>
 #include <thrill/data/block_writer.hpp>
+
+#include <tlx/die.hpp>
 
 namespace thrill {
 namespace core {

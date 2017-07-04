@@ -15,12 +15,12 @@
 #ifndef THRILL_NET_DISPATCHER_HEADER
 #define THRILL_NET_DISPATCHER_HEADER
 
-#include <thrill/common/delegate.hpp>
 #include <thrill/data/block.hpp>
 #include <thrill/data/byte_block.hpp>
 #include <thrill/mem/allocator.hpp>
 #include <thrill/net/buffer.hpp>
 #include <thrill/net/connection.hpp>
+#include <tlx/delegate.hpp>
 
 #include <atomic>
 #include <chrono>
@@ -38,27 +38,27 @@ namespace net {
 //! \{
 
 //! Signature of timer callbacks.
-using TimerCallback = common::Delegate<bool(), mem::GPoolAllocator<char> >;
+using TimerCallback = tlx::delegate<bool(), mem::GPoolAllocator<char> >;
 
 //! Signature of async connection readability/writability callbacks.
-using AsyncCallback = common::Delegate<bool(), mem::GPoolAllocator<char> >;
+using AsyncCallback = tlx::delegate<bool(), mem::GPoolAllocator<char> >;
 
 //! Signature of async read direct memory callbacks.
-using AsyncReadMemoryCallback = common::Delegate<
+using AsyncReadMemoryCallback = tlx::delegate<
           void(Connection& c, uint8_t* data, size_t size),
           mem::GPoolAllocator<char> >;
 
 //! Signature of async read Buffer callbacks.
-using AsyncReadBufferCallback = common::Delegate<
+using AsyncReadBufferCallback = tlx::delegate<
           void(Connection& c, Buffer&& buffer), mem::GPoolAllocator<char> >;
 
 //! Signature of async read ByteBlock callbacks.
-using AsyncReadByteBlockCallback = common::Delegate<
+using AsyncReadByteBlockCallback = tlx::delegate<
           void(Connection& c, data::PinnedByteBlockPtr&& bytes),
           mem::GPoolAllocator<char> >;
 
 //! Signature of async write callbacks.
-using AsyncWriteCallback = common::Delegate<
+using AsyncWriteCallback = tlx::delegate<
           void(Connection&), mem::GPoolAllocator<char> >;
 
 /******************************************************************************/
@@ -593,7 +593,7 @@ public:
         // register read callback
         AsyncReadBuffer& arb = async_read_.back();
         AddRead(c, AsyncCallback::make<
-                    AsyncReadBuffer, & AsyncReadBuffer::operator ()>(&arb));
+                    AsyncReadBuffer, &AsyncReadBuffer::operator ()>(&arb));
     }
 
     //! asynchronously read the full ByteBlock and deliver it to the callback
@@ -614,7 +614,7 @@ public:
         // register read callback
         AsyncReadByteBlock& arbb = async_read_block_.back();
         AddRead(c, AsyncCallback::make<
-                    AsyncReadByteBlock, & AsyncReadByteBlock::operator ()>(&arbb));
+                    AsyncReadByteBlock, &AsyncReadByteBlock::operator ()>(&arbb));
     }
 
     //! asynchronously write buffer and callback when delivered. The buffer is
@@ -635,7 +635,7 @@ public:
         // register write callback
         AsyncWriteBuffer& awb = async_write_.back();
         AddWrite(c, AsyncCallback::make<
-                     AsyncWriteBuffer, & AsyncWriteBuffer::operator ()>(&awb));
+                     AsyncWriteBuffer, &AsyncWriteBuffer::operator ()>(&awb));
     }
 
     //! asynchronously write buffer and callback when delivered. The buffer is
@@ -656,7 +656,7 @@ public:
         // register write callback
         AsyncWriteBlock& awb = async_write_block_.back();
         AddWrite(c, AsyncCallback::make<
-                     AsyncWriteBlock, & AsyncWriteBlock::operator ()>(&awb));
+                     AsyncWriteBlock, &AsyncWriteBlock::operator ()>(&awb));
     }
 
     //! asynchronously write buffer and callback when delivered. COPIES the data

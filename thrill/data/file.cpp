@@ -226,9 +226,8 @@ PinnedBlock ConsumeFileBlockSource::NextBlock() {
 }
 
 ConsumeFileBlockSource::~ConsumeFileBlockSource() {
-    if (file_) {
+    if (file_ != nullptr)
         file_->Clear();
-    }
 }
 
 } // namespace data

@@ -18,6 +18,8 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/common/string.hpp>
 #include <thrill/data/file.hpp>
+#include <tlx/meta/call_foreach_with_index.hpp>
+#include <tlx/meta/vexpand.hpp>
 
 #include <algorithm>
 #include <initializer_list>
@@ -40,7 +42,7 @@ public:
 
     //! Constructor for variant with variadic parent parameter pack, which each
     //! parent may have a different FunctionStack.
-    template <typename ParentDIA0, typename ... ParentDIAs>
+    template <typename ParentDIA0, typename... ParentDIAs>
     explicit ConcatNode(const ParentDIA0& parent0,
                         const ParentDIAs& ... parents)
         : Super(parent0.ctx(), "Concat",
@@ -62,8 +64,8 @@ public:
         for (size_t i = 0; i < num_inputs_; ++i)
             writers_.emplace_back(files_[i].GetWriter());
 
-        common::VariadicCallForeachIndex(
-            RegisterParent(this), parent0, parents ...);
+        tlx::call_foreach_with_index(
+            RegisterParent(this), parent0, parents...);
     }
 
     //! Constructor for variant with a std::vector of parents all with the same
@@ -326,21 +328,16 @@ private:
  *
  * \ingroup dia_dops
  */
-template <typename FirstDIA, typename ... DIAs>
-auto Concat(const FirstDIA &first_dia, const DIAs &... dias) {
+template <typename FirstDIA, typename... DIAs>
+auto Concat(const FirstDIA& first_dia, const DIAs& ... dias) {
 
-    using VarForeachExpander = int[];
-
-    first_dia.AssertValid();
-    (void)VarForeachExpander {
-        (dias.AssertValid(), 0) ...
-    };
+    tlx::vexpand((first_dia.AssertValid(), 0), (dias.AssertValid(), 0) ...);
 
     using ValueType = typename FirstDIA::ValueType;
 
     using ConcatNode = api::ConcatNode<ValueType>;
 
-    return DIA<ValueType>(common::MakeCounting<ConcatNode>(first_dia, dias ...));
+    return DIA<ValueType>(tlx::make_counting<ConcatNode>(first_dia, dias...));
 }
 
 /*!
@@ -355,14 +352,14 @@ auto Concat(const FirstDIA &first_dia, const DIAs &... dias) {
  * \ingroup dia_dops
  */
 template <typename ValueType>
-auto Concat(const std::initializer_list<DIA<ValueType> >&dias) {
+auto Concat(const std::initializer_list<DIA<ValueType> >& dias) {
 
     for (const DIA<ValueType>& d : dias)
         d.AssertValid();
 
     using ConcatNode = api::ConcatNode<ValueType>;
 
-    return DIA<ValueType>(common::MakeCounting<ConcatNode>(dias));
+    return DIA<ValueType>(tlx::make_counting<ConcatNode>(dias));
 }
 
 /*!
@@ -377,20 +374,20 @@ auto Concat(const std::initializer_list<DIA<ValueType> >&dias) {
  * \ingroup dia_dops
  */
 template <typename ValueType>
-auto Concat(const std::vector<DIA<ValueType> >&dias) {
+auto Concat(const std::vector<DIA<ValueType> >& dias) {
 
     for (const DIA<ValueType>& d : dias)
         d.AssertValid();
 
     using ConcatNode = api::ConcatNode<ValueType>;
 
-    return DIA<ValueType>(common::MakeCounting<ConcatNode>(dias));
+    return DIA<ValueType>(tlx::make_counting<ConcatNode>(dias));
 }
 
 template <typename ValueType, typename Stack>
 template <typename SecondDIA>
 auto DIA<ValueType, Stack>::Concat(
-    const SecondDIA &second_dia) const {
+    const SecondDIA& second_dia) const {
     return api::Concat(*this, second_dia);
 }
 

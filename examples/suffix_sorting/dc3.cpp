@@ -74,7 +74,7 @@ struct Chars {
                    }
         };
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 //! A triple with index (i,t_i,t_{i+1},t_{i+2}).
 template <typename Index, typename AlphabetType>
@@ -87,7 +87,7 @@ struct IndexChars {
     friend std::ostream& operator << (std::ostream& os, const IndexChars& tc) {
         return os << '[' << tc.index << '|' << tc.chars << ']';
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 //! A pair (index, rank)
 template <typename Index>
@@ -98,7 +98,7 @@ struct IndexRank {
     friend std::ostream& operator << (std::ostream& os, const IndexRank& tr) {
         return os << '(' << tr.index << '|' << tr.rank << ')';
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 //! Fragments at String Positions i = 0 Mod 3.
 template <typename Index, typename AlphabetType>
@@ -117,7 +117,7 @@ struct StringFragmentMod0 {
                   << " t0=" << sf.t0 << " t1=" << sf.t1
                   << " r1=" << sf.r1 << " r2=" << sf.r2;
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 //! Fragments at String Positions i = 1 Mod 3.
 template <typename Index, typename AlphabetType>
@@ -135,7 +135,7 @@ struct StringFragmentMod1 {
         return os << "i=" << sf.index
                   << " t0=" << sf.t0 << " r0=" << sf.r0 << " r1=" << sf.r1;
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 //! Fragments at String Positions i = 2 Mod 3.
 template <typename Index, typename AlphabetType>
@@ -154,7 +154,7 @@ struct StringFragmentMod2 {
                   << " t0=" << sf.t0 << " r0=" << sf.r0
                   << " t1=" << sf.t1 << " r2=" << sf.r2;
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 //! Union of String Fragments with Index
 template <typename Index, typename AlphabetType>
@@ -163,7 +163,7 @@ struct StringFragment {
     struct Common {
         Index        index;
         AlphabetType t[2];
-    } THRILL_ATTRIBUTE_PACKED;
+    } TLX_ATTRIBUTE_PACKED;
 
     union {
         Index                                   index;
@@ -171,7 +171,7 @@ struct StringFragment {
         StringFragmentMod0<Index, AlphabetType> mod0;
         StringFragmentMod1<Index, AlphabetType> mod1;
         StringFragmentMod2<Index, AlphabetType> mod2;
-    } THRILL_ATTRIBUTE_PACKED;
+    } TLX_ATTRIBUTE_PACKED;
 
     StringFragment() = default;
 
@@ -211,7 +211,7 @@ struct StringFragment {
     const Index * ranks() const {
         return ranks(index % 3);
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 static constexpr size_t fragment_comparator_params[3][3][3] =
 {
@@ -256,14 +256,14 @@ struct CharsRanks12 {
         return os << "(ch=" << c.chars
                   << " r1=" << c.rank1 << " r2=" << c.rank2 << ")";
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 template <typename Index, typename Char>
 struct IndexCR12Pair {
     Index                     index;
     CharsRanks12<Index, Char> cr0;
     CharsRanks12<Index, Char> cr1;
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 
 template <typename Type, size_t MaxDepth>
 class RadixSortFragment
@@ -278,7 +278,7 @@ public:
         if (K_ <= 4096) {
             thrill::common::radix_sort_CI<MaxDepth>(
                 begin, end, K_, cmp, [](auto begin, auto end, auto) {
-                            // sub sorter: sort StringFragments by rank
+                    // sub sorter: sort StringFragments by rank
                     std::sort(begin, end, [](const Type& a, const Type& b) {
                                   return a.sort_rank() < b.sort_rank();
                               });

@@ -12,7 +12,7 @@
 #ifndef THRILL_CORE_MULTIWAY_MERGE_HEADER
 #define THRILL_CORE_MULTIWAY_MERGE_HEADER
 
-#include <thrill/core/losertree.hpp>
+#include <tlx/loser_tree.hpp>
 
 #include <algorithm>
 #include <functional>
@@ -28,8 +28,8 @@ class MultiwayMergeTree
 public:
     using Reader = typename std::iterator_traits<ReaderIterator>::value_type;
 
-    using LoserTreeType = typename LoserTreeTraits<
-              /* stable */ false, ValueType, Comparator>::Type;
+    using LoserTreeType = tlx::LoserTree<
+              /* stable */ false, ValueType, Comparator>;
 
     MultiwayMergeTree(ReaderIterator readers_begin, ReaderIterator readers_end,
                       const Comparator& comp)
@@ -41,7 +41,7 @@ public:
 
         for (unsigned t = 0; t < num_inputs_; ++t)
         {
-            if (THRILL_LIKELY(readers_[t].HasNext())) {
+            if (TLX_LIKELY(readers_[t].HasNext())) {
                 current_[t].first = true;
                 current_[t].second = readers_[t].template Next<ValueType>();
                 lt_.insert_start(&current_[t].second, t, false);
@@ -66,7 +66,7 @@ public:
         unsigned top = lt_.min_source();
         ValueType res = std::move(current_[top].second);
 
-        if (THRILL_LIKELY(readers_[top].HasNext())) {
+        if (TLX_LIKELY(readers_[top].HasNext())) {
             current_[top].first = true;
             current_[top].second = readers_[top].template Next<ValueType>();
             lt_.delete_min_insert(&current_[top].second, false);
@@ -87,7 +87,7 @@ public:
         unsigned top = lt_.min_source();
         ValueType res = std::move(current_[top].second);
 
-        if (THRILL_LIKELY(readers_[top].HasNext())) {
+        if (TLX_LIKELY(readers_[top].HasNext())) {
             current_[top].first = true;
             current_[top].second = readers_[top].template Next<ValueType>();
             lt_.delete_min_insert(&current_[top].second, false);

@@ -10,10 +10,11 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <thrill/common/die.hpp>
 #include <thrill/common/json_logger.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/string.hpp>
+
+#include <tlx/die.hpp>
 
 #include <cerrno>
 #include <chrono>
@@ -28,7 +29,7 @@ namespace common {
 // JsonLogger
 
 JsonLogger::JsonLogger(const std::string& path) {
-    if (!path.size()) return;
+    if (path.empty()) return;
 
     os_.open(path.c_str());
     if (!os_.good()) {
@@ -41,11 +42,11 @@ JsonLogger::JsonLogger(JsonLogger* super)
     : super_(super) { }
 
 JsonLine JsonLogger::line() {
-    if (super_) {
+    if (super_ != nullptr) {
         JsonLine out = super_->line();
 
         // append common key:value pairs
-        if (common_.str_.size())
+        if (!common_.str_.empty())
             out << common_;
 
         return out;
@@ -60,7 +61,7 @@ JsonLine JsonLogger::line() {
         std::chrono::system_clock::now().time_since_epoch()).count();
 
     // append common key:value pairs
-    if (common_.str_.size())
+    if (!common_.str_.empty())
         out << common_;
 
     return out;

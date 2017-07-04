@@ -168,7 +168,7 @@ public:
      */
     bool Insert(const TableItem& kv) {
 
-        while (THRILL_UNLIKELY(mem::memory_exceeded && num_items_ != 0))
+        while (TLX_UNLIKELY(mem::memory_exceeded && num_items_ != 0))
             SpillAnyPartition();
 
         typename IndexFunction::Result h = index_function_(

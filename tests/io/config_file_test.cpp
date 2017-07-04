@@ -13,9 +13,10 @@
 
 #include <thrill/io/config_file.hpp>
 
-#include <thrill/common/die.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/io/block_manager.hpp>
+
+#include <tlx/die.hpp>
 
 #include <gtest/gtest.h>
 

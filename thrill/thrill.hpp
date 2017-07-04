@@ -31,12 +31,12 @@ print "#include <$_>\n" foreach sort glob("thrill/api/"."*.hpp");
 #include <thrill/api/distribute.hpp>
 #include <thrill/api/dop_node.hpp>
 #include <thrill/api/equal_to_dia.hpp>
-#include <thrill/api/function_stack.hpp>
 #include <thrill/api/gather.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/group_by_iterator.hpp>
 #include <thrill/api/group_by_key.hpp>
 #include <thrill/api/group_to_index.hpp>
+#include <thrill/api/hyperloglog.hpp>
 #include <thrill/api/inner_join.hpp>
 #include <thrill/api/max.hpp>
 #include <thrill/api/merge.hpp>

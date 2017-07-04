@@ -40,7 +40,7 @@ enum class MagicByte : uint8_t {
  * also a virtual base class use by Multiplexer to pass blocks to streams!
  * Instead, it contains common items like stats.
  */
-class Stream : public common::ReferenceCount
+class Stream : public tlx::ReferenceCounter
 {
 public:
     using Writer = DynBlockWriter;
@@ -197,12 +197,12 @@ protected:
     friend class StreamSink;
 };
 
-using StreamPtr = common::CountingPtr<Stream>;
+using StreamPtr = tlx::CountingPtr<Stream>;
 
 /*!
  * Base class for StreamSet.
  */
-class StreamSetBase : public common::ReferenceCount
+class StreamSetBase : public tlx::ReferenceCounter
 {
 public:
     virtual ~StreamSetBase() { }
@@ -219,7 +219,7 @@ template <typename Stream>
 class StreamSet : public StreamSetBase
 {
 public:
-    using StreamPtr = common::CountingPtr<Stream>;
+    using StreamPtr = tlx::CountingPtr<Stream>;
 
     //! Creates a StreamSet with the given number of streams (num workers per
     //! host).
@@ -227,7 +227,7 @@ public:
               size_t workers_per_host, size_t dia_id) {
         for (size_t i = 0; i < workers_per_host; i++)
             streams_.emplace_back(
-                common::MakeCounting<Stream>(multiplexer, id, i, dia_id));
+                tlx::make_counting<Stream>(multiplexer, id, i, dia_id));
     }
 
     //! Returns the stream that will be consumed by the worker with the given

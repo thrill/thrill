@@ -71,12 +71,12 @@ private:
  * \ingroup dia_sources
  */
 template <typename ValueType>
-auto ConcatToDIA(Context & ctx,
-                 const std::vector<ValueType>&in_vector) {
+auto ConcatToDIA(Context& ctx,
+                 const std::vector<ValueType>& in_vector) {
 
     using ConcatToDIANode = api::ConcatToDIANode<ValueType>;
 
-    return DIA<ValueType>(common::MakeCounting<ConcatToDIANode>(ctx, in_vector));
+    return DIA<ValueType>(tlx::make_counting<ConcatToDIANode>(ctx, in_vector));
 }
 
 /*!
@@ -90,13 +90,13 @@ auto ConcatToDIA(Context & ctx,
  * the DIANode.
  */
 template <typename ValueType>
-auto ConcatToDIA(Context & ctx,
+auto ConcatToDIA(Context& ctx,
                  std::vector<ValueType>&& in_vector) {
 
     using ConcatToDIANode = api::ConcatToDIANode<ValueType>;
 
     return DIA<ValueType>(
-        common::MakeCounting<ConcatToDIANode>(ctx, std::move(in_vector)));
+        tlx::make_counting<ConcatToDIANode>(ctx, std::move(in_vector)));
 }
 
 } // namespace api

@@ -98,7 +98,7 @@ public:
 
     //! Pushes a new element into the queue. The element is constructed with
     //! given arguments.
-    template <typename ... Arguments>
+    template <typename... Arguments>
     void emplace(Arguments&& ... args) {
         std::unique_lock<std::mutex> lock(mutex_);
         queue_.emplace(std::forward<Arguments>(args) ...);

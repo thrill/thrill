@@ -15,8 +15,8 @@
 #include <thrill/api/generate.hpp>
 #include <thrill/api/read_lines.hpp>
 #include <thrill/api/size.hpp>
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
+#include <tlx/cmdline_parser.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -117,46 +117,46 @@ static size_t CountTrianglesGenerated(
 
 int main(int argc, char* argv[]) {
 
-    common::CmdlineParser clp;
+    tlx::CmdlineParser clp;
 
     bool generate = false;
-    clp.AddFlag('g', "generate", generate,
-                "generate graph data, set input = #pages");
+    clp.add_bool('g', "generate", generate,
+                 "generate graph data, set input = #pages");
 
     size_t num_vertices;
 
-    clp.AddSizeT('n', "vertices", num_vertices, "Number of vertices");
+    clp.add_size_t('n', "vertices", num_vertices, "Number of vertices");
 
     // Graph Generator
     ZipfGraphGen gg(1);
 
-    clp.AddDouble(0, "size_mean", gg.size_mean,
-                  "generated: mean of number of outgoing links, "
-                  "default: " + std::to_string(gg.size_mean));
+    clp.add_double(0, "size_mean", gg.size_mean,
+                   "generated: mean of number of outgoing links, "
+                   "default: " + std::to_string(gg.size_mean));
 
-    clp.AddDouble(0, "size_var", gg.size_var,
-                  "generated: variance of number of outgoing links, "
-                  "default: " + std::to_string(gg.size_var));
+    clp.add_double(0, "size_var", gg.size_var,
+                   "generated: variance of number of outgoing links, "
+                   "default: " + std::to_string(gg.size_var));
 
-    clp.AddDouble(0, "link_scale", gg.link_zipf_scale,
-                  "generated: Zipf scale parameter for outgoing links, "
-                  "default: " + std::to_string(gg.link_zipf_scale));
+    clp.add_double(0, "link_scale", gg.link_zipf_scale,
+                   "generated: Zipf scale parameter for outgoing links, "
+                   "default: " + std::to_string(gg.link_zipf_scale));
 
-    clp.AddDouble(0, "link_exponent", gg.link_zipf_exponent,
-                  "generated: Zipf exponent parameter for outgoing links, "
-                  "default: " + std::to_string(gg.link_zipf_exponent));
+    clp.add_double(0, "link_exponent", gg.link_zipf_exponent,
+                   "generated: Zipf exponent parameter for outgoing links, "
+                   "default: " + std::to_string(gg.link_zipf_exponent));
 
     std::vector<std::string> input_path;
-    clp.AddParamStringlist("input", input_path,
-                           "input file pattern(s)");
+    clp.add_param_stringlist("input", input_path,
+                             "input file pattern(s)");
 
-    if (!clp.Process(argc, argv)) {
+    if (!clp.process(argc, argv)) {
         return -1;
     }
 
     die_unless(!generate || input_path.size() == 1);
 
-    clp.PrintResult();
+    clp.print_result();
 
     return api::Run(
         [&](api::Context& ctx) {

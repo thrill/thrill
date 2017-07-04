@@ -98,7 +98,7 @@ public:
 #endif
 
     //! create host log
-    std::string MakeHostLogPath(size_t worker_rank);
+    std::string MakeHostLogPath(size_t host_rank);
 
     //! Returns local_host_id_
     size_t local_host_id() const { return local_host_id_; }
@@ -320,7 +320,7 @@ public:
     //! Returns a reference to a new CatStream or MixStream, selectable via
     //! template parameter.
     template <typename Stream>
-    common::CountingPtr<Stream> GetNewStream(size_t dia_id);
+    tlx::CountingPtr<Stream> GetNewStream(size_t dia_id);
 
     //! the block manager keeps all data blocks moving through the system.
     data::BlockPool& block_pool() { return block_pool_; }

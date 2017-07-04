@@ -20,9 +20,9 @@
 #include <thrill/api/sum.hpp>
 #include <thrill/api/write_lines.hpp>
 #include <thrill/api/zip_with_index.hpp>
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/stats_timer.hpp>
+#include <tlx/cmdline_parser.hpp>
 
 #include <algorithm>
 #include <string>
@@ -97,7 +97,7 @@ static void RunPageRankEdgePerLine(
     if (output_path.size()) {
         ranks.ZipWithIndex(
             // generate index numbers: 0...num_pages-1
-            [](const PageId& p, const Rank& r) {
+            [](const Rank& r, const PageId& p) {
                 return common::str_sprintf("%zu: %g", p, r);
             })
         .WriteLines(output_path);
@@ -313,50 +313,50 @@ static void RunPageRankJoinGenerated(
 
 int main(int argc, char* argv[]) {
 
-    common::CmdlineParser clp;
+    tlx::CmdlineParser clp;
 
     bool generate = false;
-    clp.AddFlag('g', "generate", generate,
-                "generate graph data, set input = #pages");
+    clp.add_bool('g', "generate", generate,
+                 "generate graph data, set input = #pages");
     bool use_join = false;
-    clp.AddFlag('j', "join", use_join,
-                "use Join() instead of *ByIndex()");
+    clp.add_bool('j', "join", use_join,
+                 "use Join() instead of *ByIndex()");
 
     // Graph Generator
     ZipfGraphGen gg(1);
 
-    clp.AddDouble(0, "size_mean", gg.size_mean,
-                  "generated: mean of number of outgoing links, "
-                  "default: " + std::to_string(gg.size_mean));
+    clp.add_double(0, "size_mean", gg.size_mean,
+                   "generated: mean of number of outgoing links, "
+                   "default: " + std::to_string(gg.size_mean));
 
-    clp.AddDouble(0, "size_var", gg.size_var,
-                  "generated: variance of number of outgoing links, "
-                  "default: " + std::to_string(gg.size_var));
+    clp.add_double(0, "size_var", gg.size_var,
+                   "generated: variance of number of outgoing links, "
+                   "default: " + std::to_string(gg.size_var));
 
-    clp.AddDouble(0, "link_scale", gg.link_zipf_scale,
-                  "generated: Zipf scale parameter for outgoing links, "
-                  "default: " + std::to_string(gg.link_zipf_scale));
+    clp.add_double(0, "link_scale", gg.link_zipf_scale,
+                   "generated: Zipf scale parameter for outgoing links, "
+                   "default: " + std::to_string(gg.link_zipf_scale));
 
-    clp.AddDouble(0, "link_exponent", gg.link_zipf_exponent,
-                  "generated: Zipf exponent parameter for outgoing links, "
-                  "default: " + std::to_string(gg.link_zipf_exponent));
+    clp.add_double(0, "link_exponent", gg.link_zipf_exponent,
+                   "generated: Zipf exponent parameter for outgoing links, "
+                   "default: " + std::to_string(gg.link_zipf_exponent));
 
     std::string output_path;
-    clp.AddString('o', "output", output_path,
-                  "output file pattern");
+    clp.add_string('o', "output", output_path,
+                   "output file pattern");
 
     size_t iter = 10;
-    clp.AddSizeT('n', "iterations", iter, "PageRank iterations, default: 10");
+    clp.add_size_t('n', "iterations", iter, "PageRank iterations, default: 10");
 
     std::vector<std::string> input_path;
-    clp.AddParamStringlist("input", input_path,
-                           "input file pattern(s)");
+    clp.add_param_stringlist("input", input_path,
+                             "input file pattern(s)");
 
-    if (!clp.Process(argc, argv)) {
+    if (!clp.process(argc, argv)) {
         return -1;
     }
 
-    clp.PrintResult();
+    clp.print_result();
 
     die_unless(!generate || input_path.size() == 1);
 

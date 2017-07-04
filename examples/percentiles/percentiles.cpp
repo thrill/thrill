@@ -15,8 +15,10 @@
 #include <thrill/api/size.hpp>
 #include <thrill/api/sort.hpp>
 #include <thrill/api/sum.hpp>
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/string.hpp>
+#include <tlx/cmdline_parser.hpp>
+
+#include <tlx/string/split.hpp>
 
 #include <algorithm>
 #include <ctime>
@@ -36,7 +38,7 @@ void Percentiles(api::Context& ctx, const std::string& input_path) {
         ReadLines(ctx, input_path)
         .FlatMap<std::pair<time_t, double> >(
             [&splitted](const std::string& input, auto emit) {
-                common::SplitRef(input, ',', splitted);
+                tlx::split(&splitted, ',', input);
                 if (splitted[0] != "time") {
                     time_t timet = std::stod(splitted[0]);
                     struct tm* tmstr = std::localtime(&timet);
@@ -94,17 +96,17 @@ void Percentiles(api::Context& ctx, const std::string& input_path) {
 
 int main(int argc, char* argv[]) {
 
-    common::CmdlineParser clp;
+    tlx::CmdlineParser clp;
 
     std::string input_path;
-    clp.AddParamString("input", input_path,
-                       "input file pattern");
+    clp.add_param_string("input", input_path,
+                         "input file pattern");
 
-    if (!clp.Process(argc, argv)) {
+    if (!clp.process(argc, argv)) {
         return -1;
     }
 
-    clp.PrintResult();
+    clp.print_result();
 
     return api::Run([&input_path](api::Context& ctx) {
                         return Percentiles(ctx, input_path);

@@ -78,6 +78,9 @@ TEST(MpiGroup, AllReduceString) {
 TEST(MpiGroup, AllReduceHypercubeString) {
     MpiTest(TestAllReduceHypercubeString);
 }
+TEST(MpiGroup, AllReduceEliminationString) {
+    MpiTest(TestAllReduceEliminationString);
+}
 TEST(MpiGroup, DispatcherSyncSendAsyncRead) {
     MpiTest(TestDispatcherSyncSendAsyncRead);
 }

@@ -16,10 +16,10 @@
 #include <thrill/api/generate.hpp>
 #include <thrill/api/read_lines.hpp>
 #include <thrill/api/write_lines.hpp>
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/common/string.hpp>
+#include <tlx/cmdline_parser.hpp>
 
 #include <algorithm>
 #include <random>
@@ -159,31 +159,31 @@ static void RunHashWordCountGenerated(
 
 int main(int argc, char* argv[]) {
 
-    common::CmdlineParser clp;
+    tlx::CmdlineParser clp;
 
     std::string output;
-    clp.AddString('o', "output", output,
-                  "output file pattern");
+    clp.add_string('o', "output", output,
+                   "output file pattern");
 
     std::vector<std::string> input;
-    clp.AddParamStringlist("input", input,
-                           "input file pattern(s)");
+    clp.add_param_stringlist("input", input,
+                             "input file pattern(s)");
 
     bool generate = false;
-    clp.AddFlag('g', "generate", generate,
-                "generate random words, first file pattern "
-                "specifies approximately how many.");
+    clp.add_bool('g', "generate", generate,
+                 "generate random words, first file pattern "
+                 "specifies approximately how many.");
 
     bool hash_words = false;
-    clp.AddFlag('H', "hash_words", hash_words,
-                "explicitly calculate hash values for words "
-                "to accelerate reduction.");
+    clp.add_bool('H', "hash_words", hash_words,
+                 "explicitly calculate hash values for words "
+                 "to accelerate reduction.");
 
-    if (!clp.Process(argc, argv)) {
+    if (!clp.process(argc, argv)) {
         return -1;
     }
 
-    clp.PrintResult();
+    clp.print_result();
 
     return api::Run(
         [&](api::Context& ctx) {

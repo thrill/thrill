@@ -103,12 +103,12 @@ private:
  */
 template <typename ValueType>
 auto Distribute(
-    Context & ctx,
-    const std::vector<ValueType>&in_vector, size_t source_id = 0) {
+    Context& ctx,
+    const std::vector<ValueType>& in_vector, size_t source_id = 0) {
 
     using DistributeNode = api::DistributeNode<ValueType>;
 
-    auto node = common::MakeCounting<DistributeNode>(
+    auto node = tlx::make_counting<DistributeNode>(
         ctx, in_vector, source_id);
 
     return DIA<ValueType>(node);
@@ -123,12 +123,12 @@ auto Distribute(
  */
 template <typename ValueType>
 auto Distribute(
-    Context & ctx,
+    Context& ctx,
     std::vector<ValueType>&& in_vector, size_t source_id = 0) {
 
     using DistributeNode = api::DistributeNode<ValueType>;
 
-    auto node = common::MakeCounting<DistributeNode>(
+    auto node = tlx::make_counting<DistributeNode>(
         ctx, std::move(in_vector), source_id);
 
     return DIA<ValueType>(node);

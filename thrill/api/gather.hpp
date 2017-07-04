@@ -98,7 +98,7 @@ DIA<ValueType, Stack>::Gather(size_t target_id) const {
 
     std::vector<ValueType> output;
 
-    auto node = common::MakeCounting<GatherNode>(
+    auto node = tlx::make_counting<GatherNode>(
         *this, "Gather", target_id, &output);
 
     node->RunScope();
@@ -113,7 +113,7 @@ void DIA<ValueType, Stack>::Gather(
 
     using GatherNode = api::GatherNode<ValueType>;
 
-    auto node = common::MakeCounting<GatherNode>(
+    auto node = tlx::make_counting<GatherNode>(
         *this, "Gather", target_id, out_vector);
 
     node->RunScope();

@@ -11,12 +11,13 @@
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
-#include <thrill/common/die.hpp>
 #include <thrill/io/block_manager.hpp>
 #include <thrill/io/request.hpp>
 #include <thrill/io/request_operations.hpp>
 #include <thrill/io/typed_block.hpp>
 #include <thrill/mem/aligned_allocator.hpp>
+
+#include <tlx/die.hpp>
 
 #include <gtest/gtest.h>
 

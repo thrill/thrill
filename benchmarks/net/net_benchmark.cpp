@@ -17,12 +17,12 @@
 
 #include <thrill/api/context.hpp>
 #include <thrill/common/aggregate.hpp>
-#include <thrill/common/cmdline_parser.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/matrix.hpp>
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/common/string.hpp>
 #include <thrill/net/dispatcher.hpp>
+#include <tlx/cmdline_parser.hpp>
 
 #include <iostream>
 #include <string>
@@ -68,18 +68,18 @@ class PingPongLatency
 public:
     int Run(int argc, char* argv[]) {
 
-        common::CmdlineParser clp;
+        tlx::CmdlineParser clp;
 
-        clp.AddUInt('R', "outer_repeats", outer_repeats_,
-                    "Repeat whole experiment a number of times.");
+        clp.add_unsigned('R', "outer_repeats", outer_repeats_,
+                         "Repeat whole experiment a number of times.");
 
-        clp.AddParamUInt("iterations", iterations_,
-                         "Repeat 1-factor iterations a number of times.");
+        clp.add_param_unsigned("iterations", iterations_,
+                               "Repeat 1-factor iterations a number of times.");
 
-        clp.AddUInt('r', "inner_repeats", inner_repeats_,
-                    "Repeat inner experiment a number of times.");
+        clp.add_unsigned('r', "inner_repeats", inner_repeats_,
+                         "Repeat inner experiment a number of times.");
 
-        if (!clp.Process(argc, argv)) return -1;
+        if (!clp.process(argc, argv)) return -1;
 
         return api::Run(
             [=](api::Context& ctx) {
@@ -243,21 +243,21 @@ class Bandwidth
 public:
     int Run(int argc, char* argv[]) {
 
-        common::CmdlineParser clp;
+        tlx::CmdlineParser clp;
 
-        clp.AddUInt('r', "inner_repeats", inner_repeats_,
-                    "Repeat inner experiment a number of times.");
+        clp.add_unsigned('r', "inner_repeats", inner_repeats_,
+                         "Repeat inner experiment a number of times.");
 
-        clp.AddUInt('R', "outer_repeats", outer_repeats_,
-                    "Repeat whole experiment a number of times.");
+        clp.add_unsigned('R', "outer_repeats", outer_repeats_,
+                         "Repeat whole experiment a number of times.");
 
-        clp.AddBytes('B', "block_size", block_size_,
-                     "Block size used to transfered data (default: 2 MiB).");
+        clp.add_bytes('B', "block_size", block_size_,
+                      "Block size used to transfered data (default: 2 MiB).");
 
-        clp.AddParamBytes("size", data_size_,
-                          "Amount of data transfered between peers (example: 1 GiB).");
+        clp.add_param_bytes("size", data_size_,
+                            "Amount of data transfered between peers (example: 1 GiB).");
 
-        if (!clp.Process(argc, argv)) return -1;
+        if (!clp.process(argc, argv)) return -1;
 
         return api::Run(
             [=](api::Context& ctx) {
@@ -423,15 +423,15 @@ class Broadcast
 public:
     int Run(int argc, char* argv[]) {
 
-        common::CmdlineParser clp;
+        tlx::CmdlineParser clp;
 
-        clp.AddUInt('r', "inner_repeats", inner_repeats_,
-                    "Repeat inner experiment a number of times.");
+        clp.add_unsigned('r', "inner_repeats", inner_repeats_,
+                         "Repeat inner experiment a number of times.");
 
-        clp.AddUInt('R', "outer_repeats", outer_repeats_,
-                    "Repeat whole experiment a number of times.");
+        clp.add_unsigned('R', "outer_repeats", outer_repeats_,
+                         "Repeat whole experiment a number of times.");
 
-        if (!clp.Process(argc, argv)) return -1;
+        if (!clp.process(argc, argv)) return -1;
 
         return api::Run(
             [=](api::Context& ctx) {
@@ -490,15 +490,15 @@ class PrefixSum
 public:
     int Run(int argc, char* argv[]) {
 
-        common::CmdlineParser clp;
+        tlx::CmdlineParser clp;
 
-        clp.AddUInt('r', "inner_repeats", inner_repeats_,
-                    "Repeat inner experiment a number of times.");
+        clp.add_unsigned('r', "inner_repeats", inner_repeats_,
+                         "Repeat inner experiment a number of times.");
 
-        clp.AddUInt('R', "outer_repeats", outer_repeats_,
-                    "Repeat whole experiment a number of times.");
+        clp.add_unsigned('R', "outer_repeats", outer_repeats_,
+                         "Repeat whole experiment a number of times.");
 
-        if (!clp.Process(argc, argv)) return -1;
+        if (!clp.process(argc, argv)) return -1;
 
         return api::Run(
             [=](api::Context& ctx) {
@@ -560,15 +560,15 @@ class AllReduce
 public:
     int Run(int argc, char* argv[]) {
 
-        common::CmdlineParser clp;
+        tlx::CmdlineParser clp;
 
-        clp.AddUInt('r', "inner_repeats", inner_repeats_,
-                    "Repeat inner experiment a number of times.");
+        clp.add_unsigned('r', "inner_repeats", inner_repeats_,
+                         "Repeat inner experiment a number of times.");
 
-        clp.AddUInt('R', "outer_repeats", outer_repeats_,
-                    "Repeat whole experiment a number of times.");
+        clp.add_unsigned('R', "outer_repeats", outer_repeats_,
+                         "Repeat whole experiment a number of times.");
 
-        if (!clp.Process(argc, argv)) return -1;
+        if (!clp.process(argc, argv)) return -1;
 
         return api::Run(
             [=](api::Context& ctx) {
@@ -632,21 +632,21 @@ class RandomBlocks
 public:
     int Run(int argc, char* argv[]) {
 
-        common::CmdlineParser clp;
+        tlx::CmdlineParser clp;
 
-        clp.AddBytes('b', "block_size", block_size_,
-                     "Size of blocks transmitted, default: 2 MiB");
+        clp.add_bytes('b', "block_size", block_size_,
+                      "Size of blocks transmitted, default: 2 MiB");
 
-        clp.AddUInt('l', "limit_active", limit_active_,
-                    "Number of simultaneous active requests, default: 16");
+        clp.add_unsigned('l', "limit_active", limit_active_,
+                         "Number of simultaneous active requests, default: 16");
 
-        clp.AddUInt('r', "request", num_requests_,
-                    "Number of blocks transmitted across all hosts, default: 100");
+        clp.add_unsigned('r', "request", num_requests_,
+                         "Number of blocks transmitted across all hosts, default: 100");
 
-        clp.AddUInt('R', "outer_repeats", outer_repeats_,
-                    "Repeat whole experiment a number of times.");
+        clp.add_unsigned('R', "outer_repeats", outer_repeats_,
+                         "Repeat whole experiment a number of times.");
 
-        if (!clp.Process(argc, argv)) return -1;
+        if (!clp.process(argc, argv)) return -1;
 
         return api::Run(
             [=](api::Context& ctx) {
@@ -820,24 +820,24 @@ public:
 
     int Run(int argc, char* argv[]) {
 
-        common::CmdlineParser clp;
+        tlx::CmdlineParser clp;
 
-        clp.AddBytes('s', "size", total_bytes_,
-                     "Total bytes transfered per experiment, default: 128 MiB");
+        clp.add_bytes('s', "size", total_bytes_,
+                      "Total bytes transfered per experiment, default: 128 MiB");
 
-        clp.AddBytes('b', "min_block_size", min_block_size_,
-                     "Minimum size of blocks transmitted, default: 512 KiB");
+        clp.add_bytes('b', "min_block_size", min_block_size_,
+                      "Minimum size of blocks transmitted, default: 512 KiB");
 
-        clp.AddBytes('B', "max_block_size", max_block_size_,
-                     "Maximum size of blocks transmitted, default: 8 MiB");
+        clp.add_bytes('B', "max_block_size", max_block_size_,
+                      "Maximum size of blocks transmitted, default: 8 MiB");
 
-        clp.AddBytes('l', "min_limit_active", min_limit_active_,
-                     "Minimum number of simultaneous active requests, default: 16");
+        clp.add_bytes('l', "min_limit_active", min_limit_active_,
+                      "Minimum number of simultaneous active requests, default: 16");
 
-        clp.AddBytes('L', "max_limit_active", max_limit_active_,
-                     "maximum number of simultaneous active requests, default: 512");
+        clp.add_bytes('L', "max_limit_active", max_limit_active_,
+                      "maximum number of simultaneous active requests, default: 512");
 
-        if (!clp.Process(argc, argv)) return -1;
+        if (!clp.process(argc, argv)) return -1;
 
         return api::Run(
             [=](api::Context& ctx) {

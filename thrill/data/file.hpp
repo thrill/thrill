@@ -12,7 +12,6 @@
 #ifndef THRILL_DATA_FILE_HEADER
 #define THRILL_DATA_FILE_HEADER
 
-#include <thrill/common/die.hpp>
 #include <thrill/common/function_traits.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/data/block.hpp>
@@ -20,6 +19,8 @@
 #include <thrill/data/block_sink.hpp>
 #include <thrill/data/block_writer.hpp>
 #include <thrill/data/dyn_block_reader.hpp>
+
+#include <tlx/die.hpp>
 
 #include <cassert>
 #include <deque>
@@ -51,7 +52,7 @@ class ConsumeFileBlockSource;
  * block contained any item offset in log_2(Blocks) time, though seeking within
  * the Block goes sequentially.
  */
-class File : public virtual BlockSink, public common::ReferenceCount
+class File : public virtual BlockSink, public tlx::ReferenceCounter
 {
 public:
     using Writer = BlockWriter<File>;
@@ -282,7 +283,7 @@ private:
     friend class ConsumeFileBlockSource;
 };
 
-using FilePtr = common::CountingPtr<File>;
+using FilePtr = tlx::CountingPtr<File>;
 
 /*!
  * A BlockSource to read Blocks from a File. The KeepFileBlockSource mainly

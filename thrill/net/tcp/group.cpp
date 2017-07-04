@@ -87,7 +87,7 @@ std::vector<std::unique_ptr<Group> > Group::ConstructLocalRealTCPMesh(
     for (size_t i = 0; i < num_hosts; i++) {
         threads[i] = std::thread(
             [i, &endpoints, &groups]() {
-                        // construct Group i with endpoints
+                // construct Group i with endpoints
                 Construct(i, endpoints, groups.data() + i, 1);
             });
     }

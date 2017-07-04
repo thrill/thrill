@@ -13,6 +13,8 @@
 #include <thrill/data/block_queue.hpp>
 #include <thrill/data/file.hpp>
 
+#include <tlx/string/hexdump.hpp>
+
 #include <algorithm>
 #include <functional>
 #include <string>
@@ -88,7 +90,7 @@ TEST_F(File, PutSomeItemsGetItems) {
 
     if (0) {
         for (size_t i = 0; i != file.num_blocks(); ++i) {
-            std::cout << common::Hexdump(file.block(i).PinWait(0).ToString())
+            std::cout << tlx::hexdump(file.block(i).PinWait(0).ToString())
                       << std::endl;
         }
     }

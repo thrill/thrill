@@ -96,7 +96,7 @@ public:
 
     //! Allocate and construct a single item of given Type using memory from the
     //! Pool.
-    template <typename Type, typename ... Args>
+    template <typename Type, typename... Args>
     Type * make(Args&& ... args) {
         Type* t = reinterpret_cast<Type*>(allocate(sizeof(Type)));
         ::new (t)Type(std::forward<Args>(args) ...);
@@ -169,7 +169,7 @@ Pool& GPool();
 // PoolAllocator - an allocator to draw objects from a Pool.
 
 template <typename Type>
-class PoolAllocator : public AllocatorBase<Type>
+class PoolAllocator : public tlx::AllocatorBase<Type>
 {
 public:
     using value_type = Type;
@@ -241,7 +241,7 @@ public:
 // FixedPoolAllocator - an allocator to draw objects from a fixed Pool.
 
 template <typename Type, Pool& (* pool_)()>
-class FixedPoolAllocator : public AllocatorBase<Type>
+class FixedPoolAllocator : public tlx::AllocatorBase<Type>
 {
 public:
     using value_type = Type;
@@ -323,7 +323,7 @@ template <typename T>
 using safe_unique_ptr = std::unique_ptr<T, GPoolDeleter<T> >;
 
 //! make_unique with Manager tracking
-template <typename T, typename ... Args>
+template <typename T, typename... Args>
 safe_unique_ptr<T> safe_make_unique(Args&& ... args) {
     return safe_unique_ptr<T>(
         GPool().make<T>(std::forward<Args>(args) ...));

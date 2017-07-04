@@ -40,7 +40,7 @@ bool AlignedAllocatorSettings<MustBeInt>::may_use_realloc_ = false;
 template <typename Type = char,
           typename BaseAllocator = std::allocator<char>,
           size_t Alignment = THRILL_DEFAULT_ALIGN>
-class AlignedAllocator : public AllocatorBase<Type>
+class AlignedAllocator : public tlx::AllocatorBase<Type>
 {
     static constexpr bool debug = false;
 

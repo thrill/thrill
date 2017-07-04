@@ -15,6 +15,9 @@
 #include <thrill/data/multiplexer.hpp>
 #include <thrill/data/multiplexer_header.hpp>
 
+#include <tlx/math/round_to_power_of_two.hpp>
+#include <tlx/string/hexdump.hpp>
+
 #include <algorithm>
 #include <vector>
 
@@ -110,7 +113,7 @@ void CatStream::set_dia_id(size_t dia_id) {
 std::vector<CatStream::Writer> CatStream::GetWriters() {
     size_t hard_ram_limit = multiplexer_.block_pool_.hard_ram_limit();
     size_t block_size_base = hard_ram_limit / 16 / multiplexer_.num_workers();
-    size_t block_size = common::RoundDownToPowerOfTwo(block_size_base);
+    size_t block_size = tlx::round_down_to_power_of_two(block_size_base);
     if (block_size == 0 || block_size > default_block_size)
         block_size = default_block_size;
 
@@ -252,7 +255,7 @@ void CatStream::OnStreamBlock(size_t from, PinnedBlock&& b) {
 
     if (debug_data) {
         sLOG << "stream" << id_ << "receive from" << from << ":"
-             << common::Hexdump(b.ToString());
+             << tlx::hexdump(b.ToString());
     }
 
     queues_[from].AppendPinnedBlock(std::move(b), /* is_last_block */ false);

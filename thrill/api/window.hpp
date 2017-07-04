@@ -171,7 +171,7 @@ public:
         my_last.reserve(window_size_ - 1);
 
         assert(window_.size() < window_size_);
-        window_.move_to(my_last);
+        window_.move_to(&my_last);
 
         // collective operation: get k - 1 predecessors
         std::vector<Input> pre =
@@ -248,8 +248,8 @@ template <typename ValueType, typename Stack>
 template <typename ValueOut,
           typename WindowFunction, typename PartialWindowFunction>
 auto DIA<ValueType, Stack>::FlatWindow(
-    size_t window_size, const WindowFunction &window_function,
-    const PartialWindowFunction &partial_window_function) const {
+    size_t window_size, const WindowFunction& window_function,
+    const PartialWindowFunction& partial_window_function) const {
     assert(IsValid());
 
     using WindowNode = api::OverlapWindowNode<
@@ -258,7 +258,7 @@ auto DIA<ValueType, Stack>::FlatWindow(
     // cannot check WindowFunction's arguments, since it is a template methods
     // due to the auto emitter.
 
-    auto node = common::MakeCounting<WindowNode>(
+    auto node = tlx::make_counting<WindowNode>(
         *this, "FlatWindow", window_size,
         window_function, partial_window_function);
 
@@ -268,7 +268,7 @@ auto DIA<ValueType, Stack>::FlatWindow(
 template <typename ValueType, typename Stack>
 template <typename ValueOut, typename WindowFunction>
 auto DIA<ValueType, Stack>::FlatWindow(
-    size_t window_size, const WindowFunction &window_function) const {
+    size_t window_size, const WindowFunction& window_function) const {
     assert(IsValid());
 
     auto no_operation_function =
@@ -283,7 +283,7 @@ auto DIA<ValueType, Stack>::FlatWindow(
 template <typename ValueType, typename Stack>
 template <typename WindowFunction>
 auto DIA<ValueType, Stack>::Window(
-    size_t window_size, const WindowFunction &window_function) const {
+    size_t window_size, const WindowFunction& window_function) const {
     assert(IsValid());
 
     using Result
@@ -320,7 +320,7 @@ auto DIA<ValueType, Stack>::Window(
               Result, ValueType,
               decltype(flatwindow_function), decltype(no_operation_function)>;
 
-    auto node = common::MakeCounting<WindowNode>(
+    auto node = tlx::make_counting<WindowNode>(
         *this, "Window", window_size,
         flatwindow_function, no_operation_function);
 
@@ -330,8 +330,8 @@ auto DIA<ValueType, Stack>::Window(
 template <typename ValueType, typename Stack>
 template <typename WindowFunction, typename PartialWindowFunction>
 auto DIA<ValueType, Stack>::Window(
-    size_t window_size, const WindowFunction &window_function,
-    const PartialWindowFunction &partial_window_function) const {
+    size_t window_size, const WindowFunction& window_function,
+    const PartialWindowFunction& partial_window_function) const {
     assert(IsValid());
 
     using Result
@@ -371,7 +371,7 @@ auto DIA<ValueType, Stack>::Window(
               Result, ValueType,
               decltype(flatwindow_function), decltype(flatwindow_partial_function)>;
 
-    auto node = common::MakeCounting<WindowNode>(
+    auto node = tlx::make_counting<WindowNode>(
         *this, "Window", window_size,
         flatwindow_function, flatwindow_partial_function);
 
@@ -416,7 +416,7 @@ public:
         my_last.reserve(window_size_ - 1);
 
         assert(window_.size() < window_size_);
-        window_.move_to(my_last);
+        window_.move_to(&my_last);
 
         // collective operation: get k - 1 predecessors
         std::vector<Input> pre =
@@ -449,7 +449,7 @@ public:
         // copy window into vector containing first items
         std::vector<Input> window;
         window.reserve(window_size_);
-        window_.copy_to(window);
+        window_.copy_to(&window);
         assert(window.size() < window_size_);
 
         size_t rank = first_rank_ - (window_size_ - 1);
@@ -503,8 +503,8 @@ private:
 template <typename ValueType, typename Stack>
 template <typename ValueOut, typename WindowFunction>
 auto DIA<ValueType, Stack>::FlatWindow(
-    struct DisjointTag const &, size_t window_size,
-    const WindowFunction &window_function) const {
+    struct DisjointTag const&, size_t window_size,
+    const WindowFunction& window_function) const {
     assert(IsValid());
 
     using WindowNode = api::DisjointWindowNode<
@@ -513,7 +513,7 @@ auto DIA<ValueType, Stack>::FlatWindow(
     // cannot check WindowFunction's arguments, since it is a template methods
     // due to the auto emitter.
 
-    auto node = common::MakeCounting<WindowNode>(
+    auto node = tlx::make_counting<WindowNode>(
         *this, "FlatWindow", window_size, window_function, window_function);
 
     return DIA<ValueOut>(node);
@@ -522,8 +522,8 @@ auto DIA<ValueType, Stack>::FlatWindow(
 template <typename ValueType, typename Stack>
 template <typename WindowFunction>
 auto DIA<ValueType, Stack>::Window(
-    struct DisjointTag const &, size_t window_size,
-    const WindowFunction &window_function) const {
+    struct DisjointTag const&, size_t window_size,
+    const WindowFunction& window_function) const {
     assert(IsValid());
 
     using Result
@@ -555,7 +555,7 @@ auto DIA<ValueType, Stack>::Window(
               Result, ValueType,
               decltype(flatwindow_function), decltype(flatwindow_function)>;
 
-    auto node = common::MakeCounting<WindowNode>(
+    auto node = tlx::make_counting<WindowNode>(
         *this, "Window", window_size, flatwindow_function, flatwindow_function);
 
     return DIA<Result>(node);

@@ -16,6 +16,8 @@
 #define THRILL_COMMON_UINT_TYPES_HEADER
 
 #include <thrill/common/defines.hpp>
+#include <tlx/define/attribute_packed.hpp>
+#include <tlx/define/likely.hpp>
 
 #include <cassert>
 #include <limits>
@@ -150,7 +152,7 @@ public:
 
     //! prefix increment operator (directly manipulates the integer parts)
     UIntPair& operator ++ () {
-        if (THRILL_UNLIKELY(low_ == low_max()))
+        if (TLX_UNLIKELY(low_ == low_max()))
             ++high_, low_ = 0;
         else
             ++low_;
@@ -159,7 +161,7 @@ public:
 
     //! prefix decrement operator (directly manipulates the integer parts)
     UIntPair& operator -- () {
-        if (THRILL_UNLIKELY(low_ == 0))
+        if (TLX_UNLIKELY(low_ == 0))
             --high_, low_ = (Low)low_max();
         else
             --low_;
@@ -249,7 +251,7 @@ public:
         return UIntPair(std::numeric_limits<Low>::max(),
                         std::numeric_limits<High>::max());
     }
-} THRILL_ATTRIBUTE_PACKED;
+} TLX_ATTRIBUTE_PACKED;
 #if defined(_MSC_VER)
 #pragma pack(pop)
 #endif

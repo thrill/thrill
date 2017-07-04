@@ -13,13 +13,14 @@
 #include <thrill/net/buffer_reader.hpp>
 #include <thrill/net/fixed_buffer_builder.hpp>
 
+#include <tlx/string/hexdump.hpp>
+
 #include <gtest/gtest.h>
 
 using thrill::net::BufferBuilder;
 using thrill::net::BufferRef;
 using thrill::net::BufferReader;
 using thrill::net::Buffer;
-using thrill::common::Hexdump;
 
 TEST(BufferBuilder, Test1) {
     // construct a binary blob
@@ -59,8 +60,8 @@ TEST(BufferBuilder, Test1) {
     if (bbr != bb_verify)
         LOG1 << bbr.ToString();
 
-    LOG0 << Hexdump(bbr.ToString());
-    LOG0 << Hexdump(bb_verify.ToString());
+    LOG0 << tlx::hexdump(bbr.ToString());
+    LOG0 << tlx::hexdump(bb_verify.ToString());
 
     ASSERT_EQ(bbr, bb_verify);
 
