@@ -116,7 +116,9 @@ public:
 
         const size_t num_runs = files_.size();
         if (num_runs == 0) {
-            // nothing to push
+            for (size_t index = key_range_.begin; index < key_range_.end; index++) {
+                this->PushItem(neutral_element_);
+            }
         }
         else if (num_runs == 1) {
             // if there's only one run, store it
@@ -179,11 +181,11 @@ private:
 
     void RunUserFunc(data::File& f, bool consume) {
         auto r = f.GetReader(consume);
+        size_t curr_index = key_range_.begin;
         if (r.HasNext()) {
             // create iterator to pass to user_function
             auto user_iterator = GroupByIterator<
                 ValueIn, KeyExtractor, ValueComparator>(r, key_extractor_);
-            size_t curr_index = key_range_.begin;
             while (user_iterator.HasNextForReal()) {
                 if (user_iterator.GetNextKey() != curr_index) {
                     // push neutral element as result to callback functions
@@ -198,11 +200,11 @@ private:
                 }
                 ++curr_index;
             }
-            while (curr_index < key_range_.end) {
-                // push neutral element as result to callback functions
-                this->PushItem(neutral_element_);
-                ++curr_index;
-            }
+        }
+        while (curr_index < key_range_.end) {
+            // push neutral element as result to callback functions
+            this->PushItem(neutral_element_);
+            ++curr_index;
         }
     }
 
