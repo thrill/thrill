@@ -375,7 +375,7 @@ public:
 
         if (immediate_flush_) {
             return FlushPartition(
-                partition_id, /* consume */ true, /* grow */ true);
+                partition_id, /* consume */ true, /* grow */ !mem::memory_exceeded);
         }
 
         LOG << "Spilling " << items_per_partition_[partition_id]
