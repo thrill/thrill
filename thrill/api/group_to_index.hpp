@@ -96,7 +96,8 @@ public:
     void PreOp(const ValueIn& v) {
         const Key k = key_extractor_(v);
         assert(k < result_size_);
-        const size_t recipient = k * emitter_.size() / result_size_;
+        const size_t recipient = common::CalculatePartition(
+            result_size_, context_.num_workers(), k);
         assert(recipient < emitter_.size());
         emitter_[recipient].Put(v);
     }
@@ -141,6 +142,8 @@ public:
                     puller, key_extractor_);
 
                 while (user_iterator.HasNextForReal()) {
+                    assert(user_iterator.GetNextKey() >= curr_index);
+
                     if (user_iterator.GetNextKey() != curr_index) {
                         // push neutral element as result to callback functions
                         this->PushItem(neutral_element_);
@@ -185,6 +188,8 @@ private:
                 ValueIn, KeyExtractor, ValueComparator>(r, key_extractor_);
             size_t curr_index = key_range_.begin;
             while (user_iterator.HasNextForReal()) {
+                assert(user_iterator.GetNextKey() >= curr_index);
+
                 if (user_iterator.GetNextKey() != curr_index) {
                     // push neutral element as result to callback functions
                     this->PushItem(neutral_element_);
