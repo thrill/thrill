@@ -123,6 +123,7 @@ static void FillS3BucketContext(S3BucketContext& bkt, const std::string& key) {
     bkt.uriStyle = S3UriStyleVirtualHost;
     bkt.accessKeyId = getenv("THRILL_S3_KEY");
     bkt.secretAccessKey = getenv("THRILL_S3_SECRET");
+    bkt.authRegion = getenv("THRILL_S3_REGION");
 
     if (bkt.accessKeyId == nullptr) {
         LOG1 << "S3-WARNING - no key given - set environment variable THRILL_S3_KEY";
