@@ -297,7 +297,7 @@ public:
 
         // construct bucket
         S3BucketContext bucket_context;
-        FillS3BucketContext(bucket_context, bucket_.c_str());
+        FillS3BucketContext(bucket_context, bucket_);
 
         // construct handlers
         S3GetObjectHandler handler;
