@@ -53,6 +53,7 @@ srun -v \
      --ntasks="$THRILL_NUM_HOSTS" \
      --ntasks-per-node="1" \
      --kill-on-bad-exit \
+     --mem=0 \
      "$@"
 
 exit 0
