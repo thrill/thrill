@@ -48,6 +48,18 @@ matrix:
             - libbz2-dev
             - libssl-dev
 
+    # gcc 7.x, Debug with -O1
+    - env: CMAKE_CC="gcc-7" CMAKE_CXX="g++-7" BUILD_TYPE="Debug" COMPILER_FLAGS="-O1"
+      os: linux
+      addons: &gcc7
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-7
+            - libbz2-dev
+            - libssl-dev
+
     # clang 3.7 without AddressSanitizer, Debug & Release
     - env: CMAKE_CC="clang-3.7" CMAKE_CXX="clang++-3.7" BUILD_TYPE="Debug" COMPILER_FLAGS="" CMAKE_ARGS="-DTHRILL_FULL_BUILD=ON" BUILD_DOXYGEN="1"
       os: linux
