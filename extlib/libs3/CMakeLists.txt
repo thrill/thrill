@@ -25,8 +25,8 @@ endif()
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/libs3/inc/")
 
 set(LIBS3_SOURCES
-  libs3/src/acl.c
   libs3/src/bucket.c
+  libs3/src/bucket_metadata.c
   libs3/src/error_parser.c
   libs3/src/general.c
   libs3/src/multipart.c
