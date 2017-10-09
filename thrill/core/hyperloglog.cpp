@@ -17,7 +17,7 @@
 #include <thrill/net/buffer_builder.hpp>
 #include <thrill/net/buffer_reader.hpp>
 
-#include <limits.h>
+#include <climits>
 #include <limits>
 
 namespace thrill {
