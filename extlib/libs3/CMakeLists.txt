@@ -8,6 +8,9 @@ add_definitions(-DLIBS3_VER_MAJOR="2")
 add_definitions(-DLIBS3_VER_MINOR="0")
 add_definitions(-DLIBS3_VER="2.0")
 
+# remove -Werror as gcc7 shows some upstream warnings
+string(REGEX REPLACE "-Werror" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+
 # find packages
 find_package(CURL REQUIRED)
 include_directories(SYSTEM ${CURL_INCLUDE_DIRS})
