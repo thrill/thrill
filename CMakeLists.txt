@@ -54,9 +54,6 @@ set_property(CACHE THRILL_USE_BZIP2 PROPERTY STRINGS AUTO ON OFF)
 set(THRILL_USE_MPI AUTO CACHE STRING "Use (optional) MPI net backend.")
 set_property(CACHE THRILL_USE_MPI PROPERTY STRINGS AUTO ON OFF)
 
-option(THRILL_USE_TBB
-  "Use (optional) Intel TBB library if available." ON)
-
 option(THRILL_USE_JEMALLOC
   "Use (optional) JeMalloc allocation library if available." ON)
 
@@ -125,7 +122,6 @@ if(NOT MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread -pie -fPIC")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTHRILL_HAVE_THREAD_SANITIZER=1")
     set(THRILL_USE_MPI OFF)
-    set(THRILL_USE_TBB OFF)
   endif()
 
   # enable UndefinedBehaviorSanitizer
@@ -515,25 +511,9 @@ if(THRILL_USE_HDFS3)
 
 endif()
 
-# try to find Intel TBB (optional)
+# use moodycamel's C++11 lock-free queue by Cameron Desrochers
 
-if(THRILL_USE_TBB)
-  find_package(TBB)
-endif()
-
-if(NOT TBB_FOUND)
-  message(STATUS "Intel TBB not found. No problem, using slower replacements.")
-  list(APPEND THRILL_DEFINITIONS "THRILL_HAVE_INTELTBB=0")
-elseif(TBB_INTERFACE_VERSION LESS 8000)
-  message(STATUS "Intel TBB ${TBB_INTERFACE_VERSION} is too old. "
-    "No problem, using slower replacements.")
-  list(APPEND THRILL_DEFINITIONS "THRILL_HAVE_INTELTBB=0")
-else(NOT TBB_FOUND)
-  list(APPEND THRILL_DEFINITIONS "THRILL_HAVE_INTELTBB=1")
-  set(THRILL_INCLUDE_DIRS ${TBB_INCLUDE_DIRS} ${THRILL_INCLUDE_DIRS})
-  link_directories(${TBB_LIBRARY_DIRS})
-  set(THRILL_LINK_LIBRARIES ${TBB_LIBRARIES} ${THRILL_LINK_LIBRARIES})
-endif()
+set(THRILL_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/extlib ${THRILL_INCLUDE_DIRS})
 
 # use MPI library (optional)
 

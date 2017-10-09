@@ -12,23 +12,7 @@
 #ifndef THRILL_COMMON_CONCURRENT_QUEUE_HEADER
 #define THRILL_COMMON_CONCURRENT_QUEUE_HEADER
 
-#if THRILL_HAVE_INTELTBB
-
-#if __clang__ && !defined(_LIBCPP_VERSION)
-// tbb feature detection is broken for clang + libstdc++
-#define _LIBCPP_VERSION 4000
-#define FAKE_LIBCPP_VERSION
-#endif
-
-#include <tbb/concurrent_queue.h>
-
-#if defined(FAKE_LIBCPP_VERSION)
-// undo libc++ version faking
-#undef _LIBCPP_VERSION
-#undef FAKE_LIBCPP_VERSION
-#endif
-
-#endif // THRILL_HAVE_INTELTBB
+#include <concurrentqueue/concurrentqueue.h>
 
 #include <atomic>
 #include <deque>
@@ -38,17 +22,11 @@ namespace thrill {
 namespace common {
 
 /*!
- * This is a queue, similar to std::queue and tbb::concurrent_queue, except that
- * it uses mutexes for synchronization. This implementation is only here to be
- * used if the Intel TBB is not available.
- *
- * Not all methods of tbb:concurrent_queue<> are available here, please add them
- * if you need them. However, NEVER add any other methods that you might need.
- *
- * StyleGuide is violated, because signatures MUST match those in the TBB
- * version.
+ * This is a synchronized queue, similar to std::queue and moodycamel's
+ * concurrent_queue, except that it uses mutexes for synchronization. This
+ * implementation is for speed and interface testing against a lock-free queue.
  */
-template <typename T, typename Allocator>
+template <typename T, typename Allocator = std::allocator<T> >
 class OurConcurrentQueue
 {
 public:
@@ -71,35 +49,27 @@ public:
         : queue_(alloc) { }
 
     //! Pushes a copy of source onto back of the queue.
-    void push(const T& source) {
+    void enqueue(const T& source) {
         std::unique_lock<std::mutex> lock(mutex_);
         queue_.push_back(source);
     }
 
     //! Pushes given element into the queue by utilizing element's move
     //! constructor
-    void push(T&& elem) {
+    void enqueue(T&& elem) {
         std::unique_lock<std::mutex> lock(mutex_);
         queue_.push_back(std::move(elem));
     }
 
-    //! Pushes a new element into the queue. The element is constructed with
-    //! given arguments.
-    template <typename... Arguments>
-    void emplace(Arguments&& ... args) {
+    //! Returns: approximate number of items in queue.
+    size_t size_approx() const {
         std::unique_lock<std::mutex> lock(mutex_);
-        queue_.emplace_back(std::forward<Arguments>(args) ...);
-    }
-
-    //! Returns: true if queue has no items; false otherwise.
-    bool empty() const {
-        std::unique_lock<std::mutex> lock(mutex_);
-        return queue_.empty();
+        return queue_.size();
     }
 
     //! If value is available, pops it from the queue, assigns it to
     //! destination, and destroys the original value. Otherwise does nothing.
-    bool try_pop(T& destination) {
+    bool try_dequeue(T& destination) {
         std::unique_lock<std::mutex> lock(mutex_);
         if (queue_.empty())
             return false;
@@ -108,25 +78,19 @@ public:
         queue_.pop_front();
         return true;
     }
-
-    //! Clears the queue.
-    void clear() {
-        std::unique_lock<std::mutex> lock(mutex_);
-        queue_.clear();
-    }
 };
 
-#if THRILL_HAVE_INTELTBB
+#if 0
 
-template <typename T, typename Allocator>
-using ConcurrentQueue = tbb::concurrent_queue<T, Allocator>;
+template <typename T>
+using ConcurrentQueue = OurConcurrentQueue<T>;
 
-#else   // !THRILL_HAVE_INTELTBB
+#else
 
-template <typename T, typename Allocator>
-using ConcurrentQueue = OurConcurrentQueue<T, Allocator>;
+template <typename T>
+using ConcurrentQueue = moodycamel::ConcurrentQueue<T>;
 
-#endif // !THRILL_HAVE_INTELTBB
+#endif
 
 } // namespace common
 } // namespace thrill

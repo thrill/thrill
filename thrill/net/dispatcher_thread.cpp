@@ -149,7 +149,7 @@ void DispatcherThread::AsyncWriteCopy(Connection& c, const std::string& str,
 
 //! Enqueue job in queue for dispatching thread to run at its discretion.
 void DispatcherThread::Enqueue(Job&& job) {
-    return jobqueue_.push(std::move(job));
+    jobqueue_.enqueue(std::move(job));
 }
 
 //! What happens in the dispatcher thread
@@ -159,12 +159,12 @@ void DispatcherThread::Work() {
     common::SetCpuAffinity(std::thread::hardware_concurrency() - 1);
 
     while (!terminate_ ||
-           dispatcher_->HasAsyncWrites() || !jobqueue_.empty())
+           dispatcher_->HasAsyncWrites() || jobqueue_.size_approx() != 0)
     {
         // process jobs in jobqueue_
         {
             Job job;
-            while (jobqueue_.try_pop(job))
+            while (jobqueue_.try_dequeue(job))
                 job();
         }
 
@@ -172,7 +172,7 @@ void DispatcherThread::Work() {
         busy_ = true;
         {
             Job job;
-            if (jobqueue_.try_pop(job)) {
+            if (jobqueue_.try_dequeue(job)) {
                 busy_ = false;
                 job();
                 continue;
