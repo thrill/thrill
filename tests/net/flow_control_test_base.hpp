@@ -164,8 +164,9 @@ static void TestMultiThreadReduce(net::Group* net) {
                 expected += i;
             }
 
-            if (my_rank == root_rank)
+            if (my_rank == root_rank) {
                 ASSERT_EQ(res, expected);
+            }
         });
 }
 

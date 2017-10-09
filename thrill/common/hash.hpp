@@ -13,6 +13,7 @@
 #define THRILL_COMMON_HASH_HEADER
 
 #include <thrill/common/config.hpp>
+#include <tlx/define/attribute_fallthrough.hpp>
 
 #include <array>
 #include <cassert>
@@ -137,21 +138,25 @@ struct HashCrc32Sse42 {
         switch (length) {
         case 7:
             crc = _mm_crc32_u8(crc, *p_buf++);
+            TLX_ATTRIBUTE_FALLTHROUGH;
         case 6:
             crc = _mm_crc32_u16(crc, *(const uint16_t*)p_buf);
             p_buf += 2;
+            TLX_ATTRIBUTE_FALLTHROUGH;
         // case 5 is below: 4 + 1
         case 4:
             crc = _mm_crc32_u32(crc, *(const uint32_t*)p_buf);
             break;
         case 3:
             crc = _mm_crc32_u8(crc, *p_buf++);
+            TLX_ATTRIBUTE_FALLTHROUGH;
         case 2:
             crc = _mm_crc32_u16(crc, *(const uint16_t*)p_buf);
             break;
         case 5:
             crc = _mm_crc32_u32(crc, *(const uint32_t*)p_buf);
             p_buf += 4;
+            TLX_ATTRIBUTE_FALLTHROUGH;
         case 1:
             crc = _mm_crc32_u8(crc, *p_buf);
             break;

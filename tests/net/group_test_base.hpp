@@ -170,8 +170,9 @@ static void TestBroadcast(net::Group* net) {
 static void TestReduce(net::Group* net) {
     size_t local_value = net->my_host_rank();
     net->Reduce(local_value);
-    if (net->my_host_rank() == 0)
+    if (net->my_host_rank() == 0) {
         ASSERT_EQ(local_value, net->num_hosts() * (net->num_hosts() - 1) / 2);
+    }
 }
 
 //! let group of p hosts perform a Reduce collective on std::string
@@ -179,8 +180,9 @@ static void TestReduceString(net::Group* net) {
     const std::string result = "abcdefghijklmnopqrstuvwxyz";
     std::string local_value = result.substr(net->my_host_rank(), 1);
     net->Reduce(local_value);
-    if (net->my_host_rank() == 0)
+    if (net->my_host_rank() == 0) {
         ASSERT_EQ(result.substr(0, net->num_hosts()), local_value);
+    }
 }
 
 //! let group of p hosts perform a AllReduce collective on std::string
