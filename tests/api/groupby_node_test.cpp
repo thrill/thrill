@@ -13,6 +13,7 @@
 #include <thrill/api/group_by_key.hpp>
 #include <thrill/api/group_to_index.hpp>
 #include <thrill/api/sum.hpp>
+#include <thrill/api/size.hpp>
 #include <thrill/common/logger.hpp>
 
 #include <gtest/gtest.h>
@@ -160,6 +161,35 @@ TEST(GroupByNode, GroupToIndexCorrectResults) {
                 LOG << res_vec[i] << " / " << out_vec[i];
                 ASSERT_EQ(res_vec[i], out_vec[i]);
             }
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+TEST(GroupByNode, GroupToIndexCorrectSize) {
+
+    auto start_func =
+        [](Context& ctx) {
+            static constexpr size_t buckets = 10;
+
+            auto integers = Generate(ctx, 500);
+
+            auto key = [](size_t x) {
+                           return x % (buckets / 2);
+                       };
+
+            auto add_function =
+                [](auto& r, size_t /* key */) {
+                    size_t res = 42;
+                    while (r.HasNext()) {
+                        res += r.Next();
+                    }
+                    return res;
+                };
+
+            size_t result_size = integers.GroupToIndex<size_t>(key, add_function, buckets).Size();
+
+            ASSERT_EQ(buckets, result_size);
         };
 
     api::RunLocalTests(start_func);
