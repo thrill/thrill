@@ -35,9 +35,7 @@ namespace core {
 template <typename TableItem, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction, typename Emitter,
           const bool VolatileKey,
-          typename ReduceConfig_ = DefaultReduceConfig,
-          typename IndexFunction = ReduceByIndex<Key>,
-          typename KeyEqualFunction = std::equal_to<Key> >
+          typename ReduceConfig_ = DefaultReduceConfig>
 class ReduceByIndexPostPhase
 {
     static constexpr bool debug = false;
@@ -48,17 +46,10 @@ public:
     using PhaseEmitter = ReducePostPhaseEmitter<
               TableItem, Value, Emitter, VolatileKey>;
 
-    using Table = typename ReduceTableSelect<
-              ReduceConfig::table_impl_,
-              TableItem, Key, Value,
-              KeyExtractor, ReduceFunction, PhaseEmitter,
-              VolatileKey, ReduceConfig,
-              IndexFunction, KeyEqualFunction>::type;
-
     /*!
-     * A data structure which takes an arbitrary value and extracts a key using
-     * a key extractor function from that value. Afterwards, the value is hashed
-     * based on the key into some slot.
+     * A data structure which takes an arbitrary value and extracts an index
+     * using a key extractor function from that value. Afterwards, values with
+     * the same index are merged together
      */
     ReduceByIndexPostPhase(
         Context& ctx,
@@ -67,16 +58,10 @@ public:
         const ReduceFunction& reduce_function,
         const Emitter& emitter,
         const ReduceConfig& config = ReduceConfig(),
-        const IndexFunction& index_function = IndexFunction(),
-        const Value& neutral_element = Value(),
-        const KeyEqualFunction& key_equal_function = KeyEqualFunction())
-        : config_(config),
-          emitter_(emitter),
-          table_(ctx, dia_id,
-                 key_extractor, reduce_function, emitter_,
-                 /* num_partitions */ 32, /* TODO(tb): parameterize */
-                 config, false,
-                 index_function, key_equal_function),
+        const Value& neutral_element = Value())
+        : ctx_(ctx), dia_id_(dia_id),
+          key_extractor_(key_extractor), reduce_function_(reduce_function),
+          config_(config), emitter_(emitter),
           neutral_element_(neutral_element) { }
 
     //! non-copyable: delete copy-constructor
@@ -85,306 +70,214 @@ public:
     ReduceByIndexPostPhase& operator = (const ReduceByIndexPostPhase&) = delete;
 
     void Initialize(size_t limit_memory_bytes) {
-        table_.Initialize(limit_memory_bytes);
+        assert(range_.IsValid() || range_.IsEmpty());
+        limit_memory_bytes_ = limit_memory_bytes;
+
+        TableItem neutral =
+            MakeTableItem::Make(neutral_element_, key_extractor_);
+        neutral_element_key_ = key(neutral);
+
+        if (range_.size() * sizeof(TableItem) < limit_memory_bytes) {
+            // all good, we can store the whole index range
+            items_.resize(range_.size(), neutral);
+        } else {
+            // we have to outsource some subranges
+            size_t num_subranges =
+                1 + (range_.size() * sizeof(TableItem) / limit_memory_bytes);
+            // we keep the first subrange in memory and only the other ones go
+            // into a file
+            range_ = full_range_.Partition(0, num_subranges);
+            for (size_t partition = 1; partition < num_subranges; partition++) {
+                auto file = ctx_.GetFile(dia_id_);
+                auto writer = file.GetWriter();
+                common::Range subrange =
+                    full_range_.Partition(partition, num_subranges);
+                subrange_files_.emplace_back(
+                    subrange, std::move(file), std::move(writer));
+            }
+        }
     }
 
     bool Insert(const TableItem& kv) {
-        return table_.Insert(kv);
-    }
+        size_t item_key = key(kv);
+        assert(item_key >= full_range_.begin && item_key < full_range_.end);
+        size_t offset = item_key - range_.begin;
 
-    Key key(const TableItem& t) {
-        return MakeTableItem::GetKey(t, table_.key_extractor());
-    }
+        if (item_key >= range_.begin && item_key < range_.end) {
+            // store elements in reverse order
+            size_t local_index = range_.size() - offset - 1;
 
-    using RangeFilePair = std::pair<common::Range, data::File>;
-
-    //! Flush contents of table into emitter and return remaining files
-    template <bool DoCache>
-    void FlushTableInto(
-        Table& table, std::vector<RangeFilePair>& remaining_files,
-        bool consume, data::File::Writer* writer = nullptr) {
-
-        std::vector<data::File>& files = table.partition_files();
-
-        size_t id = 0;
-        for ( ; id < files.size(); ++id)
-        {
-            // get the actual reader from the file
-            data::File& file = files[id];
-
-            if (file.num_items() > 0) {
-                // if items have been spilled, switch to second loop, which
-                // stores items for a second reduce
-                break;
-            }
-            else {
-                // calculate key range for the file
-                common::Range file_range = table.key_range(id);
-
-                sLOG << "partition" << id << "range" << file_range
-                     << "contains" << table.items_per_partition(id)
-                     << "fully reduced items";
-
-                size_t index = file_range.begin;
-
-                table.FlushPartitionEmit(
-                    id, consume, /* grow */ false,
-                    [this, &table, &file_range, &index, writer](
-                        const size_t& /* partition_id */, const TableItem& p) {
-                        for ( ; index < key(p); ++index) {
-                            TableItem kv = MakeTableItem::Make(
-                                neutral_element_, table_.key_extractor());
-                            emitter_.Emit(kv);
-                            if (DoCache) writer->Put(kv);
-
-                                // sLOG << "emit hole" << index << "-" << neutral_element_;
-                        }
-                        emitter_.Emit(p);
-                        if (DoCache) writer->Put(p);
-
-                        // sLOG << "emit" << p.first << "-" << p.second;
-                        ++index;
-                    });
-
-                for ( ; index < file_range.end; ++index) {
-                    TableItem kv = MakeTableItem::Make(
-                        neutral_element_, table_.key_extractor());
-                    emitter_.Emit(kv);
-                    if (DoCache) writer->Put(kv);
+            if (item_key != neutral_element_key_) { // normal index
+                if (key(items_[local_index]) == item_key) {
+                    items_[local_index] = reduce(items_[local_index], kv);
+                    return false;
+                } else {
+                    items_[local_index] = kv;
+                    return true;
+                }
+            } else { // special handling for element with neutral index
+                if (neutral_element_index_occupied_) {
+                    items_[local_index] = reduce(items_[local_index], kv);
+                    return false;
+                } else {
+                    items_[local_index] = kv;
+                    neutral_element_index_occupied_ = true;
+                    return true;
                 }
             }
-        }
-
-        for ( ; id < files.size(); ++id)
-        {
-            // get the actual reader from the file
-            data::File& file = files[id];
-
-            // calculate key range for the file
-            common::Range file_range = table.key_range(id);
-
-            if (file.num_items() > 0) {
-                // if items have been spilled, store for a second reduce
-                table.SpillPartition(id);
-
-                sLOG << "partition" << id << "range" << file_range
-                     << "contains" << file.num_items()
-                     << "partially reduced items";
-
-                remaining_files.emplace_back(
-                    RangeFilePair(file_range, std::move(file)));
-            }
-            else {
-                // no items have been spilled, but we cannot keep them in
-                // memory due to a second reduce, which is necessary.
-                sLOG << "partition" << id << "range" << file_range
-                     << "contains" << table.items_per_partition(id)
-                     << "fully reduced items";
-
-                table.SpillPartition(id);
-
-                assert(file_range.IsValid());
-                // swap file range to signal fully reduced items
-                file_range.Swap();
-
-                remaining_files.emplace_back(
-                    RangeFilePair(file_range, std::move(file)));
-            }
+        } else {
+            common::Range& subrange =
+                std::get<0>(subrange_files_[offset / range_.size() - 1]);
+            tlx::unused(subrange); // for release build
+            data::File::Writer& writer =
+                std::get<2>(subrange_files_[offset / range_.size() - 1]);
+            assert(item_key >= subrange.begin && item_key < subrange.end);
+            writer.Put(kv);
+            return false;
         }
     }
 
-    //! Flushes all items in the whole table. Since we have to flush recursively
-    //! such that the order of all indexes remains correct, we use an imaginary
-    //! deque of remaining files. In each iteration, the first remaining file is
-    //! further reduced and replaced by more files if necessary. Since the deque
-    //! is only extended in the front, we use a vector in reverse order.
-    template <bool DoCache>
-    void Flush(bool consume, data::File::Writer* writer = nullptr) {
-        LOG << "Flushing items";
+    void PushData(bool consume = false, data::File::Writer* pwriter = nullptr) {
+        assert(!pwriter || consume);
 
-        // list of remaining files, containing only partially reduced item pairs
-        // or items. in reverse order.
-        std::vector<RangeFilePair> remaining_files;
+        if (!cache_) {
+            if (!consume) {
+                if (subrange_files_.empty()) {
+                    Flush();
+                } else {
+                    data::FilePtr cache = ctx_.GetFilePtr(dia_id_);
+                    data::File::Writer writer = cache_->GetWriter();
+                    PushData(true, &writer);
+                    cache_ = cache;
+                    writer.Close();
+                }
+                return;
+            }
 
-        // read primary hash table, since ReduceByHash delivers items in any
-        // order, we can just emit items from fully reduced partitions.
-        FlushTableInto<DoCache>(table_, remaining_files, consume, writer);
+            for (auto& subrange_file : subrange_files_) {
+                std::get<2>(subrange_file).Close();
+            }
 
-        if (remaining_files.size() == 0) {
-            LOG << "Flushed items directly.";
-            return;
-        }
+            if (pwriter) {
+                FlushAndConsume<true>(pwriter);
+            } else {
+                FlushAndConsume();
+            }
 
-        table_.Dispose();
-
-        assert(consume && "Items were spilled hence Flushing must consume");
-
-        // reverse order in remaining files
-        std::reverse(remaining_files.begin(), remaining_files.end());
-
-        // if partially reduce files remain, create new hash tables to process
-        // them iteratively.
-
-        Table subtable(
-            table_.ctx(), table_.dia_id(),
-            table_.key_extractor(), table_.reduce_function(), emitter_,
-            /* num_partitions */ 32, config_, false,
-            table_.index_function(),
-            table_.key_equal_function());
-
-        subtable.Initialize(table_.limit_memory_bytes());
-
-        size_t iteration = 1;
-
-        sLOG << "ReduceToIndexPostPhase: re-reducing items from"
-             << remaining_files.size() << "spilled files";
-
-        while (remaining_files.size())
-        {
-            sLOG << "ReduceToIndexPostPhase: re-reducing items from"
-                 << remaining_files.size() << "remaining files"
-                 << "iteration" << iteration;
-
-            std::vector<RangeFilePair> next_remaining_files;
-
-            size_t num_subfile = 0;
-
-            // take last remaining file and reduce or output it.
-            RangeFilePair pair = std::move(remaining_files.back());
-            remaining_files.pop_back();
-
-            common::Range range = pair.first;
-            data::File file = std::move(pair.second);
-
-            assert(!range.IsEmpty());
-
-            if (!range.IsValid())
-            {
-                range.Swap();
-
-                // directly emit all items from the fully reduced file
-                sLOG << "emitting subfile" << num_subfile++
-                     << "range" << range;
-
-                data::File::ConsumeReader reader = file.GetConsumeReader();
-
-                size_t index = range.begin;
-
+            for (auto& subrange_file : subrange_files_) {
+                ReduceByIndexPostPhase<TableItem, Key, Value, KeyExtractor,
+                                       ReduceFunction, Emitter, VolatileKey,
+                                       ReduceConfig_>
+                    subtable(ctx_, dia_id_, key_extractor_, reduce_function_,
+                             emitter_.emit_, config_, neutral_element_);
+                subtable.SetRange(std::get<0>(subrange_file));
+                subtable.Initialize(limit_memory_bytes_);
+                auto reader = std::get<1>(subrange_file).GetConsumeReader();
                 while (reader.HasNext()) {
-                    TableItem p = reader.Next<TableItem>();
-
-                    for ( ; index < key(p); ++index) {
-                        TableItem kv = MakeTableItem::Make(
-                            neutral_element_, table_.key_extractor());
-                        emitter_.Emit(kv);
-                        if (DoCache) writer->Put(kv);
-
-                        // sLOG << "emit hole" << index << "-" << neutral_element_;
-                    }
-
-                    // sLOG << "emit" << p.first << "-" << p.second;
-                    emitter_.Emit(p);
-                    if (DoCache) writer->Put(p);
-                    ++index;
+                    subtable.Insert(reader.template Next<TableItem>());
                 }
-
-                for ( ; index < range.end; ++index) {
-                    TableItem kv = MakeTableItem::Make(
-                        neutral_element_, table_.key_extractor());
-                    emitter_.Emit(kv);
-                    if (DoCache) writer->Put(kv);
-                }
+                subtable.PushData(consume || pwriter, pwriter);
             }
-            else
-            {
-                // change table's range
-                subtable.index_function().set_range(range);
 
-                // insert all items from the partially reduced file
-                sLOG << "re-reducing subfile" << num_subfile++
-                     << "range" << range;
-
-                data::File::ConsumeReader reader = file.GetConsumeReader();
-
-                while (reader.HasNext()) {
-                    subtable.Insert(reader.Next<TableItem>());
-                }
-
-                // after insertion, flush fully reduced partitions and save
-                // remaining files for next iteration.
-
-                FlushTableInto<DoCache>(
-                    subtable, next_remaining_files, /* consume */ true, writer);
-
-                for (auto it = next_remaining_files.rbegin();
-                     it != next_remaining_files.rend(); ++it)
-                {
-                    remaining_files.emplace_back(std::move(*it));
-                }
-
-                ++iteration;
-            }
-        }
-
-        LOG << "Flushed items";
-    }
-
-    void PushData(bool consume = false) {
-        if (!cache_)
-        {
-            if (!table_.has_spilled_data()) {
-                // no items were spilled to disk, hence we can emit all data
-                // from RAM.
-                Flush</* DoCache */ false>(consume);
-            }
-            else {
-                // items were spilled, hence the reduce table must be emptied
-                // and we have to cache the output stream.
-                cache_ = table_.ctx().GetFilePtr(table_.dia_id());
-                data::File::Writer writer = cache_->GetWriter();
-                Flush</* DoCache */ true>(true, &writer);
-            }
-        }
-        else
-        {
+        } else {
             // previous PushData() has stored data in cache_
             data::File::Reader reader = cache_->GetReader(consume);
             while (reader.HasNext())
                 emitter_.Emit(reader.Next<TableItem>());
         }
+
     }
 
     void Dispose() {
-        table_.Dispose();
-        if (cache_) cache_.reset();
+        std::vector<TableItem>().swap(items_);
+        std::vector<std::tuple<common::Range, data::File, data::File::Writer>>()
+            .swap(subrange_files_);
     }
 
     //! \name Accessors
     //! \{
 
-    //! Returns mutable reference to first table_
-    Table& table() { return table_; }
-
-    //! Returns the total num of items in the table.
-    size_t num_items() const { return table_.num_items(); }
+    //! Sets the range of indexes to be handled by this index table
+    void SetRange(const common::Range& range) {
+        range_ = range;
+        full_range_ = range;
+    }
 
     //! \}
 
 private:
+
+    void Flush() {
+        for (auto iterator = items_.rbegin(); iterator != items_.rend(); iterator++) {
+            emitter_.Emit(*iterator);
+        }
+    }
+
+    template<bool DoCache = false>
+    void FlushAndConsume(data::File::Writer* writer = nullptr) {
+        while (!items_.empty()) {
+            emitter_.Emit(items_.back());
+            if (DoCache) { writer->Put(items_.back()); }
+            items_.pop_back();
+        }
+        neutral_element_index_occupied_ = false;
+    }
+
+    Key key(const TableItem& t) {
+        return MakeTableItem::GetKey(t, key_extractor_);
+    }
+
+    TableItem reduce(const TableItem& a, const TableItem& b) {
+        return MakeTableItem::Reduce(a, b, reduce_function_);
+    }
+
+    //! Context
+    Context& ctx_;
+
+    //! Associated DIA id
+    size_t dia_id_;
+
+    //! Key extractor function for extracting a key from a value.
+    KeyExtractor key_extractor_;
+
+    //! Reduce function for reducing two values.
+    ReduceFunction reduce_function_;
+
     //! Stored reduce config to initialize the subtable.
     ReduceConfig config_;
 
     //! Emitters used to parameterize hash table for output to next DIA node.
     PhaseEmitter emitter_;
 
-    //! the first-level hash table implementation
-    Table table_;
-
     //! neutral element to fill holes in output
     Value neutral_element_;
 
+    //! Size of the table in bytes
+    size_t limit_memory_bytes_ = 0;
+
+    //! The index where the neutral element would go if acutally inserted
+    size_t neutral_element_key_ = 0;
+
+    //! Is there an actual element at the index of the neutral element?
+    bool neutral_element_index_occupied_ = false;
+
+    //! Range of indexes actually managed in this instance -
+    //! not including subranges
+    common::Range range_;
+
+    //! Full range of indexes actually managed in this instance -
+    //! including subranges
+    common::Range full_range_;
+
+    //! Store for items in range of this workers.
+    //! Stored in reverse order so we can consume while emitting.
+    std::vector<TableItem> items_;
+
+    //! Store for items in nonactive subranges
+    std::vector<std::tuple<common::Range, data::File, data::File::Writer>> subrange_files_;
+
     //! File for storing data in-case we need multiple re-reduce levels.
-    data::FilePtr cache_;
+    data::FilePtr cache_ = nullptr;
 };
 
 } // namespace core

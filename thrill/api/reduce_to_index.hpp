@@ -116,7 +116,7 @@ public:
           post_phase_(
               context_, Super::id(),
               key_extractor, reduce_function, Emitter(this),
-              config, core::ReduceByIndex<Key>(), neutral_element)
+              config, neutral_element)
     {
         // Hook PreOp: Locally hash elements of the current DIA onto buckets and
         // reduce each bucket to a single value, afterwards send data to another
@@ -144,18 +144,14 @@ public:
 
             // re-parameterize with resulting key range on this worker - this is
             // only know after Initialize() of the pre_phase_.
-            post_phase_.table().index_function() =
-                core::ReduceByIndex<Key>(
-                    pre_phase_.key_range(context_.my_rank()));
+            post_phase_.SetRange(pre_phase_.key_range(context_.my_rank()));
         }
         else {
             pre_phase_.Initialize(DIABase::mem_limit_ / 2);
 
             // re-parameterize with resulting key range on this worker - this is
             // only know after Initialize() of the pre_phase_.
-            post_phase_.table().index_function() =
-                core::ReduceByIndex<Key>(
-                    pre_phase_.key_range(context_.my_rank()));
+            post_phase_.SetRange(pre_phase_.key_range(context_.my_rank()));
             post_phase_.Initialize(DIABase::mem_limit_ / 2);
 
             // start additional thread to receive from the channel
