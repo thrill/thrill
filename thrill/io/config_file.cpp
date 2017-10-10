@@ -24,9 +24,9 @@
 
 #include <fstream>
 #include <iostream>
+#include <regex>
 #include <string>
 #include <vector>
-#include <regex>
 
 #if THRILL_WINDOWS
    #ifndef NOMINMAX
@@ -493,7 +493,7 @@ std::string DiskConfig::expand_path(std::string path) const {
     std::stringstream ss;
 
     while (std::regex_search(path, match, var_matcher)) {
-        ss  << match.prefix().str();
+        ss << match.prefix().str();
         ss << std::getenv(match[1].str().c_str());
         path = match.suffix().str();
     }

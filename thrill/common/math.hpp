@@ -69,7 +69,7 @@ public:
     Range Partition(size_t index, size_t parts) const {
         assert(index < parts);
         return Range(CalculateBeginOfPart(index, parts),
-            CalculateBeginOfPart(index + 1, parts));
+                     CalculateBeginOfPart(index + 1, parts));
     }
 
     size_t CalculateBeginOfPart(size_t index, size_t parts) const {

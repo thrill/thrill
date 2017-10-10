@@ -129,7 +129,7 @@ static void FillS3BucketContext(S3BucketContext& bkt, const std::string& key) {
         LOG1 << "S3-WARNING - no key given - set environment variable THRILL_S3_KEY";
     }
     if (bkt.secretAccessKey == nullptr) {
-        LOG1<< "S3-WARNING - no secret given - set environment variable THRILL_S3_SECRET";
+        LOG1 << "S3-WARNING - no secret given - set environment variable THRILL_S3_SECRET";
     }
 }
 

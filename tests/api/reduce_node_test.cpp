@@ -217,7 +217,11 @@ TEST(ReduceToIndexNode, OutputSizeCheck) {
     auto start_func =
         [](Context& context) {
             size_t node_count = 20000;
-            size_t result = Generate(context, 10000, [node_count](const size_t index) { return index % node_count; })
+            size_t result =
+                Generate(context, 10000,
+                         [node_count](const size_t index) {
+                             return index % node_count;
+                         })
                 .Filter([](const size_t node) { return node % 1000 < 250; })
                 .ReduceToIndex(
                     [](const size_t& node) -> size_t { return node; },
@@ -232,4 +236,3 @@ TEST(ReduceToIndexNode, OutputSizeCheck) {
 }
 
 /******************************************************************************/
-
