@@ -67,6 +67,8 @@ uses the DIABase graph to optimize the order of operations.
 
 \defgroup io_layer Asynchronous I/O Layer
 
+\addtogroup tlx
+
 \}
 
 */
