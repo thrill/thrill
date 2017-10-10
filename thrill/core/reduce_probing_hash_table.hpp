@@ -188,9 +188,6 @@ public:
      */
     bool Insert(const TableItem& kv) {
 
-        while (TLX_UNLIKELY(mem::memory_exceeded && num_items_ != 0))
-            SpillAnyPartition();
-
         typename IndexFunction::Result h = index_function_(
             key(kv), num_partitions_,
             num_buckets_per_partition_, num_buckets_);
@@ -198,7 +195,6 @@ public:
         assert(h.partition_id < num_partitions_);
 
         if (TLX_UNLIKELY(key_equal_function_(key(kv), Key()))) {
-            bool new_unique = false;
             // handle pairs with sentinel key specially by reducing into last
             // element of items.
             TableItem& sentinel = items_[num_buckets_];
@@ -206,10 +202,10 @@ public:
                 // first occurrence of sentinel key
                 new (&sentinel)TableItem(kv);
                 sentinel_partition_ = h.partition_id;
-                new_unique = true;
             }
             else {
                 sentinel = reduce(sentinel, kv);
+                return false;
             }
             ++items_per_partition_[h.partition_id];
             ++num_items_;
@@ -217,10 +213,10 @@ public:
             while (TLX_UNLIKELY(
                        items_per_partition_[h.partition_id] >
                        limit_items_per_partition_[h.partition_id])) {
-                SpillPartition(h.partition_id);
+                GrowAndRehash(h.partition_id);
             }
 
-            return new_unique;
+            return true;
         }
 
         // calculate local index depending on the current subtable's size
@@ -248,7 +244,7 @@ public:
 
             // flush partition and retry, if all slots are reserved
             if (TLX_UNLIKELY(iter == begin_iter)) {
-                SpillPartition(h.partition_id);
+                GrowAndRehash(h.partition_id);
                 return Insert(kv);
             }
         }
@@ -263,11 +259,11 @@ public:
         while (TLX_UNLIKELY(
                    items_per_partition_[h.partition_id] >=
                    limit_items_per_partition_[h.partition_id])) {
-            LOG << "Spill due to "
+            LOG << "Grow due to "
                 << items_per_partition_[h.partition_id] << " >= "
                 << limit_items_per_partition_[h.partition_id]
                 << " among " << partition_size_[h.partition_id];
-            SpillPartition(h.partition_id);
+            GrowAndRehash(h.partition_id);
         }
 
         return true;
@@ -296,8 +292,55 @@ public:
         Super::Dispose();
     }
 
+    void GrowAndRehash(size_t partition_id) {
+
+        size_t old_size = partition_size_[partition_id];
+        GrowPartition(partition_id);
+        if (partition_size_[partition_id] == old_size) {
+            SpillPartition(partition_id);
+            return;
+        }
+
+        if (partition_size_[partition_id] % old_size != 0) {
+            // in place rehashing won't work properly so we spill rather than
+            // potentially blasting memory limits by using an extra vector for
+            // temporary item storage
+            SpillPartition(partition_id);
+            return;
+        }
+
+        // initialize pointers to old range - the second half is still empty
+        TableItem* pbegin =
+            items_ + partition_id * num_buckets_per_partition_;
+        TableItem* iter = pbegin;
+        TableItem* pend = pbegin + old_size;
+
+        bool passed_first_half = false;
+        bool found_hole = false;
+        while (!passed_first_half || !found_hole) {
+            Key item_key = key(*iter);
+            bool is_empty = key_equal_function_(item_key, Key());
+            if (!is_empty) {
+                --items_per_partition_[partition_id];
+                --num_items_;
+                TableItem item = std::move(*iter);
+                new (iter)TableItem();
+                Insert(item);
+            }
+
+            iter++;
+            found_hole = passed_first_half && is_empty;
+            passed_first_half = passed_first_half || iter == pend;
+        }
+    }
+
     //! Grow a partition after a spill or flush (if possible)
     void GrowPartition(size_t partition_id) {
+
+        if (TLX_UNLIKELY(mem::memory_exceeded)) {
+            SpillPartition(partition_id);
+            return;
+        }
 
         if (partition_size_[partition_id] == num_buckets_per_partition_)
             return;
@@ -332,7 +375,7 @@ public:
 
         if (immediate_flush_) {
             return FlushPartition(
-                partition_id, /* consume */ true, /* grow */ true);
+                partition_id, /* consume */ true, /* grow */ !mem::memory_exceeded);
         }
 
         LOG << "Spilling " << items_per_partition_[partition_id]
@@ -365,8 +408,6 @@ public:
         assert(num_items_ == this->num_items_calc());
 
         LOG << "Spilled items of partition with id: " << partition_id;
-
-        GrowPartition(partition_id);
     }
 
     //! Spill all items of an arbitrary partition into an external memory File.
