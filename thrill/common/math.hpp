@@ -67,7 +67,14 @@ public:
     //! calculate a partition range [begin,end) by taking the current Range
     //! splitting it into p parts and taking the i-th one.
     Range Partition(size_t index, size_t parts) const {
-        return Range(index * size() / parts, (index + 1) * size() / parts);
+        assert(index < parts);
+        return Range(CalculateBeginOfPart(index, parts),
+            CalculateBeginOfPart(index + 1, parts));
+    }
+
+    size_t CalculateBeginOfPart(size_t index, size_t parts) const {
+        assert(index <= parts);
+        return (index * size() + parts - 1) / parts;
     }
 
     //! ostream-able
@@ -80,13 +87,14 @@ public:
 //! the [local_begin,local_end) index range assigned to the PE i.
 static inline Range CalculateLocalRange(
     size_t global_size, size_t p, size_t i) {
+    return Range(0, global_size).Partition(i, p);
+}
 
-    double per_pe = static_cast<double>(global_size) / static_cast<double>(p);
-    return Range(
-        static_cast<size_t>(std::ceil(static_cast<double>(i) * per_pe)),
-        std::min(static_cast<size_t>(
-                     std::ceil(static_cast<double>(i + 1) * per_pe)),
-                 global_size));
+static inline size_t CalculatePartition(size_t global_size, size_t p, size_t k) {
+    size_t partition = k * p / global_size;
+    assert(k >= CalculateLocalRange(global_size, p, partition).begin);
+    assert(k < CalculateLocalRange(global_size, p, partition).end);
+    return partition;
 }
 
 /******************************************************************************/
