@@ -21,6 +21,7 @@
 #include <thrill/common/math.hpp>
 #include <thrill/common/porting.hpp>
 #include <thrill/common/qsort.hpp>
+#include <thrill/common/reservoir_sampling.hpp>
 #include <thrill/core/multiway_merge.hpp>
 #include <thrill/data/file.hpp>
 #include <thrill/net/group.hpp>
@@ -100,22 +101,7 @@ public:
 
     void PreOp(const ValueType& input) {
         unsorted_writer_.Put(input);
-        // In this stage we do not know how many elements are there in total.
-        // Therefore we draw samples based on current number of elements and
-        // randomly replace older samples when we have too many.
-        if (--sample_interval_ == 0) {
-            if (samples_.size() < wanted_sample_size()) {
-                while (samples_.size() < wanted_sample_size())
-                    samples_.emplace_back(SampleIndexPair(input, local_items_));
-            }
-            else {
-                samples_[rng_() % samples_.size()] =
-                    SampleIndexPair(input, local_items_);
-            }
-            sample_interval_ = std::max(
-                size_t(1), (local_items_ + 1) / wanted_sample_size());
-            LOG0 << "SortNode::PreOp() sample_interval_=" << sample_interval_;
-        }
+        res_sampler_.add(SampleIndexPair(input, local_items_));
         local_items_++;
     }
 
@@ -311,22 +297,20 @@ private:
     //! Number of items on this worker
     size_t local_items_ = 0;
 
-    //! Sample vector: pairs of (sample,local index)
-    std::vector<SampleIndexPair> samples_;
-    //! Number of items to process before the next sample was drawn
-    size_t sample_interval_ = 1;
-    //! Random generator
-    std::default_random_engine rng_ { std::random_device { } () };
-
     //! epsilon
     static constexpr double desired_imbalance_ = 0.1;
 
+    //! Sample vector: pairs of (sample,local index)
+    std::vector<SampleIndexPair> samples_;
+    //! Random generator
+    std::default_random_engine rng_ { std::random_device { } () };
+    //! Reservoir sampler
+    common::ReservoirSamplingGrow<SampleIndexPair> res_sampler_ {
+        samples_, rng_, desired_imbalance_
+    };
     //! calculate currently desired number of samples
     size_t wanted_sample_size() const {
-        size_t s = static_cast<size_t>(
-            std::log2((local_items_ + 1) * context_.num_workers())
-            * (1.0 / (desired_imbalance_ * desired_imbalance_)));
-        return std::max(s, size_t(1));
+        return res_sampler_.calc_sample_size(local_items_);
     }
 
     //! \}
