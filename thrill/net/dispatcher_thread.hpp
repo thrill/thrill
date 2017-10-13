@@ -158,7 +158,9 @@ private:
     mem::Manager mem_manager_;
 
     //! Queue of jobs to be run by dispatching thread at its discretion.
-    common::ConcurrentQueue<Job> jobqueue_;
+    common::ConcurrentQueue<Job, mem::Allocator<Job> > jobqueue_ {
+        mem::Allocator<Job>(mem_manager_)
+    };
 
     //! thread of dispatcher
     std::thread thread_;

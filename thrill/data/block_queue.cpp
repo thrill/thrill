@@ -32,7 +32,7 @@ void BlockQueue::Close() {
     block_counter_++;
 
     // enqueue a closing Block.
-    queue_.enqueue(Block());
+    queue_.emplace();
 
     if (close_callback_) close_callback_(*this);
 }

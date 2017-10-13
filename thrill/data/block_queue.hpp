@@ -73,14 +73,14 @@ public:
         item_counter_ += b.num_items();
         byte_counter_ += b.size();
         block_counter_++;
-        queue_.enqueue(b);
+        queue_.emplace(b);
     }
     void AppendBlock(Block&& b, bool /* is_last_block */) final {
         LOG << "BlockQueue::AppendBlock() move " << b;
         item_counter_ += b.num_items();
         byte_counter_ += b.size();
         block_counter_++;
-        queue_.enqueue(std::move(b));
+        queue_.emplace(std::move(b));
     }
 
     //! Close called by BlockWriter.
@@ -91,7 +91,7 @@ public:
     Block Pop() {
         if (read_closed_) return Block();
         Block b;
-        queue_.wait_dequeue(b);
+        queue_.pop(b);
         read_closed_ = !b.IsValid();
         return b;
     }
@@ -110,13 +110,13 @@ public:
     //! check if writer side Close() was called.
     bool write_closed() const { return write_closed_; }
 
-    bool empty() const { return queue_.size_approx() == 0; }
+    bool empty() const { return queue_.empty(); }
 
     //! check if reader side has returned a closing sentinel block
     bool read_closed() const { return read_closed_; }
 
     //! return number of block in the queue. Use this ONLY for DEBUGGING!
-    size_t size() { return queue_.size_approx() - (write_closed() ? 1 : 0); }
+    size_t size() { return queue_.size() - (write_closed() ? 1 : 0); }
 
     //! Returns item_counter_
     size_t item_counter() const { return item_counter_; }

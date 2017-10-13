@@ -13,6 +13,3 @@
 [submodule "extlib/tlx"]
 	path = extlib/tlx
 	url = https://github.com/tlx/tlx.git
-[submodule "extlib/concurrentqueue"]
-	path = extlib/concurrentqueue
-	url = https://github.com/cameron314/concurrentqueue.git

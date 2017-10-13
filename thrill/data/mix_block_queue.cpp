@@ -40,13 +40,13 @@ void MixBlockQueue::set_dia_id(size_t dia_id) {
 void MixBlockQueue::AppendBlock(size_t src, const Block& block) {
     LOG << "MixBlockQueue::AppendBlock"
         << " src=" << src << " block=" << block;
-    mix_queue_.enqueue(SrcBlockPair { src, block });
+    mix_queue_.emplace(SrcBlockPair { src, block });
 }
 
 void MixBlockQueue::AppendBlock(size_t src, Block&& block) {
     LOG << "MixBlockQueue::AppendBlock"
         << " src=" << src << " block=" << block;
-    mix_queue_.enqueue(SrcBlockPair { src, std::move(block) });
+    mix_queue_.emplace(SrcBlockPair { src, std::move(block) });
 }
 
 void MixBlockQueue::Close(size_t src) {
@@ -59,7 +59,7 @@ void MixBlockQueue::Close(size_t src) {
     --write_open_count_;
 
     // enqueue a closing Block.
-    mix_queue_.enqueue(SrcBlockPair { src, Block() });
+    mix_queue_.emplace(SrcBlockPair { src, Block() });
 }
 
 MixBlockQueue::SrcBlockPair MixBlockQueue::Pop() {
@@ -68,7 +68,7 @@ MixBlockQueue::SrcBlockPair MixBlockQueue::Pop() {
                    size_t(-1), Block()
         };
     SrcBlockPair b;
-    mix_queue_.wait_dequeue(b);
+    mix_queue_.pop(b);
     if (!b.block.IsValid()) {
         LOG << "MixBlockQueue()"
             << " read_open_ " << read_open_ << " -> " << read_open_ - 1;

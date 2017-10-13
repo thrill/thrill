@@ -32,7 +32,7 @@ TEST(ConcurrentBoundedQueue, ParallelPushPopAscIntegerAndCalculateTotalSum) {
     for (size_t i = 0; i != num_threads; ++i) {
         pool.enqueue([&queue]() {
                          for (size_t i = 0; i != num_pushes; ++i) {
-                             queue.enqueue(i);
+                             queue.push(i);
                          }
                      });
     }
@@ -42,7 +42,7 @@ TEST(ConcurrentBoundedQueue, ParallelPushPopAscIntegerAndCalculateTotalSum) {
     pool.enqueue([&]() {
                      while (count != num_threads * num_pushes) {
                          size_t item;
-                         queue.wait_dequeue(item);
+                         queue.pop(item);
                          total_sum += item;
                          ++count;
                      }
@@ -50,7 +50,7 @@ TEST(ConcurrentBoundedQueue, ParallelPushPopAscIntegerAndCalculateTotalSum) {
 
     pool.loop_until_empty();
 
-    ASSERT_TRUE(queue.size_approx() == 0);
+    ASSERT_TRUE(queue.empty());
     ASSERT_EQ(count, num_threads * num_pushes);
     // check total sum, no item gets lost?
     ASSERT_EQ(total_sum, num_threads * num_pushes * (num_pushes - 1) / 2);

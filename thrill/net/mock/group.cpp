@@ -266,7 +266,7 @@ void Dispatcher::Cancel(net::Connection&) {
 }
 
 void Dispatcher::Notify(Connection* c) {
-    d_->notify_.enqueue(c);
+    d_->notify_.emplace(c);
 }
 
 void Dispatcher::Interrupt() {
@@ -283,7 +283,7 @@ Dispatcher::Watch& Dispatcher::GetWatch(Connection* c) {
 void Dispatcher::DispatchOne(const std::chrono::milliseconds& timeout) {
 
     Connection* c = nullptr;
-    if (!d_->notify_.wait_dequeue_timed(c, timeout)) {
+    if (!d_->notify_.pop_for(c, timeout)) {
         sLOG << "DispatchOne timeout";
         return;
     }

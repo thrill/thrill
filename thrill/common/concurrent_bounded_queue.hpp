@@ -12,7 +12,23 @@
 #ifndef THRILL_COMMON_CONCURRENT_BOUNDED_QUEUE_HEADER
 #define THRILL_COMMON_CONCURRENT_BOUNDED_QUEUE_HEADER
 
-#include <concurrentqueue/blockingconcurrentqueue.h>
+#if THRILL_HAVE_INTELTBB
+
+#if __clang__ && !defined(_LIBCPP_VERSION)
+// tbb feature detection is broken for clang + libstdc++
+#define _LIBCPP_VERSION 4000
+#define FAKE_LIBCPP_VERSION
+#endif
+
+#include <tbb/concurrent_queue.h>
+
+#if defined(FAKE_LIBCPP_VERSION)
+// undo libc++ version faking
+#undef _LIBCPP_VERSION
+#undef FAKE_LIBCPP_VERSION
+#endif
+
+#endif // THRILL_HAVE_INTELTBB
 
 #include <atomic>
 #include <chrono>
@@ -24,10 +40,16 @@ namespace thrill {
 namespace common {
 
 /*!
- * This is a synchronized queue, similar to std::queue and moodycamel's
- * BlockingConcurrentQueue, except that it uses mutexes for
- * synchronization. This implementation is for speed and interface testing
- * against a lock-free queue.
+ * This is a queue, similar to std::queue and tbb::concurrent_bounded_queue,
+ * except that it uses mutexes for synchronization. This implementation is only
+ * here to be used if the Intel TBB is not available.
+ *
+ * Not all methods of tbb::concurrent_bounded_queue<> are available here, please
+ * add them if you need them. However, NEVER add any other methods that you
+ * might need.
+ *
+ * StyleGuide is violated, because signatures MUST match those in the TBB
+ * version.
  */
 template <typename T>
 class OurConcurrentBoundedQueue
@@ -60,7 +82,7 @@ public:
     }
 
     //! Pushes a copy of source onto back of the queue.
-    void enqueue(const T& source) {
+    void push(const T& source) {
         std::unique_lock<std::mutex> lock(mutex_);
         queue_.push(source);
         cv_.notify_one();
@@ -68,21 +90,36 @@ public:
 
     //! Pushes given element into the queue by utilizing element's move
     //! constructor
-    void enqueue(T&& elem) {
+    void push(T&& elem) {
         std::unique_lock<std::mutex> lock(mutex_);
         queue_.push(std::move(elem));
         cv_.notify_one();
     }
 
-    //! Returns: approximate number of items in queue.
-    size_t size_approx() const {
+    //! Pushes a new element into the queue. The element is constructed with
+    //! given arguments.
+    template <typename... Arguments>
+    void emplace(Arguments&& ... args) {
         std::unique_lock<std::mutex> lock(mutex_);
-        return queue_.size();
+        queue_.emplace(std::forward<Arguments>(args) ...);
+        cv_.notify_one();
+    }
+
+    //! Returns: true if queue has no items; false otherwise.
+    bool empty() const {
+        std::unique_lock<std::mutex> lock(mutex_);
+        return queue_.empty();
+    }
+
+    //! Clears the queue.
+    void clear() {
+        std::unique_lock<std::mutex> lock(mutex_);
+        queue_.clear();
     }
 
     //! If value is available, pops it from the queue, move it to destination,
     //! destroying the original position. Otherwise does nothing.
-    bool try_dequeue(T& destination) {
+    bool try_pop(T& destination) {
         std::unique_lock<std::mutex> lock(mutex_);
         if (queue_.empty())
             return false;
@@ -94,7 +131,7 @@ public:
 
     //! If value is available, pops it from the queue, move it to
     //! destination. If no item is in the queue, wait until there is one.
-    void wait_dequeue(T& destination) {
+    void pop(T& destination) {
         std::unique_lock<std::mutex> lock(mutex_);
         cv_.wait(lock, [=]() { return !queue_.empty(); });
         destination = std::move(queue_.front());
@@ -103,10 +140,10 @@ public:
 
     //! If value is available, pops it from the queue, move it to
     //! destination. If no item is in the queue, wait until there is one, or
-    //! timeout and return false.
+    //! timeout and return false. NOTE: not available in TBB!
     template <typename Rep, typename Period>
-    bool wait_dequeue_timed(T& destination,
-                            const std::chrono::duration<Rep, Period>& timeout) {
+    bool pop_for(T& destination,
+                 const std::chrono::duration<Rep, Period>& timeout) {
         std::unique_lock<std::mutex> lock(mutex_);
         if (!cv_.wait_for(lock, timeout, [=]() { return !queue_.empty(); })) {
             return false;
@@ -115,19 +152,26 @@ public:
         queue_.pop();
         return true;
     }
+
+    //! return number of items available in the queue (tbb says "can return
+    //! negative size", due to pending pop()s, but we ignore that here).
+    size_t size() {
+        std::unique_lock<std::mutex> lock(mutex_);
+        return queue_.size();
+    }
 };
 
-#if 0
+#if THRILL_HAVE_INTELTBB
+
+template <typename T>
+using ConcurrentBoundedQueue = tbb::concurrent_bounded_queue<T>;
+
+#else   // !THRILL_HAVE_INTELTBB
 
 template <typename T>
 using ConcurrentBoundedQueue = OurConcurrentBoundedQueue<T>;
 
-#else
-
-template <typename T>
-using ConcurrentBoundedQueue = moodycamel::BlockingConcurrentQueue<T>;
-
-#endif
+#endif // !THRILL_HAVE_INTELTBB
 
 } // namespace common
 } // namespace thrill
