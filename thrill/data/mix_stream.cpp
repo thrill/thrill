@@ -64,6 +64,7 @@ MixStream::MixStream(Multiplexer& multiplexer, const StreamId& id,
 
 MixStream::~MixStream() {
     Close();
+    LOG << "~MixStream() deleted";
 }
 
 void MixStream::set_dia_id(size_t dia_id) {
@@ -102,10 +103,11 @@ std::vector<MixStream::Writer> MixStream::GetWriters() {
         for (size_t worker = 0; worker < workers_per_host(); ++worker) {
             if (host == my_host_rank()) {
                 // construct loopback queue writer
-                auto target_queue_ptr =
-                    multiplexer_.MixLoopback(id_, local_worker_id_, worker);
-                result.emplace_back(target_queue_ptr, block_size);
-                target_queue_ptr->set_src_mix_stream(this);
+                auto target_stream_ptr = multiplexer_.MixLoopback(id_, worker);
+                MixBlockQueueSink* sink_queue_ptr =
+                    target_stream_ptr->loopback_queue(local_worker_id_);
+                result.emplace_back(sink_queue_ptr, block_size);
+                sink_queue_ptr->set_src_mix_stream(this);
             }
             else {
                 size_t worker_id = host * workers_per_host() + worker;
@@ -141,11 +143,16 @@ void MixStream::Close() {
     for (size_t worker = 0;
          worker < multiplexer_.workers_per_host(); ++worker)
     {
-        auto queue_ptr = multiplexer_.MixLoopback(
-            id_, local_worker_id_, worker);
+        MixStreamIntPtr target_stream_ptr =
+            multiplexer_.MixLoopback(id_, worker);
 
-        if (!queue_ptr->write_closed())
-            queue_ptr->Close();
+        if (target_stream_ptr) {
+            MixBlockQueueSink* sink_queue_ptr =
+                target_stream_ptr->loopback_queue(local_worker_id_);
+
+            if (!sink_queue_ptr->write_closed())
+                sink_queue_ptr->Close();
+        }
     }
 
     // wait for all close packets to arrive.
@@ -155,11 +162,15 @@ void MixStream::Close() {
         sem_closing_blocks_.wait();
     }
 
-    multiplexer_.active_streams_--;
-
     tx_lifetime_.StopEventually();
     tx_timespan_.StopEventually();
     OnAllClosed("MixStream");
+
+    {
+        std::unique_lock<std::mutex> lock(multiplexer_.mutex_);
+        multiplexer_.active_streams_--;
+        multiplexer_.IntReleaseMixStream(id_, local_worker_id_);
+    }
 
     LOG << "MixStream::Close() finished"
         << " id_=" << id_

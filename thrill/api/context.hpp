@@ -320,7 +320,7 @@ public:
     //! Returns a reference to a new CatStream or MixStream, selectable via
     //! template parameter.
     template <typename Stream>
-    tlx::CountingPtr<Stream> GetNewStream(size_t dia_id);
+    tlx::CountingPtr<typename Stream::Handle> GetNewStream(size_t dia_id);
 
     //! the block manager keeps all data blocks moving through the system.
     data::BlockPool& block_pool() { return block_pool_; }

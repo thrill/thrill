@@ -67,6 +67,8 @@ public:
     using Reader = BlockQueueReader;
     using CatReader = CatBlockReader;
 
+    using Handle = CatStreamHandle;
+
     //! Creates a new stream instance
     CatStream(Multiplexer& multiplexer, const StreamId& id,
               size_t local_worker_id, size_t dia_id);
@@ -135,10 +137,68 @@ private:
     BlockQueue * loopback_queue(size_t from_worker_id);
 };
 
-using CatStreamPtr = tlx::CountingPtr<CatStream>;
+// we have two types of CatStream smart pointers: one for internal use in the
+// Multiplexer (ordinary CountingPtr), and another for public handles in the
+// DIANodes. Once all public handles are deleted, the CatStream is deactivated.
+using CatStreamIntPtr = tlx::CountingPtr<CatStream>;
 
 using CatStreamSet = StreamSet<CatStream>;
 using CatStreamSetPtr = tlx::CountingPtr<CatStreamSet>;
+
+//! Ownership handle onto a CatStream
+class CatStreamHandle : public tlx::ReferenceCounter
+{
+public:
+    explicit CatStreamHandle(const CatStreamIntPtr& ptr)
+        : ptr_(ptr) { }
+
+    ~CatStreamHandle() {
+        ptr_->Close();
+    }
+
+    const StreamId& id() const { return ptr_->id(); }
+
+    //! Creates BlockWriters for each worker. BlockWriter can only be opened
+    //! once, otherwise the block sequence is incorrectly interleaved!
+    std::vector<CatStream::Writer> GetWriters() {
+        return ptr_->GetWriters();
+    }
+
+    //! Creates a BlockReader for each worker. The BlockReaders are attached to
+    //! the BlockQueues in the Stream and wait for further Blocks to arrive or
+    //! the Stream's remote close. These Readers _always_ consume!
+    std::vector<CatStream::Reader> GetReaders() {
+        return ptr_->GetReaders();
+    }
+
+    //! Creates a BlockReader which concatenates items from all workers in
+    //! worker rank order. The BlockReader is attached to one \ref
+    //! CatBlockSource which includes all incoming queues of this stream.
+    CatStream::CatReader GetCatReader(bool consume) {
+        return ptr_->GetCatReader(consume);
+    }
+
+    //! Open a CatReader (function name matches a method in File and MixStream).
+    CatStream::CatReader GetReader(bool consume) {
+        return ptr_->GetReader(consume);
+    }
+
+    //! shuts the stream down.
+    void Close() {
+        return ptr_->Close();
+    }
+
+    template <typename ItemType>
+    void Scatter(File& source, const std::vector<size_t>& offsets,
+                 bool consume = false) {
+        return ptr_->template Scatter<ItemType>(source, offsets, consume);
+    }
+
+private:
+    CatStreamIntPtr ptr_;
+};
+
+using CatStreamPtr = tlx::CountingPtr<CatStreamHandle>;
 
 //! \}
 

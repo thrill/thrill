@@ -34,7 +34,10 @@ void BlockQueue::Close() {
     // enqueue a closing Block.
     queue_.emplace();
 
-    if (close_callback_) close_callback_(*this);
+    if (close_callback_) {
+        close_callback_(*this);
+        close_callback_ = CloseCallback();
+    }
 }
 
 BlockQueue::ConsumeReader BlockQueue::GetConsumeReader(size_t local_worker_id) {

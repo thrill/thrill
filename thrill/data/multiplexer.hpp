@@ -33,14 +33,17 @@ template <typename Stream>
 class StreamSet;
 
 class CatStream;
-using CatStreamPtr = tlx::CountingPtr<CatStream>;
-using CatStreamSet = StreamSet<CatStream>;
-using CatStreamSetPtr = tlx::CountingPtr<CatStreamSet>;
+using CatStreamIntPtr = tlx::CountingPtr<CatStream>;
+class CatStreamHandle;
+using CatStreamPtr = tlx::CountingPtr<CatStreamHandle>;
 
 class MixStream;
-using MixStreamPtr = tlx::CountingPtr<MixStream>;
+using MixStreamIntPtr = tlx::CountingPtr<MixStream>;
+class MixStreamHandle;
+using MixStreamPtr = tlx::CountingPtr<MixStreamHandle>;
+
+using CatStreamSet = StreamSet<CatStream>;
 using MixStreamSet = StreamSet<MixStream>;
-using MixStreamSetPtr = tlx::CountingPtr<MixStreamSet>;
 
 class BlockQueue;
 class MixBlockQueueSink;
@@ -114,7 +117,7 @@ public:
     size_t AllocateCatStreamId(size_t local_worker_id);
 
     //! Get stream with given id, if it does not exist, create it.
-    CatStreamPtr GetOrCreateCatStream(
+    CatStreamIntPtr GetOrCreateCatStream(
         size_t id, size_t local_worker_id, size_t dia_id);
 
     //! Request next stream.
@@ -129,7 +132,7 @@ public:
     size_t AllocateMixStreamId(size_t local_worker_id);
 
     //! Get stream with given id, if it does not exist, create it.
-    MixStreamPtr GetOrCreateMixStream(
+    MixStreamIntPtr GetOrCreateMixStream(
         size_t id, size_t local_worker_id, size_t dia_id);
 
     //! Request next stream.
@@ -173,11 +176,8 @@ private:
 
     //! Pointer to queue that is used for communication between two workers on
     //! the same host.
-    BlockQueue * CatLoopback(
-        size_t stream_id, size_t from_worker_id, size_t to_worker_id);
-
-    MixBlockQueueSink * MixLoopback(
-        size_t stream_id, size_t from_worker_id, size_t to_worker_id);
+    CatStreamIntPtr CatLoopback(size_t stream_id, size_t to_worker_id);
+    MixStreamIntPtr MixLoopback(size_t stream_id, size_t to_worker_id);
 
     /**************************************************************************/
 
@@ -187,10 +187,15 @@ private:
     //! pimpl data structure
     std::unique_ptr<Data> d_;
 
-    CatStreamPtr IntGetOrCreateCatStream(
+    CatStreamIntPtr IntGetOrCreateCatStream(
         size_t id, size_t local_worker_id, size_t dia_id);
-    MixStreamPtr IntGetOrCreateMixStream(
+    MixStreamIntPtr IntGetOrCreateMixStream(
         size_t id, size_t local_worker_id, size_t dia_id);
+
+    //! release pointer onto a CatStream object
+    void IntReleaseCatStream(size_t id, size_t local_worker_id);
+    //! release pointer onto a MixStream object
+    void IntReleaseMixStream(size_t id, size_t local_worker_id);
 
     /**************************************************************************/
 
@@ -207,12 +212,12 @@ private:
     //! Receives and dispatches a Block to a CatStream
     void OnCatStreamBlock(
         Connection& s, const StreamMultiplexerHeader& header,
-        const CatStreamPtr& stream, PinnedByteBlockPtr&& bytes);
+        const CatStreamIntPtr& stream, PinnedByteBlockPtr&& bytes);
 
     //! Receives and dispatches a Block to a MixStream
     void OnMixStreamBlock(
         Connection& s, const StreamMultiplexerHeader& header,
-        const MixStreamPtr& stream, PinnedByteBlockPtr&& bytes);
+        const MixStreamIntPtr& stream, PinnedByteBlockPtr&& bytes);
 };
 
 //! \}

@@ -1050,14 +1050,12 @@ data::MixStreamPtr Context::GetNewMixStream(DIABase* dia) {
 }
 
 template <>
-tlx::CountingPtr<data::CatStream>
-Context::GetNewStream<data::CatStream>(size_t dia_id) {
+data::CatStreamPtr Context::GetNewStream<data::CatStream>(size_t dia_id) {
     return GetNewCatStream(dia_id);
 }
 
 template <>
-tlx::CountingPtr<data::MixStream>
-Context::GetNewStream<data::MixStream>(size_t dia_id) {
+data::MixStreamPtr Context::GetNewStream<data::MixStream>(size_t dia_id) {
     return GetNewMixStream(dia_id);
 }
 

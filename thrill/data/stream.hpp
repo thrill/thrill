@@ -225,16 +225,30 @@ public:
     //! host).
     StreamSet(Multiplexer& multiplexer, StreamId id,
               size_t workers_per_host, size_t dia_id) {
-        for (size_t i = 0; i < workers_per_host; i++)
+        for (size_t i = 0; i < workers_per_host; ++i) {
             streams_.emplace_back(
                 tlx::make_counting<Stream>(multiplexer, id, i, dia_id));
+        }
+        remaining_ = workers_per_host;
     }
 
     //! Returns the stream that will be consumed by the worker with the given
     //! local id
-    StreamPtr peer(size_t local_worker_id) {
+    StreamPtr Peer(size_t local_worker_id) {
         assert(local_worker_id < streams_.size());
         return streams_[local_worker_id];
+    }
+
+    //! Release local_worker_id, returns true when all individual streams are
+    //! done.
+    bool Release(size_t local_worker_id) {
+        assert(local_worker_id < streams_.size());
+        if (streams_[local_worker_id]) {
+            assert(remaining_ > 0);
+            streams_[local_worker_id].reset();
+            --remaining_;
+        }
+        return (remaining_ == 0);
     }
 
     void Close() final {
@@ -245,6 +259,8 @@ public:
 private:
     //! 'owns' all streams belonging to one stream id for all local workers.
     std::vector<StreamPtr> streams_;
+    //! countdown to destruction
+    size_t remaining_;
 };
 
 //! \}

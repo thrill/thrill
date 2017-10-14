@@ -48,6 +48,8 @@ class MixStream final : public Stream
 public:
     using MixReader = MixBlockQueueReader;
 
+    using Handle = MixStreamHandle;
+
     //! Creates a new stream instance
     MixStream(Multiplexer& multiplexer, const StreamId& id,
               size_t local_worker_id, size_t dia_id);
@@ -111,10 +113,61 @@ private:
     MixBlockQueueSink * loopback_queue(size_t from_worker_id);
 };
 
-using MixStreamPtr = tlx::CountingPtr<MixStream>;
+// we have two types of MixStream smart pointers: one for internal use in the
+// Multiplexer (ordinary CountingPtr), and another for public handles in the
+// DIANodes. Once all public handles are deleted, the MixStream is deactivated.
+using MixStreamIntPtr = tlx::CountingPtr<MixStream>;
 
 using MixStreamSet = StreamSet<MixStream>;
 using MixStreamSetPtr = tlx::CountingPtr<MixStreamSet>;
+
+//! Ownership handle onto a MixStream
+class MixStreamHandle : public tlx::ReferenceCounter
+{
+public:
+    explicit MixStreamHandle(const MixStreamIntPtr& ptr)
+        : ptr_(ptr) { }
+
+    ~MixStreamHandle() {
+        ptr_->Close();
+    }
+
+    const StreamId& id() const { return ptr_->id(); }
+
+    //! Creates BlockWriters for each worker. BlockWriter can only be opened
+    //! once, otherwise the block sequence is incorrectly interleaved!
+    std::vector<MixStream::Writer> GetWriters() {
+        return ptr_->GetWriters();
+    }
+
+    //! Creates a BlockReader which concatenates items from all workers in
+    //! worker rank order. The BlockReader is attached to one \ref
+    //! MixBlockSource which includes all incoming queues of this stream.
+    MixStream::MixReader GetMixReader(bool consume) {
+        return ptr_->GetMixReader(consume);
+    }
+
+    //! Open a MixReader (function name matches a method in File and CatStream).
+    MixStream::MixReader GetReader(bool consume) {
+        return ptr_->GetReader(consume);
+    }
+
+    //! shuts the stream down.
+    void Close() {
+        return ptr_->Close();
+    }
+
+    template <typename ItemType>
+    void Scatter(File& source, const std::vector<size_t>& offsets,
+                 bool consume = false) {
+        return ptr_->template Scatter<ItemType>(source, offsets, consume);
+    }
+
+private:
+    MixStreamIntPtr ptr_;
+};
+
+using MixStreamPtr = tlx::CountingPtr<MixStreamHandle>;
 
 //! \}
 
