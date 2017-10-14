@@ -109,7 +109,10 @@ public:
     bool IsDone() const { return read_size_ == size_; }
 
     void DoCallback() {
-        if (callback_) callback_(*conn_, data_, size_);
+        if (callback_) {
+            callback_(*conn_, data_, size_);
+            callback_ = AsyncReadMemoryCallback();
+        }
     }
 
     //! underlying buffer pointer
@@ -184,7 +187,10 @@ public:
     bool IsDone() const { return write_size_ == size_; }
 
     void DoCallback() {
-        if (callback_) callback_(*conn_);
+        if (callback_) {
+            callback_(*conn_);
+            callback_ = AsyncWriteCallback();
+        }
     }
 
     //! underlying buffer pointer
@@ -261,7 +267,10 @@ public:
     Buffer& buffer() { return buffer_; }
 
     void DoCallback() {
-        if (callback_) callback_(*conn_, std::move(buffer_));
+        if (callback_) {
+            callback_(*conn_, std::move(buffer_));
+            callback_ = AsyncReadBufferCallback();
+        }
     }
 
     //! underlying buffer pointer
@@ -334,7 +343,10 @@ public:
     bool IsDone() const { return write_size_ == buffer_.size(); }
 
     void DoCallback() {
-        if (callback_) callback_(*conn_);
+        if (callback_) {
+            callback_(*conn_);
+            callback_ = AsyncWriteCallback();
+        }
     }
 
     //! underlying buffer pointer
@@ -411,7 +423,10 @@ public:
     data::PinnedByteBlockPtr& byte_block() { return block_; }
 
     void DoCallback() {
-        if (callback_) callback_(*conn_, std::move(block_));
+        if (callback_) {
+            callback_(*conn_, std::move(block_));
+            callback_ = AsyncReadByteBlockCallback();
+        }
     }
 
     //! underlying buffer pointer
@@ -488,7 +503,10 @@ public:
     bool IsDone() const { return written_size_ == block_.size(); }
 
     void DoCallback() {
-        if (callback_) callback_(*conn_);
+        if (callback_) {
+            callback_(*conn_);
+            callback_ = AsyncWriteCallback();
+        }
     }
 
     //! underlying buffer pointer
@@ -844,7 +862,10 @@ protected:
         Buffer& buffer() { return buffer_; }
 
         void DoCallback() {
-            if (callback_) callback_(*conn_, std::move(buffer_));
+            if (callback_) {
+                callback_(*conn_, std::move(buffer_));
+                callback_ = AsyncReadBufferCallback();
+            }
         }
 
     private:
