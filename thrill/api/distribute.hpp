@@ -78,7 +78,7 @@ public:
             this->PushItem(readers.Next<ValueType>());
         }
 
-        stream_->Close();
+        stream_.reset();
     }
 
     void Dispose() final {

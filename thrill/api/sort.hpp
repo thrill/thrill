@@ -601,7 +601,7 @@ private:
             }
         }
         sample_writers.clear();
-        sample_stream->Close();
+        sample_stream.reset();
 
         // code from SS2NPartition, slightly altered
 
@@ -644,7 +644,7 @@ private:
         else
             ReceiveItems(data_stream);
 
-        data_stream->Close();
+        data_stream.reset();
 
         double balance = 0;
         if (local_out_size_ > 0) {

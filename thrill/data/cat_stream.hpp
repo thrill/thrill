@@ -153,6 +153,8 @@ public:
         : ptr_(ptr) { }
 
     ~CatStreamHandle() {
+        // when user handle is destroyed, close the stream (but maybe not
+        // destroy the object)
         ptr_->Close();
     }
 
@@ -181,11 +183,6 @@ public:
     //! Open a CatReader (function name matches a method in File and MixStream).
     CatStream::CatReader GetReader(bool consume) {
         return ptr_->GetReader(consume);
-    }
-
-    //! shuts the stream down.
-    void Close() {
-        return ptr_->Close();
     }
 
     template <typename ItemType>

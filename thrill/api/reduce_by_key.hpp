@@ -162,7 +162,7 @@ public:
         pre_phase_.CloseAll();
         // waiting for the additional thread to finish the reduce
         if (use_post_thread_) thread_.join();
-        use_mix_stream_ ? mix_stream_->Close() : cat_stream_->Close();
+        use_mix_stream_ ? mix_stream_.reset() : cat_stream_.reset();
     }
 
     void Execute() final { }

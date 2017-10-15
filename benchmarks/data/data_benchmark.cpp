@@ -373,7 +373,7 @@ public:
         }
         write_timer.Stop();
 
-        stream->Close();
+        stream.reset();
 
         double bw = CalcMiBs(data.TotalBytes(), write_timer);
 
@@ -410,7 +410,7 @@ public:
         }
         read_timer.Stop();
 
-        stream->Close();
+        stream.reset();
 
         double bw = CalcMiBs(data.TotalBytes(), read_timer);
 
@@ -484,10 +484,10 @@ void StreamOneFactorExperiment<Stream>::Test(api::Context& ctx) {
                     // allocate and close Streams.
                     ctx.net.Barrier();
                     auto stream1 = ctx.GetNewStream<Stream>(/* dia_id */ 0);
-                    stream1->Close();
+                    stream1.reset();
                     ctx.net.Barrier();
                     auto stream2 = ctx.GetNewStream<Stream>(/* dia_id */ 0);
-                    stream2->Close();
+                    stream2.reset();
                 }
             }
         }
@@ -739,7 +739,7 @@ public:
 
                     StatsTimerStart write_timer;
                     stream->Scatter<Type>(file, offsets);
-                    stream->Close();
+                    stream.reset();
                     write_timer.Stop();
                     write_time = std::max(write_time, write_timer.Microseconds());
                 });

@@ -129,6 +129,8 @@ public:
         : ptr_(ptr) { }
 
     ~MixStreamHandle() {
+        // when user handle is destroyed, close the stream (but maybe not
+        // destroy the object)
         ptr_->Close();
     }
 
@@ -150,11 +152,6 @@ public:
     //! Open a MixReader (function name matches a method in File and CatStream).
     MixStream::MixReader GetReader(bool consume) {
         return ptr_->GetReader(consume);
-    }
-
-    //! shuts the stream down.
-    void Close() {
-        return ptr_->Close();
     }
 
     template <typename ItemType>

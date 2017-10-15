@@ -249,7 +249,7 @@ private:
         FlushVectorToFile(incoming);
         std::vector<ValueIn>().swap(incoming);
 
-        stream_->Close();
+        stream_.reset();
     }
 };
 

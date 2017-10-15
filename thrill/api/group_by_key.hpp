@@ -358,7 +358,7 @@ private:
         FlushVectorToFile(incoming);
         std::vector<ValueIn>().swap(incoming);
         LOG << "finished receiving elems";
-        stream_->Close();
+        stream_.reset();
 
         timer.Stop();
 
