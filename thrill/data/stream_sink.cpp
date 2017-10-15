@@ -20,12 +20,12 @@
 namespace thrill {
 namespace data {
 
-StreamSink::StreamSink(StreamData& stream, BlockPool& block_pool,
+StreamSink::StreamSink(const StreamDataPtr& stream, BlockPool& block_pool,
                        size_t local_worker_id)
     : BlockSink(block_pool, local_worker_id),
       stream_(stream), closed_(true) { }
 
-StreamSink::StreamSink(StreamData& stream, BlockPool& block_pool,
+StreamSink::StreamSink(const StreamDataPtr& stream, BlockPool& block_pool,
                        net::Connection* connection,
                        MagicByte magic, StreamId stream_id,
                        size_t host_rank, size_t host_local_worker,
@@ -90,7 +90,7 @@ void StreamSink::AppendPinnedBlock(const PinnedBlock& block, bool is_last_block)
     byte_counter_ += buffer.size() + block.size();
     ++block_counter_;
 
-    stream_.multiplexer_.dispatcher_.AsyncWrite(
+    stream_->multiplexer_.dispatcher_.AsyncWrite(
         *connection_,
         // send out Buffer and Block, guaranteed to be successive
         std::move(buffer), PinnedBlock(block),
@@ -149,7 +149,7 @@ void StreamSink::Close() {
     byte_counter_ += buffer.size();
     ++block_counter_;
 
-    stream_.multiplexer_.dispatcher_.AsyncWrite(
+    stream_->multiplexer_.dispatcher_.AsyncWrite(
         *connection_, std::move(buffer));
 
     Finalize();
@@ -168,9 +168,9 @@ void StreamSink::Finalize() {
         << "blocks" << block_counter_
         << "timespan" << timespan_;
 
-    stream_.tx_net_items_ += item_counter_;
-    stream_.tx_net_bytes_ += byte_counter_;
-    stream_.tx_net_blocks_ += block_counter_;
+    stream_->tx_net_items_ += item_counter_;
+    stream_->tx_net_bytes_ += byte_counter_;
+    stream_->tx_net_blocks_ += block_counter_;
 }
 
 } // namespace data

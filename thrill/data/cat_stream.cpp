@@ -39,7 +39,7 @@ CatStreamData::CatStreamData(Multiplexer& multiplexer, const StreamId& id,
 
                 // insert placeholder in sinks_ array
                 sinks_.emplace_back(
-                    *this, multiplexer_.block_pool_, worker);
+                    StreamDataPtr(this), multiplexer_.block_pool_, worker);
 
                 multiplexer_.logger()
                     << "class" << "StreamSink"
@@ -85,7 +85,7 @@ CatStreamData::CatStreamData(Multiplexer& multiplexer, const StreamId& id,
             else {
                 // construct outbound StreamSink
                 sinks_.emplace_back(
-                    *this,
+                    StreamDataPtr(this),
                     multiplexer_.block_pool_,
                     &multiplexer_.group_.connection(host),
                     MagicByte::CatStreamBlock,

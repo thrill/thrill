@@ -37,12 +37,13 @@ MixStreamData::MixStreamData(Multiplexer& multiplexer, const StreamId& id,
         for (size_t worker = 0; worker < workers_per_host(); worker++) {
             if (host == my_host_rank()) {
                 // dummy entries
-                sinks_.emplace_back(*this, multiplexer_.block_pool_, worker);
+                sinks_.emplace_back(
+                    StreamDataPtr(this), multiplexer_.block_pool_, worker);
             }
             else {
                 // StreamSink which transmits MIX_STREAM_BLOCKs
                 sinks_.emplace_back(
-                    *this,
+                    StreamDataPtr(this),
                     multiplexer_.block_pool_,
                     &multiplexer_.group_.connection(host),
                     MagicByte::MixStreamBlock,
