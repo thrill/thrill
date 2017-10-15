@@ -81,7 +81,7 @@ MixBlockQueue::SrcBlockPair MixBlockQueue::Pop() {
 // MixBlockQueueSink
 
 MixBlockQueueSink::MixBlockQueueSink(
-    MixStream& dst_mix_stream, size_t from_global, size_t from_local)
+    MixStreamData& dst_mix_stream, size_t from_global, size_t from_local)
     : BlockSink(dst_mix_stream.queue_.block_pool(), from_local),
       dst_mix_stream_(dst_mix_stream), dst_mix_queue_(dst_mix_stream.queue_),
       from_global_(from_global)
@@ -137,7 +137,7 @@ void MixBlockQueueSink::Close() {
     dst_mix_stream_.rx_int_blocks_ += block_counter_;
 }
 
-void MixBlockQueueSink::set_src_mix_stream(MixStream* src_mix_stream) {
+void MixBlockQueueSink::set_src_mix_stream(MixStreamData* src_mix_stream) {
     src_mix_stream_ = src_mix_stream;
 }
 

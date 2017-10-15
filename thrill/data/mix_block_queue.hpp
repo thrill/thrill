@@ -30,7 +30,7 @@ namespace data {
 //! \addtogroup data_layer
 //! \{
 
-class MixStream;
+class MixStreamData;
 class MixBlockQueueReader;
 
 /*!
@@ -147,7 +147,7 @@ class MixBlockQueueSink final : public BlockSink
     static constexpr bool debug = false;
 
 public:
-    MixBlockQueueSink(MixStream& dst_mix_stream,
+    MixBlockQueueSink(MixStreamData& dst_mix_stream,
                       size_t from_global, size_t from_local);
 
     void AppendBlock(const Block& b, bool is_last_block) final;
@@ -162,17 +162,17 @@ public:
     bool write_closed() const { return write_closed_; }
 
     //! source mix stream instance
-    void set_src_mix_stream(MixStream* src_mix_stream);
+    void set_src_mix_stream(MixStreamData* src_mix_stream);
 
 private:
     //! destination mix stream
-    MixStream& dst_mix_stream_;
+    MixStreamData& dst_mix_stream_;
 
     //! destination mix queue
     MixBlockQueue& dst_mix_queue_;
 
     //! source mix stream instance
-    MixStream* src_mix_stream_ = nullptr;
+    MixStreamData* src_mix_stream_ = nullptr;
 
     //! close flag
     common::AtomicMovable<bool> write_closed_ = { false };

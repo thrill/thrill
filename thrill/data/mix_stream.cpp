@@ -23,9 +23,9 @@
 namespace thrill {
 namespace data {
 
-MixStream::MixStream(Multiplexer& multiplexer, const StreamId& id,
-                     size_t local_worker_id, size_t dia_id)
-    : Stream(multiplexer, id, local_worker_id, dia_id),
+MixStreamData::MixStreamData(Multiplexer& multiplexer, const StreamId& id,
+                             size_t local_worker_id, size_t dia_id)
+    : StreamData(multiplexer, id, local_worker_id, dia_id),
       queue_(multiplexer_.block_pool_, num_workers(),
              local_worker_id, dia_id) {
 
@@ -62,17 +62,17 @@ MixStream::MixStream(Multiplexer& multiplexer, const StreamId& id,
     }
 }
 
-MixStream::~MixStream() {
+MixStreamData::~MixStreamData() {
     Close();
-    LOG << "~MixStream() deleted";
+    LOG << "~MixStreamData() deleted";
 }
 
-void MixStream::set_dia_id(size_t dia_id) {
+void MixStreamData::set_dia_id(size_t dia_id) {
     dia_id_ = dia_id;
     queue_.set_dia_id(dia_id);
 }
 
-std::vector<MixStream::Writer> MixStream::GetWriters() {
+std::vector<MixStreamData::Writer> MixStreamData::GetWriters() {
     size_t hard_ram_limit = multiplexer_.block_pool_.hard_ram_limit();
     size_t block_size_base = hard_ram_limit / 16 / multiplexer_.num_workers();
     size_t block_size = tlx::round_down_to_power_of_two(block_size_base);
@@ -87,7 +87,7 @@ std::vector<MixStream::Writer> MixStream::GetWriters() {
                      multiplexer_.active_streams_.load());
     }
 
-    LOG << "MixStream::GetWriters()"
+    LOG << "MixStreamData::GetWriters()"
         << " hard_ram_limit=" << hard_ram_limit
         << " block_size_base=" << block_size_base
         << " block_size=" << block_size
@@ -120,16 +120,16 @@ std::vector<MixStream::Writer> MixStream::GetWriters() {
     return result;
 }
 
-MixStream::MixReader MixStream::GetMixReader(bool consume) {
+MixStreamData::MixReader MixStreamData::GetMixReader(bool consume) {
     rx_timespan_.StartEventually();
     return MixReader(queue_, consume, local_worker_id_);
 }
 
-MixStream::MixReader MixStream::GetReader(bool consume) {
+MixStreamData::MixReader MixStreamData::GetReader(bool consume) {
     return GetMixReader(consume);
 }
 
-void MixStream::Close() {
+void MixStreamData::Close() {
     if (is_closed_) return;
     is_closed_ = true;
 
@@ -143,7 +143,7 @@ void MixStream::Close() {
     for (size_t worker = 0;
          worker < multiplexer_.workers_per_host(); ++worker)
     {
-        MixStreamIntPtr target_stream_ptr =
+        MixStreamDataPtr target_stream_ptr =
             multiplexer_.MixLoopback(id_, worker);
 
         if (target_stream_ptr) {
@@ -157,14 +157,14 @@ void MixStream::Close() {
 
     // wait for all close packets to arrive.
     for (size_t i = 0; i < (num_hosts() - 1) * workers_per_host(); ++i) {
-        LOG << "MixStream::Close() wait for closing block"
+        LOG << "MixStreamData::Close() wait for closing block"
             << " local_worker_id_=" << local_worker_id_;
         sem_closing_blocks_.wait();
     }
 
     tx_lifetime_.StopEventually();
     tx_timespan_.StopEventually();
-    OnAllClosed("MixStream");
+    OnAllClosed("MixStreamData");
 
     {
         std::unique_lock<std::mutex> lock(multiplexer_.mutex_);
@@ -172,19 +172,19 @@ void MixStream::Close() {
         multiplexer_.IntReleaseMixStream(id_, local_worker_id_);
     }
 
-    LOG << "MixStream::Close() finished"
+    LOG << "MixStreamData::Close() finished"
         << " id_=" << id_
         << " local_worker_id_=" << local_worker_id_;
 }
 
-bool MixStream::closed() const {
+bool MixStreamData::closed() const {
     if (is_closed_) return true;
     bool closed = true;
     closed = closed && queue_.write_closed();
     return closed;
 }
 
-void MixStream::OnStreamBlock(size_t from, PinnedBlock&& b) {
+void MixStreamData::OnStreamBlock(size_t from, PinnedBlock&& b) {
     assert(from < num_workers());
     rx_timespan_.StartEventually();
 
@@ -200,7 +200,7 @@ void MixStream::OnStreamBlock(size_t from, PinnedBlock&& b) {
     queue_.AppendBlock(from, std::move(b).MoveToBlock());
 }
 
-void MixStream::OnCloseStream(size_t from) {
+void MixStreamData::OnCloseStream(size_t from) {
     assert(from < num_workers());
     queue_.Close(from);
 
@@ -218,11 +218,37 @@ void MixStream::OnCloseStream(size_t from) {
     sem_closing_blocks_.signal();
 }
 
-MixBlockQueueSink* MixStream::loopback_queue(size_t from_worker_id) {
+MixBlockQueueSink* MixStreamData::loopback_queue(size_t from_worker_id) {
     assert(from_worker_id < workers_per_host());
     assert(from_worker_id < loopback_.size());
     sLOG0 << "expose loopback queue for" << from_worker_id;
     return &(loopback_[from_worker_id]);
+}
+
+/******************************************************************************/
+// MixStream
+
+MixStream::MixStream(const MixStreamDataPtr& ptr)
+    : ptr_(ptr) { }
+
+MixStream::~MixStream() {
+    ptr_->Close();
+}
+
+const StreamId& MixStream::id() const {
+    return ptr_->id();
+}
+
+std::vector<MixStream::Writer> MixStream::GetWriters() {
+    return ptr_->GetWriters();
+}
+
+MixStream::MixReader MixStream::GetMixReader(bool consume) {
+    return ptr_->GetMixReader(consume);
+}
+
+MixStream::MixReader MixStream::GetReader(bool consume) {
+    return ptr_->GetReader(consume);
 }
 
 } // namespace data

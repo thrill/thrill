@@ -17,8 +17,8 @@
 namespace thrill {
 namespace data {
 
-Stream::Stream(Multiplexer& multiplexer, const StreamId& id,
-               size_t local_worker_id, size_t dia_id)
+StreamData::StreamData(Multiplexer& multiplexer, const StreamId& id,
+                       size_t local_worker_id, size_t dia_id)
     : id_(id),
       local_worker_id_(local_worker_id),
       dia_id_(dia_id),
@@ -26,11 +26,11 @@ Stream::Stream(Multiplexer& multiplexer, const StreamId& id,
       remaining_closing_blocks_((num_hosts() - 1) * workers_per_host())
 { }
 
-Stream::~Stream() = default;
+StreamData::~StreamData() = default;
 
-void Stream::OnAllClosed(const char* stream_type) {
+void StreamData::OnAllClosed(const char* stream_type) {
     multiplexer_.logger()
-        << "class" << "Stream"
+        << "class" << "StreamData"
         << "event" << "close"
         << "id" << id_
         << "type" << stream_type
@@ -51,6 +51,12 @@ void Stream::OnAllClosed(const char* stream_type) {
         << "tx_int_bytes" << tx_int_bytes_
         << "tx_int_blocks" << tx_int_blocks_;
 }
+
+/******************************************************************************/
+// Stream
+
+Stream::~Stream()
+{ }
 
 } // namespace data
 } // namespace thrill

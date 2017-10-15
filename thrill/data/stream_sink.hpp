@@ -29,11 +29,11 @@ namespace data {
 //! \{
 
 // forward declarations
-class Stream;
+class StreamData;
 
 /*!
  * StreamSink is an BlockSink that sends data via a network socket to the
- * Stream object on a different worker.
+ * StreamData object on a different worker.
  */
 class StreamSink final : public BlockSink
 {
@@ -42,10 +42,10 @@ public:
 
     //! Construct invalid StreamSink, needed for placeholders in sinks arrays
     //! where Blocks are directly sent to local workers.
-    StreamSink(Stream& stream, BlockPool& block_pool, size_t local_worker_id);
+    StreamSink(StreamData& stream, BlockPool& block_pool, size_t local_worker_id);
 
     //! StreamSink sending out to network.
-    StreamSink(Stream& stream, BlockPool& block_pool,
+    StreamSink(StreamData& stream, BlockPool& block_pool,
                net::Connection* connection,
                MagicByte magic, StreamId stream_id,
                size_t host_rank, size_t host_local_worker,
@@ -89,7 +89,7 @@ public:
 private:
     static constexpr bool debug = false;
 
-    Stream& stream_;
+    StreamData& stream_;
     net::Connection* connection_ = nullptr;
 
     MagicByte magic_ = MagicByte::Invalid;

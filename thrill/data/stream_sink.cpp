@@ -20,12 +20,12 @@
 namespace thrill {
 namespace data {
 
-StreamSink::StreamSink(Stream& stream, BlockPool& block_pool,
+StreamSink::StreamSink(StreamData& stream, BlockPool& block_pool,
                        size_t local_worker_id)
     : BlockSink(block_pool, local_worker_id),
       stream_(stream), closed_(true) { }
 
-StreamSink::StreamSink(Stream& stream, BlockPool& block_pool,
+StreamSink::StreamSink(StreamData& stream, BlockPool& block_pool,
                        net::Connection* connection,
                        MagicByte magic, StreamId stream_id,
                        size_t host_rank, size_t host_local_worker,
