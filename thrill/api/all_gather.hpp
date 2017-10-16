@@ -81,9 +81,7 @@ public:
 
     void StopPreOp(size_t /* id */) final {
         // data has been pushed during pre-op -> close emitters
-        for (size_t i = 0; i < emitters_.size(); i++) {
-            emitters_[i].Close();
-        }
+        std::vector<data::CatStream::Writer>().swap(emitters_);
     }
 
     //! Closes the output file
@@ -92,6 +90,7 @@ public:
         while (reader.HasNext()) {
             out_vector_->push_back(reader.template Next<ValueType>());
         }
+        stream_.reset();
     }
 
     const std::vector<ValueType>& result() const final {

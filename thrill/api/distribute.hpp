@@ -77,12 +77,11 @@ public:
         while (readers.HasNext()) {
             this->PushItem(readers.Next<ValueType>());
         }
-
-        stream_.reset();
     }
 
     void Dispose() final {
         std::vector<ValueType>().swap(in_vector_);
+        stream_.reset();
     }
 
 private:

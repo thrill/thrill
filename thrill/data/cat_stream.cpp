@@ -53,33 +53,34 @@ CatStreamData::CatStreamData(Multiplexer& multiplexer, const StreamId& id,
                 queues_.emplace_back(
                     multiplexer_.block_pool_, local_worker_id, dia_id,
                     // OnClose callback to BlockQueue to deliver stats
-                    [this, host, worker,
+                    [host, worker,
                      // keep a smart pointer reference to this
                      p = CatStreamDataPtr(this)](BlockQueue& queue) {
 
-                        multiplexer_.logger()
+                        p->multiplexer_.logger()
                         << "class" << "StreamSink"
                         << "event" << "close"
-                        << "id" << id_
+                        << "id" << p->id_
                         << "peer_host" << host
                         << "src_worker" << p->my_worker_rank()
-                        << "tgt_worker" << (host * workers_per_host() + worker)
+                        << "tgt_worker" << (host * p->workers_per_host() + worker)
                         << "loopback" << true
                         << "items" << queue.item_counter()
                         << "bytes" << queue.byte_counter()
                         << "blocks" << queue.block_counter()
                         << "timespan" << queue.timespan();
 
-                        CatStreamData* source = reinterpret_cast<CatStreamData*>(queue.source());
+                        CatStreamData* source = reinterpret_cast<CatStreamData*>(
+                            queue.source());
                         if (source) {
                             source->tx_int_items_ += queue.item_counter();
                             source->tx_int_bytes_ += queue.byte_counter();
                             source->tx_int_blocks_ += queue.block_counter();
                         }
 
-                        rx_int_items_ += queue.item_counter();
-                        rx_int_bytes_ += queue.byte_counter();
-                        rx_int_blocks_ += queue.block_counter();
+                        p->rx_int_items_ += queue.item_counter();
+                        p->rx_int_bytes_ += queue.byte_counter();
+                        p->rx_int_blocks_ += queue.block_counter();
                     });
             }
             else {
@@ -234,6 +235,8 @@ void CatStreamData::Close() {
         multiplexer_.active_streams_--;
         multiplexer_.IntReleaseCatStream(id_, local_worker_id_);
     }
+
+    std::vector<StreamSink>().swap(sinks_);
 
     LOG << "CatStreamData::Close() finished"
         << " id_=" << id_

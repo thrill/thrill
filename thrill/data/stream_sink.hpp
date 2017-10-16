@@ -42,11 +42,11 @@ public:
 
     //! Construct invalid StreamSink, needed for placeholders in sinks arrays
     //! where Blocks are directly sent to local workers.
-    StreamSink(const StreamDataPtr& stream,
+    StreamSink(StreamDataPtr stream,
                BlockPool& block_pool, size_t local_worker_id);
 
     //! StreamSink sending out to network.
-    StreamSink(const StreamDataPtr& stream, BlockPool& block_pool,
+    StreamSink(StreamDataPtr stream, BlockPool& block_pool,
                net::Connection* connection,
                MagicByte magic, StreamId stream_id,
                size_t host_rank, size_t host_local_worker,

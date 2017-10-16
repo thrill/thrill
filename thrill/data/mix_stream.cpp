@@ -173,6 +173,8 @@ void MixStreamData::Close() {
         multiplexer_.IntReleaseMixStream(id_, local_worker_id_);
     }
 
+    std::vector<StreamSink>().swap(sinks_);
+
     LOG << "MixStreamData::Close() finished"
         << " id_=" << id_
         << " local_worker_id_=" << local_worker_id_;
