@@ -140,9 +140,16 @@ Multiplexer::Multiplexer(mem::Manager& mem_manager,
 }
 
 void Multiplexer::Close() {
-    // close all still open Streams
-    for (auto& ch : d_->stream_sets_.map())
-        ch.second->Close();
+    std::unique_lock<std::mutex> lock(mutex_);
+
+    if (!d_->stream_sets_.map().empty()) {
+        LOG1 << "Multiplexer::Close()"
+             << " remaining_streams=" << d_->stream_sets_.map().size();
+        die_unless(d_->stream_sets_.map().empty());
+    }
+
+    // destroy all still open Streams
+    d_->stream_sets_.map().clear();
 
     // terminate dispatcher, this waits for unfinished AsyncWrites.
     dispatcher_.Terminate();

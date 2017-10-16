@@ -103,7 +103,6 @@ CatStreamData::CatStreamData(Multiplexer& multiplexer, const StreamId& id,
 }
 
 CatStreamData::~CatStreamData() {
-    Close();
     LOG << "~CatStreamData() deleted";
 }
 

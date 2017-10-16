@@ -111,6 +111,9 @@ TEST(StreamSet, TestLoopbacks) {
     consumer(stream0, 0);
     consumer(stream1, 1);
     consumer(stream2, 2);
+    stream0->Close();
+    stream1->Close();
+    stream2->Close();
 }
 
 /******************************************************************************/

@@ -64,7 +64,6 @@ MixStreamData::MixStreamData(Multiplexer& multiplexer, const StreamId& id,
 }
 
 MixStreamData::~MixStreamData() {
-    Close();
     LOG << "~MixStreamData() deleted";
 }
 
