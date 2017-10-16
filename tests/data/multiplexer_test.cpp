@@ -183,12 +183,12 @@ void TalkAllToAllViaCatStream(net::Group* net) {
     data::BlockPool block_pool;
     data::Multiplexer multiplexer(mem_manager, block_pool, num_workers_per_host, *net);
     {
-        data::StreamId id = multiplexer.AllocateCatStreamId(my_local_worker_id);
+        auto stream = multiplexer.GetNewCatStream(
+            my_local_worker_id, /* dia_id */ 0);
 
         // open Writers and send a message to all workers
 
-        auto writers = multiplexer.GetOrCreateCatStreamData(
-            id, my_local_worker_id, /* dia_id */ 0)->GetWriters();
+        auto writers = stream->GetWriters();
 
         for (size_t tgt = 0; tgt != writers.size(); ++tgt) {
             writers[tgt].Put("hello I am " + std::to_string(net->my_host_rank())
@@ -207,8 +207,7 @@ void TalkAllToAllViaCatStream(net::Group* net) {
 
         // open Readers and receive message from all workers
 
-        auto readers = multiplexer.GetOrCreateCatStreamData(
-            id, my_local_worker_id, /* dia_id */ 0)->GetReaders();
+        auto readers = stream->GetReaders();
 
         for (size_t src = 0; src != readers.size(); ++src) {
             std::string msg = readers[src].Next<std::string>();
@@ -244,8 +243,7 @@ TEST_F(Multiplexer, ReadCompleteCatStream) {
     data::default_block_size = test_block_size;
     auto w0 =
         [](data::Multiplexer& multiplexer) {
-            auto id = multiplexer.AllocateCatStreamId(0);
-            auto c = multiplexer.GetOrCreateCatStreamData(id, 0, /* dia_id */ 0);
+            auto c = multiplexer.GetNewCatStream(0, /* dia_id */ 0);
             auto writers = c->GetWriters();
             std::string msg1 = "I came from worker 0";
             std::string msg2 = "I am another message from worker 0";
@@ -259,8 +257,7 @@ TEST_F(Multiplexer, ReadCompleteCatStream) {
         };
     auto w1 =
         [](data::Multiplexer& multiplexer) {
-            auto id = multiplexer.AllocateCatStreamId(0);
-            auto c = multiplexer.GetOrCreateCatStreamData(id, 0, /* dia_id */ 0);
+            auto c = multiplexer.GetNewCatStream(0, /* dia_id */ 0);
             auto writers = c->GetWriters();
             std::string msg1 = "I came from worker 1";
             writers[2].Put(msg1);
@@ -271,8 +268,7 @@ TEST_F(Multiplexer, ReadCompleteCatStream) {
         };
     auto w2 =
         [](data::Multiplexer& multiplexer) {
-            auto id = multiplexer.AllocateCatStreamId(0);
-            auto c = multiplexer.GetOrCreateCatStreamData(id, 0, /* dia_id */ 0);
+            auto c = multiplexer.GetNewCatStream(0, /* dia_id */ 0);
             auto writers = c->GetWriters();
             for (auto& w : writers) {
                 sLOG << "close worker";
@@ -291,8 +287,7 @@ TEST_F(Multiplexer, ReadCompleteCatStreamManyTimes) {
     data::default_block_size = test_block_size;
     auto w0 =
         [](data::Multiplexer& multiplexer) {
-            auto id = multiplexer.AllocateCatStreamId(0);
-            auto c = multiplexer.GetOrCreateCatStreamData(id, 0, /* dia_id */ 0);
+            auto c = multiplexer.GetNewCatStream(0, /* dia_id */ 0);
             auto writers = c->GetWriters();
             std::string msg1 = "I came from worker 0";
             std::string msg2 = "I am another message from worker 0";
@@ -306,8 +301,7 @@ TEST_F(Multiplexer, ReadCompleteCatStreamManyTimes) {
         };
     auto w1 =
         [](data::Multiplexer& multiplexer) {
-            auto id = multiplexer.AllocateCatStreamId(0);
-            auto c = multiplexer.GetOrCreateCatStreamData(id, 0, /* dia_id */ 0);
+            auto c = multiplexer.GetNewCatStream(0, /* dia_id */ 0);
             auto writers = c->GetWriters();
             std::string msg1 = "I came from worker 1";
             writers[2].Put(msg1);
@@ -318,8 +312,7 @@ TEST_F(Multiplexer, ReadCompleteCatStreamManyTimes) {
         };
     auto w2 =
         [](data::Multiplexer& multiplexer) {
-            auto id = multiplexer.AllocateCatStreamId(0);
-            auto c = multiplexer.GetOrCreateCatStreamData(id, 0, /* dia_id */ 0);
+            auto c = multiplexer.GetNewCatStream(0, /* dia_id */ 0);
             auto writers = c->GetWriters();
             for (auto& w : writers) {
                 sLOG << "close worker";
@@ -366,8 +359,7 @@ TEST_F(Multiplexer, ReadCompleteMixStreamManyTimes) {
     data::default_block_size = test_block_size;
     auto w0 =
         [](data::Multiplexer& multiplexer) {
-            auto id = multiplexer.AllocateMixStreamId(0);
-            auto c = multiplexer.GetOrCreateMixStreamData(id, 0, /* dia_id */ 0);
+            auto c = multiplexer.GetNewMixStream(0, /* dia_id */ 0);
             auto writers = c->GetWriters();
             std::string msg1 = "I came from worker 0";
             std::string msg2 = "I am another message from worker 0";
@@ -381,8 +373,7 @@ TEST_F(Multiplexer, ReadCompleteMixStreamManyTimes) {
         };
     auto w1 =
         [](data::Multiplexer& multiplexer) {
-            auto id = multiplexer.AllocateMixStreamId(0);
-            auto c = multiplexer.GetOrCreateMixStreamData(id, 0, /* dia_id */ 0);
+            auto c = multiplexer.GetNewMixStream(0, /* dia_id */ 0);
             auto writers = c->GetWriters();
             std::string msg1 = "I came from worker 1";
             writers[2].Put(msg1);
@@ -393,8 +384,7 @@ TEST_F(Multiplexer, ReadCompleteMixStreamManyTimes) {
         };
     auto w2 =
         [](data::Multiplexer& multiplexer) {
-            auto id = multiplexer.AllocateMixStreamId(0);
-            auto c = multiplexer.GetOrCreateMixStreamData(id, 0, /* dia_id */ 0);
+            auto c = multiplexer.GetNewMixStream(0, /* dia_id */ 0);
             auto writers = c->GetWriters();
             for (auto& w : writers) {
                 sLOG << "close worker";
@@ -478,12 +468,12 @@ void TalkAllToAllViaMixStream(net::Group* net) {
     data::BlockPool block_pool;
     data::Multiplexer multiplexer(mem_manager, block_pool, num_workers_per_host, *net);
     {
-        data::StreamId id = multiplexer.AllocateMixStreamId(my_local_worker_id);
+        auto stream = multiplexer.GetNewMixStream(
+            my_local_worker_id, /* dia_id */ 0);
 
         // open Writers and send a message to all workers
 
-        auto writers = multiplexer.GetOrCreateMixStreamData(
-            id, my_local_worker_id, /* dia_id */ 0)->GetWriters();
+        auto writers = stream->GetWriters();
 
         for (size_t tgt = 0; tgt != writers.size(); ++tgt) {
             std::string txt =
@@ -506,8 +496,7 @@ void TalkAllToAllViaMixStream(net::Group* net) {
 
         // open mix Reader and receive messages from all workers
 
-        auto reader = multiplexer.GetOrCreateMixStreamData(
-            id, my_local_worker_id, /* dia_id */ 0)->GetMixReader(true);
+        auto reader = stream->GetMixReader(true);
 
         std::vector<std::string> recv;
 
