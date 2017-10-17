@@ -25,6 +25,7 @@ File::File(BlockPool& block_pool, size_t local_worker_id, size_t dia_id)
 
 File::~File() {
     // assert(dia_id_ != 0);
+    die_unequal(reference_count(), 0u);
     logger()
         << "class" << "File"
         << "event" << "close"
@@ -56,7 +57,8 @@ void File::Clear() {
 }
 
 File::Writer File::GetWriter(size_t block_size) {
-    return Writer(this, block_size);
+    return Writer(
+        FileBlockSink(tlx::CountingPtrNoDelete<File>(this)), block_size);
 }
 
 File::DynWriter File::GetDynWriter(size_t block_size) {

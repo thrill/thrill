@@ -29,9 +29,6 @@ namespace data {
 class DiscardSink final : public BlockSink
 {
 public:
-    using Writer = BlockWriter<DiscardSink>;
-    using DynWriter = DynBlockWriter;
-
     //! Create discarding BlockSink.
     explicit DiscardSink(BlockPool& block_pool, size_t local_worker_id)
         : BlockSink(block_pool, local_worker_id)
@@ -57,19 +54,11 @@ public:
     //! nullptr).
     static constexpr bool allocate_can_fail_ = false;
 
-    //! Return a BlockWriter delivering to this BlockSink.
-    Writer GetWriter(size_t block_size = default_block_size) {
-        return Writer(this, block_size);
-    }
-
-    //! Return a BlockWriter delivering to this BlockSink.
-    DynWriter GetDynWriter(size_t block_size = default_block_size) {
-        return DynWriter(this, block_size);
-    }
-
 private:
     bool closed_ = false;
 };
+
+using DiscardWriter = NewBlockWriter<DiscardSink>;
 
 //! \}
 
