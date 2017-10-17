@@ -16,7 +16,6 @@
 #include <thrill/data/block_queue.hpp>
 #include <thrill/data/cat_block_source.hpp>
 #include <thrill/data/stream.hpp>
-#include <thrill/data/stream_sink.hpp>
 
 #include <string>
 #include <vector>

@@ -18,7 +18,7 @@
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/data/block.hpp>
 #include <thrill/data/block_sink.hpp>
-#include <thrill/data/stream.hpp>
+#include <thrill/data/stream_data.hpp>
 #include <thrill/net/buffer.hpp>
 #include <thrill/net/dispatcher_thread.hpp>
 
@@ -30,6 +30,7 @@ namespace data {
 
 // forward declarations
 class StreamData;
+using StreamDataPtr = tlx::CountingPtr<StreamData>;
 
 /*!
  * StreamSink is an BlockSink that sends data via a network socket to the
