@@ -57,7 +57,7 @@ MixStreamData::MixStreamData(Multiplexer& multiplexer, const StreamId& id,
     // construct MixBlockQueueSink for loopback writers
     for (size_t worker = 0; worker < workers_per_host(); worker++) {
         loopback_.emplace_back(
-            *this,
+            MixStreamDataPtr(this),
             my_host_rank() * multiplexer_.workers_per_host() + worker,
             worker);
     }
@@ -107,7 +107,7 @@ std::vector<MixStreamData::Writer> MixStreamData::GetWriters() {
                 MixBlockQueueSink* sink_queue_ptr =
                     target_stream_ptr->loopback_queue(local_worker_id_);
                 result.emplace_back(sink_queue_ptr, block_size);
-                sink_queue_ptr->set_src_mix_stream(this);
+                sink_queue_ptr->set_src_mix_stream(MixStreamDataPtr(this));
             }
             else {
                 size_t worker_id = host * workers_per_host() + worker;
@@ -173,6 +173,7 @@ void MixStreamData::Close() {
     }
 
     std::vector<StreamSink>().swap(sinks_);
+    std::vector<MixBlockQueueSink>().swap(loopback_);
 
     LOG << "MixStreamData::Close() finished"
         << " id_=" << id_

@@ -33,6 +33,8 @@ namespace data {
 class MixStreamData;
 class MixBlockQueueReader;
 
+using MixStreamDataPtr = tlx::CountingPtr<MixStreamData>;
+
 /*!
  * Implements reading an unordered sequence of items from multiple workers,
  * which sends Blocks. This class is mainly used to implement MixChannel.
@@ -147,7 +149,7 @@ class MixBlockQueueSink final : public BlockSink
     static constexpr bool debug = false;
 
 public:
-    MixBlockQueueSink(MixStreamData& dst_mix_stream,
+    MixBlockQueueSink(MixStreamDataPtr dst_mix_stream,
                       size_t from_global, size_t from_local);
 
     void AppendBlock(const Block& b, bool is_last_block) final;
@@ -162,17 +164,17 @@ public:
     bool write_closed() const { return write_closed_; }
 
     //! source mix stream instance
-    void set_src_mix_stream(MixStreamData* src_mix_stream);
+    void set_src_mix_stream(MixStreamDataPtr src_mix_stream);
 
 private:
     //! destination mix stream
-    MixStreamData& dst_mix_stream_;
+    MixStreamDataPtr dst_mix_stream_;
 
     //! destination mix queue
     MixBlockQueue& dst_mix_queue_;
 
     //! source mix stream instance
-    MixStreamData* src_mix_stream_ = nullptr;
+    MixStreamDataPtr src_mix_stream_;
 
     //! close flag
     common::AtomicMovable<bool> write_closed_ = { false };

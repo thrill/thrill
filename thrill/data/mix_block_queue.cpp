@@ -81,9 +81,10 @@ MixBlockQueue::SrcBlockPair MixBlockQueue::Pop() {
 // MixBlockQueueSink
 
 MixBlockQueueSink::MixBlockQueueSink(
-    MixStreamData& dst_mix_stream, size_t from_global, size_t from_local)
-    : BlockSink(dst_mix_stream.queue_.block_pool(), from_local),
-      dst_mix_stream_(dst_mix_stream), dst_mix_queue_(dst_mix_stream.queue_),
+    MixStreamDataPtr dst_mix_stream, size_t from_global, size_t from_local)
+    : BlockSink(dst_mix_stream->queue_.block_pool(), from_local),
+      dst_mix_stream_(std::move(dst_mix_stream)),
+      dst_mix_queue_(dst_mix_stream_->queue_),
       from_global_(from_global)
 { }
 
@@ -117,10 +118,10 @@ void MixBlockQueueSink::Close() {
         << "class" << "StreamSink"
         << "subclass" << "MixBlockQueueSink"
         << "event" << "close"
-        << "id" << dst_mix_stream_.id_
-        << "peer_host" << dst_mix_stream_.my_host_rank()
+        << "id" << dst_mix_stream_->id_
+        << "peer_host" << dst_mix_stream_->my_host_rank()
         << "src_worker" << from_global_
-        << "tgt_worker" << dst_mix_stream_.my_worker_rank()
+        << "tgt_worker" << dst_mix_stream_->my_worker_rank()
         << "loopback" << true
         << "items" << item_counter_
         << "bytes" << byte_counter_
@@ -132,13 +133,13 @@ void MixBlockQueueSink::Close() {
         src_mix_stream_->tx_int_blocks_ += block_counter_;
     }
 
-    dst_mix_stream_.rx_int_items_ += item_counter_;
-    dst_mix_stream_.rx_int_bytes_ += byte_counter_;
-    dst_mix_stream_.rx_int_blocks_ += block_counter_;
+    dst_mix_stream_->rx_int_items_ += item_counter_;
+    dst_mix_stream_->rx_int_bytes_ += byte_counter_;
+    dst_mix_stream_->rx_int_blocks_ += block_counter_;
 }
 
-void MixBlockQueueSink::set_src_mix_stream(MixStreamData* src_mix_stream) {
-    src_mix_stream_ = src_mix_stream;
+void MixBlockQueueSink::set_src_mix_stream(MixStreamDataPtr src_mix_stream) {
+    src_mix_stream_ = std::move(src_mix_stream);
 }
 
 /******************************************************************************/
