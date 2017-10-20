@@ -228,7 +228,8 @@ private:
 
     core::ReducePrePhase<
         TableItem, Key, ValueType, KeyExtractor, ReduceFunction, VolatileKey,
-        ReduceConfig, core::ReduceByIndex<Key> > pre_phase_;
+        data::Stream::Writer, ReduceConfig, core::ReduceByIndex<Key>
+        > pre_phase_;
 
     core::ReduceByIndexPostPhase<
         TableItem, Key, ValueType, KeyExtractor, ReduceFunction, Emitter,

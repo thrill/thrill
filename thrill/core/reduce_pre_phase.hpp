@@ -42,13 +42,13 @@ namespace core {
 //! Emitter implementation to plug into a reduce hash table for
 //! collecting/flushing items while reducing. Items flushed in the pre-phase are
 //! transmitted via a network Channel.
-template <typename TableItem, bool VolatileKey>
+template <typename TableItem, bool VolatileKey, typename BlockWriter>
 class ReducePrePhaseEmitter
 {
     static constexpr bool debug = false;
 
 public:
-    explicit ReducePrePhaseEmitter(std::vector<data::DynBlockWriter>& writer)
+    explicit ReducePrePhaseEmitter(std::vector<BlockWriter>& writer)
         : writer_(writer),
           stats_(writer.size(), 0) { }
 
@@ -68,7 +68,7 @@ public:
     void CloseAll() {
         sLOG << "emit stats:";
         size_t i = 0;
-        for (data::DynBlockWriter& e : writer_) {
+        for (BlockWriter& e : writer_) {
             e.Close();
             sLOG << "emitter" << i << "pushed" << stats_[i++];
         }
@@ -76,7 +76,7 @@ public:
 
 public:
     //! Set of emitters, one per partition.
-    std::vector<data::DynBlockWriter>& writer_;
+    std::vector<BlockWriter>& writer_;
 
     //! Emitter stats.
     std::vector<size_t> stats_;
@@ -85,6 +85,7 @@ public:
 template <typename TableItem, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
           const bool VolatileKey,
+          typename BlockWriter,
           typename ReduceConfig_ = DefaultReduceConfig,
           typename IndexFunction = ReduceByHash<Key>,
           typename KeyEqualFunction = std::equal_to<Key>,
@@ -94,14 +95,14 @@ class ReducePrePhase;
 
 template <typename TableItem, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
-          const bool VolatileKey,
+          const bool VolatileKey, typename BlockWriter,
           typename ReduceConfig_,
           typename IndexFunction,
           typename KeyEqualFunction,
           typename HashFunction>
 class ReducePrePhase<TableItem, Key, Value,
                      KeyExtractor, ReduceFunction,
-                     VolatileKey,
+                     VolatileKey, BlockWriter,
                      ReduceConfig_,
                      IndexFunction,
                      KeyEqualFunction,
@@ -112,7 +113,7 @@ class ReducePrePhase<TableItem, Key, Value,
 
 public:
     using ReduceConfig = ReduceConfig_;
-    using Emitter = ReducePrePhaseEmitter<TableItem, VolatileKey>;
+    using Emitter = ReducePrePhaseEmitter<TableItem, VolatileKey, BlockWriter>;
     using MakeTableItem = ReduceMakeTableItem<Value, TableItem, VolatileKey>;
 
     using Table = typename ReduceTableSelect<
@@ -130,7 +131,7 @@ public:
                    size_t num_partitions,
                    KeyExtractor key_extractor,
                    ReduceFunction reduce_function,
-                   std::vector<data::DynBlockWriter>& emit,
+                   std::vector<BlockWriter>& emit,
                    const ReduceConfig& config = ReduceConfig(),
                    const IndexFunction& index_function = IndexFunction(),
                    const KeyEqualFunction& key_equal_function = KeyEqualFunction(),
@@ -208,7 +209,7 @@ protected:
 
 template <typename TableItem, typename Key, typename Value,
           typename KeyExtractor, typename ReduceFunction,
-          const bool VolatileKey,
+          const bool VolatileKey, typename BlockWriter,
           typename ReduceConfig,
           typename IndexFunction,
           typename EqualToFunction,
@@ -217,6 +218,7 @@ class ReducePrePhase<TableItem, Key, Value,
                      KeyExtractor,
                      ReduceFunction,
                      VolatileKey,
+                     BlockWriter,
                      ReduceConfig,
                      IndexFunction,
                      EqualToFunction,
@@ -226,6 +228,7 @@ class ReducePrePhase<TableItem, Key, Value,
                             KeyExtractor,
                             ReduceFunction,
                             VolatileKey,
+                            BlockWriter,
                             ReduceConfig,
                             IndexFunction,
                             EqualToFunction,
@@ -235,7 +238,8 @@ class ReducePrePhase<TableItem, Key, Value,
 
 public:
     using Super = ReducePrePhase<TableItem, Key, Value, KeyExtractor,
-                                 ReduceFunction, VolatileKey, ReduceConfig,
+                                 ReduceFunction, VolatileKey, BlockWriter,
+                                 ReduceConfig,
                                  IndexFunction, EqualToFunction, HashFunction,
                                  false>;
     using KeyValuePair = std::pair<Key, Value>;
@@ -244,7 +248,7 @@ public:
                    size_t num_partitions,
                    KeyExtractor key_extractor,
                    ReduceFunction reduce_function,
-                   std::vector<data::DynBlockWriter>& emit,
+                   std::vector<BlockWriter>& emit,
                    const ReduceConfig& config = ReduceConfig(),
                    const IndexFunction& index_function = IndexFunction(),
                    const EqualToFunction& equal_to_function = EqualToFunction(),
