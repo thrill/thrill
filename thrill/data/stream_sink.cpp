@@ -20,10 +20,8 @@
 namespace thrill {
 namespace data {
 
-StreamSink::StreamSink(StreamDataPtr stream, BlockPool& block_pool,
-                       size_t local_worker_id)
-    : BlockSink(block_pool, local_worker_id),
-      stream_(std::move(stream)), closed_(true) { }
+StreamSink::StreamSink()
+    : BlockSink(nullptr, -1), closed_(true) { }
 
 StreamSink::StreamSink(StreamDataPtr stream, BlockPool& block_pool,
                        net::Connection* connection,
@@ -34,6 +32,48 @@ StreamSink::StreamSink(StreamDataPtr stream, BlockPool& block_pool,
       stream_(std::move(stream)),
       connection_(connection),
       magic_(magic),
+      id_(stream_id),
+      host_rank_(host_rank),
+      peer_rank_(peer_rank),
+      peer_local_worker_(peer_local_worker) {
+    logger()
+        << "class" << "StreamSink"
+        << "event" << "open"
+        << "id" << id_
+        << "peer_host" << peer_rank_
+        << "src_worker" << my_worker_rank()
+        << "tgt_worker" << peer_worker_rank();
+}
+
+StreamSink::StreamSink(StreamDataPtr stream, BlockPool& block_pool,
+                       BlockQueue* block_queue,
+                       StreamId stream_id,
+                       size_t host_rank, size_t host_local_worker,
+                       size_t peer_rank, size_t peer_local_worker)
+    : BlockSink(block_pool, host_local_worker),
+      stream_(std::move(stream)),
+      block_queue_(block_queue),
+      id_(stream_id),
+      host_rank_(host_rank),
+      peer_rank_(peer_rank),
+      peer_local_worker_(peer_local_worker) {
+    logger()
+        << "class" << "StreamSink"
+        << "event" << "open"
+        << "id" << id_
+        << "peer_host" << peer_rank_
+        << "src_worker" << my_worker_rank()
+        << "tgt_worker" << peer_worker_rank();
+}
+
+StreamSink::StreamSink(StreamDataPtr stream, BlockPool& block_pool,
+                       MixStreamDataPtr target,
+                       StreamId stream_id,
+                       size_t host_rank, size_t host_local_worker,
+                       size_t peer_rank, size_t peer_local_worker)
+    : BlockSink(block_pool, host_local_worker),
+      stream_(std::move(stream)),
+      target_mix_stream_(target),
       id_(stream_id),
       host_rank_(host_rank),
       peer_rank_(peer_rank),
@@ -66,17 +106,24 @@ void StreamSink::AppendBlock(Block&& block, bool is_last_block) {
 void StreamSink::AppendPinnedBlock(const PinnedBlock& block, bool is_last_block) {
     if (block.size() == 0) return;
 
-    sem_.wait();
-
     LOG << "StreamSink::AppendPinnedBlock()"
         << " block=" << block
         << " is_last_block=" << is_last_block;
 
-    sLOG << "sending block" << tlx::hexdump(block.ToString());
+    if (block_queue_) {
+        return block_queue_->AppendPinnedBlock(block, is_last_block);
+    }
+    if (target_mix_stream_) {
+        return target_mix_stream_->OnStreamBlock(my_worker_rank(), PinnedBlock(block));
+    }
+
+    sem_.wait();
+
+    sLOG0 << "sending block" << tlx::hexdump(block.ToString());
 
     StreamMultiplexerHeader header(magic_, block);
     header.stream_id = id_;
-    header.sender_worker = (host_rank_ * workers_per_host()) + local_worker_id_;
+    header.sender_worker = my_worker_rank();
     header.receiver_local_worker = peer_local_worker_;
     header.is_last_block = is_last_block;
 
@@ -124,15 +171,22 @@ void StreamSink::Close() {
     if (closed_) return;
     closed_ = true;
 
-    // wait for the last Blocks to be transmitted (take away semaphore tokens)
-    for (size_t i = 0; i < num_queue_; ++i)
-        sem_.wait();
-
     LOG << "StreamSink::Close() sending 'close stream' id=" << id_
         << " from=" << my_worker_rank()
         << " (host=" << host_rank_ << ")"
         << " to=" << peer_worker_rank()
         << " (host=" << peer_rank_ << ")";
+
+    if (block_queue_) {
+        return block_queue_->Close();
+    }
+    if (target_mix_stream_) {
+        return target_mix_stream_->OnCloseStream(my_worker_rank());
+    }
+
+    // wait for the last Blocks to be transmitted (take away semaphore tokens)
+    for (size_t i = 0; i < num_queue_; ++i)
+        sem_.wait();
 
     StreamMultiplexerHeader header;
     header.magic = magic_;

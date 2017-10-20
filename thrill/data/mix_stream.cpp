@@ -27,41 +27,8 @@ MixStreamData::MixStreamData(Multiplexer& multiplexer, const StreamId& id,
                              size_t local_worker_id, size_t dia_id)
     : StreamData(multiplexer, id, local_worker_id, dia_id),
       queue_(multiplexer_.block_pool_, num_workers(),
-             local_worker_id, dia_id) {
-
-    sinks_.reserve(num_workers());
-    loopback_.reserve(num_workers());
-
-    // construct StreamSink array
-    for (size_t host = 0; host < num_hosts(); ++host) {
-        for (size_t worker = 0; worker < workers_per_host(); worker++) {
-            if (host == my_host_rank()) {
-                // dummy entries
-                sinks_.emplace_back(
-                    StreamDataPtr(this), multiplexer_.block_pool_, worker);
-            }
-            else {
-                // StreamSink which transmits MIX_STREAM_BLOCKs
-                sinks_.emplace_back(
-                    StreamDataPtr(this),
-                    multiplexer_.block_pool_,
-                    &multiplexer_.group_.connection(host),
-                    MagicByte::MixStreamBlock,
-                    id,
-                    my_host_rank(), local_worker_id,
-                    host, worker);
-            }
-        }
-    }
-
-    // construct MixBlockQueueSink for loopback writers
-    for (size_t worker = 0; worker < workers_per_host(); worker++) {
-        loopback_.emplace_back(
-            MixStreamDataPtr(this),
-            my_host_rank() * multiplexer_.workers_per_host() + worker,
-            worker);
-    }
-}
+             local_worker_id, dia_id)
+{ }
 
 MixStreamData::~MixStreamData() {
     LOG << "~MixStreamData() deleted";
@@ -104,14 +71,27 @@ std::vector<MixStreamData::Writer> MixStreamData::GetWriters() {
             if (host == my_host_rank()) {
                 // construct loopback queue writer
                 auto target_stream_ptr = multiplexer_.MixLoopback(id_, worker);
-                MixBlockQueueSink* sink_queue_ptr =
-                    target_stream_ptr->loopback_queue(local_worker_id_);
-                result.emplace_back(sink_queue_ptr, block_size);
-                sink_queue_ptr->set_src_mix_stream(MixStreamDataPtr(this));
+                result.emplace_back(
+                    StreamSink(
+                        StreamDataPtr(this),
+                        multiplexer_.block_pool_,
+                        target_stream_ptr,
+                        id_,
+                        my_host_rank(), local_worker_id_,
+                        host, worker),
+                    block_size);
             }
             else {
-                size_t worker_id = host * workers_per_host() + worker;
-                result.emplace_back(&sinks_[worker_id], block_size);
+                result.emplace_back(
+                    StreamSink(
+                        StreamDataPtr(this),
+                        multiplexer_.block_pool_,
+                        &multiplexer_.group_.connection(host),
+                        MagicByte::MixStreamBlock,
+                        id_,
+                        my_host_rank(), local_worker_id_,
+                        host, worker),
+                    block_size);
             }
         }
     }
@@ -133,30 +113,8 @@ void MixStreamData::Close() {
     if (is_closed_) return;
     is_closed_ = true;
 
-    // close all sinks, this should emit sentinel to all other worker.
-    for (size_t i = 0; i != sinks_.size(); ++i) {
-        if (sinks_[i].closed()) continue;
-        sinks_[i].Close();
-    }
-
-    // close loop-back queue from this worker to all others on this host.
-    for (size_t worker = 0;
-         worker < multiplexer_.workers_per_host(); ++worker)
-    {
-        MixStreamDataPtr target_stream_ptr =
-            multiplexer_.MixLoopback(id_, worker);
-
-        if (target_stream_ptr) {
-            MixBlockQueueSink* sink_queue_ptr =
-                target_stream_ptr->loopback_queue(local_worker_id_);
-
-            if (!sink_queue_ptr->write_closed())
-                sink_queue_ptr->Close();
-        }
-    }
-
     // wait for all close packets to arrive.
-    for (size_t i = 0; i < (num_hosts() - 1) * workers_per_host(); ++i) {
+    for (size_t i = 0; i < num_hosts() * workers_per_host(); ++i) {
         LOG << "MixStreamData::Close() wait for closing block"
             << " local_worker_id_=" << local_worker_id_;
         sem_closing_blocks_.wait();
@@ -171,9 +129,6 @@ void MixStreamData::Close() {
         multiplexer_.active_streams_--;
         multiplexer_.IntReleaseMixStream(id_, local_worker_id_);
     }
-
-    std::vector<StreamSink>().swap(sinks_);
-    std::vector<MixBlockQueueSink>().swap(loopback_);
 
     LOG << "MixStreamData::Close() finished"
         << " id_=" << id_
@@ -219,13 +174,6 @@ void MixStreamData::OnCloseStream(size_t from) {
     }
 
     sem_closing_blocks_.signal();
-}
-
-MixBlockQueueSink* MixStreamData::loopback_queue(size_t from_worker_id) {
-    assert(from_worker_id < workers_per_host());
-    assert(from_worker_id < loopback_.size());
-    sLOG0 << "expose loopback queue for" << from_worker_id;
-    return &(loopback_[from_worker_id]);
 }
 
 /******************************************************************************/

@@ -373,6 +373,8 @@ TEST_F(Multiplexer, ReadCompleteMixStreamManyTimes) {
                 sLOG << "close worker";
                 w.Close();
             }
+            auto reader = c->GetMixReader(false);
+            ASSERT_TRUE(!reader.HasNext());
         };
     auto w1 =
         [](data::Multiplexer& multiplexer) {
@@ -384,6 +386,8 @@ TEST_F(Multiplexer, ReadCompleteMixStreamManyTimes) {
                 sLOG << "close worker";
                 w.Close();
             }
+            auto reader = c->GetMixReader(false);
+            ASSERT_TRUE(!reader.HasNext());
         };
     auto w2 =
         [](data::Multiplexer& multiplexer) {
@@ -394,7 +398,7 @@ TEST_F(Multiplexer, ReadCompleteMixStreamManyTimes) {
                 w.Close();
             }
             {
-                auto reader = c->GetMixReader(false);
+                auto reader = c->GetMixReader(/* consume */ false);
                 // receive three std::string items
                 std::vector<std::string> recv;
 
@@ -412,7 +416,7 @@ TEST_F(Multiplexer, ReadCompleteMixStreamManyTimes) {
                 ASSERT_EQ("I came from worker 1", recv[2]);
             }
             {
-                auto reader = c->GetMixReader(false);
+                auto reader = c->GetMixReader(/* consume */ false);
                 // receive three std::string items
                 std::vector<std::string> recv;
 
@@ -430,7 +434,7 @@ TEST_F(Multiplexer, ReadCompleteMixStreamManyTimes) {
                 ASSERT_EQ("I came from worker 1", recv[2]);
             }
             {
-                auto reader = c->GetMixReader(true);
+                auto reader = c->GetMixReader(/* consume */ true);
                 // receive three std::string items
                 std::vector<std::string> recv;
 

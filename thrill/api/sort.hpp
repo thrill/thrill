@@ -456,8 +456,9 @@ private:
         assert(data_writers.size() == actual_k);
         assert(actual_k <= k);
 
+        data_writers.reserve(k);
         while (data_writers.size() < k)
-            data_writers.emplace_back(nullptr);
+            data_writers.emplace_back(data::MixStream::Writer());
 
         std::swap(data_writers[actual_k - 1], data_writers[k - 1]);
 

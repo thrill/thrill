@@ -96,10 +96,10 @@ TEST_F(Serialization, pod_struct) {
     ASSERT_EQ(foo.i1, fooserial.i1);
     ASSERT_DOUBLE_EQ(foo.d2, fooserial.d2);
     static_assert(
-        data::Serialization<data::DynBlockWriter, MyPodStruct>::is_fixed_size,
+        data::Serialization<data::File::Writer, MyPodStruct>::is_fixed_size,
         "Serialization::is_fixed_size is wrong");
     static_assert(
-        data::Serialization<data::DynBlockWriter, MyPodStruct>::fixed_size
+        data::Serialization<data::File::Writer, MyPodStruct>::fixed_size
         == sizeof(MyPodStruct),
         "Serialization::fixed_size is wrong");
 }
@@ -117,7 +117,7 @@ TEST_F(Serialization, tuple) {
     ASSERT_EQ(std::get<1>(foo), std::get<1>(fooserial));
     ASSERT_EQ(std::get<2>(foo), std::get<2>(fooserial));
     static_assert(
-        !data::Serialization<data::DynBlockWriter, decltype(foo)>::is_fixed_size,
+        !data::Serialization<data::File::Writer, decltype(foo)>::is_fixed_size,
         "Serialization::is_fixed_size is wrong");
 }
 
@@ -143,8 +143,8 @@ TEST_F(Serialization, tuple_check_fixed_size) {
     data::File f(block_pool_, 0, /* dia_id */ 0);
     auto n = std::make_tuple(1, 2, 3, std::string("blaaaa"));
     auto y = std::make_tuple(1, 2, 3, 42.0);
-    auto no = data::Serialization<data::DynBlockWriter, decltype(n)>::is_fixed_size;
-    auto yes = data::Serialization<data::DynBlockWriter, decltype(y)>::is_fixed_size;
+    auto no = data::Serialization<data::File::Writer, decltype(n)>::is_fixed_size;
+    auto yes = data::Serialization<data::File::Writer, decltype(y)>::is_fixed_size;
 
     ASSERT_EQ(no, false);
     ASSERT_EQ(yes, true);
@@ -232,7 +232,7 @@ TEST_F(Serialization, MethodStruct) {
     ASSERT_DOUBLE_EQ(foo.d2, fooserial.d2);
     ASSERT_EQ(foo.s3, fooserial.s3);
     static_assert(
-        !data::Serialization<data::DynBlockWriter, MyMethodStruct>::is_fixed_size,
+        !data::Serialization<data::File::Writer, MyMethodStruct>::is_fixed_size,
         "Serialization::is_fixed_size is wrong");
 }
 

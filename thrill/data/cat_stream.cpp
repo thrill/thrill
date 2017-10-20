@@ -28,7 +28,6 @@ CatStreamData::CatStreamData(Multiplexer& multiplexer, const StreamId& id,
                              size_t local_worker_id, size_t dia_id)
     : StreamData(multiplexer, id, local_worker_id, dia_id) {
 
-    sinks_.reserve(num_workers());
     queues_.reserve(num_workers());
 
     // construct StreamSink array
@@ -36,10 +35,6 @@ CatStreamData::CatStreamData(Multiplexer& multiplexer, const StreamId& id,
         for (size_t worker = 0; worker < workers_per_host(); worker++) {
             if (host == my_host_rank()) {
                 // construct loopback queue
-
-                // insert placeholder in sinks_ array
-                sinks_.emplace_back(
-                    StreamDataPtr(this), multiplexer_.block_pool_, worker);
 
                 multiplexer_.logger()
                     << "class" << "StreamSink"
@@ -84,17 +79,7 @@ CatStreamData::CatStreamData(Multiplexer& multiplexer, const StreamId& id,
                     });
             }
             else {
-                // construct outbound StreamSink
-                sinks_.emplace_back(
-                    StreamDataPtr(this),
-                    multiplexer_.block_pool_,
-                    &multiplexer_.group_.connection(host),
-                    MagicByte::CatStreamBlock,
-                    id,
-                    my_host_rank(), local_worker_id,
-                    host, worker);
-
-                // construct inbound BlockQueue
+                // construct inbound BlockQueues
                 queues_.emplace_back(
                     multiplexer_.block_pool_, local_worker_id, dia_id);
             }
@@ -148,11 +133,27 @@ std::vector<CatStreamData::Writer> CatStreamData::GetWriters() {
                 BlockQueue* sink_queue_ptr =
                     target_stream_ptr->loopback_queue(local_worker_id_);
                 sink_queue_ptr->set_source(this);
-                result.emplace_back(sink_queue_ptr, block_size);
+                result.emplace_back(
+                    StreamSink(
+                        StreamDataPtr(this),
+                        multiplexer_.block_pool_,
+                        sink_queue_ptr,
+                        id_,
+                        my_host_rank(), local_worker_id_,
+                        host, worker),
+                    block_size);
             }
             else {
-                size_t worker_id = host * workers_per_host() + worker;
-                result.emplace_back(&sinks_[worker_id], block_size);
+                result.emplace_back(
+                    StreamSink(
+                        StreamDataPtr(this),
+                        multiplexer_.block_pool_,
+                        &multiplexer_.group_.connection(host),
+                        MagicByte::CatStreamBlock,
+                        id_,
+                        my_host_rank(), local_worker_id_,
+                        host, worker),
+                    block_size);
             }
         }
     }
@@ -208,14 +209,6 @@ void CatStreamData::Close() {
          << "host" << my_host_rank()
          << "local_worker_id_" << local_worker_id_;
 
-    // close all sinks, this should emit sentinel to all other worker.
-    for (size_t i = 0; i < sinks_.size(); ++i) {
-        if (sinks_[i].closed()) continue;
-        sLOG << "CatStreamData" << id() << "close"
-             << "unopened sink" << i;
-        sinks_[i].Close();
-    }
-
     // close loop-back queue from this worker to itself
     auto my_global_worker_id = my_worker_rank();
     if (!queues_[my_global_worker_id].write_closed())
@@ -234,8 +227,6 @@ void CatStreamData::Close() {
         multiplexer_.active_streams_--;
         multiplexer_.IntReleaseCatStream(id_, local_worker_id_);
     }
-
-    std::vector<StreamSink>().swap(sinks_);
 
     LOG << "CatStreamData::Close() finished"
         << " id_=" << id_

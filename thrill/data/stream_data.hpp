@@ -45,8 +45,7 @@ class StreamSink;
 class StreamData : public tlx::ReferenceCounter
 {
 public:
-    using Writer = DynBlockWriter;
-    //using Writer = NewBlockWriter<StreamSink>;
+    using Writer = BlockWriter<StreamSink>;
 
     StreamData(Multiplexer& multiplexer, const StreamId& id,
                size_t local_worker_id, size_t dia_id);

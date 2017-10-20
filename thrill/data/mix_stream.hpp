@@ -88,19 +88,12 @@ private:
     //! flag if Close() was completed
     bool is_closed_ = false;
 
-    //! StreamSink objects are receivers of Blocks outbound for other worker.
-    std::vector<StreamSink> sinks_;
-
     //! BlockQueue to store incoming Blocks with source.
     MixBlockQueue queue_;
 
-    //! vector of MixBlockQueueSink which serve as loopback BlockSinks into
-    //! the MixBlockQueue
-    std::vector<MixBlockQueueSink> loopback_;
-
     //! for calling methods to deliver blocks
     friend class Multiplexer;
-    friend class MixBlockQueueSink;
+    friend class StreamSink;
 
     //! called from Multiplexer when there is a new Block for this Stream.
     void OnStreamBlock(size_t from, PinnedBlock&& b);
@@ -108,9 +101,6 @@ private:
     //! called from Multiplexer when a MixStreamData closed notification was
     //! received.
     void OnCloseStream(size_t from);
-
-    //! Returns the loopback queue for the worker of this stream.
-    MixBlockQueueSink * loopback_queue(size_t from_worker_id);
 };
 
 // we have two types of MixStream smart pointers: one for internal use in the

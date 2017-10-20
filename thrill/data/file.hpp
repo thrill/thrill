@@ -56,11 +56,10 @@ class ConsumeFileBlockSource;
 class File : public virtual BlockSink, public tlx::ReferenceCounter
 {
 public:
-    using Writer = NewBlockWriter<FileBlockSink>;
+    using Writer = BlockWriter<FileBlockSink>;
     using Reader = DynBlockReader;
     using KeepReader = BlockReader<KeepFileBlockSource>;
     using ConsumeReader = BlockReader<ConsumeFileBlockSource>;
-    using DynWriter = DynBlockWriter;
 
     static constexpr size_t default_prefetch = 2;
 
@@ -136,9 +135,6 @@ public:
 
     //! Get BlockWriter.
     Writer GetWriter(size_t block_size = default_block_size);
-
-    //! Get BlockWriter.
-    DynWriter GetDynWriter(size_t block_size = default_block_size);
 
     /*!
      * Get BlockReader or a consuming BlockReader for beginning of File
@@ -291,6 +287,8 @@ using FilePtr = tlx::CountingPtr<File>;
  */
 class FileBlockSink final : public BlockSink
 {
+    static constexpr bool debug = false;
+
 public:
     FileBlockSink()
         : BlockSink(nullptr, -1), file_(nullptr)
@@ -298,8 +296,13 @@ public:
 
     explicit FileBlockSink(tlx::CountingPtrNoDelete<File> file)
         : BlockSink(file->block_pool(), file->local_worker_id()),
-          file_(std::move(file))
-    { }
+          file_(std::move(file)) {
+        LOG << "FileBlockSink() new for " << file_.get();
+    }
+
+    ~FileBlockSink() {
+        LOG << "~FileBlockSink() for " << file_.get();
+    }
 
     //! \name Methods of a BlockSink
     //! \{
@@ -319,8 +322,10 @@ public:
     }
 
     void Close() final {
-        if (file_)
+        if (file_) {
             file_->Close();
+            file_.reset();
+        }
     }
 
     //! \}

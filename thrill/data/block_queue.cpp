@@ -40,6 +40,10 @@ void BlockQueue::Close() {
     }
 }
 
+BlockQueue::Writer BlockQueue::GetWriter(size_t block_size) {
+    return Writer(BlockQueueSink(this), block_size);
+}
+
 BlockQueue::ConsumeReader BlockQueue::GetConsumeReader(size_t local_worker_id) {
     assert(!read_closed_);
     return ConsumeReader(ConsumeBlockQueueSource(*this, local_worker_id));

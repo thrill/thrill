@@ -30,6 +30,7 @@ namespace data {
 //! \addtogroup data_layer
 //! \{
 
+class BlockQueueSink;
 class ConsumeBlockQueueSource;
 
 /*!
@@ -48,7 +49,7 @@ class BlockQueue final : public BlockSink
 public:
     static constexpr bool debug = false;
 
-    using Writer = BlockWriter<BlockQueue>;
+    using Writer = BlockWriter<BlockQueueSink>;
     using Reader = DynBlockReader;
     using ConsumeReader = BlockReader<ConsumeBlockQueueSource>;
 
@@ -128,9 +129,7 @@ public:
     const common::StatsTimer& timespan() const { return timespan_; }
 
     //! Return a BlockWriter delivering to this BlockQueue.
-    Writer GetWriter(size_t block_size = default_block_size) {
-        return Writer(this, block_size);
-    }
+    Writer GetWriter(size_t block_size = default_block_size);
 
     //! return BlockReader specifically for a BlockQueue
     ConsumeReader GetConsumeReader(size_t local_worker_id);
@@ -177,6 +176,58 @@ private:
 
     //! for access to file_
     friend class CacheBlockQueueSource;
+};
+
+/*!
+ * BlockSink which interfaces to a File
+ */
+class BlockQueueSink final : public BlockSink
+{
+    static constexpr bool debug = false;
+
+public:
+    BlockQueueSink()
+        : BlockSink(nullptr, -1), queue_(nullptr)
+    { }
+
+    explicit BlockQueueSink(BlockQueue* queue)
+        : BlockSink(queue->block_pool(), queue->local_worker_id()),
+          queue_(std::move(queue)) {
+        LOG << "BlockQueueSink() new for " << queue;
+    }
+
+    ~BlockQueueSink() {
+        LOG << "~BlockQueueSink() for " << queue_;
+    }
+
+    //! \name Methods of a BlockSink
+    //! \{
+
+    //! Append a block to this file, the block must contain given number of
+    //! items after the offset first.
+    void AppendBlock(const Block& b, bool is_last_block) final {
+        assert(queue_);
+        return queue_->AppendBlock(b, is_last_block);
+    }
+
+    //! Append a block to this file, the block must contain given number of
+    //! items after the offset first.
+    void AppendBlock(Block&& b, bool is_last_block) final {
+        assert(queue_);
+        return queue_->AppendBlock(std::move(b), is_last_block);
+    }
+
+    void Close() final {
+        if (queue_) {
+            queue_->Close();
+            queue_ = nullptr;
+        }
+    }
+
+    //! \}
+
+private:
+    BlockQueue* queue_;
 };
 
 /*!

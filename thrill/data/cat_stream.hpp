@@ -115,9 +115,6 @@ public:
 private:
     bool is_closed_ = false;
 
-    //! StreamSink objects are receivers of Blocks outbound for other worker.
-    std::vector<StreamSink> sinks_;
-
     //! BlockQueues to store incoming Blocks with no attached destination.
     std::vector<BlockQueue> queues_;
 

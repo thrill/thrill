@@ -58,7 +58,7 @@ private:
     bool closed_ = false;
 };
 
-using DiscardWriter = NewBlockWriter<DiscardSink>;
+using DiscardWriter = BlockWriter<DiscardSink>;
 
 //! \}
 
