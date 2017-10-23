@@ -20,7 +20,7 @@
 #include <tlx/math/round_to_power_of_two.hpp>
 
 #include <algorithm>
-#include <map>
+#include <unordered_map>
 #include <vector>
 
 namespace thrill {
@@ -100,14 +100,14 @@ public:
     }
 
     //! return mutable reference to map of objects.
-    std::map<Id, ObjectPtr>& map() { return map_; }
+    std::unordered_map<Id, ObjectPtr>& map() { return map_; }
 
 private:
     //! Next ID to generate, one for each local worker.
     std::vector<size_t> next_id_;
 
     //! map containing value items
-    std::map<Id, ObjectPtr> map_;
+    std::unordered_map<Id, ObjectPtr> map_;
 };
 
 /******************************************************************************/
