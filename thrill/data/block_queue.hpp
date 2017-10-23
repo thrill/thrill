@@ -187,6 +187,11 @@ public:
         LOG << "BlockQueueSink() new for " << queue;
     }
 
+    //! default copy-constructor
+    BlockQueueSink(const BlockQueueSink&) = default;
+    //! default assignment operator
+    BlockQueueSink& operator = (const BlockQueueSink&) = default;
+
     ~BlockQueueSink() {
         LOG << "~BlockQueueSink() for " << queue_;
     }

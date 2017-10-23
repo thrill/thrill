@@ -300,6 +300,11 @@ public:
         LOG << "FileBlockSink() new for " << file_.get();
     }
 
+    //! default copy-constructor
+    FileBlockSink(const FileBlockSink&) = default;
+    //! default assignment operator
+    FileBlockSink& operator = (const FileBlockSink&) = default;
+
     ~FileBlockSink() {
         LOG << "~FileBlockSink() for " << file_.get();
     }
