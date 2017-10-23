@@ -140,12 +140,6 @@ public:
     //! return polymorphic BlockReader variant
     Reader GetReader(bool consume, size_t local_worker_id);
 
-    //! Returns source_
-    void * source() const { return source_; }
-
-    //! set opaque source pointer
-    void set_source(void* source) { source_ = source; }
-
 private:
     common::ConcurrentBoundedQueue<Block> queue_;
 
@@ -170,9 +164,6 @@ private:
     //! callback to issue when the writer closes the Queue -- for delivering
     //! stats
     CloseCallback close_callback_;
-
-    //! opaque pointer to the source (used by close_callback_ if needed).
-    void* source_ = nullptr;
 
     //! for access to file_
     friend class CacheBlockQueueSource;

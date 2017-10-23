@@ -110,7 +110,6 @@ std::vector<CatStreamData::Writer> CatStreamData::GetWriters() {
                 auto target_stream_ptr = multiplexer_.CatLoopback(id_, worker);
                 BlockQueue* sink_queue_ptr =
                     target_stream_ptr->loopback_queue(local_worker_id_);
-                sink_queue_ptr->set_source(this);
                 result.emplace_back(
                     StreamSink(
                         StreamDataPtr(this),
