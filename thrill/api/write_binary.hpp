@@ -73,7 +73,7 @@ public:
     void PreOp(const ValueType& input) {
         stats_total_elements_++;
 
-        if (!sink_) OpenNextFile();
+        if (!writer_) OpenNextFile();
 
         try {
             writer_->PutNoSelfVerify(input);
@@ -97,7 +97,6 @@ public:
     void StopPreOp(size_t /* id */) final {
         sLOG << "closing file" << out_pathbase_;
         writer_.reset();
-        sink_.reset();
 
         Super::logger_
             << "class" << "WriteBinaryNode"
@@ -168,9 +167,6 @@ private:
     //! Block size used by BlockWriter
     size_t block_size_ = data::default_block_size;
 
-    //! BlockSink which writes to an actual file
-    std::unique_ptr<SysFileSink> sink_;
-
     //! BlockWriter to sink.
     std::unique_ptr<Writer> writer_;
 
@@ -180,7 +176,6 @@ private:
     //! Function to create sink_ and writer_ for next file
     void OpenNextFile() {
         writer_.reset();
-        sink_.reset();
 
         // construct path from pattern containing ### and $$$
         std::string out_path = vfs::FillFilePattern(
@@ -188,12 +183,12 @@ private:
 
         sLOG << "OpenNextFile() out_path" << out_path;
 
-        sink_ = std::make_unique<SysFileSink>(
-            context_, context_.local_worker_id(),
-            out_path, max_file_size_,
-            stats_total_elements_, stats_total_writes_);
-
-        writer_ = std::make_unique<Writer>(sink_.get(), block_size_);
+        writer_ = std::make_unique<Writer>(
+            SysFileSink(
+                context_, context_.local_worker_id(),
+                out_path, max_file_size_,
+                stats_total_elements_, stats_total_writes_),
+            block_size_);
     }
 };
 

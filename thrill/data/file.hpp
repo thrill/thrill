@@ -35,6 +35,7 @@ namespace data {
 //! \addtogroup data_layer
 //! \{
 
+class FileBlockSink;
 class KeepFileBlockSource;
 class ConsumeFileBlockSource;
 
@@ -55,11 +56,10 @@ class ConsumeFileBlockSource;
 class File : public virtual BlockSink, public tlx::ReferenceCounter
 {
 public:
-    using Writer = BlockWriter<File>;
+    using Writer = BlockWriter<FileBlockSink>;
     using Reader = DynBlockReader;
     using KeepReader = BlockReader<KeepFileBlockSource>;
     using ConsumeReader = BlockReader<ConsumeFileBlockSource>;
-    using DynWriter = DynBlockWriter;
 
     static constexpr size_t default_prefetch = 2;
 
@@ -135,9 +135,6 @@ public:
 
     //! Get BlockWriter.
     Writer GetWriter(size_t block_size = default_block_size);
-
-    //! Get BlockWriter.
-    DynWriter GetDynWriter(size_t block_size = default_block_size);
 
     /*!
      * Get BlockReader or a consuming BlockReader for beginning of File
@@ -284,6 +281,58 @@ private:
 };
 
 using FilePtr = tlx::CountingPtr<File>;
+
+/*!
+ * BlockSink which interfaces to a File
+ */
+class FileBlockSink final : public BlockSink
+{
+    static constexpr bool debug = false;
+
+public:
+    FileBlockSink()
+        : BlockSink(nullptr, -1), file_(nullptr)
+    { }
+
+    explicit FileBlockSink(tlx::CountingPtrNoDelete<File> file)
+        : BlockSink(file->block_pool(), file->local_worker_id()),
+          file_(std::move(file)) {
+        LOG << "FileBlockSink() new for " << file_.get();
+    }
+
+    ~FileBlockSink() {
+        LOG << "~FileBlockSink() for " << file_.get();
+    }
+
+    //! \name Methods of a BlockSink
+    //! \{
+
+    //! Append a block to this file, the block must contain given number of
+    //! items after the offset first.
+    void AppendBlock(const Block& b, bool is_last_block) final {
+        assert(file_);
+        return file_->AppendBlock(b, is_last_block);
+    }
+
+    //! Append a block to this file, the block must contain given number of
+    //! items after the offset first.
+    void AppendBlock(Block&& b, bool is_last_block) final {
+        assert(file_);
+        return file_->AppendBlock(std::move(b), is_last_block);
+    }
+
+    void Close() final {
+        if (file_) {
+            file_->Close();
+            file_.reset();
+        }
+    }
+
+    //! \}
+
+private:
+    tlx::CountingPtrNoDelete<File> file_;
+};
 
 /*!
  * A BlockSource to read Blocks from a File. The KeepFileBlockSource mainly

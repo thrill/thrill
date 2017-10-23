@@ -67,6 +67,9 @@ static constexpr size_t log_operations_threshold = 100000;
 // enable checking of bypass_malloc() and bypass_free() pairing
 #define BYPASS_CHECKER 0
 
+// super-simple and super-slow leak detection
+#define LEAK_CHECKER 0
+
 /******************************************************************************/
 // variables of malloc tracker
 
@@ -643,6 +646,88 @@ static void preinit_free(void* ptr) {
 #endif
 
 /******************************************************************************/
+// Super-simple and Super-Slow Leak Detection
+
+#if LEAK_CHECKER
+static constexpr size_t kLeakCheckerSize = 1024 * 1024;
+static constexpr size_t kLeakCheckerBacktrace = 32;
+struct LeakCheckerEntry {
+    void   * ptr;
+    size_t size;
+    size_t round;
+    void   * addrlist[kLeakCheckerBacktrace];
+};
+static LeakCheckerEntry s_leak_checker[kLeakCheckerSize];
+static std::mutex s_leak_mutex;
+static size_t s_leak_round = 0;
+
+static void leakchecker_malloc(void* ptr, size_t size) {
+    std::unique_lock<std::mutex> lock(s_leak_mutex);
+    size_t i;
+    for (i = 0; i < kLeakCheckerSize; ++i) {
+        if (s_leak_checker[i].ptr != nullptr) continue;
+        s_leak_checker[i].ptr = ptr;
+        s_leak_checker[i].size = size;
+        s_leak_checker[i].round = s_leak_round;
+        // retrieve current stack addresses
+        lock.unlock();
+        backtrace(s_leak_checker[i].addrlist, kLeakCheckerBacktrace);
+        break;
+    }
+    if (i == kLeakCheckerSize) abort();
+}
+
+static void leakchecker_free(void* ptr) {
+    std::unique_lock<std::mutex> lock(s_leak_mutex);
+    size_t i;
+    for (i = 0; i < kLeakCheckerSize; ++i) {
+        if (s_leak_checker[i].ptr == ptr) {
+            s_leak_checker[i].ptr = nullptr;
+            break;
+        }
+    }
+    if (i == kLeakCheckerSize) {
+        printf(PPREFIX "leak_free() checker: "
+               "ptr = %p was not found\n", ptr);
+        // abort();
+    }
+}
+#endif
+
+namespace thrill {
+namespace mem {
+
+void malloc_tracker_print_leaks() {
+#if LEAK_CHECKER
+    std::unique_lock<std::mutex> lock(s_leak_mutex);
+    for (size_t i = 0; i < kLeakCheckerSize; ++i) {
+        if (s_leak_checker[i].ptr == nullptr) continue;
+
+        if (s_leak_checker[i].round == s_leak_round) {
+            void** addrlist = s_leak_checker[i].addrlist;
+            printf(PPREFIX "leak checker: "
+                   "ptr %p size %zu new unfreed allocation: "
+                   "%p %p %p %p %p %p %p %p %p %p %p %p %p %p %p %p "
+                   "%p %p %p %p %p %p %p %p %p %p %p %p %p %p %p %p\n",
+                   s_leak_checker[i].ptr, s_leak_checker[i].size,
+                   addrlist[0], addrlist[1], addrlist[2], addrlist[3],
+                   addrlist[4], addrlist[5], addrlist[6], addrlist[7],
+                   addrlist[8], addrlist[9], addrlist[10], addrlist[11],
+                   addrlist[12], addrlist[13], addrlist[14], addrlist[15],
+                   addrlist[16], addrlist[17], addrlist[18], addrlist[19],
+                   addrlist[20], addrlist[21], addrlist[22], addrlist[23],
+                   addrlist[24], addrlist[25], addrlist[26], addrlist[27],
+                   addrlist[28], addrlist[29], addrlist[30], addrlist[31]);
+        }
+    }
+    ++s_leak_round;
+#endif
+}
+
+} // namespace mem
+} // namespace thrill
+
+/******************************************************************************/
 
 #if defined(MALLOC_USABLE_SIZE)
 
@@ -701,6 +786,17 @@ void * malloc(size_t size) NOEXCEPT {
 #endif
     }
 
+    {
+#if LEAK_CHECKER
+        static thread_local bool recursive = false;
+        if (!recursive) {
+            recursive = true;
+            leakchecker_malloc(ret, size);
+            recursive = false;
+        }
+#endif
+    }
+
     return ret;
 }
 
@@ -730,6 +826,10 @@ void free(void* ptr) NOEXCEPT {
         fprintf(stderr, PPREFIX "free(%p) -> %zu   (current %zu / %zu)\n",
                 ptr, size_used, get(float_curr), get(base_curr));
     }
+
+#if LEAK_CHECKER
+    leakchecker_free(ptr);
+#endif
 
     (*real_free)(ptr);
 }

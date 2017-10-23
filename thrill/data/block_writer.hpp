@@ -58,9 +58,9 @@ public:
     static constexpr bool self_verify = common::g_self_verify;
 
     //! Start build (appending blocks) to a File
-    explicit BlockWriter(BlockSink* sink,
+    explicit BlockWriter(BlockSink&& sink,
                          size_t max_block_size = default_block_size)
-        : sink_(sink),
+        : sink_(std::move(sink)),
           // block_size_(std::min(size_t(start_block_size), max_block_size)),
           block_size_(max_block_size),
           max_block_size_(max_block_size) {
@@ -114,8 +114,7 @@ public:
 
     //! On destruction, the last partial block is flushed.
     ~BlockWriter() {
-        if (!closed_)
-            Close();
+        Close();
     }
 
     //! Explicitly close the writer
@@ -123,12 +122,11 @@ public:
         if (closed_) return;
         closed_ = true;
         Flush();
-        if (sink_)
-            sink_->Close();
+        sink_.Close();
     }
 
     //! Return whether an actual BlockSink is attached.
-    bool IsValid() const { return sink_ != nullptr; }
+    bool IsValid() const { return sink_.IsValid(); }
 
     //! Returns block_size_
     size_t block_size() const { return block_size_; }
@@ -148,7 +146,7 @@ public:
         }
         else {
             sLOG << "Flush(): flush" << bytes_.get();
-            sink_->AppendPinnedBlock(
+            sink_.AppendPinnedBlock(
                 PinnedBlock(std::move(bytes_), 0, current_ - bytes_->begin(),
                             first_offset_, nitems_,
                             /* typecode_verify */ static_cast<bool>(self_verify)),
@@ -167,7 +165,7 @@ public:
         Flush();
         for (std::vector<Block>::const_iterator bi = blocks.begin();
              bi != blocks.end(); ++bi) {
-            sink_->AppendBlock(*bi, /* is_last_block */ bi + 1 == blocks.end());
+            sink_.AppendBlock(*bi, /* is_last_block */ bi + 1 == blocks.end());
         }
     }
 
@@ -177,7 +175,7 @@ public:
         Flush();
         for (std::deque<Block>::const_iterator bi = blocks.begin();
              bi != blocks.end(); ++bi) {
-            sink_->AppendBlock(*bi, /* is_last_block */ bi + 1 == blocks.end());
+            sink_.AppendBlock(*bi, /* is_last_block */ bi + 1 == blocks.end());
         }
     }
 
@@ -261,8 +259,8 @@ public:
 
             // item fully serialized, push out finished blocks.
             while (!sink_queue_.empty()) {
-                sink_->AppendPinnedBlock(sink_queue_.front(),
-                                         /* is_last_block */ false);
+                sink_.AppendPinnedBlock(sink_queue_.front(),
+                                        /* is_last_block */ false);
                 sink_queue_.pop_front();
             }
 
@@ -275,7 +273,7 @@ public:
 
             while (!sink_queue_.empty()) {
                 sLOG << "releasing" << bytes_.get();
-                sink_->ReleaseByteBlock(bytes_);
+                sink_.ReleaseByteBlock(bytes_);
 
                 PinnedBlock b = sink_queue_.back();
                 sink_queue_.pop_back();
@@ -393,7 +391,7 @@ public:
 private:
     //! Allocate a new block (overwriting the existing one).
     void AllocateBlock() {
-        bytes_ = sink_->AllocateByteBlock(block_size_);
+        bytes_ = sink_.AllocateByteBlock(block_size_);
         if (!bytes_) {
             sLOG << "AllocateBlock(): throw due to invalid block";
             throw FullException();
@@ -426,7 +424,7 @@ private:
     size_t first_offset_ = 0;
 
     //! file or stream sink to output blocks to.
-    BlockSink* sink_ = nullptr;
+    BlockSink sink_;
 
     //! boolean whether to queue blocks
     bool do_queue_ = false;
@@ -443,9 +441,6 @@ private:
     //! Flag if Close was called explicitly
     bool closed_ = false;
 };
-
-//! alias for BlockWriter which outputs to a generic BlockSink.
-using DynBlockWriter = BlockWriter<data::BlockSink>;
 
 //! \}
 

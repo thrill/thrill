@@ -48,17 +48,22 @@ class ReadBinaryNode final : public SourceNode<ValueType>
     //! for testing old method of pushing items instead of PushFile().
     static constexpr bool debug_no_extfile = false;
 
+private:
+    class VfsFileBlockSource;
+
 public:
     using Super = SourceNode<ValueType>;
     using Super::context_;
 
+    using VfsFileBlockReader = data::BlockReader<VfsFileBlockSource>;
+
     //! flag whether ValueType is fixed size
     static constexpr bool is_fixed_size_ =
-        data::Serialization<data::DynBlockWriter, ValueType>::is_fixed_size;
+        data::Serialization<VfsFileBlockReader, ValueType>::is_fixed_size;
 
     //! fixed size of ValueType or zero.
     static constexpr size_t fixed_size_ =
-        data::Serialization<data::DynBlockWriter, ValueType>::fixed_size;
+        data::Serialization<VfsFileBlockReader, ValueType>::fixed_size;
 
     //! structure to store info on what to read from files
     struct FileInfo {
@@ -232,9 +237,9 @@ public:
         for (const FileInfo& file : my_files_) {
             LOG << "ReadBinaryNode::PushData() opening " << file.path;
 
-            data::BlockReader<FileBlockSource> br(
-                FileBlockSource(file, context_,
-                                stats_total_bytes, stats_total_reads));
+            VfsFileBlockReader br(
+                VfsFileBlockSource(file, context_,
+                                   stats_total_bytes, stats_total_reads));
 
             while (br.HasNext()) {
                 this->PushItem(br.template NextNoSelfVerify<ValueType>());
@@ -264,15 +269,15 @@ private:
     size_t stats_total_bytes = 0;
     size_t stats_total_reads = 0;
 
-    class FileBlockSource
+    class VfsFileBlockSource
     {
     public:
         const size_t block_size = data::default_block_size;
 
-        FileBlockSource(const FileInfo& fileinfo,
-                        Context& ctx,
-                        size_t& stats_total_bytes,
-                        size_t& stats_total_reads)
+        VfsFileBlockSource(const FileInfo& fileinfo,
+                           Context& ctx,
+                           size_t& stats_total_bytes,
+                           size_t& stats_total_reads)
             : context_(ctx),
               remain_size_(fileinfo.range.size()),
               is_compressed_(fileinfo.is_compressed),
@@ -302,7 +307,7 @@ private:
             stats_total_bytes_ += size;
             stats_total_reads_++;
 
-            LOG << "FileBlockSource::NextBlock() size " << size;
+            LOG << "VfsFileBlockSource::NextBlock() size " << size;
 
             if (size > 0) {
                 if (!is_compressed_) {

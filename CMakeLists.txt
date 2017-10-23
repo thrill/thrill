@@ -122,6 +122,8 @@ if(NOT MSVC)
 
   # enable ThreadSanitizer
   if(OFF)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=thread -pie -fPIC")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DTHRILL_HAVE_THREAD_SANITIZER=1")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread -pie -fPIC")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTHRILL_HAVE_THREAD_SANITIZER=1")
     set(THRILL_USE_MPI OFF)

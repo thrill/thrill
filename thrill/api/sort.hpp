@@ -456,8 +456,9 @@ private:
         assert(data_writers.size() == actual_k);
         assert(actual_k <= k);
 
+        data_writers.reserve(k);
         while (data_writers.size() < k)
-            data_writers.emplace_back(nullptr);
+            data_writers.emplace_back(data::MixStream::Writer());
 
         std::swap(data_writers[actual_k - 1], data_writers[k - 1]);
 
@@ -601,7 +602,7 @@ private:
             }
         }
         sample_writers.clear();
-        sample_stream->Close();
+        sample_stream.reset();
 
         // code from SS2NPartition, slightly altered
 
@@ -644,7 +645,7 @@ private:
         else
             ReceiveItems(data_stream);
 
-        data_stream->Close();
+        data_stream.reset();
 
         double balance = 0;
         if (local_out_size_ > 0) {

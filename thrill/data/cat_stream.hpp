@@ -16,7 +16,6 @@
 #include <thrill/data/block_queue.hpp>
 #include <thrill/data/cat_block_source.hpp>
 #include <thrill/data/stream.hpp>
-#include <thrill/data/stream_sink.hpp>
 
 #include <string>
 #include <vector>
@@ -52,7 +51,7 @@ namespace data {
  * expected streams is reached, the stream is marked as finished and no more
  * data will arrive.
  */
-class CatStream final : public Stream
+class CatStreamData final : public StreamData
 {
 public:
     static constexpr bool debug = false;
@@ -67,18 +66,20 @@ public:
     using Reader = BlockQueueReader;
     using CatReader = CatBlockReader;
 
+    using Handle = CatStream;
+
     //! Creates a new stream instance
-    CatStream(Multiplexer& multiplexer, const StreamId& id,
-              size_t local_worker_id, size_t dia_id);
+    CatStreamData(Multiplexer& multiplexer, const StreamId& id,
+                  size_t local_worker_id, size_t dia_id);
 
     //! non-copyable: delete copy-constructor
-    CatStream(const CatStream&) = delete;
+    CatStreamData(const CatStreamData&) = delete;
     //! non-copyable: delete assignment operator
-    CatStream& operator = (const CatStream&) = delete;
+    CatStreamData& operator = (const CatStreamData&) = delete;
     //! move-constructor: default
-    CatStream(CatStream&&) = default;
+    CatStreamData(CatStreamData&&) = default;
 
-    ~CatStream() final;
+    ~CatStreamData() final;
 
     //! change dia_id after construction (needed because it may be unknown at
     //! construction)
@@ -114,9 +115,6 @@ public:
 private:
     bool is_closed_ = false;
 
-    //! StreamSink objects are receivers of Blocks outbound for other worker.
-    std::vector<StreamSink> sinks_;
-
     //! BlockQueues to store incoming Blocks with no attached destination.
     std::vector<BlockQueue> queues_;
 
@@ -135,10 +133,59 @@ private:
     BlockQueue * loopback_queue(size_t from_worker_id);
 };
 
-using CatStreamPtr = tlx::CountingPtr<CatStream>;
+// we have two types of CatStream smart pointers: one for internal use in the
+// Multiplexer (ordinary CountingPtr), and another for public handles in the
+// DIANodes. Once all public handles are deleted, the CatStream is deactivated.
+using CatStreamDataPtr = tlx::CountingPtr<CatStreamData>;
 
-using CatStreamSet = StreamSet<CatStream>;
+using CatStreamSet = StreamSet<CatStreamData>;
 using CatStreamSetPtr = tlx::CountingPtr<CatStreamSet>;
+
+//! Ownership handle onto a CatStreamData
+class CatStream final : public Stream
+{
+public:
+    using Writer = CatStreamData::Writer;
+    using Reader = CatStreamData::Reader;
+
+    using CatReader = CatStreamData::CatReader;
+
+    explicit CatStream(const CatStreamDataPtr& ptr);
+
+    //! When the user handle is destroyed, close the stream (but maybe not
+    //! destroy the data object)
+    ~CatStream();
+
+    const StreamId& id() const final;
+
+    //! Return stream data reference
+    StreamData& data() final;
+
+    //! Return stream data reference
+    const StreamData& data() const final;
+
+    //! Creates BlockWriters for each worker. BlockWriter can only be opened
+    //! once, otherwise the block sequence is incorrectly interleaved!
+    std::vector<Writer> GetWriters() final;
+
+    //! Creates a BlockReader for each worker. The BlockReaders are attached to
+    //! the BlockQueues in the Stream and wait for further Blocks to arrive or
+    //! the Stream's remote close. These Readers _always_ consume!
+    std::vector<Reader> GetReaders();
+
+    //! Creates a BlockReader which concatenates items from all workers in
+    //! worker rank order. The BlockReader is attached to one \ref
+    //! CatBlockSource which includes all incoming queues of this stream.
+    CatReader GetCatReader(bool consume);
+
+    //! Open a CatReader (function name matches a method in File and MixStream).
+    CatReader GetReader(bool consume);
+
+private:
+    CatStreamDataPtr ptr_;
+};
+
+using CatStreamPtr = tlx::CountingPtr<CatStream>;
 
 //! \}
 

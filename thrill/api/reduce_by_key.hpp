@@ -162,7 +162,7 @@ public:
         pre_phase_.CloseAll();
         // waiting for the additional thread to finish the reduce
         if (use_post_thread_) thread_.join();
-        use_mix_stream_ ? mix_stream_->Close() : cat_stream_->Close();
+        use_mix_stream_ ? mix_stream_.reset() : cat_stream_.reset();
     }
 
     void Execute() final { }
@@ -219,10 +219,11 @@ private:
     //! handle to additional thread for post phase
     std::thread thread_;
 
-    core::ReducePrePhase<TableItem, Key, ValueType, KeyExtractor,
-                         ReduceFunction, VolatileKey, ReduceConfig,
-                         HashIndexFunction, KeyEqualFunction, KeyHashFunction,
-                         UseDuplicateDetection> pre_phase_;
+    core::ReducePrePhase<
+        TableItem, Key, ValueType, KeyExtractor,
+        ReduceFunction, VolatileKey, data::Stream::Writer, ReduceConfig,
+        HashIndexFunction, KeyEqualFunction, KeyHashFunction,
+        UseDuplicateDetection> pre_phase_;
 
     core::ReduceByHashPostPhase<
         TableItem, Key, ValueType, KeyExtractor, ReduceFunction, Emitter,

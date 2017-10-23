@@ -474,6 +474,7 @@ public:
 #pragma warning(pop)
 #endif
 
+#if 0
 TEST_F(File, BoundedFilePutIntegerUntilFull) {
 
     // construct Partition with very small blocks for testing
@@ -492,29 +493,30 @@ TEST_F(File, BoundedFilePutIntegerUntilFull) {
 
     ASSERT_EQ(file.max_size()
               / (sizeof(size_t)
-                 + (data::DynBlockWriter::self_verify ? sizeof(size_t) : 0)),
+                 + (data::BlockWriter<BoundedFile>::self_verify ? sizeof(size_t) : 0)),
               file.num_items());
 }
+#endif
 
 // forced instantiation
 template class data::BlockReader<data::KeepFileBlockSource>;
 template class data::BlockReader<data::ConsumeFileBlockSource>;
 
 // fixed size serialization test
-static_assert(data::Serialization<data::DynBlockWriter, int>
+static_assert(data::Serialization<data::File::Writer, int>
               ::is_fixed_size == true, "");
-static_assert(data::Serialization<data::DynBlockWriter, int>
+static_assert(data::Serialization<data::File::Writer, int>
               ::fixed_size == sizeof(int), "");
 
-static_assert(data::Serialization<data::DynBlockWriter, std::string>
+static_assert(data::Serialization<data::File::Writer, std::string>
               ::is_fixed_size == false, "");
 
-static_assert(data::Serialization<data::DynBlockWriter, std::pair<int, short> >
+static_assert(data::Serialization<data::File::Writer, std::pair<int, short> >
               ::is_fixed_size == true, "");
-static_assert(data::Serialization<data::DynBlockWriter, std::pair<int, short> >
+static_assert(data::Serialization<data::File::Writer, std::pair<int, short> >
               ::fixed_size == sizeof(int) + sizeof(short), "");
 
-static_assert(data::Serialization<data::DynBlockWriter, std::pair<int, std::string> >
+static_assert(data::Serialization<data::File::Writer, std::pair<int, std::string> >
               ::is_fixed_size == false, "");
 
 /******************************************************************************/

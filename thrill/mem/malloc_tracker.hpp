@@ -63,6 +63,9 @@ ssize_t malloc_tracker_total_allocs();
 //! user function which prints current and peak allocation to stderr
 void malloc_tracker_print_status();
 
+//! user function which prints new unfreed areas to stdout since the last call
+void malloc_tracker_print_leaks();
+
 //! launch profiler task
 void StartMemProfiler(common::ProfileThread& sched, common::JsonLogger& logger);
 

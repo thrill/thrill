@@ -30,8 +30,10 @@ namespace data {
 //! \addtogroup data_layer
 //! \{
 
-class MixStream;
+class MixStreamData;
 class MixBlockQueueReader;
+
+using MixStreamDataPtr = tlx::CountingPtr<MixStreamData>;
 
 /*!
  * Implements reading an unordered sequence of items from multiple workers,
@@ -136,53 +138,6 @@ private:
 
     //! for access to queues_ and other internals.
     friend class MixBlockQueueReader;
-};
-
-/*!
- * Implementation of BlockSink which forward Blocks to a mix queue with a
- * fixed source worker tag. Used to implement loopback sinks in MixChannel.
- */
-class MixBlockQueueSink final : public BlockSink
-{
-    static constexpr bool debug = false;
-
-public:
-    MixBlockQueueSink(MixStream& dst_mix_stream,
-                      size_t from_global, size_t from_local);
-
-    void AppendBlock(const Block& b, bool is_last_block) final;
-
-    void AppendBlock(Block&& b, bool is_last_block) final;
-
-    void Close() final;
-
-    static constexpr bool allocate_can_fail_ = false;
-
-    //! check if writer side Close() was called.
-    bool write_closed() const { return write_closed_; }
-
-    //! source mix stream instance
-    void set_src_mix_stream(MixStream* src_mix_stream);
-
-private:
-    //! destination mix stream
-    MixStream& dst_mix_stream_;
-
-    //! destination mix queue
-    MixBlockQueue& dst_mix_queue_;
-
-    //! source mix stream instance
-    MixStream* src_mix_stream_ = nullptr;
-
-    //! close flag
-    common::AtomicMovable<bool> write_closed_ = { false };
-
-    //! fixed global source worker id
-    size_t from_global_;
-
-    size_t item_counter_ = 0;
-    size_t byte_counter_ = 0;
-    size_t block_counter_ = 0;
 };
 
 /*!

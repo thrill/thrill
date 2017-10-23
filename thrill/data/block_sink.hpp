@@ -33,6 +33,11 @@ public:
         : block_pool_(&block_pool), local_worker_id_(local_worker_id)
     { }
 
+    //! constructor with reference to BlockPool
+    explicit BlockSink(BlockPool* block_pool, size_t local_worker_id)
+        : block_pool_(block_pool), local_worker_id_(local_worker_id)
+    { }
+
     //! default copy-constructor
     BlockSink(const BlockSink&) = default;
     //! default assignment operator

@@ -18,7 +18,7 @@
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/data/block.hpp>
 #include <thrill/data/block_sink.hpp>
-#include <thrill/data/stream.hpp>
+#include <thrill/data/stream_data.hpp>
 #include <thrill/net/buffer.hpp>
 #include <thrill/net/dispatcher_thread.hpp>
 
@@ -29,25 +29,42 @@ namespace data {
 //! \{
 
 // forward declarations
-class Stream;
+class StreamData;
+using StreamDataPtr = tlx::CountingPtr<StreamData>;
 
 /*!
  * StreamSink is an BlockSink that sends data via a network socket to the
- * Stream object on a different worker.
+ * StreamData object on a different worker.
  */
 class StreamSink final : public BlockSink
 {
+    static constexpr bool debug = false;
+
 public:
     using StreamId = size_t;
 
     //! Construct invalid StreamSink, needed for placeholders in sinks arrays
     //! where Blocks are directly sent to local workers.
-    StreamSink(Stream& stream, BlockPool& block_pool, size_t local_worker_id);
+    StreamSink();
 
     //! StreamSink sending out to network.
-    StreamSink(Stream& stream, BlockPool& block_pool,
+    StreamSink(StreamDataPtr stream, BlockPool& block_pool,
                net::Connection* connection,
                MagicByte magic, StreamId stream_id,
+               size_t host_rank, size_t host_local_worker,
+               size_t peer_rank, size_t peer_local_worker);
+
+    //! StreamSink sending out local BlockQueue.
+    StreamSink(StreamDataPtr stream, BlockPool& block_pool,
+               BlockQueue* block_queue,
+               StreamId stream_id,
+               size_t host_rank, size_t host_local_worker,
+               size_t peer_rank, size_t peer_local_worker);
+
+    //! StreamSink sending out local MixBlockQueue.
+    StreamSink(StreamDataPtr stream, BlockPool& block_pool,
+               MixStreamDataPtr target,
+               StreamId stream_id,
                size_t host_rank, size_t host_local_worker,
                size_t peer_rank, size_t peer_local_worker);
 
@@ -75,6 +92,9 @@ public:
     //! return close flag
     bool closed() const { return closed_; }
 
+    //! is valid?
+    bool IsValid() const { return stream_ != nullptr; }
+
     //! boolean flag whether to check if AllocateByteBlock can fail in any
     //! subclass (if false: accelerate BlockWriter to not be able to cope with
     //! nullptr).
@@ -87,12 +107,31 @@ public:
     size_t peer_worker_rank() const;
 
 private:
-    static constexpr bool debug = false;
+    StreamDataPtr stream_;
 
-    Stream& stream_;
+    //! \name StreamSink To Network
+    //! \{
+
     net::Connection* connection_ = nullptr;
-
     MagicByte magic_ = MagicByte::Invalid;
+
+    //! \}
+
+    //! \name StreamSink To BlockQueue (CatStream Loopback)
+    //! \{
+
+    BlockQueue* block_queue_ = nullptr;
+
+    //! \}
+
+    //! \name StreamSink To MixBlockQueue (MixStream Loopback)
+    //! \{
+
+    //! destination mix stream
+    MixStreamDataPtr target_mix_stream_;
+
+    //! \}
+
     StreamId id_ = size_t(-1);
     size_t host_rank_ = size_t(-1);
     using BlockSink::local_worker_id_;

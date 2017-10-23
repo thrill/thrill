@@ -41,25 +41,27 @@ namespace data {
  * The MixStream allows reading of items from all workers in an unordered
  * sequence, without waiting for any of the workers to complete sending items.
  */
-class MixStream final : public Stream
+class MixStreamData final : public StreamData
 {
     static constexpr bool debug = false;
 
 public:
     using MixReader = MixBlockQueueReader;
 
+    using Handle = MixStream;
+
     //! Creates a new stream instance
-    MixStream(Multiplexer& multiplexer, const StreamId& id,
-              size_t local_worker_id, size_t dia_id);
+    MixStreamData(Multiplexer& multiplexer, const StreamId& id,
+                  size_t local_worker_id, size_t dia_id);
 
     //! non-copyable: delete copy-constructor
-    MixStream(const MixStream&) = delete;
+    MixStreamData(const MixStreamData&) = delete;
     //! non-copyable: delete assignment operator
-    MixStream& operator = (const MixStream&) = delete;
+    MixStreamData& operator = (const MixStreamData&) = delete;
     //! move-constructor: default
-    MixStream(MixStream&&) = default;
+    MixStreamData(MixStreamData&&) = default;
 
-    ~MixStream() final;
+    ~MixStreamData() final;
 
     //! change dia_id after construction (needed because it may be unknown at
     //! construction)
@@ -86,35 +88,69 @@ private:
     //! flag if Close() was completed
     bool is_closed_ = false;
 
-    //! StreamSink objects are receivers of Blocks outbound for other worker.
-    std::vector<StreamSink> sinks_;
-
     //! BlockQueue to store incoming Blocks with source.
     MixBlockQueue queue_;
 
-    //! vector of MixBlockQueueSink which serve as loopback BlockSinks into
-    //! the MixBlockQueue
-    std::vector<MixBlockQueueSink> loopback_;
-
     //! for calling methods to deliver blocks
     friend class Multiplexer;
-    friend class MixBlockQueueSink;
+    friend class StreamSink;
 
     //! called from Multiplexer when there is a new Block for this Stream.
     void OnStreamBlock(size_t from, PinnedBlock&& b);
 
-    //! called from Multiplexer when a MixStream closed notification was
+    //! called from Multiplexer when a MixStreamData closed notification was
     //! received.
     void OnCloseStream(size_t from);
+};
 
-    //! Returns the loopback queue for the worker of this stream.
-    MixBlockQueueSink * loopback_queue(size_t from_worker_id);
+// we have two types of MixStream smart pointers: one for internal use in the
+// Multiplexer (ordinary CountingPtr), and another for public handles in the
+// DIANodes. Once all public handles are deleted, the MixStream is deactivated.
+using MixStreamDataPtr = tlx::CountingPtr<MixStreamData>;
+
+using MixStreamSet = StreamSet<MixStreamData>;
+using MixStreamSetPtr = tlx::CountingPtr<MixStreamSet>;
+
+//! Ownership handle onto a MixStream
+class MixStream final : public Stream
+{
+public:
+    using Writer = MixStreamData::Writer;
+
+    using MixReader = MixStreamData::MixReader;
+
+    explicit MixStream(const MixStreamDataPtr& ptr);
+
+    //! When the user handle is destroyed, close the stream (but maybe not
+    //! destroy the data object)
+    ~MixStream();
+
+    //! Return stream id
+    const StreamId& id() const final;
+
+    //! Return stream data reference
+    StreamData& data() final;
+
+    //! Return stream data reference
+    const StreamData& data() const final;
+
+    //! Creates BlockWriters for each worker. BlockWriter can only be opened
+    //! once, otherwise the block sequence is incorrectly interleaved!
+    std::vector<Writer> GetWriters();
+
+    //! Creates a BlockReader which concatenates items from all workers in
+    //! worker rank order. The BlockReader is attached to one \ref
+    //! MixBlockSource which includes all incoming queues of this stream.
+    MixReader GetMixReader(bool consume);
+
+    //! Open a MixReader (function name matches a method in File and CatStream).
+    MixReader GetReader(bool consume);
+
+private:
+    MixStreamDataPtr ptr_;
 };
 
 using MixStreamPtr = tlx::CountingPtr<MixStream>;
-
-using MixStreamSet = StreamSet<MixStream>;
-using MixStreamSetPtr = tlx::CountingPtr<MixStreamSet>;
 
 //! \}
 

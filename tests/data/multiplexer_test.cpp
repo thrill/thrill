@@ -77,7 +77,7 @@ TEST(StreamSet, TestLoopbacks) {
     data::Multiplexer multiplexer(mem_manager, block_pool, workers_per_host, *group);
 
     auto producer =
-        [workers_per_host](data::CatStreamPtr stream, size_t my_id) {
+        [workers_per_host](data::CatStreamDataPtr stream, size_t my_id) {
             common::NameThisThread("worker " + mem::to_string(my_id));
             // send data between workers
             auto writers = stream->GetWriters();
@@ -88,7 +88,7 @@ TEST(StreamSet, TestLoopbacks) {
             }
         };
     auto consumer =
-        [workers_per_host](data::CatStreamPtr stream, size_t my_id) {
+        [workers_per_host](data::CatStreamDataPtr stream, size_t my_id) {
             common::NameThisThread("worker " + mem::to_string(my_id));
             // check data on each worker
             auto readers = stream->GetReaders();
@@ -102,15 +102,18 @@ TEST(StreamSet, TestLoopbacks) {
 
     // no we cannot use ExecuteLocalMock, because we need the same
     // CatStreamSet instance for all the threads.
-    auto stream0 = multiplexer.GetOrCreateCatStream(0, 0, /* dia_id */ 0);
-    auto stream1 = multiplexer.GetOrCreateCatStream(0, 1, /* dia_id */ 0);
-    auto stream2 = multiplexer.GetOrCreateCatStream(0, 2, /* dia_id */ 0);
+    auto stream0 = multiplexer.GetOrCreateCatStreamData(0, 0, /* dia_id */ 0);
+    auto stream1 = multiplexer.GetOrCreateCatStreamData(0, 1, /* dia_id */ 0);
+    auto stream2 = multiplexer.GetOrCreateCatStreamData(0, 2, /* dia_id */ 0);
     producer(stream0, 0);
     producer(stream1, 1);
     producer(stream2, 2);
     consumer(stream0, 0);
     consumer(stream1, 1);
     consumer(stream2, 2);
+    stream0->Close();
+    stream1->Close();
+    stream2->Close();
 }
 
 /******************************************************************************/
@@ -123,7 +126,6 @@ struct Multiplexer : public ::testing::Test {
     static void FunctionSelect(
         net::Group* group, WorkerThread f1, WorkerThread f2, WorkerThread f3) {
         mem::Manager mem_manager(nullptr, "MultiplexerTest");
-        std::string swap_file_suffix = std::to_string(group->my_host_rank());
         data::BlockPool block_pool;
         data::Multiplexer multiplexer(mem_manager, block_pool, 1, *group);
         switch (group->my_host_rank()) {
@@ -171,65 +173,112 @@ void TalkAllToAllViaCatStream(net::Group* net) {
         send_buffer[i] = static_cast<unsigned char>(i);
 
     static constexpr size_t iterations = 1000;
-    size_t my_local_worker_id = 0;
-    size_t num_workers_per_host = 1;
+    size_t num_hosts = net->num_hosts();
+    size_t num_workers_per_host = 2;
+    size_t total_workers = num_hosts * num_workers_per_host;
 
     data::default_block_size = test_block_size;
 
     mem::Manager mem_manager(nullptr, "Benchmark");
-    mem::Manager ext_mem_manager(nullptr, "BenchmarkExt");
-    std::string swap_file_suffix =
-        std::to_string(net->my_host_rank()) + "-" + std::to_string(my_local_worker_id);
-    data::BlockPool block_pool;
-    data::Multiplexer multiplexer(mem_manager, block_pool, num_workers_per_host, *net);
-    {
-        data::StreamId id = multiplexer.AllocateCatStreamId(my_local_worker_id);
+    data::BlockPool block_pool(num_workers_per_host);
+    data::Multiplexer multiplexer(
+        mem_manager, block_pool, num_workers_per_host, *net);
 
-        // open Writers and send a message to all workers
+    auto thread_func =
+        [&](size_t my_local_worker_id) {
 
-        auto writers = multiplexer.GetOrCreateCatStream(
-            id, my_local_worker_id, /* dia_id */ 0)->GetWriters();
+            auto stream = multiplexer.GetNewCatStream(
+                my_local_worker_id, /* dia_id */ 0);
 
-        for (size_t tgt = 0; tgt != writers.size(); ++tgt) {
-            writers[tgt].Put("hello I am " + std::to_string(net->my_host_rank())
-                             + " calling " + std::to_string(tgt));
+            size_t my_worker_rank =
+                net->my_host_rank() * num_workers_per_host + my_local_worker_id;
 
-            writers[tgt].Flush();
+            // open Writers and send a message to all workers
 
-            // write a few MiBs of oddly sized data
-            for (size_t r = 0; r != iterations; ++r) {
-                writers[tgt].Append(send_buffer, sizeof(send_buffer));
+            auto writers = stream->GetWriters();
+
+            for (size_t tgt = 0; tgt != writers.size(); ++tgt) {
+                std::string msg = "hello I am ";
+                msg += ('0' + my_worker_rank);
+                msg += " calling ";
+                msg += ('0' + tgt);
+                writers[tgt].Put(msg);
+                writers[tgt].Flush();
+
+                // write a few MiBs of oddly sized raw data
+                for (size_t r = 0; r != iterations; ++r) {
+                    writers[tgt].Append(send_buffer, sizeof(send_buffer));
+                }
+
+                // add one more important integer
+                writers[tgt].Put<uint32_t>(42u);
+
+                writers[tgt].Flush();
+                writers[tgt].Close();
             }
 
-            writers[tgt].Flush();
-            writers[tgt].Close();
-        }
+            // open Readers and receive message from all workers
 
-        // open Readers and receive message from all workers
+            auto readers = stream->GetReaders();
 
-        auto readers = multiplexer.GetOrCreateCatStream(
-            id, my_local_worker_id, /* dia_id */ 0)->GetReaders();
+            for (size_t src = 0; src != readers.size(); ++src) {
+                std::string msg = readers[src].Next<std::string>();
 
-        for (size_t src = 0; src != readers.size(); ++src) {
-            std::string msg = readers[src].Next<std::string>();
+                std::string expect = "hello I am ";
+                expect += ('0' + src);
+                expect += " calling ";
+                expect += ('0' + my_worker_rank);
+                ASSERT_EQ(msg, expect);
 
-            ASSERT_EQ(msg, "hello I am " + std::to_string(src)
-                      + " calling " + std::to_string(net->my_host_rank()));
+                sLOG << net->my_host_rank() << "got msg from" << src;
 
-            sLOG << net->my_host_rank() << "got msg from" << src;
+                ASSERT_TRUE(readers[src].HasNext());
 
-            // read a few MiBs of oddly sized data
-            unsigned char recv_buffer[sizeof(send_buffer)];
+                // read a few MiBs of oddly sized raw data
+                unsigned char recv_buffer[sizeof(send_buffer)];
 
-            for (size_t r = 0; r != iterations; ++r) {
-                readers[src].Read(recv_buffer, sizeof(recv_buffer));
+                for (size_t r = 0; r != iterations; ++r) {
+                    readers[src].Read(recv_buffer, sizeof(recv_buffer));
 
-                ASSERT_TRUE(std::equal(send_buffer,
-                                       send_buffer + sizeof(send_buffer),
-                                       recv_buffer));
+                    ASSERT_TRUE(std::equal(send_buffer,
+                                           send_buffer + sizeof(send_buffer),
+                                           recv_buffer));
+                }
+
+                ASSERT_TRUE(readers[src].HasNext());
+
+                // read important integer
+                uint32_t x = readers[src].Next<uint32_t>();
+                ASSERT_EQ(x, 42u);
+
+                ASSERT_FALSE(readers[src].HasNext());
             }
-        }
-    }
+
+            stream->Close();
+
+            /*----------------------------------------------------------------*/
+            // check Stream statistics
+
+            ASSERT_EQ(2 * total_workers, stream->tx_items());
+            ASSERT_EQ(2 * total_workers, stream->rx_items());
+
+            const size_t self_verify =
+                data::CatStream::Writer::self_verify ? 8 : 0;
+
+            ASSERT_EQ(total_workers *
+                      (self_verify + 1 + 22
+                       + iterations * sizeof(send_buffer)
+                       + self_verify + sizeof(uint32_t))
+                      // add headers of blocks
+                      + stream->tx_net_blocks() * data::MultiplexerHeader::total_size,
+                      stream->tx_bytes());
+
+            ASSERT_EQ(stream->tx_bytes(), stream->rx_bytes());
+        };
+
+    std::thread t0 = std::thread(thread_func, 0);
+    std::thread t1 = std::thread(thread_func, 1);
+    t0.join(), t1.join();
 }
 
 TEST_F(Multiplexer, TalkAllToAllViaCatStreamForManyNetSizes) {
@@ -244,8 +293,7 @@ TEST_F(Multiplexer, ReadCompleteCatStream) {
     data::default_block_size = test_block_size;
     auto w0 =
         [](data::Multiplexer& multiplexer) {
-            auto id = multiplexer.AllocateCatStreamId(0);
-            auto c = multiplexer.GetOrCreateCatStream(id, 0, /* dia_id */ 0);
+            auto c = multiplexer.GetNewCatStream(0, /* dia_id */ 0);
             auto writers = c->GetWriters();
             std::string msg1 = "I came from worker 0";
             std::string msg2 = "I am another message from worker 0";
@@ -259,8 +307,7 @@ TEST_F(Multiplexer, ReadCompleteCatStream) {
         };
     auto w1 =
         [](data::Multiplexer& multiplexer) {
-            auto id = multiplexer.AllocateCatStreamId(0);
-            auto c = multiplexer.GetOrCreateCatStream(id, 0, /* dia_id */ 0);
+            auto c = multiplexer.GetNewCatStream(0, /* dia_id */ 0);
             auto writers = c->GetWriters();
             std::string msg1 = "I came from worker 1";
             writers[2].Put(msg1);
@@ -271,8 +318,7 @@ TEST_F(Multiplexer, ReadCompleteCatStream) {
         };
     auto w2 =
         [](data::Multiplexer& multiplexer) {
-            auto id = multiplexer.AllocateCatStreamId(0);
-            auto c = multiplexer.GetOrCreateCatStream(id, 0, /* dia_id */ 0);
+            auto c = multiplexer.GetNewCatStream(0, /* dia_id */ 0);
             auto writers = c->GetWriters();
             for (auto& w : writers) {
                 sLOG << "close worker";
@@ -291,8 +337,7 @@ TEST_F(Multiplexer, ReadCompleteCatStreamManyTimes) {
     data::default_block_size = test_block_size;
     auto w0 =
         [](data::Multiplexer& multiplexer) {
-            auto id = multiplexer.AllocateCatStreamId(0);
-            auto c = multiplexer.GetOrCreateCatStream(id, 0, /* dia_id */ 0);
+            auto c = multiplexer.GetNewCatStream(0, /* dia_id */ 0);
             auto writers = c->GetWriters();
             std::string msg1 = "I came from worker 0";
             std::string msg2 = "I am another message from worker 0";
@@ -306,8 +351,7 @@ TEST_F(Multiplexer, ReadCompleteCatStreamManyTimes) {
         };
     auto w1 =
         [](data::Multiplexer& multiplexer) {
-            auto id = multiplexer.AllocateCatStreamId(0);
-            auto c = multiplexer.GetOrCreateCatStream(id, 0, /* dia_id */ 0);
+            auto c = multiplexer.GetNewCatStream(0, /* dia_id */ 0);
             auto writers = c->GetWriters();
             std::string msg1 = "I came from worker 1";
             writers[2].Put(msg1);
@@ -318,8 +362,7 @@ TEST_F(Multiplexer, ReadCompleteCatStreamManyTimes) {
         };
     auto w2 =
         [](data::Multiplexer& multiplexer) {
-            auto id = multiplexer.AllocateCatStreamId(0);
-            auto c = multiplexer.GetOrCreateCatStream(id, 0, /* dia_id */ 0);
+            auto c = multiplexer.GetNewCatStream(0, /* dia_id */ 0);
             auto writers = c->GetWriters();
             for (auto& w : writers) {
                 sLOG << "close worker";
@@ -366,8 +409,7 @@ TEST_F(Multiplexer, ReadCompleteMixStreamManyTimes) {
     data::default_block_size = test_block_size;
     auto w0 =
         [](data::Multiplexer& multiplexer) {
-            auto id = multiplexer.AllocateMixStreamId(0);
-            auto c = multiplexer.GetOrCreateMixStream(id, 0, /* dia_id */ 0);
+            auto c = multiplexer.GetNewMixStream(0, /* dia_id */ 0);
             auto writers = c->GetWriters();
             std::string msg1 = "I came from worker 0";
             std::string msg2 = "I am another message from worker 0";
@@ -378,11 +420,12 @@ TEST_F(Multiplexer, ReadCompleteMixStreamManyTimes) {
                 sLOG << "close worker";
                 w.Close();
             }
+            auto reader = c->GetMixReader(false);
+            ASSERT_TRUE(!reader.HasNext());
         };
     auto w1 =
         [](data::Multiplexer& multiplexer) {
-            auto id = multiplexer.AllocateMixStreamId(0);
-            auto c = multiplexer.GetOrCreateMixStream(id, 0, /* dia_id */ 0);
+            auto c = multiplexer.GetNewMixStream(0, /* dia_id */ 0);
             auto writers = c->GetWriters();
             std::string msg1 = "I came from worker 1";
             writers[2].Put(msg1);
@@ -390,18 +433,19 @@ TEST_F(Multiplexer, ReadCompleteMixStreamManyTimes) {
                 sLOG << "close worker";
                 w.Close();
             }
+            auto reader = c->GetMixReader(false);
+            ASSERT_TRUE(!reader.HasNext());
         };
     auto w2 =
         [](data::Multiplexer& multiplexer) {
-            auto id = multiplexer.AllocateMixStreamId(0);
-            auto c = multiplexer.GetOrCreateMixStream(id, 0, /* dia_id */ 0);
+            auto c = multiplexer.GetNewMixStream(0, /* dia_id */ 0);
             auto writers = c->GetWriters();
             for (auto& w : writers) {
                 sLOG << "close worker";
                 w.Close();
             }
             {
-                auto reader = c->GetMixReader(false);
+                auto reader = c->GetMixReader(/* consume */ false);
                 // receive three std::string items
                 std::vector<std::string> recv;
 
@@ -419,7 +463,7 @@ TEST_F(Multiplexer, ReadCompleteMixStreamManyTimes) {
                 ASSERT_EQ("I came from worker 1", recv[2]);
             }
             {
-                auto reader = c->GetMixReader(false);
+                auto reader = c->GetMixReader(/* consume */ false);
                 // receive three std::string items
                 std::vector<std::string> recv;
 
@@ -437,7 +481,7 @@ TEST_F(Multiplexer, ReadCompleteMixStreamManyTimes) {
                 ASSERT_EQ("I came from worker 1", recv[2]);
             }
             {
-                auto reader = c->GetMixReader(true);
+                auto reader = c->GetMixReader(/* consume */ true);
                 // receive three std::string items
                 std::vector<std::string> recv;
 
@@ -470,70 +514,103 @@ void TalkAllToAllViaMixStream(net::Group* net) {
     std::string send_string(send_buffer, sizeof(send_buffer));
 
     static constexpr size_t iterations = 1000;
-    size_t my_local_worker_id = 0;
-    size_t num_workers_per_host = 1;
+    size_t num_hosts = net->num_hosts();
+    size_t num_workers_per_host = 2;
+    size_t total_workers = num_hosts * num_workers_per_host;
+
     data::default_block_size = test_block_size;
 
     mem::Manager mem_manager(nullptr, "Benchmark");
-    data::BlockPool block_pool;
-    data::Multiplexer multiplexer(mem_manager, block_pool, num_workers_per_host, *net);
-    {
-        data::StreamId id = multiplexer.AllocateMixStreamId(my_local_worker_id);
+    data::BlockPool block_pool(num_workers_per_host);
+    data::Multiplexer multiplexer(
+        mem_manager, block_pool, num_workers_per_host, *net);
 
-        // open Writers and send a message to all workers
+    auto thread_func =
+        [&](size_t my_local_worker_id) {
 
-        auto writers = multiplexer.GetOrCreateMixStream(
-            id, my_local_worker_id, /* dia_id */ 0)->GetWriters();
+            auto stream = multiplexer.GetNewMixStream(
+                my_local_worker_id, /* dia_id */ 0);
 
-        for (size_t tgt = 0; tgt != writers.size(); ++tgt) {
-            std::string txt =
-                "hello I am " + std::to_string(net->my_host_rank())
-                + " calling " + std::to_string(tgt)
-                + send_string;
+            size_t my_worker_rank =
+                net->my_host_rank() * num_workers_per_host + my_local_worker_id;
 
-            writers[tgt].Put(txt);
-            // try a Flush.
-            writers[tgt].Flush();
+            // open Writers and send a message to all workers
 
-            // write a few MiBs of oddly sized data
-            for (size_t r = 1; r < iterations; ++r) {
-                writers[tgt].Put(txt);
+            auto writers = stream->GetWriters();
+
+            for (size_t tgt = 0; tgt != writers.size(); ++tgt) {
+                std::string msg = "hello I am ";
+                msg += ('0' + my_worker_rank);
+                msg += " calling ";
+                msg += ('0' + tgt);
+                msg += send_string;
+
+                writers[tgt].Put(msg);
+                // try a Flush.
+                writers[tgt].Flush();
+
+                // write a few MiBs of oddly sized data
+                for (size_t r = 1; r < iterations; ++r) {
+                    writers[tgt].Put(msg);
+                }
+
+                writers[tgt].Flush();
+                writers[tgt].Close();
             }
 
-            writers[tgt].Flush();
-            writers[tgt].Close();
-        }
+            // open mix Reader and receive messages from all workers
 
-        // open mix Reader and receive messages from all workers
+            auto reader = stream->GetMixReader(true);
 
-        auto reader = multiplexer.GetOrCreateMixStream(
-            id, my_local_worker_id, /* dia_id */ 0)->GetMixReader(true);
+            std::vector<std::string> recv;
 
-        std::vector<std::string> recv;
+            while (reader.HasNext())
+                recv.emplace_back(reader.Next<std::string>());
 
-        while (reader.HasNext())
-            recv.emplace_back(reader.Next<std::string>());
+            // sort messages and check them
 
-        // sort messages and check them
+            std::sort(recv.begin(), recv.end());
 
-        std::sort(recv.begin(), recv.end());
+            ASSERT_EQ(iterations * total_workers, recv.size());
 
-        ASSERT_EQ(iterations * net->num_hosts(), recv.size());
+            size_t recvi = 0;
 
-        size_t i = 0;
+            for (size_t src = 0; src < total_workers; ++src) {
+                std::string expect = "hello I am ";
+                expect += ('0' + src);
+                expect += " calling ";
+                expect += ('0' + my_worker_rank);
+                expect += send_string;
 
-        for (size_t src = 0; src < net->num_hosts(); ++src) {
-            std::string txt =
-                "hello I am " + std::to_string(src)
-                + " calling " + std::to_string(net->my_host_rank())
-                + send_string;
-
-            for (size_t iter = 0; iter < iterations; ++iter) {
-                ASSERT_EQ(txt, recv[i]);
-                ++i;
+                for (size_t i = 0; i < iterations; ++i) {
+                    ASSERT_EQ(expect, recv[recvi]);
+                    ++recvi;
+                }
             }
-        }
-    }
+
+            stream->Close();
+
+            /*----------------------------------------------------------------*/
+            // check Stream statistics
+
+            ASSERT_EQ(iterations * total_workers, stream->tx_items());
+            ASSERT_EQ(iterations * total_workers, stream->rx_items());
+
+            const size_t self_verify =
+                data::CatStream::Writer::self_verify ? 8 : 0;
+
+            ASSERT_EQ(total_workers *
+                      ((self_verify + 2 + 22 + sizeof(send_buffer)) * iterations)
+                      // add headers of blocks
+                      + stream->tx_net_blocks() * data::MultiplexerHeader::total_size,
+                      stream->tx_bytes());
+
+            ASSERT_EQ(stream->tx_bytes(), stream->rx_bytes());
+        };
+
+    std::thread t0 = std::thread(thread_func, 0);
+    std::thread t1 = std::thread(thread_func, 1);
+    t0.join(), t1.join();
 }
 
 TEST_F(Multiplexer, TalkAllToAllViaMixStreamForManyNetSizes) {
@@ -542,7 +619,6 @@ TEST_F(Multiplexer, TalkAllToAllViaMixStreamForManyNetSizes) {
     net::RunLoopbackGroupTest(2, TalkAllToAllViaMixStream);
     net::RunLoopbackGroupTest(5, TalkAllToAllViaMixStream);
     net::RunLoopbackGroupTest(9, TalkAllToAllViaMixStream);
-    // the test does not work for two digit #workers (due to sorting digits)
 }
 
 /******************************************************************************/
@@ -564,8 +640,7 @@ TEST_F(Multiplexer, Scatter_OneWorker) {
             }
 
             // scatter File contents via stream: only items [0,3) are sent
-            data::StreamId id = multiplexer.AllocateCatStreamId(0);
-            auto ch = multiplexer.GetOrCreateCatStream(id, 0, /* dia_id */ 0);
+            auto ch = multiplexer.GetNewCatStream(0, /* dia_id */ 0);
             ch->Scatter<std::string>(file, { 0, 2 });
 
             // check that got items
@@ -592,8 +667,7 @@ TEST_F(Multiplexer, Scatter_TwoWorkers_OnlyLocalCopy) {
             }
 
             // scatter File contents via stream: only items [0,2) are to local worker
-            data::StreamId id = multiplexer.AllocateCatStreamId(0);
-            auto ch = multiplexer.GetOrCreateCatStream(id, 0, /* dia_id */ 0);
+            auto ch = multiplexer.GetNewCatStream(0, /* dia_id */ 0);
             ch->Scatter<std::string>(file, { 0, 2, 2 });
 
             // check that got items
@@ -612,8 +686,7 @@ TEST_F(Multiplexer, Scatter_TwoWorkers_OnlyLocalCopy) {
             }
 
             // scatter File contents via stream: only items [0,3) are to local worker
-            data::StreamId id = multiplexer.AllocateCatStreamId(0);
-            auto ch = multiplexer.GetOrCreateCatStream(id, 0, /* dia_id */ 0);
+            auto ch = multiplexer.GetNewCatStream(0, /* dia_id */ 0);
             ch->Scatter<std::string>(file, { 0, 0, 3 });
 
             // check that got items
@@ -636,8 +709,7 @@ TEST_F(Multiplexer, Scatter_TwoWorkers_CompleteExchange) {
             }
 
             // scatter File contents via stream.
-            data::StreamId id = multiplexer.AllocateCatStreamId(0);
-            auto ch = multiplexer.GetOrCreateCatStream(id, 0, /* dia_id */ 0);
+            auto ch = multiplexer.GetNewCatStream(0, /* dia_id */ 0);
             ch->Scatter<std::string>(file, { 0, 1, 2 });
 
             // check that got items
@@ -656,8 +728,7 @@ TEST_F(Multiplexer, Scatter_TwoWorkers_CompleteExchange) {
             }
 
             // scatter File contents via stream.
-            data::StreamId id = multiplexer.AllocateCatStreamId(0);
-            auto ch = multiplexer.GetOrCreateCatStream(id, 0, /* dia_id */ 0);
+            auto ch = multiplexer.GetNewCatStream(0, /* dia_id */ 0);
             ch->Scatter<std::string>(file, { 0, 1, 2 });
 
             // check that got items
@@ -680,8 +751,7 @@ TEST_F(Multiplexer, Scatter_ThreeWorkers_PartialExchange) {
             }
 
             // scatter File contents via stream.
-            data::StreamId id = multiplexer.AllocateCatStreamId(0);
-            auto ch = multiplexer.GetOrCreateCatStream(id, 0, /* dia_id */ 0);
+            auto ch = multiplexer.GetNewCatStream(0, /* dia_id */ 0);
             ch->Scatter<int>(file, { 0, 2, 2, 2 });
 
             // check that got items
@@ -701,8 +771,7 @@ TEST_F(Multiplexer, Scatter_ThreeWorkers_PartialExchange) {
             }
 
             // scatter File contents via stream.
-            data::StreamId id = multiplexer.AllocateCatStreamId(0);
-            auto ch = multiplexer.GetOrCreateCatStream(id, 0, /* dia_id */ 0);
+            auto ch = multiplexer.GetNewCatStream(0, /* dia_id */ 0);
             ch->Scatter<int>(file, { 0, 0, 2, 4 });
 
             // check that got items
@@ -715,8 +784,7 @@ TEST_F(Multiplexer, Scatter_ThreeWorkers_PartialExchange) {
             data::File file(multiplexer.block_pool(), 0, /* dia_id */ 0);
 
             // scatter File contents via stream.
-            data::StreamId id = multiplexer.AllocateCatStreamId(0);
-            auto ch = multiplexer.GetOrCreateCatStream(id, 0, /* dia_id */ 0);
+            auto ch = multiplexer.GetNewCatStream(0, /* dia_id */ 0);
             ch->Scatter<int>(file, { 0, 0, 0, 0 });
 
             // check that got items

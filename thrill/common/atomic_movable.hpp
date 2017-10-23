@@ -51,6 +51,18 @@ public:
     AtomicMovable(const AtomicMovable&& rhs) noexcept
         : std::atomic<T>(T(std::move(rhs.load()))) { }
 
+    //! copy-assignment (same as std::atomic)
+    AtomicMovable& operator = (const AtomicMovable& rhs) noexcept {
+        std::atomic<T>::operator = (rhs.load());
+        return *this;
+    }
+
+    //! move-assignment NOT same as std::atomic: load and move.
+    AtomicMovable& operator = (AtomicMovable&& rhs) noexcept {
+        std::atomic<T>::operator = (std::move(rhs.load()));
+        return *this;
+    }
+
     //! assignment operator (same as std::atomic)
     T operator = (T desired) noexcept { return std::atomic<T>::operator = (desired); }
 };

@@ -166,7 +166,7 @@ public:
         pre_phase_.CloseAll();
         // waiting for the additional thread to finish the reduce
         if (use_post_thread_) thread_.join();
-        use_mix_stream_ ? mix_stream_->Close() : cat_stream_->Close();
+        use_mix_stream_ ? mix_stream_.reset() : cat_stream_.reset();
     }
 
     void Execute() final { }
@@ -228,7 +228,8 @@ private:
 
     core::ReducePrePhase<
         TableItem, Key, ValueType, KeyExtractor, ReduceFunction, VolatileKey,
-        ReduceConfig, core::ReduceByIndex<Key> > pre_phase_;
+        data::Stream::Writer, ReduceConfig, core::ReduceByIndex<Key>
+        > pre_phase_;
 
     core::ReduceByIndexPostPhase<
         TableItem, Key, ValueType, KeyExtractor, ReduceFunction, Emitter,

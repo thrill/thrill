@@ -35,6 +35,8 @@ public:
     Semaphore& operator = (const Semaphore&) = delete;
     //! move-constructor: just move the value
     Semaphore(Semaphore&& s) : value_(s.value_) { }
+    //! move-assignment: just move the value
+    Semaphore& operator = (Semaphore&& s) { value_ = s.value_; return *this; }
 
     //! function increments the semaphore and signals any threads that are
     //! blocked waiting a change in the semaphore

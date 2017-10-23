@@ -25,6 +25,11 @@ File::File(BlockPool& block_pool, size_t local_worker_id, size_t dia_id)
 
 File::~File() {
     // assert(dia_id_ != 0);
+    if (reference_count() != 0) {
+        die("File[" << this << "]::~File() called "
+            "but " << reference_count() << " File::Writer "
+            "handles are still open.");
+    }
     logger()
         << "class" << "File"
         << "event" << "close"
@@ -56,11 +61,8 @@ void File::Clear() {
 }
 
 File::Writer File::GetWriter(size_t block_size) {
-    return Writer(this, block_size);
-}
-
-File::DynWriter File::GetDynWriter(size_t block_size) {
-    return DynWriter(this, block_size);
+    return Writer(
+        FileBlockSink(tlx::CountingPtrNoDelete<File>(this)), block_size);
 }
 
 File::KeepReader File::GetKeepReader(size_t num_prefetch) const {
@@ -91,6 +93,7 @@ std::string File::ReadComplete() const {
 
 std::ostream& operator << (std::ostream& os, const File& f) {
     os << "[File " << std::hex << &f << std::dec
+       << " refs=" << f.reference_count()
        << " Blocks=[";
     size_t i = 0;
     for (const Block& b : f.blocks_)

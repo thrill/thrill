@@ -19,6 +19,8 @@
 #include <thrill/data/block_writer.hpp>
 #include <thrill/data/file.hpp>
 #include <thrill/data/multiplexer.hpp>
+#include <thrill/data/stream_data.hpp>
+#include <thrill/data/stream_sink.hpp>
 
 #include <mutex>
 #include <vector>
@@ -29,49 +31,27 @@ namespace data {
 //! \addtogroup data_layer
 //! \{
 
-using StreamId = size_t;
+/******************************************************************************/
+//! Stream - base class for CatStream and MixStream
 
-enum class MagicByte : uint8_t {
-    Invalid, CatStreamBlock, MixStreamBlock, PartitionBlock
-};
-
-/*!
- * Base class for common structures for ConcatStream and MixedStream. This is
- * also a virtual base class use by Multiplexer to pass blocks to streams!
- * Instead, it contains common items like stats.
- */
 class Stream : public tlx::ReferenceCounter
 {
 public:
-    using Writer = DynBlockWriter;
-
-    Stream(Multiplexer& multiplexer, const StreamId& id,
-           size_t local_worker_id, size_t dia_id);
+    using Writer = StreamData::Writer;
 
     virtual ~Stream();
 
-    const StreamId& id() const { return id_; }
+    //! Return stream id
+    virtual const StreamId& id() const = 0;
 
-    //! Returns my_host_rank
-    size_t my_host_rank() const { return multiplexer_.my_host_rank(); }
-    //! Number of hosts in system
-    size_t num_hosts() const { return multiplexer_.num_hosts(); }
-    //! Number of workers in system
-    size_t num_workers() const { return multiplexer_.num_workers(); }
+    //! Return stream data reference
+    virtual StreamData& data() = 0;
 
-    //! Returns workers_per_host
-    size_t workers_per_host() const { return multiplexer_.workers_per_host(); }
-    //! Returns my_worker_rank_
-    size_t my_worker_rank() const {
-        return my_host_rank() * workers_per_host() + local_worker_id_;
-    }
+    //! Return stream data reference
+    virtual const StreamData& data() const = 0;
 
-    void OnAllClosed(const char* stream_type);
-
-    //! shuts the stream down.
-    virtual void Close() = 0;
-
-    virtual bool closed() const = 0;
+    //! shuts down the stream, waits for all closing blocks
+    void Close();
 
     //! Creates BlockWriters for each worker. BlockWriter can only be opened
     //! once, otherwise the block sequence is incorrectly interleaved!
@@ -96,9 +76,7 @@ public:
     template <typename ItemType>
     void Scatter(File& source, const std::vector<size_t>& offsets,
                  bool consume = false) {
-        tx_timespan_.StartEventually();
-
-        assert(offsets.size() == num_workers() + 1);
+        // tx_timespan_.StartEventually();
 
         File::Reader reader = source.GetReader(consume);
         size_t current = 0;
@@ -122,7 +100,10 @@ public:
 
         std::vector<Writer> writers = GetWriters();
 
-        for (size_t worker = 0; worker < num_workers(); ++worker) {
+        size_t num_workers = writers.size();
+        assert(offsets.size() == num_workers + 1);
+
+        for (size_t worker = 0; worker < num_workers; ++worker) {
             // write [current,limit) to this worker
             size_t limit = offsets[worker + 1];
             assert(current <= limit);
@@ -142,109 +123,73 @@ public:
             writers[worker].Close();
         }
 
-        tx_timespan_.Stop();
+        // tx_timespan_.Stop();
     }
 
-    ///////// expose these members - getters would be too java-ish /////////////
+    /**************************************************************************/
 
-    //! StatsCounter for incoming data transfer.  Does not include loopback data
-    //! transfer
-    size_t rx_net_items_ = 0, rx_net_bytes_ = 0, rx_net_blocks_ = 0;
+    //! \name Statistics
+    //! \{
 
-    //! StatsCounters for outgoing data transfer - shared by all sinks.  Does
-    //! not include loopback data transfer
-    std::atomic<size_t>
-    tx_net_items_ { 0 }, tx_net_bytes_ { 0 }, tx_net_blocks_ { 0 };
+    //! return number of items transmitted
+    size_t tx_items() const;
 
-    //! StatsCounter for incoming data transfer.  Exclusively contains only
-    //! loopback (internal) data transfer
-    std::atomic<size_t>
-    rx_int_items_ { 0 }, rx_int_bytes_ { 0 }, rx_int_blocks_ { 0 };
+    //! return number of bytes transmitted
+    size_t tx_bytes() const;
 
-    //! StatsCounters for outgoing data transfer - shared by all sinks.
-    //! Exclusively contains only loopback (internal) data transfer
-    std::atomic<size_t>
-    tx_int_items_ { 0 }, tx_int_bytes_ { 0 }, tx_int_blocks_ { 0 };
+    //! return number of blocks transmitted
+    size_t tx_blocks() const;
 
-    //! Timers from creation of stream until rx / tx direction is closed.
-    common::StatsTimerStart tx_lifetime_, rx_lifetime_;
+    //! return number of items received
+    size_t rx_items() const;
 
-    //! Timers from first rx / tx package until rx / tx direction is closed.
-    common::StatsTimerStopped tx_timespan_, rx_timespan_;
+    //! return number of bytes received
+    size_t rx_bytes() const;
 
-    ///////////////////////////////////////////////////////////////////////////
+    //! return number of blocks received
+    size_t rx_blocks() const;
 
-protected:
-    //! our own stream id.
-    StreamId id_;
+    /*------------------------------------------------------------------------*/
 
-    size_t local_worker_id_;
+    //! return number of items transmitted via network excluding internal tx
+    size_t tx_net_items() const;
 
-    //! Associated DIANode id.
-    size_t dia_id_;
+    //! return number of bytes transmitted via network excluding internal tx
+    size_t tx_net_bytes() const;
 
-    //! reference to multiplexer
-    Multiplexer& multiplexer_;
+    //! return number of blocks transmitted via network excluding internal tx
+    size_t tx_net_blocks() const;
 
-    //! number of remaining expected stream closing operations. Required to know
-    //! when to stop rx_lifetime
-    size_t remaining_closing_blocks_;
+    //! return number of items received via network excluding internal tx
+    size_t rx_net_items() const;
 
-    //! number of received stream closing Blocks.
-    common::Semaphore sem_closing_blocks_;
+    //! return number of bytes received via network excluding internal tx
+    size_t rx_net_bytes() const;
 
-    //! friends for access to multiplexer_
-    friend class StreamSink;
-};
+    //! return number of blocks received via network excluding internal tx
+    size_t rx_net_blocks() const;
 
-using StreamPtr = tlx::CountingPtr<Stream>;
+    /*------------------------------------------------------------------------*/
 
-/*!
- * Base class for StreamSet.
- */
-class StreamSetBase : public tlx::ReferenceCounter
-{
-public:
-    virtual ~StreamSetBase() { }
+    //! return number of items transmitted via internal loopback queues
+    size_t tx_int_items() const;
 
-    //! Close all streams in the set.
-    virtual void Close() = 0;
-};
+    //! return number of bytes transmitted via internal loopback queues
+    size_t tx_int_bytes() const;
 
-/*!
- * Simple structure that holds a all stream instances for the workers on the
- * local host for a given stream id.
- */
-template <typename Stream>
-class StreamSet : public StreamSetBase
-{
-public:
-    using StreamPtr = tlx::CountingPtr<Stream>;
+    //! return number of blocks transmitted via internal loopback queues
+    size_t tx_int_blocks() const;
 
-    //! Creates a StreamSet with the given number of streams (num workers per
-    //! host).
-    StreamSet(Multiplexer& multiplexer, StreamId id,
-              size_t workers_per_host, size_t dia_id) {
-        for (size_t i = 0; i < workers_per_host; i++)
-            streams_.emplace_back(
-                tlx::make_counting<Stream>(multiplexer, id, i, dia_id));
-    }
+    //! return number of items received via network internal loopback queues
+    size_t rx_int_items() const;
 
-    //! Returns the stream that will be consumed by the worker with the given
-    //! local id
-    StreamPtr peer(size_t local_worker_id) {
-        assert(local_worker_id < streams_.size());
-        return streams_[local_worker_id];
-    }
+    //! return number of bytes received via network internal loopback queues
+    size_t rx_int_bytes() const;
 
-    void Close() final {
-        for (StreamPtr& c : streams_)
-            c->Close();
-    }
+    //! return number of blocks received via network internal loopback queues
+    size_t rx_int_blocks() const;
 
-private:
-    //! 'owns' all streams belonging to one stream id for all local workers.
-    std::vector<StreamPtr> streams_;
+    //! \}
 };
 
 //! \}

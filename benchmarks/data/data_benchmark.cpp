@@ -373,7 +373,13 @@ public:
         }
         write_timer.Stop();
 
-        stream->Close();
+        {
+            // this opens and closes the readers. this must be done, otherwise
+            // the reader will wait infinitely on the loopback!
+            auto reader = stream->GetReader(/* consume */ true);
+        }
+
+        stream.reset();
 
         double bw = CalcMiBs(data.TotalBytes(), write_timer);
 
@@ -410,7 +416,7 @@ public:
         }
         read_timer.Stop();
 
-        stream->Close();
+        stream.reset();
 
         double bw = CalcMiBs(data.TotalBytes(), read_timer);
 
@@ -484,10 +490,18 @@ void StreamOneFactorExperiment<Stream>::Test(api::Context& ctx) {
                     // allocate and close Streams.
                     ctx.net.Barrier();
                     auto stream1 = ctx.GetNewStream<Stream>(/* dia_id */ 0);
-                    stream1->Close();
+                    {
+                        auto reader = stream1->GetReader(/* consume */ true);
+                        auto writers = stream1->GetWriters();
+                    }
+                    stream1.reset();
                     ctx.net.Barrier();
                     auto stream2 = ctx.GetNewStream<Stream>(/* dia_id */ 0);
-                    stream2->Close();
+                    {
+                        auto reader = stream2->GetReader(/* consume */ true);
+                        auto writers = stream2->GetWriters();
+                    }
+                    stream2.reset();
                 }
             }
         }
@@ -739,12 +753,13 @@ public:
 
                     StatsTimerStart write_timer;
                     stream->Scatter<Type>(file, offsets);
-                    stream->Close();
                     write_timer.Stop();
                     write_time = std::max(write_time, write_timer.Microseconds());
                 });
 
             pool.loop_until_empty();
+
+            stream.reset();
 
             total_timer.Stop();
             LOG1 << "RESULT"
