@@ -190,6 +190,14 @@ const StreamId& MixStream::id() const {
     return ptr_->id();
 }
 
+StreamData& MixStream::data() {
+    return *ptr_;
+}
+
+const StreamData& MixStream::data() const {
+    return *ptr_;
+}
+
 std::vector<MixStream::Writer> MixStream::GetWriters() {
     return ptr_->GetWriters();
 }

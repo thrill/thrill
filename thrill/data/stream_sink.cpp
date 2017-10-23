@@ -110,10 +110,25 @@ void StreamSink::AppendPinnedBlock(const PinnedBlock& block, bool is_last_block)
         << " block=" << block
         << " is_last_block=" << is_last_block;
 
+    // StreamSink statistics
+    item_counter_ += block.num_items();
+    byte_counter_ += block.size();
+    block_counter_++;
+
     if (block_queue_) {
+        // StreamData statistics for internal transfer
+        stream_->tx_int_items_ += block.num_items();
+        stream_->tx_int_bytes_ += block.size();
+        stream_->tx_int_blocks_++;
+
         return block_queue_->AppendPinnedBlock(block, is_last_block);
     }
     if (target_mix_stream_) {
+        // StreamData statistics for internal transfer
+        stream_->tx_int_items_ += block.num_items();
+        stream_->tx_int_bytes_ += block.size();
+        stream_->tx_int_blocks_++;
+
         return target_mix_stream_->OnStreamBlock(my_worker_rank(), PinnedBlock(block));
     }
 
@@ -133,9 +148,11 @@ void StreamSink::AppendPinnedBlock(const PinnedBlock& block, bool is_last_block)
     net::Buffer buffer = bb.ToBuffer();
     assert(buffer.size() == MultiplexerHeader::total_size);
 
-    item_counter_ += block.num_items();
-    byte_counter_ += buffer.size() + block.size();
-    ++block_counter_;
+    // StreamData statistics for network transfer
+    stream_->tx_net_items_ += block.num_items();
+    stream_->tx_net_bytes_ += buffer.size() + block.size();
+    stream_->tx_net_blocks_++;
+    byte_counter_ += buffer.size();
 
     stream_->multiplexer_.dispatcher_.AsyncWrite(
         *connection_,
@@ -177,10 +194,16 @@ void StreamSink::Close() {
         << " to=" << peer_worker_rank()
         << " (host=" << peer_rank_ << ")";
 
+    block_counter_++;
+
     if (block_queue_) {
+        // StreamData statistics for internal transfer
+        stream_->tx_int_blocks_++;
         return block_queue_->Close();
     }
     if (target_mix_stream_) {
+        // StreamData statistics for internal transfer
+        stream_->tx_int_blocks_++;
         return target_mix_stream_->OnCloseStream(my_worker_rank());
     }
 
@@ -200,8 +223,10 @@ void StreamSink::Close() {
     net::Buffer buffer = bb.ToBuffer();
     assert(buffer.size() == MultiplexerHeader::total_size);
 
+    // StreamData statistics for network transfer
+    stream_->tx_net_bytes_ += buffer.size();
+    stream_->tx_net_blocks_++;
     byte_counter_ += buffer.size();
-    ++block_counter_;
 
     stream_->multiplexer_.dispatcher_.AsyncWrite(
         *connection_, std::move(buffer));
@@ -221,10 +246,6 @@ void StreamSink::Finalize() {
         << "bytes" << byte_counter_
         << "blocks" << block_counter_
         << "timespan" << timespan_;
-
-    stream_->tx_net_items_ += item_counter_;
-    stream_->tx_net_bytes_ += byte_counter_;
-    stream_->tx_net_blocks_ += block_counter_;
 }
 
 } // namespace data

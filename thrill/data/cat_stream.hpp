@@ -158,6 +158,12 @@ public:
 
     const StreamId& id() const final;
 
+    //! Return stream data reference
+    StreamData& data() final;
+
+    //! Return stream data reference
+    const StreamData& data() const final;
+
     //! Creates BlockWriters for each worker. BlockWriter can only be opened
     //! once, otherwise the block sequence is incorrectly interleaved!
     std::vector<Writer> GetWriters() final;

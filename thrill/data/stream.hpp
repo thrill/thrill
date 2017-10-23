@@ -44,6 +44,15 @@ public:
     //! Return stream id
     virtual const StreamId& id() const = 0;
 
+    //! Return stream data reference
+    virtual StreamData& data() = 0;
+
+    //! Return stream data reference
+    virtual const StreamData& data() const = 0;
+
+    //! shuts down the stream, waits for all closing blocks
+    void Close();
+
     //! Creates BlockWriters for each worker. BlockWriter can only be opened
     //! once, otherwise the block sequence is incorrectly interleaved!
     virtual std::vector<Writer> GetWriters() = 0;
@@ -116,6 +125,71 @@ public:
 
         // tx_timespan_.Stop();
     }
+
+    /**************************************************************************/
+
+    //! \name Statistics
+    //! \{
+
+    //! return number of items transmitted
+    size_t tx_items() const;
+
+    //! return number of bytes transmitted
+    size_t tx_bytes() const;
+
+    //! return number of blocks transmitted
+    size_t tx_blocks() const;
+
+    //! return number of items received
+    size_t rx_items() const;
+
+    //! return number of bytes received
+    size_t rx_bytes() const;
+
+    //! return number of blocks received
+    size_t rx_blocks() const;
+
+    /*------------------------------------------------------------------------*/
+
+    //! return number of items transmitted via network excluding internal tx
+    size_t tx_net_items() const;
+
+    //! return number of bytes transmitted via network excluding internal tx
+    size_t tx_net_bytes() const;
+
+    //! return number of blocks transmitted via network excluding internal tx
+    size_t tx_net_blocks() const;
+
+    //! return number of items received via network excluding internal tx
+    size_t rx_net_items() const;
+
+    //! return number of bytes received via network excluding internal tx
+    size_t rx_net_bytes() const;
+
+    //! return number of blocks received via network excluding internal tx
+    size_t rx_net_blocks() const;
+
+    /*------------------------------------------------------------------------*/
+
+    //! return number of items transmitted via internal loopback queues
+    size_t tx_int_items() const;
+
+    //! return number of bytes transmitted via internal loopback queues
+    size_t tx_int_bytes() const;
+
+    //! return number of blocks transmitted via internal loopback queues
+    size_t tx_int_blocks() const;
+
+    //! return number of items received via network internal loopback queues
+    size_t rx_int_items() const;
+
+    //! return number of bytes received via network internal loopback queues
+    size_t rx_int_bytes() const;
+
+    //! return number of blocks received via network internal loopback queues
+    size_t rx_int_blocks() const;
+
+    //! \}
 };
 
 //! \}

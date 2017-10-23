@@ -84,7 +84,8 @@ public:
 
     //! StatsCounter for incoming data transfer.  Does not include loopback data
     //! transfer
-    size_t rx_net_items_ = 0, rx_net_bytes_ = 0, rx_net_blocks_ = 0;
+    std::atomic<size_t>
+    rx_net_items_ { 0 }, rx_net_bytes_ { 0 }, rx_net_blocks_ { 0 };
 
     //! StatsCounters for outgoing data transfer - shared by all sinks.  Does
     //! not include loopback data transfer

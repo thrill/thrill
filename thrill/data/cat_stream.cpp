@@ -51,28 +51,6 @@ CatStreamData::CatStreamData(Multiplexer& multiplexer, const StreamId& id,
                     [host, worker,
                      // keep a smart pointer reference to this
                      p = CatStreamDataPtr(this)](BlockQueue& queue) {
-
-                        p->multiplexer_.logger()
-                        << "class" << "StreamSink"
-                        << "event" << "close"
-                        << "id" << p->id_
-                        << "peer_host" << host
-                        << "src_worker" << p->my_worker_rank()
-                        << "tgt_worker" << (host * p->workers_per_host() + worker)
-                        << "loopback" << true
-                        << "items" << queue.item_counter()
-                        << "bytes" << queue.byte_counter()
-                        << "blocks" << queue.block_counter()
-                        << "timespan" << queue.timespan();
-
-                        CatStreamData* source = reinterpret_cast<CatStreamData*>(
-                            queue.source());
-                        if (source) {
-                            source->tx_int_items_ += queue.item_counter();
-                            source->tx_int_bytes_ += queue.byte_counter();
-                            source->tx_int_blocks_ += queue.block_counter();
-                        }
-
                         p->rx_int_items_ += queue.item_counter();
                         p->rx_int_bytes_ += queue.byte_counter();
                         p->rx_int_blocks_ += queue.block_counter();
@@ -294,6 +272,14 @@ CatStream::~CatStream() {
 
 const StreamId& CatStream::id() const {
     return ptr_->id();
+}
+
+StreamData& CatStream::data() {
+    return *ptr_;
+}
+
+const StreamData& CatStream::data() const {
+    return *ptr_;
 }
 
 std::vector<CatStream::Writer> CatStream::GetWriters() {
