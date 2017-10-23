@@ -47,10 +47,9 @@ CatStreamData::CatStreamData(Multiplexer& multiplexer, const StreamId& id,
 
                 queues_.emplace_back(
                     multiplexer_.block_pool_, local_worker_id, dia_id,
-                    // OnClose callback to BlockQueue to deliver stats
-                    [host, worker,
-                     // keep a smart pointer reference to this
-                     p = CatStreamDataPtr(this)](BlockQueue& queue) {
+                    // OnClose callback to BlockQueue to deliver stats, keep a
+                    // smart pointer reference to this
+                    [p = CatStreamDataPtr(this)](BlockQueue& queue) {
                         p->rx_int_items_ += queue.item_counter();
                         p->rx_int_bytes_ += queue.byte_counter();
                         p->rx_int_blocks_ += queue.block_counter();
