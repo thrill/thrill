@@ -135,8 +135,6 @@ private:
 
     //! pointer to first arena, arenas are in allocation order
     Arena* free_arena_ = nullptr;
-    //! pointer to root arena in splay tree
-    Arena* root_arena_ = nullptr;
 
     //! number of free slots in the arenas
     size_t free_ = 0;

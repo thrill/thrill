@@ -81,10 +81,12 @@ static constexpr size_t padding = 16;    /* bytes (>= 2*sizeof(size_t)) */
 using malloc_type = void* (*)(size_t);
 using free_type = void (*)(void*);
 using realloc_type = void* (*)(void*, size_t);
+using aligned_alloc_type = void* (*)(size_t, size_t);
 
 static malloc_type real_malloc = nullptr;
 static free_type real_free = nullptr;
 static realloc_type real_realloc = nullptr;
+static aligned_alloc_type real_aligned_alloc = nullptr;
 
 //! a sentinel value prefixed to each allocation
 static constexpr size_t sentinel = 0xDEADC0DE;
@@ -417,6 +419,12 @@ static __attribute__ ((constructor)) void init() { // NOLINT
         exit(EXIT_FAILURE);
     }
 
+    real_aligned_alloc = (aligned_alloc_type)dlsym(RTLD_NEXT, "aligned_alloc");
+    if (!real_aligned_alloc) {
+        fprintf(stderr, PPREFIX "dlerror %s\n", dlerror());
+        exit(EXIT_FAILURE);
+    }
+
     real_free = (free_type)dlsym(RTLD_NEXT, "free");
     if (!real_free) {
         fprintf(stderr, PPREFIX "dlerror %s\n", dlerror());
@@ -446,7 +454,6 @@ static std::pair<void*, size_t> s_bypass_checker[kBypassCheckerSize];
 static std::mutex s_bypass_mutex;
 #endif
 
-//! bypass malloc tracker and access malloc() directly
 ATTRIBUTE_NO_SANITIZE
 void * bypass_malloc(size_t size) noexcept {
 #if defined(_MSC_VER)
@@ -487,7 +494,46 @@ void * bypass_malloc(size_t size) noexcept {
     return ptr;
 }
 
-//! bypass malloc tracker and access free() directly
+ATTRIBUTE_NO_SANITIZE
+void * bypass_aligned_alloc(size_t alignment, size_t size) noexcept {
+#if defined(_MSC_VER)
+    void* ptr = std::aligned_alloc(size, alignment);
+#else
+    void* ptr = real_aligned_alloc(alignment, size);
+#endif
+    if (!ptr) {
+        fprintf(stderr, PPREFIX "bypass_aligned_alloc(%zu align %zu size) = %p   (current %zu / %zu)\n",
+                alignment, size, ptr, get(float_curr), get(base_curr));
+        return ptr;
+    }
+
+#if !defined(NDEBUG) && BYPASS_CHECKER
+    {
+        std::unique_lock<std::mutex> lock(s_bypass_mutex);
+        size_t i;
+        for (i = 0; i < kBypassCheckerSize; ++i) {
+            if (s_bypass_checker[i].first != nullptr) continue;
+            s_bypass_checker[i].first = ptr;
+            s_bypass_checker[i].second = size;
+            break;
+        }
+        if (i == kBypassCheckerSize) abort();
+    }
+#endif
+
+    ssize_t mycurr = sync_add_and_fetch(base_curr, size);
+
+    total_bytes += size;
+    update_peak(float_curr, mycurr);
+
+    sync_add_and_fetch(total_allocs, 1);
+    sync_add_and_fetch(current_allocs, 1);
+
+    update_memprofile(get(float_curr), mycurr);
+
+    return ptr;
+}
+
 ATTRIBUTE_NO_SANITIZE
 void bypass_free(void* ptr, size_t size) noexcept {
 

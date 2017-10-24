@@ -45,6 +45,9 @@ void set_memory_limit_indication(ssize_t size);
 //! bypass malloc tracker and access malloc() directly
 void * bypass_malloc(size_t size) noexcept;
 
+//! bypass malloc tracker and access aligned_alloc() directly
+void * bypass_aligned_alloc(size_t alignment, size_t size) noexcept;
+
 //! bypass malloc tracker and access free() directly
 void bypass_free(void* ptr, size_t size) noexcept;
 
