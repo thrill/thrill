@@ -66,6 +66,10 @@ namespace mem {
  *
  * During allocation the next fitting free slot is searched for. During
  * deallocation multiple free areas may be consolidated.
+ *
+ * For faster allocation, Arenas are categorized into many bins. Bin k always
+ * contains all Arenas with log_2(k) to log_2(k+1)-1 free space in them. On
+ * allocation and deallocation, the Arenas are moved between bins.
  */
 class Pool
 {
@@ -111,7 +115,10 @@ public:
     }
 
     //! Print out structure of the arenas.
-    void print();
+    void print(bool debug = true);
+
+    //! Print out structure of the arenas.
+    void self_verify();
 
     //! maximum size possible to allocate
     size_t max_size() const noexcept;
@@ -126,17 +133,19 @@ private:
     //! header of an Arena, used to calculate number of slots
     struct Arena;
 
-    //! comparison function for splay tree
-    struct ArenaCompare;
-
     //! mutex to protect data structures (remove this if you use it in another
     //! context than Thrill).
     std::mutex mutex_;
 
-    //! pointer to first arena, arenas are in allocation order
-    Arena* free_arena_ = nullptr;
+    //! number of bins
+    static const size_t num_bins
+        = /* log_2(16384) = */ 14 - /* log_2(sizeof(Slot)) */ 3 + 1;
 
-    //! number of free slots in the arenas
+    //! pointer to first arena in each bin, arenas are in allocation order, the
+    //! last bin is for overflow allocations.
+    Arena* arena_bin_[num_bins + 1];
+
+    //! number of free slots in all arenas
     size_t free_ = 0;
     //! overall number of used slots
     size_t size_ = 0;
@@ -155,6 +164,9 @@ private:
 
     //! allocate a new Arena blob
     Arena * AllocateFreeArena(size_t arena_size, bool die_on_failure = true);
+
+    //! find free area inside an Arena
+    void * ArenaFindFree(Arena* curr_arena, size_t bin, size_t n, size_t bytes);
 
     //! deallocate all Arenas
     void IntDeallocateAll();

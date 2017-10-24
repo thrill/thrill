@@ -57,8 +57,12 @@ int BenchmarkOneSize(int argc, char* argv[]) {
             list.pop_front();
         }
 
-        if (iterations % 100 == 0)
-            pool.print();
+        // pool.print();
+        // pool.self_verify();
+
+        if (iterations % 100 == 0) {
+            // pool.print();
+        }
     }
 
     while (!list.empty()) {
@@ -66,7 +70,7 @@ int BenchmarkOneSize(int argc, char* argv[]) {
         list.pop_front();
     }
 
-    pool.print();
+    // pool.print();
 
     return 0;
 }

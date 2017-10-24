@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <deque>
 #include <functional>
+#include <random>
 #include <set>
 #include <string>
 #include <unordered_map>
@@ -23,6 +24,45 @@
 #include <vector>
 
 using namespace thrill;
+
+TEST(MemPool, RandomAllocDealloc) {
+    mem::Pool pool;
+
+    std::default_random_engine rng(std::random_device { } ());
+
+    size_t max_size = 256;
+    size_t iterations = 10000;
+
+    std::deque<std::pair<void*, size_t> > list;
+
+    while (iterations != 0)
+    {
+        size_t op = rng() % 2;
+
+        if (op == 0) {
+            // allocate a memory piece
+            --iterations;
+            size_t size = (rng() % max_size) + 1;
+            list.emplace_back(pool.allocate(size), size);
+        }
+        else if (op == 1 && !list.empty()) {
+            // deallocate a memory piece
+            pool.deallocate(list.front().first, list.front().second);
+            list.pop_front();
+        }
+
+        pool.self_verify();
+    }
+
+    while (!list.empty()) {
+        pool.deallocate(list.front().first, list.front().second);
+        list.pop_front();
+
+        pool.self_verify();
+    }
+
+    pool.self_verify();
+}
 
 TEST(MemPool, Vector) {
     mem::Pool pool(1024);
@@ -42,7 +82,7 @@ TEST(MemPool, Vector) {
 }
 
 TEST(MemPool, Deque) {
-    mem::Pool pool(1024 * 1024);
+    mem::Pool pool(16384);
     using IntAlloc = mem::PoolAllocator<int>;
 
     std::deque<int, IntAlloc> my_deque {

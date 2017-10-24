@@ -11,8 +11,7 @@
 #include <thrill/mem/pool.hpp>
 
 #include <tlx/die.hpp>
-#include <tlx/math/is_power_of_two.hpp>
-#include <tlx/math/round_to_power_of_two.hpp>
+#include <tlx/math/integer_log2.hpp>
 
 #include <iostream>
 #include <limits>
@@ -50,9 +49,14 @@ struct Pool::Arena {
     size_t total_size;
     //! next and prev pointers for free list.
     Arena  * next_arena, * prev_arena;
+    //! oversize arena
+    bool   oversize;
     //! first sentinel Slot which is never used for payload data, instead size =
     //! remaining free size, and next = pointer to first free byte.
-    Slot   head_slot;
+    union {
+        uint32_t free_size;
+        Slot     head_slot;
+    };
     // following here are actual data slots
     // Slot slots[num_slots()];
 
@@ -65,7 +69,28 @@ struct Pool::Arena {
     Slot * begin() { return &head_slot + 1; }
     Slot * end() { return &head_slot + 1 + num_slots(); }
     Slot * slot(size_t i) { return &head_slot + 1 + i; }
+
+    void * find_free(size_t size);
 };
+
+/******************************************************************************/
+// internal methods
+
+//! determine bin for size.
+static inline size_t calc_bin_for_size(size_t size) {
+    if (size == 0)
+        return 0;
+    else
+        return 1 + tlx::integer_log2_floor_template(size);
+}
+
+//! lowest size still in bin
+static inline size_t bin_lower_bound(size_t bin) {
+    if (bin == 0)
+        return 0;
+    else
+        return (size_t(1) << (bin - 1));
+}
 
 /******************************************************************************/
 // Pool
@@ -73,6 +98,9 @@ struct Pool::Arena {
 Pool::Pool(size_t default_arena_size) noexcept
     : default_arena_size_(default_arena_size) {
     std::unique_lock<std::mutex> lock(mutex_);
+
+    for (size_t i = 0; i < num_bins + 1; ++i)
+        arena_bin_[i] = nullptr;
 
     if (debug_check_pairing)
         allocs_.resize(check_limit);
@@ -97,17 +125,93 @@ Pool::~Pool() noexcept {
     IntDeallocateAll();
 }
 
-struct Pool::ArenaCompare {
-    bool operator () (const Arena* a, const void* ptr) const {
-        return reinterpret_cast<const char*>(a) + a->total_size < ptr;
+void* Pool::ArenaFindFree(Arena* arena, size_t bin, size_t n, size_t bytes) {
+    // iterative over free areas to find a possible fit
+    Slot* prev_slot = &arena->head_slot;
+    Slot* curr_slot = arena->begin() + prev_slot->next;
+
+    while (curr_slot != arena->end() && curr_slot->size < n) {
+        prev_slot = curr_slot;
+        curr_slot = arena->begin() + curr_slot->next;
     }
-    bool operator () (const void* ptr, const Arena* a) const {
-        return ptr < a;
+
+    // if curr_slot == end, then no suitable continuous area was found.
+    if (TLX_UNLIKELY(curr_slot == arena->end()))
+        return nullptr;
+
+    arena->free_size -= n;
+
+    prev_slot->next += n;
+    size_ += n;
+    free_ -= n;
+
+    if (curr_slot->size > n) {
+        // splits free area, since it is larger than needed
+        Slot* next_slot = arena->begin() + prev_slot->next;
+        assert(next_slot != arena->end());
+
+        next_slot->size = curr_slot->size - n;
+        next_slot->next = curr_slot->next;
     }
-    bool operator () (const Arena* a, const Arena* b) const {
-        return a < b;
+    else {
+        // join used areas
+        prev_slot->next = curr_slot->next;
     }
-};
+
+    if (arena->free_size < bin_lower_bound(bin) && !arena->oversize) {
+        // recategorize bin into smaller chain.
+
+        size_t new_bin = calc_bin_for_size(arena->free_size);
+
+        if (debug) {
+            std::cout << "Recategorize arena, previous free "
+                      << arena->free_size + n
+                      << " now free " << arena->free_size
+                      << " from bin " << bin
+                      << " to bin " << new_bin
+                      << std::endl;
+        }
+        assert(bin != new_bin);
+
+        // splice out arena from current bin
+        if (arena->prev_arena)
+            arena->prev_arena->next_arena = arena->next_arena;
+        else
+            arena_bin_[bin] = arena->next_arena;
+
+        if (arena->next_arena)
+            arena->next_arena->prev_arena = arena->prev_arena;
+
+        // insert at top of new bin
+        arena->prev_arena = nullptr;
+        arena->next_arena = arena_bin_[new_bin];
+        if (arena_bin_[new_bin])
+            arena_bin_[new_bin]->prev_arena = arena;
+        arena_bin_[new_bin] = arena;
+    }
+
+    // allocate more sparse memory
+    while (free_ < min_free_) {
+        if (!AllocateFreeArena(default_arena_size_, false)) break;
+    }
+
+    if (debug_check_pairing) {
+        size_t i;
+        for (i = 0; i < allocs_.size(); ++i) {
+            if (allocs_[i].first == nullptr) {
+                allocs_[i].first = curr_slot;
+                allocs_[i].second = bytes;
+                break;
+            }
+        }
+        if (i == allocs_.size()) {
+            assert(!"Increase allocs array in Pool().");
+            abort();
+        }
+    }
+
+    return reinterpret_cast<void*>(curr_slot);
+}
 
 Pool::Arena* Pool::AllocateFreeArena(size_t arena_size, bool die_on_failure) {
 
@@ -135,13 +239,27 @@ Pool::Arena* Pool::AllocateFreeArena(size_t arena_size, bool die_on_failure) {
 
     new_arena->magic = 0xAEEAAEEAAEEAAEEALLU;
     new_arena->total_size = arena_size;
-    new_arena->next_arena = free_arena_;
-    new_arena->prev_arena = nullptr;
-    if (free_arena_)
-        free_arena_->prev_arena = new_arena;
-    free_arena_ = new_arena;
 
-    new_arena->head_slot.size = new_arena->num_slots();
+    // put new area into right chain at the front
+    Arena** root;
+    if (arena_size <= default_arena_size_) {
+        size_t bin = calc_bin_for_size(new_arena->num_slots());
+        die_unless(bin < num_bins);
+        root = &arena_bin_[bin];
+        new_arena->oversize = false;
+    }
+    else {
+        root = &arena_bin_[num_bins];
+        new_arena->oversize = true;
+    }
+
+    new_arena->prev_arena = nullptr;
+    new_arena->next_arena = *root;
+    if (*root)
+        (*root)->prev_arena = new_arena;
+    *root = new_arena;
+
+    new_arena->free_size = new_arena->num_slots();
     new_arena->head_slot.next = 0;
 
     new_arena->slot(0)->size = new_arena->num_slots();
@@ -163,11 +281,13 @@ void Pool::DeallocateAll() {
 }
 
 void Pool::IntDeallocateAll() {
-    Arena* curr_arena = free_arena_;
-    while (curr_arena != nullptr) {
-        Arena* next_arena = curr_arena->next_arena;
-        bypass_free(curr_arena, curr_arena->total_size);
-        curr_arena = next_arena;
+    for (size_t i = 0; i < num_bins; ++i) {
+        Arena* curr_arena = arena_bin_[i];
+        while (curr_arena != nullptr) {
+            Arena* next_arena = curr_arena->next_arena;
+            bypass_free(curr_arena, curr_arena->total_size);
+            curr_arena = next_arena;
+        }
     }
     min_free_ = 0;
 }
@@ -198,93 +318,53 @@ void* Pool::allocate(size_t bytes) {
     // allocate a special larger one.
     if (n * sizeof(Slot) > bytes_per_arena(default_arena_size_)) {
         if (debug) {
-            std::cout << "Allocate larger Arena of size "
+            std::cout << "Allocate overflow arena of size "
                       << n * sizeof(Slot) << std::endl;
         }
-        AllocateFreeArena(sizeof(Arena) + n * sizeof(Slot));
+        Arena* sp_arena = AllocateFreeArena(sizeof(Arena) + n * sizeof(Slot));
+
+        void* ptr = ArenaFindFree(sp_arena, num_bins, n, bytes);
+        if (ptr != nullptr)
+            return ptr;
     }
 
-    Arena* curr_arena = free_arena_;
-
-    if (curr_arena == nullptr || free_ < n)
-        curr_arena = AllocateFreeArena(default_arena_size_);
-
-    while (curr_arena != nullptr)
+    // find bin for n slots
+    size_t bin = calc_bin_for_size(n);
+    while (bin < num_bins)
     {
-        // find an arena with at least n free slots
-        if (curr_arena->head_slot.size >= n)
+        if (debug)
+            std::cout << "Searching in bin " << bin << std::endl;
+
+        Arena* curr_arena = arena_bin_[bin];
+
+        while (curr_arena != nullptr)
         {
-            // iterative over free areas to find a possible fit
-            Slot* prev_slot = &curr_arena->head_slot;
-            Slot* curr_slot = curr_arena->begin() + prev_slot->next;
-
-            while (curr_slot != curr_arena->end() && curr_slot->size < n) {
-                prev_slot = curr_slot;
-                curr_slot = curr_arena->begin() + curr_slot->next;
-            }
-
-            // if curr_slot == end then no continuous area was found.
-            if (curr_slot != curr_arena->end())
+            // find an arena with at least n free slots
+            if (curr_arena->free_size >= n)
             {
-                curr_arena->head_slot.size -= n;
-
-                prev_slot->next += n;
-                size_ += n;
-                free_ -= n;
-
-                // allocate more sparse memory
-                while (free_ < min_free_) {
-                    if (!AllocateFreeArena(default_arena_size_, false)) break;
-                }
-
-                if (curr_slot->size > n) {
-                    // splits free area, since it is larger than needed
-                    Slot* next_slot = curr_arena->begin() + prev_slot->next;
-                    assert(next_slot != curr_arena->end());
-
-                    next_slot->size = curr_slot->size - n;
-                    next_slot->next = curr_slot->next;
-                }
-                else {
-                    // join used areas
-                    prev_slot->next = curr_slot->next;
-                }
-
-                // print();
-
-                if (debug_check_pairing) {
-                    size_t i;
-                    for (i = 0; i < allocs_.size(); ++i) {
-                        if (allocs_[i].first == nullptr) {
-                            allocs_[i].first = curr_slot;
-                            allocs_[i].second = bytes;
-                            break;
-                        }
-                    }
-                    if (i == allocs_.size()) {
-                        assert(!"Increase allocs array in Pool().");
-                        abort();
-                    }
-                }
-
-                return reinterpret_cast<void*>(curr_slot);
+                void* ptr = ArenaFindFree(curr_arena, bin, n, bytes);
+                if (ptr != nullptr)
+                    return ptr;
             }
+
+            // advance to next arena in free list order
+            curr_arena = curr_arena->next_arena;
         }
 
-        // advance to next arena in free list order
-        if (debug && 0) {
-            std::cout << "advance next arena"
-                      << " curr_arena=" << curr_arena
-                      << " next_arena=" << curr_arena->next_arena
-                      << std::endl;
-        }
-
-        curr_arena = curr_arena->next_arena;
-
-        if (curr_arena == nullptr)
-            curr_arena = AllocateFreeArena(default_arena_size_);
+        // look into larger bin
+        ++bin;
     }
-    abort();
+
+    // allocate new arena with default size
+    Arena* curr_arena = AllocateFreeArena(default_arena_size_);
+    bin = calc_bin_for_size(curr_arena->num_slots());
+
+    // look into new arena
+    void* ptr = ArenaFindFree(curr_arena, bin, n, bytes);
+    if (ptr != nullptr)
+        return ptr;
+
+    die("Pool::allocate() failed, no memory available.");
 }
 
 void Pool::deallocate(void* ptr, size_t bytes) {
@@ -297,6 +377,7 @@ void Pool::deallocate(void* ptr, size_t bytes) {
         std::cout << "Pool::deallocate() ptr " << ptr
                   << " bytes " << bytes << std::endl;
     }
+
     if (debug_check_pairing) {
         size_t i;
         for (i = 0; i < allocs_.size(); ++i) {
@@ -320,7 +401,7 @@ void Pool::deallocate(void* ptr, size_t bytes) {
         = static_cast<uint32_t>((bytes + sizeof(Slot) - 1) / sizeof(Slot));
     assert(n <= size_);
 
-    // splay arenas to find arena containing ptr
+    // find arena containing ptr
     Arena* arena =
         reinterpret_cast<Arena*>(
             reinterpret_cast<uintptr_t>(ptr) & ~(default_arena_size_ - 1));
@@ -358,33 +439,93 @@ void Pool::deallocate(void* ptr, size_t bytes) {
         prev_slot->next = next_slot->next;
     }
 
-    arena->head_slot.size += n;
+    arena->free_size += n;
     size_ -= n;
     free_ += n;
 
-    if ((arena->head_slot.size == arena->num_slots() &&
-         free_ >= min_free_ + arena->num_slots()) ||
-        arena->total_size > default_arena_size_)
+    // always deallocate oversize arenas
+    if (arena->oversize)
     {
-        // splice current arena from free list
+        if (debug)
+            std::cout << "destroy special arena" << std::endl;
+
+        // splice out arena from current bin
         if (arena->prev_arena)
             arena->prev_arena->next_arena = arena->next_arena;
+        else
+            arena_bin_[num_bins] = arena->next_arena;
+
         if (arena->next_arena)
             arena->next_arena->prev_arena = arena->prev_arena;
-        if (free_arena_ == arena)
-            free_arena_ = arena->next_arena;
 
         free_ -= arena->num_slots();
         bypass_free(arena, arena->total_size);
+        return;
     }
 
-    // print();
+    // check if this arena is empty and free_ space is beyond our min_free_
+    // limit, then simply deallocate it.
+    if (arena->free_size == arena->num_slots() &&
+        free_ >= min_free_ + arena->num_slots())
+    {
+        if (debug)
+            std::cout << "destroy empty arena" << std::endl;
+
+        size_t bin = calc_bin_for_size(arena->free_size - n);
+
+        // splice out arena from current bin
+        if (arena->prev_arena)
+            arena->prev_arena->next_arena = arena->next_arena;
+        else
+            arena_bin_[bin] = arena->next_arena;
+
+        if (arena->next_arena)
+            arena->next_arena->prev_arena = arena->prev_arena;
+
+        // free arena
+        free_ -= arena->num_slots();
+        bypass_free(arena, arena->total_size);
+        return;
+    }
+
+    if (calc_bin_for_size(arena->free_size - n) !=
+        calc_bin_for_size(arena->free_size))
+    {
+        // recategorize arena into larger chain.
+        if (debug)
+            std::cout << "recategorize arena into larger chain." << std::endl;
+
+        size_t bin = calc_bin_for_size(arena->free_size - n);
+        size_t new_bin = calc_bin_for_size(arena->free_size);
+
+        if (debug) {
+            std::cout << "Recategorize arena, previous free "
+                      << arena->free_size
+                      << " now free " << arena->free_size + n
+                      << " from bin " << bin
+                      << " to bin " << new_bin
+                      << std::endl;
+        }
+
+        // splice out arena from current bin
+        if (arena->prev_arena)
+            arena->prev_arena->next_arena = arena->next_arena;
+        else
+            arena_bin_[bin] = arena->next_arena;
+
+        if (arena->next_arena)
+            arena->next_arena->prev_arena = arena->prev_arena;
+
+        // insert at top of new bin
+        arena->prev_arena = nullptr;
+        arena->next_arena = arena_bin_[new_bin];
+        if (arena_bin_[new_bin])
+            arena_bin_[new_bin]->prev_arena = arena;
+        arena_bin_[new_bin] = arena;
+    }
 }
 
-void Pool::print() {
-    // if (!debug_verify) return;
-    static constexpr bool debug = true;
-
+void Pool::print(bool debug) {
     if (debug) {
         std::cout << "Pool::print()"
                   << " size_=" << size_ << " free_=" << free_ << std::endl;
@@ -392,53 +533,64 @@ void Pool::print() {
 
     size_t total_free = 0, total_size = 0;
 
-    for (Arena* curr_arena = free_arena_; curr_arena != nullptr;
-         curr_arena = curr_arena->next_arena)
+    for (size_t bin = 0; bin < num_bins; ++bin)
     {
-        std::ostringstream oss;
+        for (Arena* curr_arena = arena_bin_[bin]; curr_arena != nullptr;
+             curr_arena = curr_arena->next_arena)
+        {
+            std::ostringstream oss;
 
-        size_t slot = curr_arena->head_slot.next;
-        size_t size = 0, free = 0;
+            size_t arena_bin = calc_bin_for_size(curr_arena->free_size);
+            die_unequal(arena_bin, bin);
 
-        // used area at beginning
-        size += slot;
+            size_t slot = curr_arena->head_slot.next;
+            size_t size = 0, free = 0;
 
-        while (slot != curr_arena->num_slots()) {
-            if (debug)
-                oss << " slot[" << slot
-                    << ",size=" << curr_arena->slot(slot)->size
-                    << ",next=" << curr_arena->slot(slot)->next << ']';
+            // used area at beginning
+            size += slot;
 
-            if (curr_arena->slot(slot)->next <= slot) {
-                std::cout << "invalid chain:" << oss.str() << std::endl;
-                abort();
+            while (slot != curr_arena->num_slots()) {
+                if (debug)
+                    oss << " slot[" << slot
+                        << ",size=" << curr_arena->slot(slot)->size
+                        << ",next=" << curr_arena->slot(slot)->next << ']';
+
+                if (curr_arena->slot(slot)->next <= slot) {
+                    std::cout << "invalid chain:" << oss.str() << std::endl;
+                    abort();
+                }
+
+                free += curr_arena->slot(slot)->size;
+                size += curr_arena->slot(slot)->next - slot - curr_arena->slot(slot)->size;
+                slot = curr_arena->slot(slot)->next;
             }
 
-            free += curr_arena->slot(slot)->size;
-            size += curr_arena->slot(slot)->next - slot - curr_arena->slot(slot)->size;
-            slot = curr_arena->slot(slot)->next;
+            if (debug) {
+                std::cout << "arena[" << bin << ':' << curr_arena << "]"
+                          << " free_size=" << curr_arena->free_size
+                          << " head_slot.next=" << curr_arena->head_slot.next
+                          << oss.str()
+                          << std::endl;
+            }
+
+            die_unequal(curr_arena->head_slot.size, free);
+
+            total_free += free;
+            total_size += size;
+
+            if (curr_arena->next_arena)
+                die_unless(curr_arena->next_arena->prev_arena == curr_arena);
+            if (curr_arena->prev_arena)
+                die_unless(curr_arena->prev_arena->next_arena == curr_arena);
         }
-
-        if (debug) {
-            std::cout << "arena[" << curr_arena << "]"
-                      << " head_slot.(free)size=" << curr_arena->head_slot.size
-                      << " head_slot.next=" << curr_arena->head_slot.next
-                      << oss.str()
-                      << std::endl;
-        }
-
-        assert(curr_arena->head_slot.size == free);
-
-        total_free += free;
-        total_size += size;
-
-        if (curr_arena->next_arena)
-            assert(curr_arena->next_arena->prev_arena == curr_arena);
-        if (curr_arena->prev_arena)
-            assert(curr_arena->prev_arena->next_arena == curr_arena);
     }
-    assert(total_size == size_);
-    assert(total_free == free_);
+
+    die_unequal(total_size, size_);
+    die_unequal(total_free, free_);
+}
+
+void Pool::self_verify() {
+    print(false);
 }
 
 } // namespace mem
