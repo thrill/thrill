@@ -3,6 +3,7 @@
  *
  * Part of Project Thrill - http://project-thrill.org
  *
+ * Copyright (C) 2016-2017 Timo Bingmann <tb@panthema.net>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
@@ -42,13 +43,15 @@ struct Pool::Slot {
 struct Pool::Arena {
     //! total size of this Arena
     size_t total_size;
-    // next and prev pointers for free list.
+    //! next and prev pointers for free list.
     Arena  * next_arena, * prev_arena;
-    // left and right pointers for splay tree
+    //! left and right pointers for splay tree
     Arena  * left = nullptr, * right = nullptr;
-    //! first sentinel Slot which is never used for payload data
+    //! first sentinel Slot which is never used for payload data, instead size =
+    //! remaining free size, and next = pointer to first free byte.
     Slot   head_slot;
     // following here are actual data slots
+    // Slot slots[num_slots()];
 
     //! the number of available payload slots (excluding head_slot)
     uint32_t num_slots() const {
@@ -78,7 +81,7 @@ Pool::Pool(size_t default_arena_size) noexcept
 Pool::~Pool() noexcept {
     std::unique_lock<std::mutex> lock(mutex_);
     if (size_ != 0) {
-        std::cout << "~Pool() still contains "
+        std::cout << "~Pool() pool still contains "
                   << sizeof(Slot) * size_ << " bytes" << std::endl;
 
         for (size_t i = 0; i < allocs_.size(); ++i) {
@@ -163,12 +166,12 @@ size_t Pool::bytes_per_arena(size_t arena_size) {
 }
 
 void* Pool::allocate(size_t bytes) {
-    return malloc(bytes);
+    // return malloc(bytes);
 
     std::unique_lock<std::mutex> lock(mutex_);
 
     if (debug) {
-        std::cout << "allocate() bytes=" << bytes
+        std::cout << "Pool::allocate() bytes " << bytes
                   << std::endl;
     }
 
@@ -232,7 +235,7 @@ void* Pool::allocate(size_t bytes) {
                     prev_slot->next = curr_slot->next;
                 }
 
-                print();
+                // print();
 
                 if (debug_check_pairing) {
                     size_t i;
@@ -270,13 +273,14 @@ void* Pool::allocate(size_t bytes) {
 }
 
 void Pool::deallocate(void* ptr, size_t bytes) {
-    return free(ptr);
+    // return free(ptr);
 
     if (ptr == nullptr) return;
 
     std::unique_lock<std::mutex> lock(mutex_);
     if (debug) {
-        std::cout << "deallocate() ptr" << ptr << "bytes" << bytes << std::endl;
+        std::cout << "Pool::deallocate() ptr " << ptr
+                  << " bytes " << bytes << std::endl;
     }
     if (debug_check_pairing) {
         size_t i;
@@ -358,11 +362,12 @@ void Pool::deallocate(void* ptr, size_t bytes) {
         bypass_free(root, root->total_size);
     }
 
-    print();
+    // print();
 }
 
 void Pool::print() {
-    if (!debug_verify) return;
+    // if (!debug_verify) return;
+    static constexpr bool debug = true;
 
     if (debug) {
         std::cout << "Pool::print()"
