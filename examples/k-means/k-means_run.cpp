@@ -106,10 +106,10 @@ void OutputSVG(const std::string& svg_path, double svg_scale,
 
 template <typename Point>
 static void RunKMeansGenerated(
-    thrill::Context& ctx,
-    size_t dimensions, size_t num_clusters, size_t iterations,
-    const std::string& svg_path, double svg_scale,
-    const std::vector<std::string>& input_paths) {
+	thrill::Context& ctx, bool bisecting,
+	size_t dimensions, size_t num_clusters, size_t iterations, double eps,
+	const std::string& svg_path, double svg_scale,
+	const std::vector<std::string>& input_paths) {
 
     std::default_random_engine rng(123456);
     std::uniform_real_distribution<float> dist(0.0, 1000.0);
@@ -127,7 +127,9 @@ static void RunKMeansGenerated(
             })
         .Cache().KeepForever();
 
-    auto result = KMeans(points, dimensions, num_clusters, iterations);
+	auto result = bisecting ?
+		BisecKMeans(points.Keep(), dimensions, num_clusters, iterations, eps) :
+		KMeans(points.Keep(), dimensions, num_clusters, iterations, eps);
 
     double cost = result.ComputeCost(points);
     if (ctx.my_rank() == 0)
@@ -140,10 +142,10 @@ static void RunKMeansGenerated(
 
 template <typename Point>
 static void RunKMeansFile(
-    thrill::Context& ctx,
-    size_t dimensions, size_t num_clusters, size_t iterations,
-    const std::string& svg_path, double svg_scale,
-    const std::vector<std::string>& input_paths) {
+	thrill::Context& ctx, bool bisecting,
+	size_t dimensions, size_t num_clusters, size_t iterations, double eps,
+	const std::string& svg_path, double svg_scale,
+	const std::vector<std::string>& input_paths) {
 
     auto points =
         ReadLines(ctx, input_paths).Map(
@@ -165,7 +167,9 @@ static void RunKMeansFile(
                 return p;
             });
 
-    auto result = KMeans(points.Keep(), dimensions, num_clusters, iterations);
+	auto result = bisecting ?
+		BisecKMeans(points.Keep(), dimensions, num_clusters, iterations, eps) :
+		KMeans(points.Keep(), dimensions, num_clusters, iterations, eps);
 
     double cost = result.ComputeCost(points.Keep());
     if (ctx.my_rank() == 0)
@@ -184,6 +188,10 @@ int main(int argc, char* argv[]) {
     clp.add_bool('g', "generate", generate,
                  "generate random data, set input = #points");
 
+	bool bisecting = false;
+	clp.add_bool('b', "bisecting", bisecting,
+		"enable bisecting k-Means");
+
     size_t iterations = 10;
     clp.add_size_t('n', "iterations", iterations,
                    "iterations, default: 10");
@@ -194,6 +202,10 @@ int main(int argc, char* argv[]) {
 
     size_t num_clusters;
     clp.add_param_size_t("clusters", num_clusters, "Number of clusters");
+
+	double epsilon = 0;
+	clp.add_double('e', "epsilon", epsilon,
+		"centroid position delta for break condition, default: 0");
 
     std::string svg_path;
     clp.add_string('s', "svg", svg_path,
@@ -223,18 +235,18 @@ int main(int argc, char* argv[]) {
                     die("Zero dimensional clustering is easy.");
                 case 2:
                     RunKMeansGenerated<Point<2> >(
-                        ctx, dimensions, num_clusters, iterations,
-                        svg_path, svg_scale, input_paths);
+                        ctx, bisecting, dimensions, num_clusters, iterations,
+						epsilon, svg_path, svg_scale, input_paths);
                     break;
                 case 3:
                     RunKMeansGenerated<Point<3> >(
-                        ctx, dimensions, num_clusters, iterations,
-                        svg_path, svg_scale, input_paths);
+                        ctx, bisecting, dimensions, num_clusters, iterations,
+						epsilon, svg_path, svg_scale, input_paths);
                     break;
                 default:
                     RunKMeansGenerated<VPoint>(
-                        ctx, dimensions, num_clusters, iterations,
-                        svg_path, svg_scale, input_paths);
+                        ctx, bisecting, dimensions, num_clusters, iterations,
+						epsilon, svg_path, svg_scale, input_paths);
                 }
             }
             else {
@@ -243,18 +255,18 @@ int main(int argc, char* argv[]) {
                     die("Zero dimensional clustering is easy.");
                 case 2:
                     RunKMeansFile<Point<2> >(
-                        ctx, dimensions, num_clusters, iterations,
-                        svg_path, svg_scale, input_paths);
+                        ctx, bisecting, dimensions, num_clusters, iterations,
+						epsilon, svg_path, svg_scale, input_paths);
                     break;
                 case 3:
                     RunKMeansFile<Point<3> >(
-                        ctx, dimensions, num_clusters, iterations,
-                        svg_path, svg_scale, input_paths);
+                        ctx, bisecting, dimensions, num_clusters, iterations,
+						epsilon, svg_path, svg_scale, input_paths);
                     break;
                 default:
                     RunKMeansFile<VPoint>(
-                        ctx, dimensions, num_clusters, iterations,
-                        svg_path, svg_scale, input_paths);
+                        ctx, bisecting, dimensions, num_clusters, iterations,
+						epsilon, svg_path, svg_scale, input_paths);
                 }
             }
         };
