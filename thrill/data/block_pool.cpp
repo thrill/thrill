@@ -64,7 +64,12 @@ static void OurNewHandler() {
         abort();
     }
 
-    in_new_handler = true;
+    static bool s_notify_new_handler = false;
+    if (!s_notify_new_handler) {
+        fprintf(stderr, "Thrill: new_handler called! Program is out of C++ heap memory, trying to\n");
+        fprintf(stderr, "Thrill: swap out Blocks to external memory. Check your program's memory usage.\n");
+        in_new_handler = true;
+    }
 
     static size_t s_iter = 0;
     io::RequestPtr req;
