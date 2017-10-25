@@ -24,6 +24,7 @@
 
 #include <algorithm>
 #include <functional>
+#include <iostream>
 #include <limits>
 #include <thread>
 #include <unordered_map>
@@ -243,6 +244,9 @@ public:
     //! Hard limit for the block pool, memory requests will block if this limit
     //! is reached. 0 for no limit.
     size_t hard_ram_limit_;
+
+    //! print a message on the first block evicted to external memory
+    bool notify_em_used_ = false;
 
     //! list of all blocks that are _in_memory_ but are _not_ pinned.
     tlx::LruCacheSet<
@@ -1195,6 +1199,14 @@ io::RequestPtr BlockPool::Data::IntEvictBlock(ByteBlock* block_ptr) {
 
         IntReleaseInternalMemory(block_ptr->size());
         return io::RequestPtr();
+    }
+
+    if (!notify_em_used_) {
+        std::cerr << "Thrill: evicting first Block to external memory. "
+            "Be aware, that unexpected" << std::endl;
+        std::cerr << "Thrill: use of external memory may lead to "
+            "disappointingly slow performance." << std::endl;
+        notify_em_used_ = true;
     }
 
     die_unless(block_ptr->em_bid_.storage == nullptr);
