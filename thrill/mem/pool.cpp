@@ -281,11 +281,11 @@ void Pool::DeallocateAll() {
 }
 
 void Pool::IntDeallocateAll() {
-    for (size_t i = 0; i < num_bins; ++i) {
+    for (size_t i = 0; i <= num_bins; ++i) {
         Arena* curr_arena = arena_bin_[i];
         while (curr_arena != nullptr) {
             Arena* next_arena = curr_arena->next_arena;
-            bypass_free(curr_arena, curr_arena->total_size);
+            bypass_aligned_free(curr_arena, curr_arena->total_size);
             curr_arena = next_arena;
         }
     }
@@ -459,7 +459,7 @@ void Pool::deallocate(void* ptr, size_t bytes) {
             arena->next_arena->prev_arena = arena->prev_arena;
 
         free_ -= arena->num_slots();
-        bypass_free(arena, arena->total_size);
+        bypass_aligned_free(arena, arena->total_size);
         return;
     }
 
@@ -484,7 +484,7 @@ void Pool::deallocate(void* ptr, size_t bytes) {
 
         // free arena
         free_ -= arena->num_slots();
-        bypass_free(arena, arena->total_size);
+        bypass_aligned_free(arena, arena->total_size);
         return;
     }
 
