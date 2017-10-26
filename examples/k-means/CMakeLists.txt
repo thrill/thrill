@@ -10,4 +10,9 @@
 
 thrill_build_prog(k-means_run)
 
+if(MSVC)
+  # requires /bigobj flag to build
+  set_target_properties(k-means_run PROPERTIES COMPILE_FLAGS /bigobj)
+endif()
+
 ################################################################################
