@@ -396,13 +396,6 @@ static __attribute__ ((constructor)) void init() { // NOLINT
             exit(EXIT_FAILURE);
         }
 
-        real_aligned_alloc = (aligned_alloc_type)dlsym(
-            RTLD_NEXT, "__interceptor_aligned_alloc");
-        if (!real_aligned_alloc) {
-            fprintf(stderr, PPREFIX "dlerror %s\n", dlerror());
-            exit(EXIT_FAILURE);
-        }
-
         real_free = (free_type)dlsym(RTLD_DEFAULT, "__interceptor_free");
         if (!real_free) {
             fprintf(stderr, PPREFIX "dlerror %s\n", dlerror());
