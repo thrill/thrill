@@ -24,6 +24,7 @@ thrill_build_prog(serialization/cpp-serializers)
 
 add_subdirectory(api)
 add_subdirectory(data)
+add_subdirectory(mem)
 add_subdirectory(net)
 
 if(THRILL_FULL_BUILD)
