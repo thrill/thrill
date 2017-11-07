@@ -11,6 +11,7 @@
 #include <thrill/mem/pool.hpp>
 
 #include <tlx/die.hpp>
+#include <tlx/math/ffs.hpp>
 #include <tlx/math/integer_log2.hpp>
 
 #include <iostream>
@@ -74,6 +75,315 @@ struct Pool::Arena {
 };
 
 /******************************************************************************/
+// Pool::ObjectPool for small items
+
+struct Pool::ObjectArena {
+    //! magic word
+    size_t     magic;
+    //! next and prev pointers for free list.
+    ObjectArena* next_arena, * prev_arena;
+    //! number of slots free
+    size_t     free_slots;
+    //! array of flag words: each bit in the flag words indicates if a slot is
+    //! used (=0) for free (=1)
+    size_t     flags[1];
+
+    char * begin(size_t num_flags) {
+        return reinterpret_cast<char*>(flags + num_flags);
+    }
+};
+
+class Pool::ObjectPool
+{
+public:
+    ObjectPool(size_t size);
+    ~ObjectPool();
+
+    //! allocate a new free arena
+    void AllocateObjectArena();
+
+    //! allocate a slot in the object pool
+    void * allocate();
+
+    //! free a slot
+    void deallocate(void* ptr);
+
+    //! verify arena chains
+    void self_verify();
+
+private:
+    //! object size in this pool
+    size_t size_;
+    //! arena chain with free slots
+    ObjectArena* free_ = nullptr;
+    //! arenas completely full
+    ObjectArena* full_ = nullptr;
+
+    static const size_t default_arena_size = 16384;
+
+    //! number of slots in an ObjectArena
+    size_t num_slots_;
+    //! number of flag words in an ObjectArena
+    size_t num_flags_;
+
+    //! total number of object slots allocated
+    size_t total_slots_ = 0;
+    //! total number of free object slots
+    size_t total_free_ = 0;
+};
+
+Pool::ObjectPool::ObjectPool(size_t size)
+    : size_(size) {
+    // calculate number of slots for given object size
+    num_slots_ =
+        8 * (default_arena_size - sizeof(ObjectArena) + sizeof(size_t))
+        / (8 * size_ + 1);
+
+    // calculate number of bit flag words
+    num_flags_ = (num_slots_ + (8 * sizeof(size_t) - 1)) / (8 * sizeof(size_t));
+
+    if (debug) {
+        printf("ObjectPool() size_=%zu num_slots_=%zu num_flags_=%zu\n",
+               size_, num_slots_, num_flags_);
+    }
+
+    die_unless(
+        default_arena_size >=
+        // header
+        sizeof(ObjectArena) - sizeof(size_t)
+        // flags
+        + num_flags_ * sizeof(size_t)
+        // data slots
+        + num_slots_ * size_);
+}
+
+Pool::ObjectPool::~ObjectPool() {
+    if (total_slots_ != total_free_) {
+        printf("~ObjectPool() size_=%zu total_used_=%zu\n",
+               size_, total_slots_ - total_free_);
+    }
+}
+
+void Pool::ObjectPool::AllocateObjectArena() {
+    // Allocate space for the new block
+    ObjectArena* new_arena =
+        reinterpret_cast<ObjectArena*>(
+            bypass_aligned_alloc(default_arena_size, default_arena_size));
+    if (!new_arena) {
+        // if (!die_on_failure) return nullptr;
+        fprintf(stderr, "out-of-memory - mem::ObjectPool cannot allocate a new ObjectArena."
+                " size_=%zu\n", size_);
+        abort();
+    }
+
+    die_unequal(
+        new_arena,
+        reinterpret_cast<ObjectArena*>(
+            reinterpret_cast<uintptr_t>(new_arena) & ~(default_arena_size - 1)));
+
+    new_arena->magic = 0xAEEA1111AEEA2222LLU + size_;
+    new_arena->prev_arena = nullptr;
+    new_arena->next_arena = free_;
+    if (free_)
+        free_->prev_arena = new_arena;
+    free_ = new_arena;
+
+    new_arena->free_slots = num_slots_;
+    for (size_t i = 0; i < num_flags_; ++i)
+        free_->flags[i] = ~size_t(0);
+
+    total_slots_ += num_slots_;
+    total_free_ += num_slots_;
+}
+
+void* Pool::ObjectPool::allocate() {
+    if (debug) {
+        printf("ObjectPool::allocate() size_=%zu\n", size_);
+    }
+
+    // allocate arenas, keep at least one extra free arena
+    while (free_ == nullptr || total_free_ <= num_slots_)
+        AllocateObjectArena();
+
+    size_t slot = size_t(-1);
+    for (size_t i = 0; i < num_flags_; ++i) {
+        unsigned s = tlx::ffs(free_->flags[i]);
+        if (s != 0) {
+            slot = i * 8 * sizeof(size_t) + (s - 1);
+            free_->flags[i] &= ~(size_t(1) << (s - 1));
+            break;
+        }
+    }
+
+    void* ptr = free_->begin(num_flags_) + slot * size_;
+
+    if (--free_->free_slots == 0)
+    {
+        ObjectArena* next_free = free_->next_arena;
+
+        // put now full ObjectArena into full_ list
+        free_->next_arena = full_;
+        if (full_)
+            full_->prev_arena = free_;
+        full_ = free_;
+
+        free_ = next_free;
+        if (next_free)
+            next_free->prev_arena = nullptr;
+    }
+
+    --total_free_;
+
+    return ptr;
+}
+
+void Pool::ObjectPool::deallocate(void* ptr) {
+    if (debug) {
+        printf("ObjectPool::deallocate() size_=%zu\n", size_);
+    }
+
+    // find arena containing ptr
+    ObjectArena* const arena =
+        reinterpret_cast<ObjectArena*>(
+            reinterpret_cast<uintptr_t>(ptr) & ~(default_arena_size - 1));
+    die_unless(arena->magic == 0xAEEA1111AEEA2222LLU + size_);
+
+    if (!(ptr >= arena->begin(num_flags_) &&
+          ptr < arena->begin(num_flags_) + num_slots_ * size_)) {
+        assert(!"deallocate() of memory not in any arena.");
+        abort();
+    }
+
+    // calculate the slot directly
+    size_t slot =
+        (reinterpret_cast<char*>(ptr) - arena->begin(num_flags_)) / size_;
+
+    size_t fa = slot / (8 * sizeof(size_t));
+    size_t fb = slot % (8 * sizeof(size_t));
+    size_t mask = (size_t(1) << fb);
+    die_unless((arena->flags[fa] & mask) == 0);
+
+    // set free bit
+    arena->flags[fa] |= mask;
+
+    if (arena->free_slots == 0)
+    {
+        if (debug)
+            printf("ObjectPool::deallocate() splice free arena from full_ list\n");
+
+        // splice arena from doubly linked list (full_)
+        if (arena->prev_arena)
+            arena->prev_arena->next_arena = arena->next_arena;
+        else {
+            die_unless(full_ == arena);
+            full_ = arena->next_arena;
+        }
+        if (arena->next_arena)
+            arena->next_arena->prev_arena = arena->prev_arena;
+
+        // put ObjectArena with newly freed slot into free list
+        if (free_)
+            free_->prev_arena = arena;
+        arena->next_arena = free_;
+        arena->prev_arena = nullptr;
+        free_ = arena;
+    }
+
+    ++arena->free_slots;
+    ++total_free_;
+
+    if (arena->free_slots == num_slots_ && total_free_ > 16 * num_slots_)
+    {
+        if (debug)
+            printf("ObjectPool::deallocate() splice empty arena from free_ list\n");
+
+        // splice arena from doubly linked list (full_)
+        if (arena->prev_arena)
+            arena->prev_arena->next_arena = arena->next_arena;
+        else {
+            die_unless(free_ == arena);
+            free_ = arena->next_arena;
+        }
+        if (arena->next_arena)
+            arena->next_arena->prev_arena = arena->prev_arena;
+
+        bypass_aligned_free(arena, default_arena_size);
+        total_free_ -= num_slots_;
+        total_slots_ -= num_slots_;
+    }
+}
+
+void Pool::ObjectPool::self_verify() {
+    if (debug) {
+        printf("ObjectPool::print() size_=%zu\n", size_);
+    }
+
+    size_t total_slots = 0, total_free = 0, total_used = 0;
+
+    for (ObjectArena* arena = free_; arena != nullptr;
+         arena = arena->next_arena)
+    {
+        size_t arena_free = 0;
+
+        for (size_t i = 0; i < num_slots_; ++i) {
+            size_t fa = i / (8 * sizeof(size_t));
+            size_t fb = i % (8 * sizeof(size_t));
+
+            if ((arena->flags[fa] & (size_t(1) << fb)) == 0) {
+                // slot is used
+                total_used++;
+            }
+            else {
+                // slot is free
+                arena_free++;
+                total_free++;
+            }
+        }
+
+        die_unless(arena_free != 0);
+        total_slots += num_slots_;
+
+        if (arena->next_arena)
+            die_unless(arena->next_arena->prev_arena == arena);
+        if (arena->prev_arena)
+            die_unless(arena->prev_arena->next_arena == arena);
+    }
+
+    for (ObjectArena* arena = full_; arena != nullptr;
+         arena = arena->next_arena)
+    {
+        size_t arena_free = 0;
+
+        for (size_t i = 0; i < num_slots_; ++i) {
+            size_t fa = i / (8 * sizeof(size_t));
+            size_t fb = i % (8 * sizeof(size_t));
+
+            if ((arena->flags[fa] & (size_t(1) << fb)) == 0) {
+                // slot is used
+                total_used++;
+            }
+            else {
+                // slot is free
+                arena_free++;
+                total_free++;
+            }
+        }
+
+        die_unequal(arena_free, 0u);
+        total_slots += num_slots_;
+
+        if (arena->next_arena)
+            die_unless(arena->next_arena->prev_arena == arena);
+        if (arena->prev_arena)
+            die_unless(arena->prev_arena->next_arena == arena);
+    }
+
+    die_unequal(total_slots, total_slots_);
+    die_unequal(total_free, total_free_);
+    die_unequal(total_used, total_slots_ - total_free_);
+}
+
+/******************************************************************************/
 // internal methods
 
 //! determine bin for size.
@@ -107,6 +417,11 @@ Pool::Pool(size_t default_arena_size) noexcept
 
     while (free_ < min_free_)
         AllocateFreeArena(default_arena_size_);
+
+    object_32_ = new ObjectPool(32);
+    object_64_ = new ObjectPool(64);
+    object_128_ = new ObjectPool(128);
+    object_256_ = new ObjectPool(256);
 }
 
 Pool::~Pool() noexcept {
@@ -122,6 +437,12 @@ Pool::~Pool() noexcept {
         }
     }
     assert(size_ == 0);
+
+    delete object_32_;
+    delete object_64_;
+    delete object_128_;
+    delete object_256_;
+
     IntDeallocateAll();
 }
 
@@ -310,6 +631,15 @@ void* Pool::allocate(size_t bytes) {
                   << std::endl;
     }
 
+    if (bytes <= 32)
+        return object_32_->allocate();
+    if (bytes <= 64)
+        return object_64_->allocate();
+    if (bytes <= 128)
+        return object_128_->allocate();
+    if (bytes <= 256)
+        return object_256_->allocate();
+
     // round up to whole slot size, and divide by slot size
     uint32_t n =
         static_cast<uint32_t>((bytes + sizeof(Slot) - 1) / sizeof(Slot));
@@ -395,6 +725,15 @@ void Pool::deallocate(void* ptr, size_t bytes) {
             abort();
         }
     }
+
+    if (bytes <= 32)
+        return object_32_->deallocate(ptr);
+    if (bytes <= 64)
+        return object_64_->deallocate(ptr);
+    if (bytes <= 128)
+        return object_128_->deallocate(ptr);
+    if (bytes <= 256)
+        return object_256_->deallocate(ptr);
 
     // round up to whole slot size, and divide by slot size
     uint32_t n

@@ -133,6 +133,12 @@ private:
     //! header of an Arena, used to calculate number of slots
     struct Arena;
 
+    //! header of an ObjectArena containing equally sized items
+    struct ObjectArena;
+
+    //! pool of equally sized items
+    class ObjectPool;
+
     //! mutex to protect data structures (remove this if you use it in another
     //! context than Thrill).
     std::mutex mutex_;
@@ -155,6 +161,12 @@ private:
 
     //! minimum amount of spare memory to keep in the Pool.
     size_t min_free_ = 1024 * 1024 / 8;
+
+    //! object areas for small fixed size items
+    ObjectPool* object_32_;
+    ObjectPool* object_64_;
+    ObjectPool* object_128_;
+    ObjectPool* object_256_;
 
     //! array of allocations for checking
     std::vector<std::pair<void*, size_t> > allocs_;
