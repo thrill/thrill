@@ -27,8 +27,4 @@ add_subdirectory(data)
 add_subdirectory(mem)
 add_subdirectory(net)
 
-if(THRILL_FULL_BUILD)
-  add_subdirectory(chaining)
-endif()
-
 ################################################################################

@@ -72,9 +72,6 @@ option(THRILL_USE_IWYU
 option(THRILL_USE_LTO
   "Compile with -flto (link-time optimization)." OFF)
 
-option(THRILL_FULL_BUILD
-  "Disable large compilation units for faster development." OFF)
-
 option(THRILL_TRY_COMPILE_HEADERS
   "Test header files for self-sufficiency: try to compile them." OFF)
 
