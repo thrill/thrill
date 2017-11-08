@@ -78,6 +78,9 @@ option(THRILL_FULL_BUILD
 option(THRILL_TRY_COMPILE_HEADERS
   "Test header files for self-sufficiency: try to compile them." OFF)
 
+option(THRILL_ON_TRAVIS
+  "Flag for continuous integration building. Disables some unsupported platform features." OFF)
+
 # THRILL_USE_S3 tristate switch
 set(THRILL_USE_S3 AUTO CACHE
   STRING "Build libs3 as library. Enabled by default if all dependencies are found.")
@@ -258,6 +261,11 @@ if(APPLE)
   # disable warnings about "ranlib: file: libthrill.a(...cpp.o) has no symbols"
   set(CMAKE_C_ARCHIVE_FINISH   "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
   set(CMAKE_CXX_ARCHIVE_FINISH "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
+endif()
+
+if(THRILL_ON_TRAVIS)
+  # set define flag for disabling features unsupported on CI virtual machines
+  list(APPEND THRILL_DEFINITIONS "THRILL_ON_TRAVIS=1")
 endif()
 
 message(STATUS "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
