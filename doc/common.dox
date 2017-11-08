@@ -17,15 +17,15 @@ namespace common {
 /******************************************************************************/
 /** \page layer_common Common Tools and Helpers
 
-The namespace common contains many common tools and helpers shared by higher layers. Each file or component in common must be usable independently of all others.
+The namespace common and tlx namespace contains many common tools and helpers shared by higher layers. Each file or component in common must be usable independently of all others.
 
-- \ref Logger "LOG and sLOG for development and debugging"
+- \ref tlx::Logger "LOG and sLOG for development and debugging"
 - \subpage layer_common_stats
-- \ref CmdlineParser "Command Line Parser"
-- \ref ThreadPool "A ThreadPool to run many queued jobs concurrently which queue new jobs."
-- \ref Delegate "A fast delegate replacement for std::function which supports non-copyable objects in a lambda capture."
+- \ref tlx::CmdlineParser "Command Line Parser"
+- \ref tlx::ThreadPool "A ThreadPool to run many queued jobs concurrently which queue new jobs."
+- \ref tlx::Delegate "A fast delegate replacement for std::function which supports non-copyable objects in a lambda capture."
 
-See the \ref thrill::common "namespace common" for a full list of utilities.
+See the \ref thrill::common "namespace common" and \ref tlx "namespace tlx" for a full list of utilities.
 
 */
 
