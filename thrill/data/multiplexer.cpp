@@ -128,7 +128,7 @@ Multiplexer::Multiplexer(mem::Manager& mem_manager,
       block_pool_(block_pool),
       dispatcher_(
           mem_manager, group,
-          "host " + mem::to_string(group.my_host_rank()) + " multiplexer"),
+          "host " + mem::to_string(group.my_host_rank()) + " dispatcher"),
       group_(group),
       workers_per_host_(workers_per_host),
       d_(std::make_unique<Data>(workers_per_host)) {
