@@ -258,8 +258,8 @@ public:
 
             // item fully serialized, push out finished blocks.
             while (!sink_queue_.empty()) {
-                sink_.AppendPinnedBlock(sink_queue_.front(),
-                                        /* is_last_block */ false);
+                sink_.AppendPinnedBlock(
+                    std::move(sink_queue_.front()), /* is_last_block */ false);
                 sink_queue_.pop_front();
             }
 

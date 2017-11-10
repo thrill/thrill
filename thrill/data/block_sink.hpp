@@ -86,11 +86,6 @@ public:
     virtual void AppendBlock(Block&& b, bool is_last_block) = 0;
 
     //! Appends the PinnedBlock
-    virtual void AppendPinnedBlock(const PinnedBlock& b, bool is_last_block) {
-        return AppendBlock(b.ToBlock(), is_last_block);
-    }
-
-    //! Appends the PinnedBlock
     virtual void AppendPinnedBlock(PinnedBlock&& b, bool is_last_block) {
         return AppendBlock(std::move(b).MoveToBlock(), is_last_block);
     }
