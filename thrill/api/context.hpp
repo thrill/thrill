@@ -372,7 +372,7 @@ public:
                  << " = " << ((max - min) / min * 100.0) << "%"
                  << " max-mean " << max - mean
                  << " = " << ((max - mean) / mean * 100.0) << "%"
-                 << " svec " << common::VecToStr(svec);
+                 << " svec " << svec;
         }
     }
 

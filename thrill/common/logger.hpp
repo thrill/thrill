@@ -17,8 +17,12 @@
 #include <thrill/mem/allocator.hpp>
 #include <thrill/mem/pool.hpp>
 
+#include <array>
 #include <sstream>
 #include <string>
+#include <tuple>
+#include <utility>
+#include <vector>
 
 namespace thrill {
 namespace common {
@@ -181,6 +185,94 @@ public:
 //! Override default output: never or always output log.
 #define sLOG0 sLOGC(false)
 #define sLOG1 sLOGC(true)
+
+/******************************************************************************/
+// Nice LOG/sLOG Formatters for std::pair, std::tuple, std::vector, and
+// std::array types
+
+using log_stream = mem::safe_ostringstream;
+
+template <typename A, typename B>
+log_stream& operator << (log_stream& os, const std::pair<A, B>& p) {
+    os << '(' << p.first << ',' << p.second << ')';
+    return os;
+}
+
+static inline log_stream& operator << (log_stream& os, const std::tuple<>&) {
+    os << '(' << ')';
+    return os;
+}
+
+template <typename A>
+log_stream& operator << (log_stream& os, const std::tuple<A>& t) {
+    os << '(' << std::get<0>(t) << ')';
+    return os;
+}
+
+template <typename A, typename B>
+log_stream& operator << (log_stream& os, const std::tuple<A, B>& t) {
+    os << '(' << std::get<0>(t) << ',' << std::get<1>(t) << ')';
+    return os;
+}
+
+template <typename A, typename B, typename C>
+log_stream& operator << (log_stream& os, const std::tuple<A, B, C>& t) {
+    os << '(' << std::get<0>(t) << ',' << std::get<1>(t)
+       << ',' << std::get<2>(t) << ')';
+    return os;
+}
+
+template <typename A, typename B, typename C, typename D>
+log_stream& operator << (log_stream& os, const std::tuple<A, B, C, D>& t) {
+    os << '(' << std::get<0>(t) << ',' << std::get<1>(t)
+       << ',' << std::get<2>(t) << ',' << std::get<3>(t) << ')';
+    return os;
+}
+
+template <typename A, typename B, typename C, typename D, typename E>
+log_stream& operator << (log_stream& os, const std::tuple<A, B, C, D, E>& t) {
+    os << '(' << std::get<0>(t) << ',' << std::get<1>(t)
+       << ',' << std::get<2>(t) << ',' << std::get<3>(t)
+       << ',' << std::get<4>(t) << ')';
+    return os;
+}
+
+template <typename A, typename B, typename C, typename D, typename E, typename F>
+log_stream& operator << (log_stream& os,
+                         const std::tuple<A, B, C, D, E, F>& t) {
+    os << '(' << std::get<0>(t) << ',' << std::get<1>(t)
+       << ',' << std::get<2>(t) << ',' << std::get<3>(t)
+       << ',' << std::get<4>(t) << ',' << std::get<5>(t) << ')';
+    return os;
+}
+
+//! Logging helper to print arrays as [a1,a2,a3,...]
+template <typename T, size_t N>
+log_stream& operator << (log_stream& os, const std::array<T, N>& data) {
+    os << '[';
+    for (typename std::array<T, N>::const_iterator it = data.begin();
+         it != data.end(); ++it)
+    {
+        if (it != data.begin()) os << ',';
+        os << *it;
+    }
+    os << ']';
+    return os;
+}
+
+//! Logging helper to print vectors as [a1,a2,a3,...]
+template <typename T>
+log_stream& operator << (log_stream& os, const std::vector<T>& data) {
+    os << '[';
+    for (typename std::vector<T>::const_iterator it = data.begin();
+         it != data.end(); ++it)
+    {
+        if (it != data.begin()) os << ',';
+        os << *it;
+    }
+    os << ']';
+    return os;
+}
 
 } // namespace common
 } // namespace thrill

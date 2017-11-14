@@ -90,7 +90,7 @@ public:
             offsets[p] = std::min(limit - local_rank, file_.num_items());
         }
         offsets[num_workers] = file_.num_items();
-        LOG << "offsets = " << common::VecToStr(offsets);
+        LOG << "offsets = " << offsets;
 
         stream_->template Scatter<ValueType>(
             file_, offsets, /* consume */ true);
