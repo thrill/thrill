@@ -776,11 +776,21 @@ public:
 protected:
     virtual void DispatchOne(const std::chrono::milliseconds& timeout) = 0;
 
+    //! Default exception handler
+    static bool ExceptionCallback(Connection& c) {
+        // exception on listen socket ?
+        throw Exception(
+                  "Dispatcher() exception on socket fd "
+                  + c.ToString() + "!", errno);
+    }
+
     //! true if dispatcher needs to stop
     std::atomic<bool> terminate_ { false };
 
     //! superior memory manager
     mem::Manager& mem_manager_;
+
+    /*------------------------------------------------------------------------*/
 
     //! struct for timer callbacks
     struct Timer {
@@ -811,76 +821,7 @@ protected:
     //! order. Currently not addressable.
     TimerPQ timer_pq_;
 
-    /**************************************************************************/
-
-    class AsyncReadBuffer
-    {
-    public:
-        //! Construct buffered reader with callback
-        AsyncReadBuffer(Connection& conn,
-                        size_t buffer_size, const AsyncReadBufferCallback& callback)
-            : conn_(&conn),
-              buffer_(buffer_size),
-              callback_(callback)
-        { }
-
-        //! Should be called when the socket is readable
-        bool operator () () {
-            ssize_t r = conn_->RecvOne(
-                buffer_.data() + size_, buffer_.size() - size_);
-
-            if (r <= 0) {
-                // these errors are acceptable: just redo the recv later.
-                if (errno == EINTR || errno == EAGAIN) return true;
-
-                // signal artificial IsDone, for clean up.
-                size_ = buffer_.size();
-
-                // these errors are end-of-file indications (both good and bad)
-                if (errno == 0 || errno == EPIPE || errno == ECONNRESET) {
-                    if (callback_) callback_(*conn_, Buffer());
-                    return false;
-                }
-                throw Exception("AsyncReadBuffer() error in recv() on "
-                                "connection " + conn_->ToString(), errno);
-            }
-
-            size_ += r;
-
-            if (size_ == buffer_.size()) {
-                DoCallback();
-                return false;
-            }
-            else {
-                return true;
-            }
-        }
-
-        bool IsDone() const { return size_ == buffer_.size(); }
-
-        //! reference to Buffer
-        Buffer& buffer() { return buffer_; }
-
-        void DoCallback() {
-            if (callback_) {
-                callback_(*conn_, std::move(buffer_));
-                callback_ = AsyncReadBufferCallback();
-            }
-        }
-
-    private:
-        //! Connection reference
-        Connection* conn_;
-
-        //! Receive buffer (allocates memory)
-        Buffer buffer_;
-
-        //! total size currently read
-        size_t size_ = 0;
-
-        //! functional object to call once data is complete
-        AsyncReadBufferCallback callback_;
-    };
+    /*------------------------------------------------------------------------*/
 
     //! deque of asynchronous readers
     std::deque<AsyncReadBuffer,
@@ -897,14 +838,6 @@ protected:
     //! deque of asynchronous writers
     std::deque<AsyncWriteBlock,
                mem::GPoolAllocator<AsyncWriteBlock> > async_write_block_;
-
-    //! Default exception handler
-    static bool ExceptionCallback(Connection& c) {
-        // exception on listen socket ?
-        throw Exception(
-                  "Dispatcher() exception on socket fd "
-                  + c.ToString() + "!", errno);
-    }
 };
 
 //! \}
