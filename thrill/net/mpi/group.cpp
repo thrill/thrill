@@ -363,7 +363,7 @@ static inline void Initialize() {
 
         int provided;
         int r = MPI_Init_thread(&argc, reinterpret_cast<char***>(&argv),
-                                MPI_THREAD_SERIALIZED, &provided);
+                                MPI_THREAD_MULTIPLE, &provided);
         if (r != MPI_SUCCESS)
             throw Exception("Error during MPI_Init_thread()", r);
 

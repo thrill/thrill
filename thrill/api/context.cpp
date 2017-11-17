@@ -780,8 +780,9 @@ int RunNotSupported(const char* env_net) {
 
 static inline
 const char * DetectNetBackend() {
-    // detect openmpi run, add others as well.
-    if (getenv("OMPI_COMM_WORLD_SIZE") != nullptr) {
+    // detect openmpi and intel mpi run, add others as well.
+    if (getenv("OMPI_COMM_WORLD_SIZE") != nullptr ||
+        getenv("I_MPI_INFO_NP") != nullptr) {
 #if THRILL_HAVE_NET_IB
         return "ib";
 #elif THRILL_HAVE_NET_MPI
