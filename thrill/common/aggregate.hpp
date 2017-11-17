@@ -101,7 +101,7 @@ public:
             // count
             count_ + a.count_,
             // mean
-            (mean_ * count_ + a.mean_ * a.count_) / (count_ + a.count_),
+            merged_means(a),
             // merging variance is a bit complicated
             merged_variance(a),
             std::min(min_, a.min_), std::max(max_, a.max_)); // min, max
@@ -109,12 +109,11 @@ public:
 
     //! operator +=
     Aggregate& operator += (const Aggregate& a) noexcept {
-        double total = mean_ * count_; // compute before updating count_
-        count_ += a.count_;
-        mean_ = (total + a.mean_ * a.count_) / count_;
+        mean_ = merged_means(a);
         min_ = std::min(min_, a.min_);
         max_ = std::max(max_, a.max_);
         nvar_ = merged_variance(a);
+        count_ += a.count_;
         return *this;
     }
 
@@ -145,6 +144,15 @@ public:
         sizeof(size_t) + 2 * sizeof(double) + 2 * sizeof(Type);
 
 private:
+    double merged_means(const Aggregate& a) const noexcept {
+        // check if either count is zero, this fixes problems with NaN
+        if (count_ == 0)
+            return a.mean_;
+        if (a.count_ == 0)
+            return mean_;
+        return (mean_ * count_ + a.mean_ * a.count_) / (count_ + a.count_);
+    }
+
     // T. Chan et al 1979, "Updating Formulae and a Pairwise Algorithm for
     // Computing Sample Variances"
     double merged_variance(const Aggregate& other) const noexcept {
