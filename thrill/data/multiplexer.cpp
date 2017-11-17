@@ -136,7 +136,6 @@ Multiplexer::Multiplexer(mem::Manager& mem_manager,
         if (id == group_.my_host_rank()) continue;
         AsyncReadMultiplexerHeader(group_.connection(id));
     }
-    (void)mem_manager_;     // silence unused variable warning.
 }
 
 void Multiplexer::Close() {
@@ -315,6 +314,7 @@ void Multiplexer::OnMultiplexerHeader(Connection& s, net::Buffer&& buffer) {
 
             PinnedByteBlockPtr bytes = block_pool_.AllocateByteBlock(
                 alloc_size, local_worker);
+            sLOG << "new PinnedByteBlockPtr bytes=" << *bytes;
 
             dispatcher_.AsyncRead(
                 s, header.size, std::move(bytes),
@@ -362,7 +362,7 @@ void Multiplexer::OnCatStreamBlock(
     const CatStreamDataPtr& stream, PinnedByteBlockPtr&& bytes) {
 
     sLOG << "Multiplexer::OnCatStreamBlock()"
-         << "got block on" << s
+         << "got block" << *bytes << "on" << s
          << "in CatStream" << header.stream_id
          << "from worker" << header.sender_worker;
 
@@ -383,7 +383,7 @@ void Multiplexer::OnMixStreamBlock(
     const MixStreamDataPtr& stream, PinnedByteBlockPtr&& bytes) {
 
     sLOG << "Multiplexer::OnMixStreamBlock()"
-         << "got block on" << s
+         << "got block" << *bytes << "on" << s
          << "in MixStream" << header.stream_id
          << "from worker" << header.sender_worker;
 

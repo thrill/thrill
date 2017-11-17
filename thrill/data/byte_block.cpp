@@ -75,6 +75,7 @@ void ByteBlock::OnWriteComplete(io::Request* req, bool success) {
 
 std::ostream& operator << (std::ostream& os, const ByteBlock& b) {
     os << "[ByteBlock" << " " << &b
+       << " data_=" << static_cast<const void*>(b.data_)
        << " size_=" << b.size_
        << " block_pool_=" << b.block_pool_
        << " total_pins_=" << b.total_pins_

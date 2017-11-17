@@ -38,6 +38,9 @@ namespace data {
 //! debug block life cycle output: create, destroy
 static constexpr bool debug_blc = false;
 
+//! debug block memory alloc and dealloc
+static constexpr bool debug_alloc = false;
+
 //! debug block pinning:
 static constexpr bool debug_pin = false;
 
@@ -496,6 +499,8 @@ BlockPool::AllocateByteBlock(size_t size, size_t local_worker_id) {
     // require block eviction.
     lock.unlock();
     Byte* data = d_->aligned_alloc_.allocate(size);
+    LOGC(debug_alloc)
+        << "ByteBlock aligned_alloc: " << (void*)data << " size " << size;
     lock.lock();
 
     // create tlx::CountingPtr, no need for special make_shared()-equivalent
@@ -724,6 +729,9 @@ void BlockPool::OnReadComplete(
         }
 
         // release memory
+        sLOGC(debug_alloc)
+            << "ByteBlock  deallocate"
+            << (void*)read->byte_block()->data_ << "size" << block_size;
         d_->aligned_alloc_.deallocate(read->byte_block()->data_, block_size);
 
         d_->IntReleaseInternalMemory(block_size);
@@ -776,7 +784,7 @@ void BlockPool::IntIncBlockPinCount(ByteBlock* block_ptr, size_t local_worker_id
 
     LOGC(debug_pin)
         << "BlockPool::IncBlockPinCount()"
-        << " block=" << block_ptr
+        << " byte_block=" << block_ptr
         << " ++block.pin_count[" << local_worker_id << "]="
         << block_ptr->pin_count_[local_worker_id]
         << " ++block.total_pins_=" << block_ptr->total_pins_
@@ -795,7 +803,7 @@ void BlockPool::DecBlockPinCount(ByteBlock* block_ptr, size_t local_worker_id) {
 
     LOGC(debug_pin)
         << "BlockPool::DecBlockPinCount()"
-        << " block=" << block_ptr
+        << " byte_block=" << block_ptr
         << " --block.pin_count[" << local_worker_id << "]=" << p
         << " --block.total_pins_=" << tp
         << " local_worker_id=" << local_worker_id;
@@ -827,7 +835,7 @@ void BlockPool::Data::IntUnpinBlock(
 
     LOGC(debug_pin)
         << "BlockPool::IntUnpinBlock()"
-        << " block=" << block_ptr
+        << " byte_block=" << block_ptr
         << " --total_pins_=" << block_ptr->total_pins_
         << " allow swap out.";
 }
@@ -975,6 +983,9 @@ void BlockPool::DestroyBlock(ByteBlock* block_ptr) {
         d_->unpinned_bytes_ -= block_ptr->size();
 
         // release memory
+        sLOGC(debug_alloc)
+            << "ByteBlock deallocate"
+            << (void*)block_ptr->data_ << "size" << block_ptr->size();
         d_->aligned_alloc_.deallocate(block_ptr->data_, block_ptr->size());
         block_ptr->data_ = nullptr;
 
@@ -998,6 +1009,9 @@ void BlockPool::DestroyBlock(ByteBlock* block_ptr) {
         d_->unpinned_bytes_ -= block_ptr->size();
 
         // release memory
+        sLOGC(debug_alloc)
+            << "ByteBlock deallocate"
+            << (void*)block_ptr->data_ << "size" << block_ptr->size();
         d_->aligned_alloc_.deallocate(block_ptr->data_, block_ptr->size());
         block_ptr->data_ = nullptr;
 
@@ -1199,6 +1213,9 @@ io::RequestPtr BlockPool::Data::IntEvictBlock(ByteBlock* block_ptr) {
             << " from ext_file " << block_ptr->ext_file_;
 
         // release memory
+        sLOGC(debug_alloc)
+            << "ByteBlock deallocate"
+            << (void*)block_ptr->data_ << "size" << block_ptr->size();
         aligned_alloc_.deallocate(block_ptr->data_, block_ptr->size());
         block_ptr->data_ = nullptr;
 
@@ -1268,6 +1285,9 @@ void BlockPool::OnWriteComplete(
         d_->swapped_bytes_ += block_ptr->size();
 
         // release memory
+        sLOGC(debug_alloc)
+            << "ByteBlock deallocate"
+            << (void*)block_ptr->data_ << "size" << block_ptr->size();
         d_->aligned_alloc_.deallocate(block_ptr->data_, block_ptr->size());
         block_ptr->data_ = nullptr;
 

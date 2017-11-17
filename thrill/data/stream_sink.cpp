@@ -108,7 +108,15 @@ void StreamSink::AppendPinnedBlock(PinnedBlock&& block, bool is_last_block) {
 
     LOG << "StreamSink::AppendPinnedBlock()"
         << " block=" << block
-        << " is_last_block=" << is_last_block;
+        << " is_last_block=" << is_last_block
+        << " id_= " << id_
+        << " host_rank_=" << host_rank_
+        << " local_worker_id_=" << local_worker_id_
+        << " peer_rank_=" << peer_rank_
+        << " peer_local_worker_=" << peer_local_worker_
+        << " item_counter_=" << item_counter_
+        << " byte_counter_=" << byte_counter_
+        << " block_counter_=" << block_counter_;
 
     // StreamSink statistics
     item_counter_ += block.num_items();
@@ -134,7 +142,8 @@ void StreamSink::AppendPinnedBlock(PinnedBlock&& block, bool is_last_block) {
 
     sem_.wait();
 
-    sLOG0 << "sending block" << tlx::hexdump(block.ToString());
+    LOG0 << "StreamSink::AppendPinnedBlock()"
+         << " data=" << tlx::hexdump(block.ToString());
 
     StreamMultiplexerHeader header(magic_, block);
     header.stream_id = id_;
