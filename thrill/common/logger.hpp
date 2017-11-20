@@ -16,6 +16,7 @@
 
 #include <thrill/mem/allocator.hpp>
 #include <thrill/mem/pool.hpp>
+#include <tlx/meta/call_foreach_tuple.hpp>
 
 #include <array>
 #include <sstream>
@@ -186,11 +187,15 @@ public:
 #define sLOG0 sLOGC(false)
 #define sLOG1 sLOGC(true)
 
+} // namespace common
+
+namespace mem {
+
 /******************************************************************************/
 // Nice LOG/sLOG Formatters for std::pair, std::tuple, std::vector, and
 // std::array types
 
-using log_stream = mem::safe_ostringstream;
+using log_stream = safe_ostringstream;
 
 template <typename A, typename B>
 log_stream& operator << (log_stream& os, const std::pair<A, B>& p) {
@@ -198,51 +203,31 @@ log_stream& operator << (log_stream& os, const std::pair<A, B>& p) {
     return os;
 }
 
-static inline log_stream& operator << (log_stream& os, const std::tuple<>&) {
-    os << '(' << ')';
-    return os;
-}
+template <typename Tuple, size_t N>
+struct LogStreamTuplePrinter {
+    static void print(log_stream& os, const Tuple& t) {
+        LogStreamTuplePrinter<Tuple, N - 1>::print(os, t);
+        os << ',' << std::get<N - 1>(t);
+    }
+};
 
-template <typename A>
-log_stream& operator << (log_stream& os, const std::tuple<A>& t) {
-    os << '(' << std::get<0>(t) << ')';
-    return os;
-}
+template <typename Tuple>
+struct LogStreamTuplePrinter<Tuple, 1>{
+    static void print(log_stream& os, const Tuple& t) {
+        os << std::get<0>(t);
+    }
+};
 
-template <typename A, typename B>
-log_stream& operator << (log_stream& os, const std::tuple<A, B>& t) {
-    os << '(' << std::get<0>(t) << ',' << std::get<1>(t) << ')';
-    return os;
-}
+template <typename Tuple>
+struct LogStreamTuplePrinter<Tuple, 0>{
+    static void print(log_stream&, const Tuple&) { }
+};
 
-template <typename A, typename B, typename C>
-log_stream& operator << (log_stream& os, const std::tuple<A, B, C>& t) {
-    os << '(' << std::get<0>(t) << ',' << std::get<1>(t)
-       << ',' << std::get<2>(t) << ')';
-    return os;
-}
-
-template <typename A, typename B, typename C, typename D>
-log_stream& operator << (log_stream& os, const std::tuple<A, B, C, D>& t) {
-    os << '(' << std::get<0>(t) << ',' << std::get<1>(t)
-       << ',' << std::get<2>(t) << ',' << std::get<3>(t) << ')';
-    return os;
-}
-
-template <typename A, typename B, typename C, typename D, typename E>
-log_stream& operator << (log_stream& os, const std::tuple<A, B, C, D, E>& t) {
-    os << '(' << std::get<0>(t) << ',' << std::get<1>(t)
-       << ',' << std::get<2>(t) << ',' << std::get<3>(t)
-       << ',' << std::get<4>(t) << ')';
-    return os;
-}
-
-template <typename A, typename B, typename C, typename D, typename E, typename F>
-log_stream& operator << (log_stream& os,
-                         const std::tuple<A, B, C, D, E, F>& t) {
-    os << '(' << std::get<0>(t) << ',' << std::get<1>(t)
-       << ',' << std::get<2>(t) << ',' << std::get<3>(t)
-       << ',' << std::get<4>(t) << ',' << std::get<5>(t) << ')';
+template <typename... Args>
+log_stream& operator << (log_stream& os, const std::tuple<Args...>& t) {
+    os << '(';
+    LogStreamTuplePrinter<std::tuple<Args...>, sizeof ... (Args)>::print(os, t);
+    os << ')';
     return os;
 }
 
@@ -274,7 +259,7 @@ log_stream& operator << (log_stream& os, const std::vector<T>& data) {
     return os;
 }
 
-} // namespace common
+} // namespace mem
 } // namespace thrill
 
 #endif // !THRILL_COMMON_LOGGER_HEADER
