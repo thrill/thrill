@@ -65,17 +65,20 @@ auto ConstructRLBWT(const InputDIA& input_dia) {
                              });
     }
 
-    auto rl_bwt = input_dia.template FlatWindow<PairIC>(DisjointTag, 256, [input_size](size_t, const std::vector<ValueType>& v, auto emit) {
-                                                            size_t i = 0;
-                                                            size_t run_start = 0;
-                                                            while (++i < v.size()) {
-                                                                if (v[i - 1] != v[i]) {
-                                                                    emit(PairIC { static_cast<uint8_t>(i - run_start - 1), v[i - 1] });
-                                                                    run_start = i;
-                                                                }
-                                                            }
-                                                            emit(PairIC { static_cast<uint8_t>(i - run_start - 1), v[i - 1] });
-                                                        });
+    auto rl_bwt = input_dia
+                  .template FlatWindow<PairIC>(
+        DisjointTag, 256,
+        [](size_t, const std::vector<ValueType>& v, auto emit) {
+            size_t i = 0;
+            size_t run_start = 0;
+            while (++i < v.size()) {
+                if (v[i - 1] != v[i]) {
+                    emit(PairIC { static_cast<uint8_t>(i - run_start - 1), v[i - 1] });
+                    run_start = i;
+                }
+            }
+            emit(PairIC { static_cast<uint8_t>(i - run_start - 1), v[i - 1] });
+        });
     return rl_bwt;
 }
 

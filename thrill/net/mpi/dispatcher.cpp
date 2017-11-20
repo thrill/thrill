@@ -200,7 +200,7 @@ void Dispatcher::DispatchOne(const std::chrono::milliseconds& /* timeout */) {
 #endif
     }
 
-    if (watch_active_ && 0)
+    if (watch_active_)
     {
         // use MPI_Iprobe() to check for a new message on this MPI tag.
         int flag = 0;
