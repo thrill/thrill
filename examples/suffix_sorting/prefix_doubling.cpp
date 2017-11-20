@@ -195,8 +195,8 @@ DIA<Index> PrefixDoublingDiscardingDementiev(const InputDIA& input_dia, size_t i
     DIA<IndexRank> names;
 
     if (packed) {
-        static const size_t input_bit_size = sizeof(Char) << 3;
-        static const size_t k_fitting = sizeof(Index) / sizeof(Char);
+        const size_t input_bit_size = sizeof(Char) << 3;
+        const size_t k_fitting = sizeof(Index) / sizeof(Char);
 
         iteration = 0;
         size_t tmp = k_fitting;
@@ -507,8 +507,8 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size,
     DIA<IndexRank> names;
 
     if (packed) {
-        static const size_t input_bit_size = sizeof(Char) << 3;
-        static const size_t k_fitting = sizeof(Index) / sizeof(Char);
+        const size_t input_bit_size = sizeof(Char) << 3;
+        const size_t k_fitting = sizeof(Index) / sizeof(Char);
 
         iteration = 0;
         size_t tmp = k_fitting;
@@ -750,8 +750,8 @@ DIA<Index> PrefixDoubling(const InputDIA& input_dia, size_t input_size, bool pac
     DIA<IndexRank> rebucket;
 
     if (packed) {
-        static const size_t input_bit_size = sizeof(Char) << 3;
-        static const size_t k_fitting = sizeof(Index) / sizeof(Char);
+        const size_t input_bit_size = sizeof(Char) << 3;
+        const size_t k_fitting = sizeof(Index) / sizeof(Char);
 
         iteration = 0;
         size_t tmp = k_fitting;
