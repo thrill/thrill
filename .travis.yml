@@ -105,7 +105,7 @@ before_script:
   - xz --version || true
 
   # enable -Werror on thrill/thrill master branch
-  - if [ "$TRAVIS_BRANCH" == "master" -a "$TRAVIS_REPO_SLUG" == "thrill/thrill" ]; then
+  - if [ "$TRAVIS_BRANCH" == "master" ]; then
       COMPILER_FLAGS="$COMPILER_FLAGS -Werror";
     fi
 
