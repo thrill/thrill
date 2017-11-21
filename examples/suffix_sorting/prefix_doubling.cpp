@@ -195,8 +195,8 @@ DIA<Index> PrefixDoublingDiscardingDementiev(const InputDIA& input_dia, size_t i
     DIA<IndexRank> names;
 
     if (packed) {
-        const size_t input_bit_size = sizeof(Char) << 3;
-        const size_t k_fitting = sizeof(Index) / sizeof(Char);
+        enum { input_bit_size = sizeof(Char) << 3 };
+        enum { k_fitting = sizeof(Index) / sizeof(Char) };
 
         iteration = 0;
         size_t tmp = k_fitting;
@@ -206,7 +206,7 @@ DIA<Index> PrefixDoublingDiscardingDementiev(const InputDIA& input_dia, size_t i
             input_dia
             .template FlatWindow<IndexRank>(
                 k_fitting,
-                [=](size_t index, const RingBuffer<Char>& rb, auto emit) {
+                [input_size](size_t index, const RingBuffer<Char>& rb, auto emit) {
                     size_t result = rb[0];
                     for (size_t i = 1; i < k_fitting; ++i)
                         result = (result << input_bit_size) | rb[i];
@@ -507,8 +507,8 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size,
     DIA<IndexRank> names;
 
     if (packed) {
-        const size_t input_bit_size = sizeof(Char) << 3;
-        const size_t k_fitting = sizeof(Index) / sizeof(Char);
+        enum { input_bit_size = sizeof(Char) << 3 };
+        enum { k_fitting = sizeof(Index) / sizeof(Char) };
 
         iteration = 0;
         size_t tmp = k_fitting;
@@ -518,7 +518,7 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size,
             input_dia
             .template FlatWindow<IndexRank>(
                 k_fitting,
-                [=](size_t index, const RingBuffer<Char>& rb, auto emit) {
+                [input_size](size_t index, const RingBuffer<Char>& rb, auto emit) {
                     size_t result = rb[0];
                     for (size_t i = 1; i < k_fitting; ++i)
                         result = (result << input_bit_size) | rb[i];
@@ -750,8 +750,8 @@ DIA<Index> PrefixDoubling(const InputDIA& input_dia, size_t input_size, bool pac
     DIA<IndexRank> rebucket;
 
     if (packed) {
-        const size_t input_bit_size = sizeof(Char) << 3;
-        const size_t k_fitting = sizeof(Index) / sizeof(Char);
+        enum { input_bit_size = sizeof(Char) << 3 };
+        enum { k_fitting = sizeof(Index) / sizeof(Char) };
 
         iteration = 0;
         size_t tmp = k_fitting;
@@ -762,7 +762,7 @@ DIA<Index> PrefixDoubling(const InputDIA& input_dia, size_t input_size, bool pac
             input_dia
             .template FlatWindow<IndexRank>(
                 k_fitting,
-                [=](size_t index, const RingBuffer<Char>& rb, auto emit) {
+                [input_size](size_t index, const RingBuffer<Char>& rb, auto emit) {
                     size_t result = rb[0];
                     for (size_t i = 1; i < k_fitting; ++i)
                         result = (result << input_bit_size) | rb[i];
