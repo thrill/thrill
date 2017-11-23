@@ -314,7 +314,7 @@ DC3Recursive(const InputDIA& input_dia, size_t input_size, size_t K) {
         // map (t_i) -> (i,t_i,t_{i+1},t_{i+2}) where i neq 0 mod 3
         .template FlatWindow<IndexChars>(
             3,
-            [input_size](size_t index, const RingBuffer<Char>& rb, auto emit) {
+            [](size_t index, const RingBuffer<Char>& rb, auto emit) {
                 if (index % 3 != 0)
                     emit(IndexChars { Index(index), {
                                           { rb[0], rb[1], rb[2] }

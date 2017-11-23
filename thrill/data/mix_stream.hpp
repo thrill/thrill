@@ -138,9 +138,8 @@ public:
     //! once, otherwise the block sequence is incorrectly interleaved!
     std::vector<Writer> GetWriters();
 
-    //! Creates a BlockReader which concatenates items from all workers in
-    //! worker rank order. The BlockReader is attached to one \ref
-    //! MixBlockSource which includes all incoming queues of this stream.
+    //! Creates a BlockReader which concatenates items from all workers in an
+    //! arbitrary order.
     MixReader GetMixReader(bool consume);
 
     //! Open a MixReader (function name matches a method in File and CatStream).

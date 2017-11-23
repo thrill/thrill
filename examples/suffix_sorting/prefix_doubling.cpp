@@ -57,7 +57,7 @@ struct IndexKMer {
     }
 
     friend std::ostream& operator << (std::ostream& os, const IndexKMer& iom) {
-        return os << '[' << iom.index << ',' << iom.chars << ']';
+        return os << "[i=" << iom.index << ",c=" << iom.chars << ']';
     }
 } TLX_ATTRIBUTE_PACKED;
 
@@ -68,7 +68,7 @@ struct IndexRank {
     Index rank;
 
     friend std::ostream& operator << (std::ostream& os, const IndexRank& ri) {
-        return os << '(' << ri.index << '|' << ri.rank << ')';
+        return os << "(i=" << ri.index << ",r=" << ri.rank << ')';
     }
 } TLX_ATTRIBUTE_PACKED;
 
@@ -89,13 +89,11 @@ struct IndexRankRank {
     //! or if both ranks are equal and the first index is _larger_ than the
     //! second. The _larger_ is due to suffixes with larger index being smaller.
     bool operator < (const IndexRankRank& b) const {
-        return rank1 < b.rank1 || (
-            rank1 == b.rank1 && (rank2 < b.rank2 || (
-                                     rank2 == b.rank2 && index > b.index)));
+        return std::tie(rank1, rank2, b.index) < std::tie(b.rank1, b.rank2, index);
     }
 
     friend std::ostream& operator << (std::ostream& os, const IndexRankRank& rri) {
-        return os << "( i: " << rri.index << "| r1: " << rri.rank1 << "| r2: " << rri.rank2 << ")";
+        return os << "(i=" << rri.index << ",r1=" << rri.rank1 << ",r2=" << rri.rank2 << ")";
     }
 } TLX_ATTRIBUTE_PACKED;
 
@@ -108,8 +106,8 @@ struct Index3Rank {
     Index rank3;
 
     friend std::ostream& operator << (std::ostream& os, const Index3Rank& irrr) {
-        return os << "( i: " << irrr.index << "| r1: " << irrr.rank1
-                  << "| r2: " << irrr.rank2 << "| r3: " << irrr.rank3 << ")";
+        return os << "(i=" << irrr.index << ",r1=" << irrr.rank1
+                  << ",r2=" << irrr.rank2 << ",r3=" << irrr.rank3 << ")";
     }
 } TLX_ATTRIBUTE_PACKED;
 
@@ -127,8 +125,8 @@ struct CharCharIndex {
     }
 
     friend std::ostream& operator << (std::ostream& os, const CharCharIndex& cci) {
-        return os << '[' << cci.ch[0] << ',' << cci.ch[1]
-                  << '|' << cci.index << ']';
+        return os << "[ch0=" << cci.ch[0] << ",ch1=" << cci.ch[1]
+                  << ",index=" << cci.index << ']';
     }
 } TLX_ATTRIBUTE_PACKED;
 
@@ -159,7 +157,7 @@ struct IndexRankStatus {
     }
 
     friend std::ostream& operator << (std::ostream& os, const IndexRankStatus& irs) {
-        return os << "(i: " << irs.index << "| r: " << irs.rank << "| s: "
+        return os << "(index=" << irs.index << ",rank=" << irs.rank << ",status="
                   << static_cast<uint8_t>(irs.status) << ")";
     }
 } TLX_ATTRIBUTE_PACKED;
@@ -173,8 +171,9 @@ struct IndexRankRankStatus {
     Status status;
 
     friend std::ostream& operator << (std::ostream& os, const IndexRankRankStatus& irrs) {
-        return os << "(i: " << irrs.index << "| r1: " << irrs.rank1 << "| r2: "
-                  << irrs.rank2 << "| s: " << static_cast<uint8_t>(irrs.status) << ")";
+        return os << "(index=" << irrs.index
+                  << ",rank1=" << irrs.rank1 << ",rank2=" << irrs.rank2
+                  << ",status=" << static_cast<uint8_t>(irrs.status) << ")";
     }
 } TLX_ATTRIBUTE_PACKED;
 
@@ -191,24 +190,23 @@ DIA<Index> PrefixDoublingDiscardingDementiev(const InputDIA& input_dia, size_t i
     using Index3Rank = suffix_sorting::Index3Rank<Index>;
     using IndexRankRankStatus = suffix_sorting::IndexRankRankStatus<Index>;
 
-    size_t input_bit_size = sizeof(Char) << 3;
-    size_t k_fitting = sizeof(Index) / sizeof(Char);
-
     size_t iteration = 1;
-    if (packed) {
-        iteration = 0;
-        size_t tmp = k_fitting;
-        while (tmp >>= 1) ++iteration;
-    }
 
     DIA<IndexRank> names;
 
     if (packed) {
+        enum { input_bit_size = sizeof(Char) << 3 };
+        enum { k_fitting = sizeof(Index) / sizeof(Char) };
+
+        iteration = 0;
+        size_t tmp = k_fitting;
+        while (tmp >>= 1) ++iteration;
+
         auto chars_sorted =
             input_dia
             .template FlatWindow<IndexRank>(
                 k_fitting,
-                [=](size_t index, const RingBuffer<Char>& rb, auto emit) {
+                [input_size](size_t index, const RingBuffer<Char>& rb, auto emit) {
                     size_t result = rb[0];
                     for (size_t i = 1; i < k_fitting; ++i)
                         result = (result << input_bit_size) | rb[i];
@@ -496,31 +494,31 @@ DIA<Index> PrefixDoublingDiscardingDementiev(const InputDIA& input_dia, size_t i
 
 template <typename Index, typename InputDIA>
 DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size, bool packed) {
-    LOG1 << "Running PrefixDoublingDementiev";
+    if (input_dia.ctx().my_rank() == 0)
+        LOG1 << "Running PrefixDoublingDementiev";
 
     using Char = typename InputDIA::ValueType;
     using IndexRank = suffix_sorting::IndexRank<Index>;
     using IndexRankRank = suffix_sorting::IndexRankRank<Index>;
     using CharCharIndex = suffix_sorting::CharCharIndex<Char, Index>;
 
-    size_t input_bit_size = sizeof(Char) << 3;
-    size_t k_fitting = sizeof(Index) / sizeof(Char);
-
-    size_t iteration = 1;
-    if (packed) {
-        iteration = 0;
-        size_t tmp = k_fitting;
-        while (tmp >>= 1) ++iteration;
-    }
+    size_t iteration;
 
     DIA<IndexRank> names;
 
     if (packed) {
+        enum { input_bit_size = sizeof(Char) << 3 };
+        enum { k_fitting = sizeof(Index) / sizeof(Char) };
+
+        iteration = 0;
+        size_t tmp = k_fitting;
+        while (tmp >>= 1) ++iteration;
+
         auto chars_sorted =
             input_dia
             .template FlatWindow<IndexRank>(
                 k_fitting,
-                [=](size_t index, const RingBuffer<Char>& rb, auto emit) {
+                [input_size](size_t index, const RingBuffer<Char>& rb, auto emit) {
                     size_t result = rb[0];
                     for (size_t i = 1; i < k_fitting; ++i)
                         result = (result << input_bit_size) | rb[i];
@@ -555,6 +553,8 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size,
                 });
     }
     else {
+        iteration = 1;
+
         auto chars_sorted =
             input_dia
             .template FlatWindow<CharCharIndex>(
@@ -574,6 +574,9 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size,
                     }
                 })
             .Sort();
+
+        if (debug_print)
+            chars_sorted.Keep().Print("chars_sorted");
 
         names =
             chars_sorted
@@ -618,6 +621,8 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size,
     if (debug_print)
         names.Keep().Print("names before loop");
 
+    auto last_number_duplicates = number_duplicates;
+
     while (true) {
         auto names_sorted =
             names
@@ -636,7 +641,11 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size,
 
         size_t next_index = size_t(1) << iteration++;
 
-        auto triple_sorted =
+        if (input_dia.context().my_rank() == 0) {
+            sLOG1 << "next_index" << next_index;
+        }
+
+        auto triple =
             names_sorted
             .template FlatWindow<IndexRankRank>(
                 2,
@@ -650,15 +659,23 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size,
                 [=](size_t index, const RingBuffer<IndexRank>& rb, auto emit) {
                     if (index + 1 == input_size)
                         emit(IndexRankRank { rb[0].index, rb[0].rank, Index(0) });
-                })
-            .Sort();
+                });
+
+        if (debug_print)
+            triple.Keep().Print("triple");
+
+        auto triple_sorted = triple.Sort();
+
+        if (debug_print)
+            triple_sorted.Keep().Print("triple_sorted");
 
         names =
             triple_sorted
             .template FlatWindow<IndexRank>(
                 2,
                 [](size_t index, const RingBuffer<IndexRankRank>& rb, auto emit) {
-                    if (index == 0) emit(IndexRank { rb[0].index, Index(1) });
+                    if (index == 0)
+                        emit(IndexRank { rb[0].index, Index(1) });
 
                     emit(IndexRank {
                              rb[1].index,
@@ -666,6 +683,9 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size,
                              ? Index(0) : Index(1)
                          });
                 });
+
+        if (debug_print)
+            names.Keep().Print("names indicator");
 
         number_duplicates =
             names.Keep()
@@ -678,6 +698,21 @@ DIA<Index> PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size,
             sLOG1 << "iteration" << iteration - 1
                   << "duplicates" << number_duplicates;
         }
+
+        if (number_duplicates > last_number_duplicates) {
+            sLOG1 << "number_duplicates" << number_duplicates
+                  << "last_number_duplicates" << last_number_duplicates;
+
+            auto sa =
+                names
+                .Map([](const IndexRank& ir) {
+                         return ir.index;
+                     });
+
+            return sa.Collapse();
+        }
+
+        last_number_duplicates = number_duplicates;
 
         if (number_duplicates == 0) {
             auto sa =
@@ -710,25 +745,24 @@ DIA<Index> PrefixDoubling(const InputDIA& input_dia, size_t input_size, bool pac
     using IndexRankRank = suffix_sorting::IndexRankRank<Index>;
     using CharCharIndex = suffix_sorting::CharCharIndex<Char, Index>;
 
-    size_t input_bit_size = sizeof(Char) << 3;
-    size_t k_fitting = sizeof(Index) / sizeof(Char);
-
     size_t iteration = 0;
-    if (packed) {
-        iteration = 0;
-        size_t tmp = k_fitting;
-        while (tmp >>= 1) ++iteration;
-        --iteration;
-    }
 
     DIA<IndexRank> rebucket;
 
     if (packed) {
+        enum { input_bit_size = sizeof(Char) << 3 };
+        enum { k_fitting = sizeof(Index) / sizeof(Char) };
+
+        iteration = 0;
+        size_t tmp = k_fitting;
+        while (tmp >>= 1) ++iteration;
+        --iteration;
+
         auto chars_sorted =
             input_dia
             .template FlatWindow<IndexRank>(
                 k_fitting,
-                [=](size_t index, const RingBuffer<Char>& rb, auto emit) {
+                [input_size](size_t index, const RingBuffer<Char>& rb, auto emit) {
                     size_t result = rb[0];
                     for (size_t i = 1; i < k_fitting; ++i)
                         result = (result << input_bit_size) | rb[i];

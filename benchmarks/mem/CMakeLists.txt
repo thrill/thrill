@@ -1,17 +1,13 @@
 ################################################################################
-# benchmarks/chaining/CMakeLists.txt
+# benchmarks/mem/CMakeLists.txt
 #
 # Part of Project Thrill - http://project-thrill.org
 #
+# Copyright (C) 2017 Timo Bingmann <tb@panthema.net>
 #
 # All rights reserved. Published under the BSD-2 license in the LICENSE file.
 ################################################################################
 
-thrill_build_prog(cache_count)
-thrill_build_prog(collapse_count)
-#thrill_build_prog(chain_count)
-
-file(COPY "${CMAKE_SOURCE_DIR}/tests/inputs/wordcount.in"
-  DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+thrill_build_prog(pool_benchmark)
 
 ################################################################################

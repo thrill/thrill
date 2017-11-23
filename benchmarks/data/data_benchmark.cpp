@@ -590,6 +590,8 @@ public:
             abort();
         bool consume = reader_type_ == "consume";
 
+        tlx::ThreadPool pool(ctx.num_workers() + 1);
+
         for (unsigned i = 0; i < iterations_; i++) {
 
             StatsTimerStart total_timer;
@@ -597,7 +599,6 @@ public:
             auto stream = ctx.GetNewStream<Stream>(/* dia_id */ 0);
 
             // start reader thread
-            tlx::ThreadPool pool(ctx.num_workers() + 1);
             pool.enqueue(
                 [&]() {
                     read_timer.Start();
@@ -654,6 +655,135 @@ private:
 
     //! reader type: consume or keep
     std::string reader_type_;
+};
+
+/******************************************************************************/
+
+template <typename Stream>
+class StreamAllToAllCheckExperiment : public DataGeneratorExperiment
+{
+public:
+    int Run(int argc, char* argv[]) {
+
+        tlx::CmdlineParser clp;
+
+        clp.set_description("thrill::data benchmark for disk I/O");
+        clp.set_author("Timo Bingmann <tb@panthema.net>");
+
+        DataGeneratorExperiment::AddCmdline(clp);
+
+        clp.add_unsigned(
+            'n', "iterations", iterations_, "Iterations (default: 1)");
+
+        if (!clp.process(argc, argv)) return -1;
+
+        api::Run(
+            [=](api::Context& ctx) {
+                // make a copy of this for local workers
+                StreamAllToAllCheckExperiment<Stream> local = *this;
+
+                if (type_as_string_ == "size_t")
+                    local.Test<size_t>(ctx);
+                else if (type_as_string_ == "string")
+                    local.Test<std::string>(ctx);
+                else if (type_as_string_ == "pair")
+                    local.Test<pair_type>(ctx);
+                else if (type_as_string_ == "triple")
+                    local.Test<triple_type>(ctx);
+                else
+                    abort();
+            });
+
+        return 0;
+    }
+
+    template <typename Type>
+    void Test(api::Context& ctx) {
+
+        tlx::ThreadPool pool(2 * ctx.num_workers());
+
+        for (unsigned i = 0; i < iterations_; i++) {
+
+            StatsTimerStart total_timer;
+            StatsTimerStopped read_timer;
+            auto stream = ctx.GetNewStream<Stream>(/* dia_id */ 0);
+
+            size_t my_rank = ctx.my_rank();
+
+            // start reader threads: receive from all workers
+            auto readers = stream->GetReaders();
+            for (size_t source = 0; source < ctx.num_workers(); source++) {
+                // if (!(my_rank == 0 && source == 1))
+                //     continue;
+                pool.enqueue(
+                    [&, source]() {
+                        auto data = Generator<Type>(
+                            bytes_ / ctx.num_workers(), min_size_, max_size_,
+                            /* seed */ 42 + 3 * source + 7 * my_rank);
+
+                        read_timer.Start();
+                        size_t i = 0;
+                        while (readers[source].HasNext()) {
+                            auto x = readers[source].template Next<Type>();
+                            auto y = data.Next();
+                            if (x != y) {
+                                sLOG1 << "mismatch"
+                                      << i << x << y << *readers[source].byte_block();
+                            }
+                            ++i;
+                        }
+                        die_unless(!data.HasNext());
+                        read_timer.Stop();
+                    });
+            }
+
+            // start writer threads: send to all workers
+            auto writers = stream->GetWriters();
+            std::chrono::microseconds::rep write_time = 0;
+            for (size_t target = 0; target < ctx.num_workers(); target++) {
+                // if (!(my_rank == 1 && target == 0))
+                //     continue;
+                pool.enqueue(
+                    [&, target]() {
+                        auto data = Generator<Type>(
+                            bytes_ / ctx.num_workers(), min_size_, max_size_,
+                            /* seed */ 42 + 3 * my_rank + 7 * target);
+
+                        StatsTimerStart write_timer;
+                        while (data.HasNext()) {
+                            writers[target].Put(data.Next());
+                        }
+                        writers[target].Close();
+                        write_timer.Stop();
+                        // REVIEW(ts): this is a data race!
+                        write_time = std::max(write_time, write_timer.Microseconds());
+                    });
+            }
+            pool.loop_until_empty();
+
+            total_timer.Stop();
+            LOG1 << "RESULT"
+                 << " experiment=" << "stream_all_to_all_check"
+                 << " stream=" << typeid(Stream).name()
+                 << " workers=" << ctx.num_workers()
+                 << " hosts=" << ctx.num_hosts()
+                 << " datatype=" << type_as_string_
+                 << " size=" << bytes_
+                 << " block_size=" << data::default_block_size
+                 << " avg_element_size="
+                 << static_cast<double>(min_size_ + max_size_) / 2.0
+                 << " total_time=" << total_timer
+                 << " write_time=" << write_time
+                 << " read_time=" << read_timer
+                 << " total_speed_MiBs=" << CalcMiBs(bytes_, total_timer)
+                 << " write_speed_MiBs=" << CalcMiBs(bytes_, write_time)
+                 << " read_speed_MiBs=" << CalcMiBs(bytes_, read_timer);
+        }
+    }
+
+private:
+    //! number of iterations to run
+    unsigned iterations_ = 1;
 };
 
 /******************************************************************************/
@@ -795,13 +925,14 @@ void Usage(const char* argv0) {
     std::cout
         << "Usage: " << argv0 << " <benchmark>" << std::endl
         << std::endl
-        << "    file                - File and serialization speed" << std::endl
-        << "    blockqueue          - BlockQueue test" << std::endl
-        << "    cat_stream_1factor  - 1-factor bandwidth test using CatStream" << std::endl
-        << "    mix_stream_1factor  - 1-factor bandwidth test using MixStream" << std::endl
-        << "    cat_stream_all2all  - full bandwidth test using CatStream" << std::endl
-        << "    mix_stream_all2all  - full bandwidth test using MixStream" << std::endl
-        << "    scatter             - CatStream scatter test" << std::endl
+        << "    file                 - File and serialization speed" << std::endl
+        << "    blockqueue           - BlockQueue test" << std::endl
+        << "    cat_stream_1factor   - 1-factor bandwidth test using CatStream" << std::endl
+        << "    mix_stream_1factor   - 1-factor bandwidth test using MixStream" << std::endl
+        << "    cat_stream_all2all   - full bandwidth test using CatStream" << std::endl
+        << "    mix_stream_all2all   - full bandwidth test using MixStream" << std::endl
+        << "    stream_all2all_check - full bandwidth test using CatStream with verification" << std::endl
+        << "    scatter              - CatStream scatter test" << std::endl
         << std::endl;
 }
 
@@ -836,6 +967,10 @@ int main(int argc, char* argv[]) {
     }
     else if (benchmark == "mix_stream_all2all") {
         return StreamAllToAllExperiment<data::MixStream>().Run(
+            argc - 1, argv + 1);
+    }
+    else if (benchmark == "stream_all2all_check") {
+        return StreamAllToAllCheckExperiment<data::CatStream>().Run(
             argc - 1, argv + 1);
     }
     else if (benchmark == "scatter") {

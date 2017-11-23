@@ -20,7 +20,7 @@
 namespace thrill {
 namespace data {
 
-size_t start_block_size = 2 * 1024 * 1024;
+size_t start_block_size = 4 * 1024;
 size_t default_block_size = 2 * 1024 * 1024;
 
 ByteBlock::ByteBlock(BlockPool* block_pool, Byte* data, size_t size)
@@ -75,6 +75,7 @@ void ByteBlock::OnWriteComplete(io::Request* req, bool success) {
 
 std::ostream& operator << (std::ostream& os, const ByteBlock& b) {
     os << "[ByteBlock" << " " << &b
+       << " data_=" << static_cast<const void*>(b.data_)
        << " size_=" << b.size_
        << " block_pool_=" << b.block_pool_
        << " total_pins_=" << b.total_pins_

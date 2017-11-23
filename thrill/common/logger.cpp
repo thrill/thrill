@@ -30,6 +30,38 @@ namespace common {
 //! memory manager singleton for Logger
 mem::Manager g_logger_mem_manager(nullptr, "Logger");
 
+#if !__APPLE__
+
+//! thread name
+static thread_local mem::by_string s_thread_name;
+
+//! thread message counter
+static thread_local size_t s_message_counter = 0;
+
+//! Defines a name for the current thread, only if no name was set previously
+void NameThisThread(const mem::by_string& name) {
+    s_thread_name = name;
+    s_message_counter = 0;
+}
+
+//! Outputs the name of the current thread or 'unknown [id]'
+void FormatNameForThisThread(std::ostream& os) {
+    if (!s_thread_name.empty()) {
+        os << s_thread_name << ' ';
+    }
+    else {
+        os << "unknown " << std::this_thread::get_id() << ' ';
+    }
+
+    std::ios::fmtflags flags(os.flags());
+    os << std::setfill('0') << std::setw(6) << s_message_counter++;
+    os.flags(flags);
+}
+
+#else
+
+// old std::map implementation, because APPLE does not support thread_local
+
 using StringCount = std::pair<mem::by_string, size_t>;
 
 template <typename Type>
@@ -59,21 +91,17 @@ void FormatNameForThisThread(std::ostream& os) {
     auto it = s_threads.find(std::this_thread::get_id());
     if (it != s_threads.end()) {
         StringCount& sc = it->second;
-        if (true) {
-            std::ios::fmtflags flags(os.flags());
-            // print "name #msg";
-            os << sc.first << ' '
-               << std::setfill('0') << std::setw(6) << sc.second++;
-            os.flags(flags);
-        }
-        else {
-            os << sc.first;
-        }
+        std::ios::fmtflags flags(os.flags());
+        os << sc.first << ' '
+           << std::setfill('0') << std::setw(6) << sc.second++;
+        os.flags(flags);
     }
     else {
         os << "unknown " << std::this_thread::get_id();
     }
 }
+
+#endif
 
 //! Returns the name of the current thread or 'unknown [id]'
 std::string GetNameForThisThread() {

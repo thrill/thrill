@@ -195,12 +195,12 @@ public:
         for (size_t i = 0; i < num_inputs_; ++i) {
             local_sizes[i] = files_[i].num_items();
         }
-        sLOG << "local_sizes" << common::VecToStr(local_sizes);
+        sLOG << "local_sizes" << local_sizes;
 
         VectorSizeT global_sizes = context_.net.AllReduce(
             local_sizes, common::ComponentSum<VectorSizeT>());
 
-        sLOG << "global_sizes" << common::VecToStr(global_sizes);
+        sLOG << "global_sizes" << global_sizes;
 
         // exclusive prefixsum of whole dia sizes
         size_t total_items = 0;
@@ -215,14 +215,14 @@ public:
             total_items = next_total_items;
         }
 
-        sLOG << "local_sizes" << common::VecToStr(local_sizes);
+        sLOG << "local_sizes" << local_sizes;
         sLOG << "total_items" << total_items;
 
         VectorSizeT local_ranks = context_.net.PrefixSum(
             local_sizes, VectorSizeT(num_inputs_),
             common::ComponentSum<VectorSizeT>());
 
-        sLOG << "local_ranks" << common::VecToStr(local_ranks);
+        sLOG << "local_ranks" << local_ranks;
 
         streams_.reserve(num_inputs_);
         for (size_t i = 0; i < num_inputs_; ++i)
@@ -271,7 +271,7 @@ public:
             }
             offsets[num_workers] = files_[in].num_items();
 
-            LOG << "offsets[" << in << "] = " << common::VecToStr(offsets);
+            LOG << "offsets[" << in << "] = " << offsets;
 
             streams_[in]->template Scatter<ValueType>(
                 files_[in], offsets, /* consume */ true);

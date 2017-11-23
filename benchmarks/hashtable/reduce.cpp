@@ -40,7 +40,7 @@ int main(int argc, char* argv[]) {
 
     clp.print_result();
 
-    api::Run([&input, &iterations](api::Context& ctx) {
+    api::Run([&input](api::Context& ctx) {
 
                  auto in = api::ReadBinary<size_t>(ctx, input).Keep();
                  in.Size();

@@ -78,9 +78,6 @@ public:
     void AppendBlock(Block&& block, bool is_last_block) final;
 
     //! Appends data to the StreamSink.  Data may be sent but may be delayed.
-    void AppendPinnedBlock(const PinnedBlock& block, bool is_last_block) final;
-
-    //! Appends data to the StreamSink.  Data may be sent but may be delayed.
     void AppendPinnedBlock(PinnedBlock&& block, bool is_last_block) final;
 
     //! Closes the connection

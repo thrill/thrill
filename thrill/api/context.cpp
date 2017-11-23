@@ -185,6 +185,76 @@ static inline bool SetupBlockSize() {
     return true;
 }
 
+static inline size_t FindWorkersPerHost(
+    const char*& str_workers_per_host, const char*& env_workers_per_host) {
+
+    char* endptr;
+
+    // first check THRILL_WORKERS_PER_HOST
+
+    str_workers_per_host = "THRILL_WORKERS_PER_HOST";
+    env_workers_per_host = getenv(str_workers_per_host);
+
+    if (env_workers_per_host && *env_workers_per_host) {
+        size_t result = std::strtoul(env_workers_per_host, &endptr, 10);
+        if (!endptr || *endptr != 0 || result == 0) {
+            std::cerr << "Thrill: environment variable"
+                      << ' ' << str_workers_per_host
+                      << '=' << env_workers_per_host
+                      << " is not a valid number of workers per host."
+                      << std::endl;
+            return 0;
+        }
+        else {
+            return result;
+        }
+    }
+
+    // second check: look for OMP_NUM_THREADS
+
+    str_workers_per_host = "OMP_NUM_THREADS";
+    env_workers_per_host = getenv(str_workers_per_host);
+
+    if (env_workers_per_host && *env_workers_per_host) {
+        size_t result = std::strtoul(env_workers_per_host, &endptr, 10);
+        if (!endptr || *endptr != 0 || result == 0) {
+            std::cerr << "Thrill: environment variable"
+                      << ' ' << str_workers_per_host
+                      << '=' << env_workers_per_host
+                      << " is not a valid number of workers per host."
+                      << std::endl;
+            // fall through, try next variable
+        }
+        else {
+            return result;
+        }
+    }
+
+    // third check: look for SLURM_CPUS_ON_NODE
+
+    str_workers_per_host = "SLURM_CPUS_ON_NODE";
+    env_workers_per_host = getenv(str_workers_per_host);
+
+    if (env_workers_per_host && *env_workers_per_host) {
+        size_t result = std::strtoul(env_workers_per_host, &endptr, 10);
+        if (!endptr || *endptr != 0 || result == 0) {
+            std::cerr << "Thrill: environment variable"
+                      << ' ' << str_workers_per_host
+                      << '=' << env_workers_per_host
+                      << " is not a valid number of workers per host."
+                      << std::endl;
+            // fall through, try next variable
+        }
+        else {
+            return result;
+        }
+    }
+
+    // last check: return std::thread::hardware_concurrency()
+
+    return std::thread::hardware_concurrency();
+}
+
 static inline bool Initialize() {
 
     if (!SetupBlockSize()) return false;
@@ -335,27 +405,19 @@ int RunBackendLoopback(
         }
     }
 
-    const char* env_workers_per_host = getenv("THRILL_WORKERS_PER_HOST");
-
     // determine number of threads per loopback host
 
-    size_t workers_per_host = 1;
-    if (env_workers_per_host && *env_workers_per_host) {
-        workers_per_host = std::strtoul(env_workers_per_host, &endptr, 10);
-        if (!endptr || *endptr != 0 || workers_per_host == 0) {
-            std::cerr << "Thrill: environment variable"
-                      << " THRILL_WORKERS_PER_HOST=" << env_workers_per_host
-                      << " is not a valid number of workers per host."
-                      << std::endl;
-            return -1;
-        }
-    }
-    else {
-        // distribute threads into hosts
-        workers_per_host = std::thread::hardware_concurrency() / num_hosts;
-    }
+    const char* str_workers_per_host;
+    const char* env_workers_per_host;
+
+    size_t workers_per_host = FindWorkersPerHost(
+        str_workers_per_host, env_workers_per_host);
+
+    if (workers_per_host == 0)
+        return -1;
 
     // core offset for pinning
+
     const char* env_core_offset = getenv("THRILL_CORE_OFFSET");
     size_t core_offset = 0;
     if (env_core_offset && *env_core_offset) {
@@ -401,21 +463,29 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
 
     char* endptr;
 
-    // parse environment
-    const char* env_rank = getenv("THRILL_RANK");
+    // select environment variables
+
+    const char* str_rank = getenv("THRILL_RANK");
+    const char* env_rank = getenv(str_rank);
+
+    if (env_rank == nullptr) {
+        // take SLURM_PROCID if THRILL_RANK is not set
+        str_rank = "SLURM_PROCID";
+        env_rank = getenv(str_rank);
+    }
+
     const char* env_hostlist = getenv("THRILL_HOSTLIST");
-    const char* env_workers_per_host = getenv("THRILL_WORKERS_PER_HOST");
+
+    // parse environment variables
 
     size_t my_host_rank = 0;
-
-    if (env_rank == nullptr)
-        env_rank = getenv("SLURM_PROCID");
 
     if (env_rank != nullptr && *env_rank != 0) {
         my_host_rank = std::strtoul(env_rank, &endptr, 10);
 
         if (endptr == nullptr || *endptr != 0) {
-            std::cerr << "Thrill: environment variable THRILL_RANK=" << env_rank
+            std::cerr << "Thrill: environment variable "
+                      << str_rank << '=' << env_rank
                       << " is not a valid number."
                       << std::endl;
             return -1;
@@ -466,21 +536,16 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
         return -1;
     }
 
-    size_t workers_per_host = 1;
+    // determine number of local worker threads per process
 
-    if (env_workers_per_host != nullptr && *env_workers_per_host != 0) {
-        workers_per_host = std::strtoul(env_workers_per_host, &endptr, 10);
-        if (endptr == nullptr || *endptr != 0 || workers_per_host == 0) {
-            std::cerr << "Thrill: environment variable"
-                      << " THRILL_WORKERS_PER_HOST=" << env_workers_per_host
-                      << " is not a valid number of workers per host."
-                      << std::endl;
-            return -1;
-        }
-    }
-    else {
-        workers_per_host = std::thread::hardware_concurrency();
-    }
+    const char* str_workers_per_host;
+    const char* env_workers_per_host;
+
+    size_t workers_per_host = FindWorkersPerHost(
+        str_workers_per_host, env_workers_per_host);
+
+    if (workers_per_host == 0)
+        return -1;
 
     // detect memory config
 
@@ -545,32 +610,30 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
 static inline
 int RunBackendMpi(const std::function<void(Context&)>& job_startpoint) {
 
-    char* endptr;
-
     // determine number of local worker threads per MPI process
 
-    size_t workers_per_host = 1;
+    const char* str_workers_per_host;
+    const char* env_workers_per_host;
 
-    const char* env_workers_per_host = getenv("THRILL_WORKERS_PER_HOST");
+    size_t workers_per_host = FindWorkersPerHost(
+        str_workers_per_host, env_workers_per_host);
 
-    if (env_workers_per_host && *env_workers_per_host) {
-        workers_per_host = std::strtoul(env_workers_per_host, &endptr, 10);
-        if (!endptr || *endptr != 0 || workers_per_host == 0) {
-            std::cerr << "Thrill: environment variable"
-                      << " THRILL_WORKERS_PER_HOST=" << env_workers_per_host
-                      << " is not a valid number of workers per host."
-                      << std::endl;
-            return -1;
-        }
-    }
-    else {
-        workers_per_host = std::thread::hardware_concurrency();
-    }
+    if (workers_per_host == 0)
+        return -1;
 
     // reserve one thread for MPI net::Dispatcher which runs a busy-waiting loop
 
-    die_unless(workers_per_host > 1);
-    --workers_per_host;
+    if (workers_per_host == 1) {
+        std::cerr << "Thrill: environment variable"
+                  << ' ' << str_workers_per_host
+                  << '=' << env_workers_per_host
+                  << " is not recommended, as one thread is used exclusively"
+                  << " for MPI communication."
+                  << std::endl;
+    }
+    else {
+        --workers_per_host;
+    }
 
     // detect memory config
 
@@ -582,11 +645,11 @@ int RunBackendMpi(const std::function<void(Context&)>& job_startpoint) {
 
     size_t num_hosts = net::mpi::NumMpiProcesses();
     size_t mpi_rank = net::mpi::MpiRank();
+    std::string hostname = common::GetHostname();
 
     std::cerr << "Thrill: running in MPI network with " << num_hosts
               << " hosts and " << workers_per_host << "+1 workers per host"
-              << " with " << common::GetHostname()
-              << " as rank " << mpi_rank << "."
+              << " with " << hostname << " as rank " << mpi_rank << "."
               << std::endl;
 
     if (!Initialize()) return -1;
@@ -637,27 +700,16 @@ int RunBackendMpi(const std::function<void(Context&)>& job_startpoint) {
 static inline
 int RunBackendIb(const std::function<void(Context&)>& job_startpoint) {
 
-    char* endptr;
-
     // determine number of local worker threads per IB/MPI process
 
-    size_t workers_per_host = 1;
+    const char* str_workers_per_host;
+    const char* env_workers_per_host;
 
-    const char* env_workers_per_host = getenv("THRILL_WORKERS_PER_HOST");
+    size_t workers_per_host = FindWorkersPerHost(
+        str_workers_per_host, env_workers_per_host);
 
-    if (env_workers_per_host && *env_workers_per_host) {
-        workers_per_host = std::strtoul(env_workers_per_host, &endptr, 10);
-        if (!endptr || *endptr != 0 || workers_per_host == 0) {
-            std::cerr << "Thrill: environment variable"
-                      << " THRILL_WORKERS_PER_HOST=" << env_workers_per_host
-                      << " is not a valid number of workers per host."
-                      << std::endl;
-            return -1;
-        }
-    }
-    else {
-        workers_per_host = std::thread::hardware_concurrency();
-    }
+    if (workers_per_host == 0)
+        return -1;
 
     // detect memory config
 
@@ -728,8 +780,9 @@ int RunNotSupported(const char* env_net) {
 
 static inline
 const char * DetectNetBackend() {
-    // detect openmpi run, add others as well.
-    if (getenv("OMPI_COMM_WORLD_SIZE") != nullptr) {
+    // detect openmpi and intel mpi run, add others as well.
+    if (getenv("OMPI_COMM_WORLD_SIZE") != nullptr ||
+        getenv("I_MPI_INFO_NP") != nullptr) {
 #if THRILL_HAVE_NET_IB
         return "ib";
 #elif THRILL_HAVE_NET_MPI

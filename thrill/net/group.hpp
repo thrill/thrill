@@ -194,16 +194,18 @@ public:
 
 protected:
     /*!
-     * Sends and Receives a serializable type from the given peer and returns
-     * the value after reduction
+     * Helper method for AllReduce(). Sends, receives, and reduces a
+     * serializable type from the given peer and returns the value after
+     * reduction
      *
-     * \param src The peer to receive the fixed length type from.
-     * \param data A pointer to the location where the received data should be
-     * stored.
+     * \param peer   The peer to exchange the fixed length type with.
+     * \param value  Reference to the value exchange.
+     * \param sum_op Reduction operation.
      */
     template <typename T, typename BinarySumOp>
     T SendReceiveReduce(size_t peer, const T& value, BinarySumOp sum_op);
 
+    //! Helper method for AllReduce().
     template <typename T, typename BinarySumOp>
     void AllReduceEliminationProcess(
         size_t host_id, size_t group_size, size_t remaining_hosts,

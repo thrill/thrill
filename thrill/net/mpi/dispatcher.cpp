@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include <thrill/net/mpi/dispatcher.hpp>
+#include <tlx/die.hpp>
 
 #include <mpi.h>
 
@@ -25,6 +26,20 @@ extern std::mutex g_mutex;
 /******************************************************************************/
 // mpi::Dispatcher
 
+Dispatcher::~Dispatcher() {
+    LOG << "~mpi::Dispatcher()"
+        << " mpi_async_.size()=" << mpi_async_.size();
+
+    for (size_t i = 0; i < mpi_async_requests_.size(); ++i) {
+        int r = MPI_Cancel(&mpi_async_requests_[i]);
+
+        if (r != MPI_SUCCESS)
+            LOG1 << "Error during MPI_Cancel()";
+
+        MPI_Request_free(&mpi_async_requests_[i]);
+    }
+}
+
 MPI_Request Dispatcher::ISend(Connection& c, const void* data, size_t size) {
     // lock the GMLIM
     std::unique_lock<std::mutex> lock(g_mutex);
@@ -34,9 +49,11 @@ MPI_Request Dispatcher::ISend(Connection& c, const void* data, size_t size) {
                       c.peer(), group_tag_, MPI_COMM_WORLD, &request);
 
     if (r != MPI_SUCCESS)
-        throw Exception("Error during ISend", r);
+        throw Exception("Error during MPI_Isend()", r);
 
-    sLOG0 << "Isend size" << size;
+    LOG << "MPI_Isend() data=" << data << " size=" << size
+        << " request=" << request;
+
     c.tx_bytes_ += size;
 
     return request;
@@ -51,9 +68,11 @@ MPI_Request Dispatcher::IRecv(Connection& c, void* data, size_t size) {
                       c.peer(), group_tag_, MPI_COMM_WORLD, &request);
 
     if (r != MPI_SUCCESS)
-        throw Exception("Error during IRecv", r);
+        throw Exception("Error during MPI_Irecv()", r);
 
-    sLOG0 << "Irecv size" << size;
+    LOG << "MPI_Irecv() data=" << data << " size=" << size
+        << " request=" << request;
+
     c.rx_bytes_ += size;
 
     return request;
@@ -67,9 +86,10 @@ void Dispatcher::DispatchOne(const std::chrono::milliseconds& /* timeout */) {
         // lock the GMLIM
         std::unique_lock<std::mutex> lock(g_mutex);
 
-        assert(mpi_async_.size() == mpi_async_requests_.size());
-        assert(mpi_async_.size() == mpi_async_out_.size());
+        die_unless(mpi_async_.size() == mpi_async_requests_.size());
+        die_unless(mpi_async_.size() == mpi_async_out_.size());
 
+#if 1
         int out_count;
 
         sLOG << "DispatchOne(): MPI_Testsome()"
@@ -100,28 +120,84 @@ void Dispatcher::DispatchOne(const std::chrono::milliseconds& /* timeout */) {
         else if (out_count > 0) {
             sLOG << "DispatchOne(): MPI_Testsome() out_count=" << out_count;
 
-            // run through finished requests back to front, swap last entry into
-            // finished ones, such that preceding indexes remain valid.
-            for (int k = out_count - 1; k >= 0; --k) {
-                size_t p = mpi_async_out_[k];
+            die_unless(std::is_sorted(mpi_async_out_.begin(),
+                                      mpi_async_out_.begin() + out_count));
 
-                // TODO(tb): check for errors?
+            // rewrite the arrays, process and remove all finished requests.
+            {
+                size_t i = 0;
+                int k = 0;
 
-                // perform callback
-                mpi_async_[p]();
+                for (size_t j = 0; j < mpi_async_.size(); ++j)
+                {
+                    if (k < out_count && mpi_async_out_[k] == static_cast<int>(j)) {
 
-                // deleted the entry (no problem is k == len)
-                size_t back = mpi_async_.size() - 1;
+                        sLOG << "Working #" << k
+                             << "which is $" << mpi_async_out_[k];
 
-                mpi_async_[p] = std::move(mpi_async_[back]);
-                mpi_async_requests_[p] = std::move(mpi_async_requests_[back]);
-                mpi_async_out_[p] = std::move(mpi_async_out_[back]);
+                        // perform callback
+                        mpi_async_[j].DoCallback();
 
-                mpi_async_.resize(back);
-                mpi_async_requests_.resize(back);
-                mpi_async_out_.resize(back);
+                        // skip over finished request
+                        ++k;
+                        continue;
+                    }
+                    if (i != j) {
+                        mpi_async_[i] = std::move(mpi_async_[j]);
+                        mpi_async_requests_[i] = std::move(mpi_async_requests_[j]);
+                    }
+                    ++i;
+                }
+
+                mpi_async_.resize(i);
+                mpi_async_requests_.resize(i);
+                mpi_async_out_.resize(i);
             }
         }
+#else
+        int out_index = 0, out_flag = 0;
+        MPI_Status out_status;
+
+        sLOG << "DispatchOne(): MPI_Testany()"
+             << " mpi_async_requests_=" << mpi_async_requests_.size();
+
+        int r = MPI_Testany(
+            // in: Length of array_of_requests (integer).
+            static_cast<int>(mpi_async_requests_.size()),
+            // in: Array of requests (array of handles).
+            mpi_async_requests_.data(),
+            // out: Number of completed request (integer).
+            &out_index,
+            // out: True if one of the operations is complete (logical).
+            &out_flag,
+            // out: Status object (status).
+            &out_status /* MPI_STATUS_IGNORE */);
+
+        if (r != MPI_SUCCESS)
+            throw Exception("Error during MPI_Testany()", r);
+
+        if (out_flag == 0) {
+            // nothing returned
+        }
+        else {
+            int out_size;
+            MPI_Get_count(&out_status, MPI_BYTE, &out_size);
+
+            LOG1 << "DispatchOne(): MPI_Testany() out_flag=" << out_flag
+                 << " done #" << out_index
+                 << " out_size=" << out_size
+                 << " out_tag=" << out_status.MPI_TAG;
+
+            // perform callback
+            mpi_async_[out_index].DoCallback(out_size);
+
+            mpi_async_.erase(mpi_async_.begin() + out_index);
+            mpi_async_requests_.erase(mpi_async_requests_.begin() + out_index);
+            mpi_async_out_.erase(mpi_async_out_.begin() + out_index);
+        }
+
+        lock.unlock();
+#endif
     }
 
     if (watch_active_)

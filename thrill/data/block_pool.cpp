@@ -24,6 +24,7 @@
 
 #include <algorithm>
 #include <functional>
+#include <iostream>
 #include <limits>
 #include <thread>
 #include <unordered_map>
@@ -36,6 +37,9 @@ namespace data {
 
 //! debug block life cycle output: create, destroy
 static constexpr bool debug_blc = false;
+
+//! debug block memory alloc and dealloc
+static constexpr bool debug_alloc = false;
 
 //! debug block pinning:
 static constexpr bool debug_pin = false;
@@ -63,7 +67,12 @@ static void OurNewHandler() {
         abort();
     }
 
-    in_new_handler = true;
+    static bool s_notify_new_handler = false;
+    if (!s_notify_new_handler) {
+        fprintf(stderr, "Thrill: new_handler called! Program is out of C++ heap memory, trying to\n");
+        fprintf(stderr, "Thrill: swap out Blocks to external memory. Check your program's memory usage.\n");
+        in_new_handler = true;
+    }
 
     static size_t s_iter = 0;
     io::RequestPtr req;
@@ -243,6 +252,9 @@ public:
     //! Hard limit for the block pool, memory requests will block if this limit
     //! is reached. 0 for no limit.
     size_t hard_ram_limit_;
+
+    //! print a message on the first block evicted to external memory
+    bool notify_em_used_ = false;
 
     //! list of all blocks that are _in_memory_ but are _not_ pinned.
     tlx::LruCacheSet<
@@ -487,6 +499,8 @@ BlockPool::AllocateByteBlock(size_t size, size_t local_worker_id) {
     // require block eviction.
     lock.unlock();
     Byte* data = d_->aligned_alloc_.allocate(size);
+    LOGC(debug_alloc)
+        << "ByteBlock aligned_alloc: " << (void*)data << " size " << size;
     lock.lock();
 
     // create tlx::CountingPtr, no need for special make_shared()-equivalent
@@ -715,6 +729,9 @@ void BlockPool::OnReadComplete(
         }
 
         // release memory
+        sLOGC(debug_alloc)
+            << "ByteBlock  deallocate"
+            << (void*)read->byte_block()->data_ << "size" << block_size;
         d_->aligned_alloc_.deallocate(read->byte_block()->data_, block_size);
 
         d_->IntReleaseInternalMemory(block_size);
@@ -767,7 +784,7 @@ void BlockPool::IntIncBlockPinCount(ByteBlock* block_ptr, size_t local_worker_id
 
     LOGC(debug_pin)
         << "BlockPool::IncBlockPinCount()"
-        << " block=" << block_ptr
+        << " byte_block=" << block_ptr
         << " ++block.pin_count[" << local_worker_id << "]="
         << block_ptr->pin_count_[local_worker_id]
         << " ++block.total_pins_=" << block_ptr->total_pins_
@@ -786,7 +803,7 @@ void BlockPool::DecBlockPinCount(ByteBlock* block_ptr, size_t local_worker_id) {
 
     LOGC(debug_pin)
         << "BlockPool::DecBlockPinCount()"
-        << " block=" << block_ptr
+        << " byte_block=" << block_ptr
         << " --block.pin_count[" << local_worker_id << "]=" << p
         << " --block.total_pins_=" << tp
         << " local_worker_id=" << local_worker_id;
@@ -818,7 +835,7 @@ void BlockPool::Data::IntUnpinBlock(
 
     LOGC(debug_pin)
         << "BlockPool::IntUnpinBlock()"
-        << " block=" << block_ptr
+        << " byte_block=" << block_ptr
         << " --total_pins_=" << block_ptr->total_pins_
         << " allow swap out.";
 }
@@ -966,6 +983,9 @@ void BlockPool::DestroyBlock(ByteBlock* block_ptr) {
         d_->unpinned_bytes_ -= block_ptr->size();
 
         // release memory
+        sLOGC(debug_alloc)
+            << "ByteBlock deallocate"
+            << (void*)block_ptr->data_ << "size" << block_ptr->size();
         d_->aligned_alloc_.deallocate(block_ptr->data_, block_ptr->size());
         block_ptr->data_ = nullptr;
 
@@ -989,6 +1009,9 @@ void BlockPool::DestroyBlock(ByteBlock* block_ptr) {
         d_->unpinned_bytes_ -= block_ptr->size();
 
         // release memory
+        sLOGC(debug_alloc)
+            << "ByteBlock deallocate"
+            << (void*)block_ptr->data_ << "size" << block_ptr->size();
         d_->aligned_alloc_.deallocate(block_ptr->data_, block_ptr->size());
         block_ptr->data_ = nullptr;
 
@@ -1190,11 +1213,22 @@ io::RequestPtr BlockPool::Data::IntEvictBlock(ByteBlock* block_ptr) {
             << " from ext_file " << block_ptr->ext_file_;
 
         // release memory
+        sLOGC(debug_alloc)
+            << "ByteBlock deallocate"
+            << (void*)block_ptr->data_ << "size" << block_ptr->size();
         aligned_alloc_.deallocate(block_ptr->data_, block_ptr->size());
         block_ptr->data_ = nullptr;
 
         IntReleaseInternalMemory(block_ptr->size());
         return io::RequestPtr();
+    }
+
+    if (!notify_em_used_) {
+        std::cerr << "Thrill: evicting first Block to external memory. "
+            "Be aware, that unexpected" << std::endl;
+        std::cerr << "Thrill: use of external memory may lead to "
+            "disappointingly slow performance." << std::endl;
+        notify_em_used_ = true;
     }
 
     die_unless(block_ptr->em_bid_.storage == nullptr);
@@ -1251,6 +1285,9 @@ void BlockPool::OnWriteComplete(
         d_->swapped_bytes_ += block_ptr->size();
 
         // release memory
+        sLOGC(debug_alloc)
+            << "ByteBlock deallocate"
+            << (void*)block_ptr->data_ << "size" << block_ptr->size();
         d_->aligned_alloc_.deallocate(block_ptr->data_, block_ptr->size());
         block_ptr->data_ = nullptr;
 

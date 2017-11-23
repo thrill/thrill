@@ -376,7 +376,7 @@ private:
         }
 
         LOG << "per_pe=" << per_pe
-            << " offsets[" << Index << "] = " << common::VecToStr(offsets);
+            << " offsets[" << Index << "] = " << offsets;
 
         // target stream id
         streams_[Index] = context_.GetNewCatStream(this);
@@ -428,8 +428,8 @@ private:
             Pad ? max_total_window_count : *std::min_element(
                 total_window_count.begin(), total_window_count.end());
 
-        sLOG << "ZipWindow() total_size" << common::VecToStr(total_size)
-             << "total_window_count" << common::VecToStr(total_window_count)
+        sLOG << "ZipWindow() total_size" << total_size
+             << "total_window_count" << total_window_count
              << "max_total_window_count" << max_total_window_count
              << "result_window_count_" << result_window_count_;
 

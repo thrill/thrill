@@ -52,6 +52,9 @@ public:
             watch_.emplace_back(mem_manager_);
     }
 
+    //! destructor
+    ~Dispatcher();
+
     //! Register a buffered read callback and a default exception callback.
     void AddRead(net::Connection& c, const Callback& read_cb) final {
         assert(dynamic_cast<Connection*>(&c));
@@ -314,7 +317,7 @@ private:
         }
 
         //! Dispatch done message to correct callback.
-        void operator () () {
+        void DoCallback() {
             if (type_ == WRITE_BUFFER)
                 write_buffer_.DoCallback();
             else if (type_ == READ_BUFFER)
@@ -323,6 +326,18 @@ private:
                 write_block_.DoCallback();
             else if (type_ == READ_BYTE_BLOCK)
                 read_byte_block_.DoCallback();
+        }
+
+        //! Dispatch done message to correct callback.
+        void DoCallback(size_t size_check) {
+            if (type_ == WRITE_BUFFER)
+                write_buffer_.DoCallback();
+            else if (type_ == READ_BUFFER)
+                read_buffer_.DoCallback(size_check);
+            else if (type_ == WRITE_BLOCK)
+                write_block_.DoCallback();
+            else if (type_ == READ_BYTE_BLOCK)
+                read_byte_block_.DoCallback(size_check);
         }
 
     private:

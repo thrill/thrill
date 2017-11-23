@@ -279,7 +279,7 @@ private:
         }
 
         LOG << "per_pe=" << per_pe
-            << " offsets[" << Index << "] = " << common::VecToStr(offsets);
+            << " offsets[" << Index << "] = " << offsets;
 
         // target stream id
         streams_[Index] = context_.GetNewCatStream(this);

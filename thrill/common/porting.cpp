@@ -108,7 +108,7 @@ void LogCmdlineParams(JsonLogger& logger) {
 }
 
 void SetCpuAffinity(std::thread& thread, size_t cpu_id) {
-#if __linux__
+#if __linux__ && !THRILL_ON_TRAVIS
     cpu_set_t cpuset;
     CPU_ZERO(&cpuset);
     CPU_SET(cpu_id % std::thread::hardware_concurrency(), &cpuset);
@@ -125,7 +125,7 @@ void SetCpuAffinity(std::thread& thread, size_t cpu_id) {
 }
 
 void SetCpuAffinity(size_t cpu_id) {
-#if __linux__
+#if __linux__ && !THRILL_ON_TRAVIS
     cpu_set_t cpuset;
     CPU_ZERO(&cpuset);
     CPU_SET(cpu_id % std::thread::hardware_concurrency(), &cpuset);

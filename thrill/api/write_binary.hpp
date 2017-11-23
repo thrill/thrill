@@ -123,14 +123,10 @@ private:
               stats_total_writes_(stats_total_writes) { }
 
         void AppendPinnedBlock(
-            const data::PinnedBlock& b, bool /* is_last_block */) final {
+            data::PinnedBlock&& b, bool /* is_last_block */) final {
             sLOG << "SysFileSink::AppendBlock()" << b;
             stats_total_writes_++;
             stream_->write(b.data_begin(), b.size());
-        }
-
-        void AppendPinnedBlock(data::PinnedBlock&& b, bool is_last_block) final {
-            return AppendPinnedBlock(b, is_last_block);
         }
 
         void AppendBlock(const data::Block& block, bool is_last_block) {

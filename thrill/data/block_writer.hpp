@@ -61,8 +61,7 @@ public:
     explicit BlockWriter(BlockSink&& sink,
                          size_t max_block_size = default_block_size)
         : sink_(std::move(sink)),
-          // block_size_(std::min(size_t(start_block_size), max_block_size)),
-          block_size_(max_block_size),
+          block_size_(std::min(size_t(start_block_size), max_block_size)),
           max_block_size_(max_block_size) {
         assert(max_block_size_ > 0);
     }
@@ -259,8 +258,8 @@ public:
 
             // item fully serialized, push out finished blocks.
             while (!sink_queue_.empty()) {
-                sink_.AppendPinnedBlock(sink_queue_.front(),
-                                        /* is_last_block */ false);
+                sink_.AppendPinnedBlock(
+                    std::move(sink_queue_.front()), /* is_last_block */ false);
                 sink_queue_.pop_front();
             }
 
@@ -398,7 +397,8 @@ private:
         }
         sLOG << "AllocateBlock(): good, got" << bytes_.get();
         // increase block size, up to max.
-        if (block_size_ < max_block_size_) block_size_ *= 2;
+        if (2 * block_size_ < max_block_size_)
+            block_size_ *= 2;
 
         current_ = bytes_->begin();
         end_ = bytes_->end();

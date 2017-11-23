@@ -103,12 +103,20 @@ void StreamSink::AppendBlock(Block&& block, bool is_last_block) {
     return AppendPinnedBlock(block.PinWait(local_worker_id()), is_last_block);
 }
 
-void StreamSink::AppendPinnedBlock(const PinnedBlock& block, bool is_last_block) {
+void StreamSink::AppendPinnedBlock(PinnedBlock&& block, bool is_last_block) {
     if (block.size() == 0) return;
 
     LOG << "StreamSink::AppendPinnedBlock()"
         << " block=" << block
-        << " is_last_block=" << is_last_block;
+        << " is_last_block=" << is_last_block
+        << " id_= " << id_
+        << " host_rank_=" << host_rank_
+        << " local_worker_id_=" << local_worker_id_
+        << " peer_rank_=" << peer_rank_
+        << " peer_local_worker_=" << peer_local_worker_
+        << " item_counter_=" << item_counter_
+        << " byte_counter_=" << byte_counter_
+        << " block_counter_=" << block_counter_;
 
     // StreamSink statistics
     item_counter_ += block.num_items();
@@ -121,7 +129,7 @@ void StreamSink::AppendPinnedBlock(const PinnedBlock& block, bool is_last_block)
         stream_->tx_int_bytes_ += block.size();
         stream_->tx_int_blocks_++;
 
-        return block_queue_->AppendPinnedBlock(block, is_last_block);
+        return block_queue_->AppendPinnedBlock(std::move(block), is_last_block);
     }
     if (target_mix_stream_) {
         // StreamData statistics for internal transfer
@@ -129,12 +137,13 @@ void StreamSink::AppendPinnedBlock(const PinnedBlock& block, bool is_last_block)
         stream_->tx_int_bytes_ += block.size();
         stream_->tx_int_blocks_++;
 
-        return target_mix_stream_->OnStreamBlock(my_worker_rank(), PinnedBlock(block));
+        return target_mix_stream_->OnStreamBlock(my_worker_rank(), std::move(block));
     }
 
     sem_.wait();
 
-    sLOG0 << "sending block" << tlx::hexdump(block.ToString());
+    LOG0 << "StreamSink::AppendPinnedBlock()"
+         << " data=" << tlx::hexdump(block.ToString());
 
     StreamMultiplexerHeader header(magic_, block);
     header.stream_id = id_;
@@ -157,7 +166,7 @@ void StreamSink::AppendPinnedBlock(const PinnedBlock& block, bool is_last_block)
     stream_->multiplexer_.dispatcher_.AsyncWrite(
         *connection_,
         // send out Buffer and Block, guaranteed to be successive
-        std::move(buffer), PinnedBlock(block),
+        std::move(buffer), std::move(block),
         [this](net::Connection&) { sem_.signal(); });
 
     if (is_last_block) {
@@ -178,10 +187,6 @@ void StreamSink::AppendPinnedBlock(const PinnedBlock& block, bool is_last_block)
 
         Finalize();
     }
-}
-
-void StreamSink::AppendPinnedBlock(PinnedBlock&& block, bool is_last_block) {
-    return AppendPinnedBlock(block, is_last_block);
 }
 
 void StreamSink::Close() {

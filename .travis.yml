@@ -105,7 +105,7 @@ before_script:
   - xz --version || true
 
   # enable -Werror on thrill/thrill master branch
-  - if [ "$TRAVIS_BRANCH" == "master" -a "$TRAVIS_REPO_SLUG" == "thrill/thrill" ]; then
+  - if [ "$TRAVIS_BRANCH" == "master" ]; then
       COMPILER_FLAGS="$COMPILER_FLAGS -Werror";
     fi
 
@@ -117,6 +117,7 @@ before_script:
       -DCMAKE_C_FLAGS="$COMPILER_FLAGS" -DCMAKE_CXX_FLAGS="$COMPILER_FLAGS"
       -DTHRILL_BUILD_EXAMPLES=ON -DTHRILL_BUILD_TESTS=ON
       -DTHRILL_TRY_COMPILE_HEADERS=ON
+      -DTHRILL_ON_TRAVIS=ON
       $CMAKE_ARGS ..
 
 script:

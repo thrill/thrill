@@ -21,6 +21,7 @@
 #include <thrill/net/buffer.hpp>
 #include <thrill/net/connection.hpp>
 #include <tlx/delegate.hpp>
+#include <tlx/die.hpp>
 
 #include <atomic>
 #include <chrono>
@@ -63,6 +64,8 @@ using AsyncWriteCallback = tlx::delegate<
 
 /******************************************************************************/
 
+static constexpr bool debug_async = false;
+
 class AsyncReadMemory
 {
 public:
@@ -72,8 +75,26 @@ public:
                     const AsyncReadMemoryCallback& callback)
         : conn_(&conn),
           data_(reinterpret_cast<uint8_t*>(data)), size_(size),
-          callback_(callback)
-    { }
+          callback_(callback) {
+        LOGC(debug_async)
+            << "AsyncReadMemory()"
+            << " size_=" << size_;
+    }
+
+    //! non-copyable: delete copy-constructor
+    AsyncReadMemory(const AsyncReadMemory&) = delete;
+    //! non-copyable: delete assignment operator
+    AsyncReadMemory& operator = (const AsyncReadMemory&) = delete;
+    //! move-constructor: default
+    AsyncReadMemory(AsyncReadMemory&&) = default;
+    //! move-assignment operator: default
+    AsyncReadMemory& operator = (AsyncReadMemory&&) = default;
+
+    ~AsyncReadMemory() {
+        LOGC(debug_async)
+            << "~AsyncReadMemory()"
+            << " size_=" << size_;
+    }
 
     //! Should be called when the socket is readable
     bool operator () () {
@@ -152,8 +173,26 @@ public:
                      const AsyncWriteCallback& callback)
         : conn_(&conn),
           data_(reinterpret_cast<const uint8_t*>(data)), size_(size),
-          callback_(callback)
-    { }
+          callback_(callback) {
+        LOGC(debug_async)
+            << "AsyncWriteMemory()"
+            << " size_=" << size_;
+    }
+
+    //! non-copyable: delete copy-constructor
+    AsyncWriteMemory(const AsyncWriteMemory&) = delete;
+    //! non-copyable: delete assignment operator
+    AsyncWriteMemory& operator = (const AsyncWriteMemory&) = delete;
+    //! move-constructor: default
+    AsyncWriteMemory(AsyncWriteMemory&&) = default;
+    //! move-assignment operator: default
+    AsyncWriteMemory& operator = (AsyncWriteMemory&&) = default;
+
+    ~AsyncWriteMemory() {
+        LOGC(debug_async)
+            << "~AsyncWriteMemory()"
+            << " size_=" << size_;
+    }
 
     //! Should be called when the socket is writable
     bool operator () () {
@@ -226,8 +265,26 @@ public:
                     size_t buffer_size, const AsyncReadBufferCallback& callback)
         : conn_(&conn),
           buffer_(buffer_size),
-          callback_(callback)
-    { }
+          callback_(callback) {
+        LOGC(debug_async)
+            << "AsyncReadBuffer()"
+            << " buffer_.size()=" << buffer_.size();
+    }
+
+    //! non-copyable: delete copy-constructor
+    AsyncReadBuffer(const AsyncReadBuffer&) = delete;
+    //! non-copyable: delete assignment operator
+    AsyncReadBuffer& operator = (const AsyncReadBuffer&) = delete;
+    //! move-constructor: default
+    AsyncReadBuffer(AsyncReadBuffer&&) = default;
+    //! move-assignment operator: default
+    AsyncReadBuffer& operator = (AsyncReadBuffer&&) = default;
+
+    ~AsyncReadBuffer() {
+        LOGC(debug_async)
+            << "~AsyncReadBuffer()"
+            << " buffer_.size()=" << buffer_.size();
+    }
 
     //! Should be called when the socket is readable
     bool operator () () {
@@ -273,6 +330,11 @@ public:
         }
     }
 
+    void DoCallback(size_t size_check) {
+        die_unequal(size_check, buffer_.size());
+        return DoCallback();
+    }
+
     //! underlying buffer pointer
     uint8_t * data() { return buffer_.data(); }
 
@@ -307,8 +369,26 @@ public:
                      const AsyncWriteCallback& callback)
         : conn_(&conn),
           buffer_(std::move(buffer)),
-          callback_(callback)
-    { }
+          callback_(callback) {
+        LOGC(debug_async)
+            << "AsyncWriteBuffer()"
+            << " buffer_.size()=" << buffer_.size();
+    }
+
+    //! non-copyable: delete copy-constructor
+    AsyncWriteBuffer(const AsyncWriteBuffer&) = delete;
+    //! non-copyable: delete assignment operator
+    AsyncWriteBuffer& operator = (const AsyncWriteBuffer&) = delete;
+    //! move-constructor: default
+    AsyncWriteBuffer(AsyncWriteBuffer&&) = default;
+    //! move-assignment operator: default
+    AsyncWriteBuffer& operator = (AsyncWriteBuffer&&) = default;
+
+    ~AsyncWriteBuffer() {
+        LOGC(debug_async)
+            << "~AsyncWriteBuffer()"
+            << " buffer_.size()=" << buffer_.size();
+    }
 
     //! Should be called when the socket is writable
     bool operator () () {
@@ -381,8 +461,28 @@ public:
         : conn_(&conn),
           block_(std::move(block)),
           size_(size),
-          callback_(callback)
-    { }
+          callback_(callback) {
+        LOGC(debug_async)
+            << "AsyncReadByteBlock()"
+            << " block_=" << block_
+            << " size_=" << size_;
+    }
+
+    //! non-copyable: delete copy-constructor
+    AsyncReadByteBlock(const AsyncReadByteBlock&) = delete;
+    //! non-copyable: delete assignment operator
+    AsyncReadByteBlock& operator = (const AsyncReadByteBlock&) = delete;
+    //! move-constructor: default
+    AsyncReadByteBlock(AsyncReadByteBlock&&) = default;
+    //! move-assignment operator: default
+    AsyncReadByteBlock& operator = (AsyncReadByteBlock&&) = default;
+
+    ~AsyncReadByteBlock() {
+        LOGC(debug_async)
+            << "~AsyncReadByteBlock()"
+            << " block_=" << block_
+            << " size_=" << size_;
+    }
 
     //! Should be called when the socket is readable
     bool operator () () {
@@ -429,6 +529,11 @@ public:
         }
     }
 
+    void DoCallback(size_t size_check) {
+        die_unequal(size_check, size_);
+        return DoCallback();
+    }
+
     //! underlying buffer pointer
     uint8_t * data() { return block_->data(); }
 
@@ -466,8 +571,27 @@ public:
                     const AsyncWriteCallback& callback)
         : conn_(&conn),
           block_(std::move(block)),
-          callback_(callback)
-    { }
+          callback_(callback) {
+        LOGC(debug_async)
+            << "AsyncWriteBlock()"
+            << " block_.size()=" << block_.size()
+            << " block_=" << block_;
+    }
+
+    //! non-copyable: delete copy-constructor
+    AsyncWriteBlock(const AsyncWriteBlock&) = delete;
+    //! non-copyable: delete assignment operator
+    AsyncWriteBlock& operator = (const AsyncWriteBlock&) = delete;
+    //! move-constructor: default
+    AsyncWriteBlock(AsyncWriteBlock&&) = default;
+    //! move-assignment operator: default
+    AsyncWriteBlock& operator = (AsyncWriteBlock&&) = default;
+
+    ~AsyncWriteBlock() {
+        LOGC(debug_async)
+            << "~AsyncWriteBlock()"
+            << " block_=" << block_;
+    }
 
     //! Should be called when the socket is writable
     bool operator () () {
@@ -776,11 +900,21 @@ public:
 protected:
     virtual void DispatchOne(const std::chrono::milliseconds& timeout) = 0;
 
+    //! Default exception handler
+    static bool ExceptionCallback(Connection& c) {
+        // exception on listen socket ?
+        throw Exception(
+                  "Dispatcher() exception on socket fd "
+                  + c.ToString() + "!", errno);
+    }
+
     //! true if dispatcher needs to stop
     std::atomic<bool> terminate_ { false };
 
     //! superior memory manager
     mem::Manager& mem_manager_;
+
+    /*------------------------------------------------------------------------*/
 
     //! struct for timer callbacks
     struct Timer {
@@ -811,76 +945,7 @@ protected:
     //! order. Currently not addressable.
     TimerPQ timer_pq_;
 
-    /**************************************************************************/
-
-    class AsyncReadBuffer
-    {
-    public:
-        //! Construct buffered reader with callback
-        AsyncReadBuffer(Connection& conn,
-                        size_t buffer_size, const AsyncReadBufferCallback& callback)
-            : conn_(&conn),
-              buffer_(buffer_size),
-              callback_(callback)
-        { }
-
-        //! Should be called when the socket is readable
-        bool operator () () {
-            ssize_t r = conn_->RecvOne(
-                buffer_.data() + size_, buffer_.size() - size_);
-
-            if (r <= 0) {
-                // these errors are acceptable: just redo the recv later.
-                if (errno == EINTR || errno == EAGAIN) return true;
-
-                // signal artificial IsDone, for clean up.
-                size_ = buffer_.size();
-
-                // these errors are end-of-file indications (both good and bad)
-                if (errno == 0 || errno == EPIPE || errno == ECONNRESET) {
-                    if (callback_) callback_(*conn_, Buffer());
-                    return false;
-                }
-                throw Exception("AsyncReadBuffer() error in recv() on "
-                                "connection " + conn_->ToString(), errno);
-            }
-
-            size_ += r;
-
-            if (size_ == buffer_.size()) {
-                DoCallback();
-                return false;
-            }
-            else {
-                return true;
-            }
-        }
-
-        bool IsDone() const { return size_ == buffer_.size(); }
-
-        //! reference to Buffer
-        Buffer& buffer() { return buffer_; }
-
-        void DoCallback() {
-            if (callback_) {
-                callback_(*conn_, std::move(buffer_));
-                callback_ = AsyncReadBufferCallback();
-            }
-        }
-
-    private:
-        //! Connection reference
-        Connection* conn_;
-
-        //! Receive buffer (allocates memory)
-        Buffer buffer_;
-
-        //! total size currently read
-        size_t size_ = 0;
-
-        //! functional object to call once data is complete
-        AsyncReadBufferCallback callback_;
-    };
+    /*------------------------------------------------------------------------*/
 
     //! deque of asynchronous readers
     std::deque<AsyncReadBuffer,
@@ -897,14 +962,6 @@ protected:
     //! deque of asynchronous writers
     std::deque<AsyncWriteBlock,
                mem::GPoolAllocator<AsyncWriteBlock> > async_write_block_;
-
-    //! Default exception handler
-    static bool ExceptionCallback(Connection& c) {
-        // exception on listen socket ?
-        throw Exception(
-                  "Dispatcher() exception on socket fd "
-                  + c.ToString() + "!", errno);
-    }
 };
 
 //! \}
