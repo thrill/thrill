@@ -18,6 +18,7 @@
 #include <thrill/data/block.hpp>
 #include <thrill/data/block_sink.hpp>
 #include <thrill/data/serialization.hpp>
+#include <tlx/die.hpp>
 
 #include <algorithm>
 #include <deque>
@@ -226,7 +227,7 @@ public:
     BlockWriter& PutSafe(const T& x) {
         assert(!closed_);
 
-        if (current_ == end_) {
+        if (TLX_UNLIKELY(current_ == end_)) {
             // if current block full: flush it, BEFORE enabling queuing, because
             // the previous item is complete.
             try {
@@ -237,7 +238,7 @@ public:
             }
         }
 
-        if (!bytes_) {
+        if (TLX_UNLIKELY(!bytes_)) {
             sLOG << "!bytes";
             throw FullException();
         }
@@ -249,7 +250,11 @@ public:
         do_queue_ = true;
 
         try {
-            MarkItem();
+            if (TLX_UNLIKELY(nitems_ == 0))
+                first_offset_ = current_ - bytes_->begin();
+
+            ++nitems_;
+
             if (self_verify && !NoSelfVerify) {
                 // for self-verification, prefix T with its hash code
                 PutRaw(typeid(T).hash_code());
@@ -299,11 +304,14 @@ public:
         assert(!closed_);
 
         try {
-            if (current_ == end_) {
+            if (TLX_UNLIKELY(current_ == end_))
                 Flush(), AllocateBlock();
-            }
 
-            MarkItem();
+            if (TLX_UNLIKELY(nitems_ == 0))
+                first_offset_ = current_ - bytes_->begin();
+
+            ++nitems_;
+
             if (self_verify && !NoSelfVerify) {
                 // for self-verification, prefix T with its hash code
                 PutRaw(typeid(T).hash_code());
@@ -368,6 +376,7 @@ public:
     //! Put (append) a single item of the template type T to the buffer. Be
     //! careful with implicit type conversions!
     template <typename Type>
+    TLX_ATTRIBUTE_ALWAYS_INLINE
     BlockWriter& PutRaw(const Type& item) {
         static_assert(std::is_pod<Type>::value,
                       "You only want to PutRaw() POD types as raw values.");

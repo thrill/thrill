@@ -325,6 +325,7 @@ public:
     //! Fetch a single item of the template type Type from the buffer,
     //! advancing the cursor. Be careful with implicit type conversions!
     template <typename Type>
+    TLX_ATTRIBUTE_ALWAYS_INLINE
     Type GetRaw() {
         static_assert(std::is_pod<Type>::value,
                       "You only want to GetRaw() POD types as raw values.");
