@@ -24,6 +24,12 @@
 
 #endif
 
+#if __linux__
+
+#include <execinfo.h>
+
+#endif
+
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -61,8 +67,10 @@ namespace mem {
 
 static constexpr int log_operations = 0; //! <-- set this to 1 for log output
 static constexpr size_t log_operations_threshold = 100000;
+static constexpr size_t log_bypass_operations_threshold = 100000;
 
 #define LOG_MALLOC_PROFILER 0
+#define LOG_MALLOC_BYPASS_PROFILER 0
 
 // enable checking of bypass_malloc() and bypass_free() pairing
 #define BYPASS_CHECKER 0
@@ -461,6 +469,34 @@ void * bypass_malloc(size_t size) noexcept {
         fprintf(stderr, PPREFIX "bypass_malloc(%zu size) = %p   (current %zu / %zu)\n",
                 size, ptr, get(float_curr), get(base_curr));
         return ptr;
+    }
+
+    if (log_operations && size >= log_bypass_operations_threshold) {
+        fprintf(stderr, PPREFIX "bypass_malloc(%zu size) = %p   (current %zu / %zu)\n",
+                size, ptr, get(float_curr), get(base_curr));
+    }
+
+    {
+#if __linux__ && LOG_MALLOC_BYPASS_PROFILER
+        if (size >= log_bypass_operations_threshold) {
+            // storage array for stack trace address data
+            void* addrlist[16 + 1];
+            memset(addrlist, 0, sizeof(addrlist));
+
+            // retrieve current stack addresses
+            backtrace(addrlist, sizeof(addrlist) / sizeof(void*));
+
+            fprintf(stdout,
+                    PPREFIX "bypass profile %zu "
+                    "%p %p %p %p %p %p %p %p "
+                    "%p %p %p %p %p %p %p %p\n",
+                    size,
+                    addrlist[0], addrlist[1], addrlist[2], addrlist[3],
+                    addrlist[4], addrlist[5], addrlist[6], addrlist[7],
+                    addrlist[8], addrlist[9], addrlist[10], addrlist[11],
+                    addrlist[12], addrlist[13], addrlist[14], addrlist[15]);
+        }
+#endif
     }
 
 #if !defined(NDEBUG) && BYPASS_CHECKER
