@@ -82,9 +82,10 @@ public:
         context_.net.Barrier();
 
         data::File::ConsumeReader reader = temp_file_.GetConsumeReader();
+        size_t num_items = temp_file_.num_items();
 
-        for (size_t i = 0; i < temp_file_.num_items(); ++i) {
-            file_ << reader.Next<ValueType>() << "\n";
+        for (size_t i = 0; i < num_items; ++i) {
+            file_ << reader.Next<ValueType>() << '\n';
         }
     }
 

@@ -99,8 +99,9 @@ public:
         data::File::Reader reader = file_.GetReader(consume);
 
         ValueType sum = local_sum_;
+        size_t num_items = file_.num_items();
 
-        for (size_t i = 0; i < file_.num_items(); ++i) {
+        for (size_t i = 0; i < num_items; ++i) {
             sum = sum_function_(sum, reader.Next<ValueType>());
             this->PushItem(sum);
         }

@@ -197,13 +197,15 @@ public:
         // this may wrap around, but that is okay. -tb
         size_t rank = first_rank_ - (window_size_ - 1);
 
+        size_t num_items = file_.num_items();
+
         sLOG << "WindowNode::PushData()"
              << "window.size()" << window.size()
              << "first_rank_" << first_rank_
              << "rank" << rank
-             << "file_.num_items" << file_.num_items();
+             << "num_items" << num_items;
 
-        for (size_t i = 0; i < file_.num_items(); ++i, ++rank) {
+        for (size_t i = 0; i < num_items; ++i, ++rank) {
             // append an item.
             window.emplace_back(reader.Next<Input>());
 
@@ -453,14 +455,15 @@ public:
         assert(window.size() < window_size_);
 
         size_t rank = first_rank_ - (window_size_ - 1);
+        size_t num_items = file_.num_items();
 
         sLOG << "WindowNode::PushData()"
              << "window.size()" << window.size()
              << "rank" << rank
              << "rank+window+1" << (rank + window.size() + 1)
-             << "file_.num_items" << file_.num_items();
+             << "num_items" << num_items;
 
-        for (size_t i = 0; i < file_.num_items(); ++i, ++rank) {
+        for (size_t i = 0; i < num_items; ++i, ++rank) {
             // append an item.
             window.emplace_back(reader.Next<Input>());
 
