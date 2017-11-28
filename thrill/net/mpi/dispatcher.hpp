@@ -209,14 +209,12 @@ private:
     //! callback vectors per peer
     struct Watch {
         //! boolean check whether any callbacks are registered
-        bool                 active = false;
+        bool     active = false;
         //! queue of callbacks for peer.
-        mem::deque<Callback> read_cb;
+        std::deque<Callback, mem::GPoolAllocator<Callback> >
+                 read_cb;
         //! only one exception callback for the peer.
-        Callback             except_cb;
-
-        explicit Watch(mem::Manager& mem_manager)
-            : read_cb(mem::Allocator<Callback>(mem_manager)) { }
+        Callback except_cb;
     };
 
     //! callback watch vector

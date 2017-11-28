@@ -198,28 +198,26 @@ void Group::Send(size_t tgt, net::Buffer&& msg) {
 
 struct Dispatcher::Data {
     //! Mutex to lock access to watch lists
-    std::mutex                                     mutex_;
+    std::mutex mutex_;
 
     //! Notification queue for Dispatch
-    common::OurConcurrentBoundedQueue<Connection*> notify_;
+    common::OurConcurrentBoundedQueue<Connection*>
+               notify_;
 
     using Map = std::map<Connection*, Watch>;
 
     //! map from Connection to its watch list
-    Map                                            map_;
+    Map        map_;
 };
 
 struct Dispatcher::Watch {
     //! boolean check whether Watch is registered at Connection
-    bool                 active = false;
+    bool     active = false;
     //! queue of callbacks for fd.
-    mem::deque<Callback> read_cb, write_cb;
+    std::deque<Callback, mem::GPoolAllocator<Callback> >
+             read_cb, write_cb;
     //! only one exception callback for the fd.
-    Callback             except_cb;
-
-    explicit Watch(mem::Manager& mem_manager)
-        : read_cb(mem::Allocator<Callback>(mem_manager)),
-          write_cb(mem::Allocator<Callback>(mem_manager)) { }
+    Callback except_cb;
 };
 
 Dispatcher::Dispatcher(mem::Manager& mem_manager)
@@ -276,7 +274,7 @@ void Dispatcher::Interrupt() {
 Dispatcher::Watch& Dispatcher::GetWatch(Connection* c) {
     Data::Map::iterator it = d_->map_.find(c);
     if (it == d_->map_.end())
-        it = d_->map_.emplace(c, Watch(mem_manager_)).first;
+        it = d_->map_.emplace(c, Watch()).first;
     return it->second;
 }
 
