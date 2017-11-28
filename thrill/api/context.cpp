@@ -1073,6 +1073,21 @@ std::string HostContext::MakeHostLogPath(size_t host_rank) {
 /******************************************************************************/
 // Context methods
 
+Context::Context(HostContext& host_context, size_t local_worker_id)
+    : local_host_id_(host_context.local_host_id()),
+      local_worker_id_(local_worker_id),
+      workers_per_host_(host_context.workers_per_host()),
+      mem_limit_(host_context.worker_mem_limit()),
+      mem_config_(host_context.mem_config()),
+      mem_manager_(host_context.mem_manager()),
+      net_manager_(host_context.net_manager()),
+      flow_manager_(host_context.flow_manager()),
+      block_pool_(host_context.block_pool()),
+      multiplexer_(host_context.data_multiplexer()),
+      base_logger_(&host_context.base_logger_) {
+    assert(local_worker_id < workers_per_host());
+}
+
 data::File Context::GetFile(DIABase* dia) {
     return GetFile(dia != nullptr ? dia->id() : 0);
 }

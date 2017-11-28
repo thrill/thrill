@@ -123,7 +123,7 @@ public:
         sLOG << "Pick" << pick_items << "samples by random access"
              << " from File containing " << local_items_ << " items.";
         for (size_t i = 0; i < pick_items; ++i) {
-            size_t index = rng_() % local_items_;
+            size_t index = context_.rng_() % local_items_;
             sLOG << "got index[" << i << "] = " << index;
             samples_.emplace_back(
                 unsorted_file_.GetItemAt<ValueType>(index), index);
@@ -302,11 +302,9 @@ private:
 
     //! Sample vector: pairs of (sample,local index)
     std::vector<SampleIndexPair> samples_;
-    //! Random generator
-    std::default_random_engine rng_ { std::random_device { } () };
     //! Reservoir sampler
     common::ReservoirSamplingGrow<SampleIndexPair> res_sampler_ {
-        samples_, rng_, desired_imbalance_
+        samples_, context_.rng_, desired_imbalance_
     };
     //! calculate currently desired number of samples
     size_t wanted_sample_size() const {

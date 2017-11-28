@@ -31,6 +31,7 @@
 #include <cassert>
 #include <functional>
 #include <numeric>
+#include <random>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -210,20 +211,7 @@ private:
 class Context
 {
 public:
-    Context(HostContext& host_context, size_t local_worker_id)
-        : local_host_id_(host_context.local_host_id()),
-          local_worker_id_(local_worker_id),
-          workers_per_host_(host_context.workers_per_host()),
-          mem_limit_(host_context.worker_mem_limit()),
-          mem_config_(host_context.mem_config()),
-          mem_manager_(host_context.mem_manager()),
-          net_manager_(host_context.net_manager()),
-          flow_manager_(host_context.flow_manager()),
-          block_pool_(host_context.block_pool()),
-          multiplexer_(host_context.data_multiplexer()),
-          base_logger_(&host_context.base_logger_) {
-        assert(local_worker_id < workers_per_host());
-    }
+    Context(HostContext& host_context, size_t local_worker_id);
 
     //! method used to launch a job's main procedure. it wraps it in log output.
     void Launch(const std::function<void(Context&)>& job_startpoint);
@@ -428,6 +416,17 @@ private:
 
     //! the number of valid DIA ids. 0 is reserved for invalid.
     size_t last_dia_id_ = 0;
+
+public:
+    //! \name Shared Objects
+    //! \{
+
+    //! a random generator
+    std::default_random_engine rng_ {
+        std::random_device { } () + (local_worker_id_ << 16)
+    };
+
+    //! \}
 
 public:
     //! \name Network Subsystem

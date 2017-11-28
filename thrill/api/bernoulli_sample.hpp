@@ -37,7 +37,7 @@ public:
 
         if (use_skip_) {
             skip_dist_ = std::geometric_distribution<SkipDistValueType>(p);
-            skip_remaining_ = skip_dist_(engine_);
+            skip_remaining_ = skip_dist_(rng_);
 
             LOG << "Skip value initialised with " << skip_remaining_;
         }
@@ -54,7 +54,7 @@ public:
                 // sample element
                 LOG << "sampled item " << item;
                 emit(item);
-                skip_remaining_ = skip_dist_(engine_);
+                skip_remaining_ = skip_dist_(rng_);
             }
             else {
                 --skip_remaining_;
@@ -62,7 +62,7 @@ public:
         }
         else {
             // use bernoulli distribution
-            if (simple_dist_(engine_)) {
+            if (simple_dist_(rng_)) {
                 LOG << "sampled item " << item;
                 emit(item);
             }
@@ -80,7 +80,7 @@ private:
     // the naive method
     const bool use_skip_;
     // Random generator
-    std::default_random_engine engine_ { std::random_device { } () };
+    std::default_random_engine rng_ { std::random_device { } () };
     std::bernoulli_distribution simple_dist_;
     std::geometric_distribution<SkipDistValueType> skip_dist_;
     SkipDistValueType skip_remaining_ = -1;
