@@ -99,14 +99,14 @@ public:
             }
 
             // share prng in Generate (just random numbers anyway)
-            std::default_random_engine prng(
-                std::random_device { } () + ctx.my_rank());
+            std::mt19937 prng(
+                std::random_device { } () + 4096 * ctx.my_rank());
 
             DIA<uint8_t> input_dia =
                 Generate(
                     ctx, sizelimit_,
-                    [&prng](size_t index) {
-                        return static_cast<uint8_t>(prng() + index);
+                    [&prng](size_t /* index */) {
+                        return static_cast<uint8_t>(prng());
                     })
                 // the random input _must_ be cached, otherwise it will be
                 // regenerated ... and contain new numbers.
@@ -120,14 +120,15 @@ public:
             }
 
             // share prng in Generate (just random digits anyway)
-            std::default_random_engine prng(
-                std::random_device { } () + ctx.my_rank());
+            std::mt19937 prng(
+                std::random_device { } () + 4096 * ctx.my_rank());
 
             DIA<uint8_t> input_dia =
                 Generate(
                     ctx, sizelimit_,
-                    [&prng](size_t index) {
-                        return static_cast<uint8_t>('0' + (prng() + index) % 10);
+                    [&prng](size_t /* index */) {
+                        return static_cast<uint8_t>(
+                            '0' + ((prng() >> 6) % 10));
                     })
                 // the random input _must_ be cached, otherwise it will be
                 // regenerated ... and contain new numbers.
@@ -141,14 +142,15 @@ public:
             }
 
             // share prng in Generate (just random digits anyway)
-            std::default_random_engine prng(
-                std::random_device { } () + ctx.my_rank());
+            std::mt19937 prng(
+                std::random_device { } () + 4096 * ctx.my_rank());
 
             DIA<uint8_t> input_dia =
                 Generate(
                     ctx, sizelimit_,
-                    [&prng](size_t index) {
-                        return static_cast<uint8_t>('0' + (prng() + index) % 2);
+                    [&prng](size_t /* index */) {
+                        return static_cast<uint8_t>(
+                            '0' + ((prng() >> 6) % 2));
                     })
                 // the random input _must_ be cached, otherwise it will be
                 // regenerated ... and contain new numbers.
