@@ -47,9 +47,7 @@ public:
                int group_tag, size_t group_size)
         : net::Dispatcher(mem_manager),
           group_tag_(group_tag) {
-        watch_.reserve(group_size);
-        for (size_t i = 0; i < group_size; ++i)
-            watch_.emplace_back(mem_manager_);
+        watch_.resize(group_size);
     }
 
     //! destructor
