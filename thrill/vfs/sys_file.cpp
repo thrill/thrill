@@ -51,6 +51,48 @@ namespace vfs {
 
 /******************************************************************************/
 
+static void SysGlobWalkRecursive(const std::string& path, FileList& filelist) {
+
+    // read entries
+    DIR* dir = opendir(path.c_str());
+    if (dir == nullptr)
+        throw common::ErrnoException("Could not read directory " + path);
+
+    struct dirent* de, de_entry;
+    struct stat st;
+
+    std::vector<std::string> list;
+
+    while (readdir_r(dir, &de_entry, &de) == 0 && de != nullptr) {
+        // skip ".", "..", and also hidden files (don't create them).
+        if (de->d_name[0] == '.') continue;
+
+        list.emplace_back(path + "/" + de->d_name);
+    }
+
+    closedir(dir);
+
+    // sort file names
+    std::sort(list.begin(), list.end());
+
+    for (const std::string& entry : list) {
+        if (stat(entry.c_str(), &st) != 0)
+            throw common::ErrnoException("Could not lstat() " + entry);
+
+        if (S_ISDIR(st.st_mode)) {
+            // descend into directories
+            SysGlobWalkRecursive(entry, filelist);
+        }
+        else if (S_ISREG(st.st_mode)) {
+            FileInfo fi;
+            fi.type = Type::File;
+            fi.path = entry;
+            fi.size = static_cast<uint64_t>(st.st_size);
+            filelist.emplace_back(fi);
+        }
+    }
+}
+
 void SysGlob(const std::string& path, const GlobType& gtype,
              FileList& filelist) {
 
@@ -101,6 +143,9 @@ void SysGlob(const std::string& path, const GlobType& gtype,
                 fi.path = file;
                 fi.size = 0;
                 filelist.emplace_back(fi);
+            }
+            else if (gtype == GlobType::File) {
+                SysGlobWalkRecursive(file, filelist);
             }
         }
     }
