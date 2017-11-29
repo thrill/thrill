@@ -74,7 +74,7 @@ int main(int argc, char* argv[]) {
         for (const vfs::FileInfo& fi : fl) {
             vfs::ReadStreamPtr rs = vfs::OpenReadStream(fi.path);
 
-            char buffer[1024 * 1024];
+            char buffer[64 * 1024];
             ssize_t rb = 0;
             while ((rb = rs->read(buffer, sizeof(buffer))) > 0) {
                 std::cout.write(buffer, rb);
@@ -87,10 +87,14 @@ int main(int argc, char* argv[]) {
 
         vfs::WriteStreamPtr ws = vfs::OpenWriteStream(paths[0]);
 
-        char buffer[1024 * 1024];
+        char buffer[64 * 1024];
         while (std::cin.read(buffer, sizeof(buffer)), std::cin.gcount()) {
             ws->write(buffer, std::cin.gcount());
         }
+    }
+    else
+    {
+        LOG1 << "Unknown operation \"" << op << "\".";
     }
 
     vfs::Deinitialize();

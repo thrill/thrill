@@ -52,7 +52,53 @@ namespace vfs {
 /******************************************************************************/
 
 static void SysGlobWalkRecursive(const std::string& path, FileList& filelist) {
+#if defined(_MSC_VER)
 
+    WIN32_FIND_DATA ff;
+    HANDLE h = FindFirstFile((path + "\\*").c_str(), &ff);
+
+    if (h == INVALID_HANDLE_VALUE) {
+        throw common::ErrnoException(
+                  "FindFirstFile failed:" + std::to_string(GetLastError()));
+    }
+
+    std::vector<FileInfo> tmp_list;
+
+    do {
+        if (ff.cFileName[0] != '.')
+        {
+            FileInfo fi;
+            if (ff.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+                fi.type = Type::Directory;
+            }
+            else {
+                fi.type = Type::File;
+            }
+            fi.path = path + "\\" + ff.cFileName;
+            fi.size = (static_cast<uint64_t>(ff.nFileSizeHigh) * (MAXDWORD + 1))
+                      + static_cast<uint64_t>(ff.nFileSizeLow);
+            tmp_list.emplace_back(fi);
+        }
+    } while (FindNextFile(h, &ff) != 0);
+
+    DWORD e = GetLastError();
+    if (e != ERROR_NO_MORE_FILES) {
+        throw common::ErrnoException(
+                  "FindFirstFile failed:" + std::to_string(GetLastError()));
+    }
+
+    std::sort(tmp_list.begin(), tmp_list.end());
+
+    for (const FileInfo& fi : tmp_list) {
+        if (fi.type == Type::Directory) {
+            SysGlobWalkRecursive(fi.path, filelist);
+        }
+        else {
+            filelist.emplace_back(fi);
+        }
+    }
+
+#else
     // read entries
     DIR* dir = opendir(path.c_str());
     if (dir == nullptr)
@@ -91,6 +137,7 @@ static void SysGlobWalkRecursive(const std::string& path, FileList& filelist) {
             filelist.emplace_back(fi);
         }
     }
+#endif
 }
 
 void SysGlob(const std::string& path, const GlobType& gtype,

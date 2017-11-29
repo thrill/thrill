@@ -70,6 +70,9 @@ struct FileInfo {
     bool        IsCompressed() const { return vfs::IsCompressed(path); }
     //! if the file is at remote uri
     bool        IsRemoteUri() const { return vfs::IsRemoteUri(path); }
+
+    //! compare FileInfo by path
+    bool operator < (const FileInfo& b) const { return path < b.path; }
 };
 
 //! List of file info and additional overall info.
