@@ -16,17 +16,12 @@
 #include <thrill/common/porting.hpp>
 #include <thrill/common/profile_thread.hpp>
 #include <thrill/mem/malloc_tracker.hpp>
+#include <tlx/backtrace.hpp>
 #include <tlx/define.hpp>
 
 #if __linux__ || __APPLE__ || __FreeBSD__
 
 #include <dlfcn.h>
-
-#endif
-
-#if __linux__
-
-#include <execinfo.h>
 
 #endif
 
@@ -65,12 +60,16 @@ namespace mem {
 /******************************************************************************/
 // user-defined options for output malloc()/free() operations to stderr
 
-static constexpr int log_operations = 0; //! <-- set this to 1 for log output
+// v-- set these to 1 for log output
+static constexpr bool log_operations = 0;
+static constexpr bool log_bypass_operations = 0;
+
 static constexpr size_t log_operations_threshold = 100000;
 static constexpr size_t log_bypass_operations_threshold = 100000;
 
-#define LOG_MALLOC_PROFILER 0
-#define LOG_MALLOC_BYPASS_PROFILER 0
+// v-- set these to 1 for profiling output
+static constexpr bool profile_operations = 0;
+static constexpr bool profile_bypass_operations = 0;
 
 // enable checking of bypass_malloc() and bypass_free() pairing
 #define BYPASS_CHECKER 0
@@ -471,32 +470,14 @@ void * bypass_malloc(size_t size) noexcept {
         return ptr;
     }
 
-    if (log_operations && size >= log_bypass_operations_threshold) {
+    if (log_bypass_operations && size >= log_bypass_operations_threshold) {
         fprintf(stderr, PPREFIX "bypass_malloc(%zu size) = %p   (current %zu / %zu)\n",
                 size, ptr, get(float_curr), get(base_curr));
     }
 
-    {
-#if __linux__ && LOG_MALLOC_BYPASS_PROFILER
-        if (size >= log_bypass_operations_threshold) {
-            // storage array for stack trace address data
-            void* addrlist[16 + 1];
-            memset(addrlist, 0, sizeof(addrlist));
-
-            // retrieve current stack addresses
-            backtrace(addrlist, sizeof(addrlist) / sizeof(void*));
-
-            fprintf(stdout,
-                    PPREFIX "bypass profile %zu "
-                    "%p %p %p %p %p %p %p %p "
-                    "%p %p %p %p %p %p %p %p\n",
-                    size,
-                    addrlist[0], addrlist[1], addrlist[2], addrlist[3],
-                    addrlist[4], addrlist[5], addrlist[6], addrlist[7],
-                    addrlist[8], addrlist[9], addrlist[10], addrlist[11],
-                    addrlist[12], addrlist[13], addrlist[14], addrlist[15]);
-        }
-#endif
+    if (profile_bypass_operations) {
+        tlx::print_raw_backtrace(
+            stdout, 16, PPREFIX "bypass profile %zu", size);
     }
 
 #if !defined(NDEBUG) && BYPASS_CHECKER
@@ -778,9 +759,6 @@ static void preinit_free(void* ptr) {
 #define MALLOC_USABLE_SIZE malloc_usable_size
 #include <malloc.h>
 
-#include <execinfo.h>
-#include <unistd.h>
-
 #endif
 
 /******************************************************************************/
@@ -897,31 +875,18 @@ void * malloc(size_t size) NOEXCEPT {
         fprintf(stderr, PPREFIX "malloc(%zu size / %zu used) = %p   (current %zu / %zu)\n",
                 size, size_used, ret, get(float_curr), get(base_curr));
     }
-    {
-#if __linux__ && LOG_MALLOC_PROFILER
+
+    if (profile_operations) {
         static thread_local bool recursive = false;
 
-        if (size_used >= log_operations_threshold && !recursive) {
+        if (!recursive) {
             recursive = true;
 
-            // storage array for stack trace address data
-            void* addrlist[16 + 1];
-            memset(addrlist, 0, sizeof(addrlist));
-
-            // retrieve current stack addresses
-            int addrlen = backtrace(addrlist, sizeof(addrlist) / sizeof(void*));
-
-            fprintf(stdout,
-                    PPREFIX "profile %zu %p %p %p %p %p %p %p %p %p %p %p %p %p %p %p %p\n",
-                    size,
-                    addrlist[0], addrlist[1], addrlist[2], addrlist[3],
-                    addrlist[4], addrlist[5], addrlist[6], addrlist[7],
-                    addrlist[8], addrlist[9], addrlist[10], addrlist[11],
-                    addrlist[12], addrlist[13], addrlist[14], addrlist[15]);
+            tlx::print_raw_backtrace(
+                stdout, 16, PPREFIX "profile %zu", size);
 
             recursive = false;
         }
-#endif
     }
 
     {
