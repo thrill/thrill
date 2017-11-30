@@ -209,8 +209,8 @@ DIA<IndexRank<Index> > PrefixDoublingPack(
 
         // calculate number of characters fit into the bits of an Index, and the
         // next iteration
-        const size_t input_bit_size = tlx::integer_log2_ceil(alphabet_size);
-        const size_t k_fitting = 8 * sizeof(Index) / input_bit_size;
+        size_t input_bit_size = tlx::integer_log2_ceil(alphabet_size);
+        size_t k_fitting = 8 * sizeof(Index) / input_bit_size;
         iteration = tlx::integer_log2_floor(k_fitting);
 
         if (input_dia.ctx().my_rank() == 0) {
