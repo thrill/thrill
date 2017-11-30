@@ -37,7 +37,7 @@ public:
     template <typename ParentDIA>
     SampleNode(const ParentDIA& parent, size_t sample_size)
         : Super(parent.ctx(), "Sample", { parent.id() }, { parent.node() }),
-          sample_size_(sample_size)
+          sample_size_(sample_size), count_(0)
     {
         samples_.reserve(sample_size);
 
@@ -54,12 +54,17 @@ public:
         return sample_size_ * sizeof(ValueType);
     }
 
+    // This implements J. Vitter's Algorithm R for reservoir sampling
     void PreOp(const ValueType& input) {
+        ++count_;
         if (samples_.size() < sample_size_) {
-            samples_.emplace_back(input);
+            samples_.push_back(input);
         }
         else {
-            samples_[rng_() % samples_.size()] = input;
+            size_t pos = rng_() % count_;
+            if (pos < sample_size_) {
+                samples_[pos] = input;
+            }
         }
     }
 
@@ -81,11 +86,14 @@ public:
         // globally select random samples among samples_
         typename std::vector<ValueType>::iterator it = samples_.begin();
 
+        // XXX THIS DOES NOT PRODUCE A RANDOM SAMPLE! SAMPLING THE LOCAL SAMPLES
+        // ISN'T A CORRECT SAMPLING ALGORITHM! THIS NEEDS TO USE HYPERGEOMETRIC
+        // DEVIATES TO DETERMINE BOUNDARIES (ALSO DEPENDANT ON count_)
         for (size_t i = 0; i < sample_size_; ++i) {
-            size_t r = rng_() % sample_size_;
+            size_t r = rng_() % global_size;
             if (r < local_rank || r >= local_rank + local_size) continue;
 
-            // swap selected item to front.
+            // swap selected item to front. WTF NO THIS IS WRONG
             using std::swap;
             if (it < samples_.end()) {
                 swap(*it, samples_[r - local_rank]);
@@ -119,7 +127,11 @@ public:
     }
 
 private:
+    //! Size of the sample
     size_t sample_size_;
+
+    //! Number of values seen so far
+    size_t count_;
 
     //! local samples
     std::vector<ValueType> samples_;
