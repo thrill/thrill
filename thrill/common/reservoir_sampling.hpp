@@ -4,6 +4,7 @@
  * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2017 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2017 Lorenz Hübschle-Schneider <lorenz@4z2.de>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
@@ -26,13 +27,13 @@ namespace common {
  * reservoir size is fixed, new items replace old ones such that all items in
  * the stream are sampled with the same uniform probability.
  */
-template <typename Type>
+template <typename Type, typename RNG = std::default_random_engine>
 class ReservoirSampling
 {
 public:
     //! initialize reservoir sampler
     ReservoirSampling(size_t size, std::vector<Type>& samples,
-                      std::default_random_engine& rng)
+                      RNG& rng)
         : size_(size), samples_(samples), rng_(rng) {
         samples_.reserve(size_);
     }
@@ -69,24 +70,27 @@ private:
     //! reservoir
     std::vector<Type> samples_;
     //! source of randomness
-    std::default_random_engine& rng_;
+    RNG& rng_;
 };
 
 /*!
- * Implementation of a fast approximation of reservoir sampling using
- * http://erikerlandson.github.io/blog/2015/11/20/very-fast-reservoir-sampling/
- * The reservoir size is fixed, new items replace old ones such that all items
- * in the stream are sampled with the same uniform probability.
+ * Fast exact implementation of reservoir sampling using skip values. Algorithm
+ * L from Kim-Hung Li: Reservoir Sampling Algorithms of Time Complexity
+ * O(n(1+log(N/n))), ACM TOMS 1994. The reservoir size is fixed, new items
+ * replace old ones such that all items in the stream are sampled with the same
+ * uniform probability.
  */
-template <typename Type>
+template <typename Type, typename RNG = std::default_random_engine>
 class ReservoirSamplingFast
 {
 public:
     //! initialize reservoir sampler
     ReservoirSamplingFast(size_t size, std::vector<Type>& samples,
-                          std::default_random_engine& rng)
+                          RNG& rng)
         : size_(size), samples_(samples), rng_(rng) {
         samples_.reserve(size_);
+        W_ = std::exp(std::log(uniform(rng_)) / size);
+        gap_ = std::floor(std::log(uniform(rng_)) / std::log(1-W_));
     }
 
     //! visit item, maybe add it to the sample.
@@ -99,22 +103,22 @@ public:
             }
             else {
                 // use Vitter's algorithm for small count_
-                size_t x = rng_() % count_;
+                size_t x = uniform(rng_) * count_;
                 if (x < size_)
                     samples_[x] = item;
 
                 // when count_ reaches 4 * size_ switch to gap algorithm
                 if (count_ == 4 * size_)
-                    gap_ = calc_next_gap();
+                    calc_next_gap();
             }
         }
         else if (gap_ == 0) {
             // gap elapsed, this item is a sample
-            size_t x = rng_() % size_;
+            size_t x = uniform(rng_) * size_;
             samples_[x] = item;
 
             // pick gap size: the next gap_ items are not samples
-            gap_ = calc_next_gap();
+            calc_next_gap();
         }
         else {
             --gap_;
@@ -135,26 +139,22 @@ private:
     size_t size_;
     //! number of items seen
     size_t count_ = 0;
-    //! source of randomness
+    //! number of items to skip until next sample
     size_t gap_;
+    //! random value for gap calculation, distribution: largest value in a
+    //! sample of Uniform(0, old_W) of size size_, where old_W is 1 initially
+    double W_;
     //! reservoir
     std::vector<Type>& samples_;
     //! source of randomness
-    std::default_random_engine& rng_;
+    RNG& rng_;
+    //! uniform [0.0, 1.0) distribution
+    std::uniform_real_distribution<double> uniform;
 
     //! draw gap size from geometric distribution with p = size_ / count_
-    size_t calc_next_gap() {
-        if (0) {
-            // this is slower than the simpler approximation below
-            return std::geometric_distribution<size_t>(
-                static_cast<double>(size_) / static_cast<double>(count_))(rng_);
-        }
-        else {
-            // generate a geometric distributed variant with p = size_ / count_
-            double p = static_cast<double>(size_) / static_cast<double>(count_);
-            double u = std::uniform_real_distribution<double>()(rng_);
-            return std::floor(std::log(u) / std::log(1 - p));
-        }
+    void calc_next_gap() {
+        W_ *= std::exp(std::log(uniform(rng_)) / size_);
+        gap_ = std::log(uniform(rng_)) / std::log(1 - W_);
     }
 };
 
@@ -169,7 +169,7 @@ private:
  * item to expand the array. This works well enough if growing steps become
  * rarer for larger streams.
  */
-template <typename Type>
+template <typename Type, typename RNG = std::default_random_engine>
 class ReservoirSamplingGrow
 {
     static constexpr bool debug = false;
@@ -177,7 +177,7 @@ class ReservoirSamplingGrow
 public:
     //! initialize reservoir sampler
     ReservoirSamplingGrow(std::vector<Type>& samples,
-                          std::default_random_engine& rng,
+                          RNG& rng,
                           double desired_imbalance = 0.05)
         : samples_(samples), rng_(rng), desired_imbalance_(desired_imbalance)
     { }
@@ -290,7 +290,7 @@ private:
     //! reservoir
     std::vector<Type>& samples_;
     //! source of randomness
-    std::default_random_engine& rng_;
+    RNG& rng_;
 
     //! epsilon imbalance: this reservoir sampling works well for the range 0.5
     //! to 0.01. Imbalance 0.5 results in 79 samples for 1 million items, 0.1 in
