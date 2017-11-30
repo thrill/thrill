@@ -16,6 +16,7 @@
 #include <thrill/api/dop_node.hpp>
 #include <thrill/common/hypergeometric_distribution.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/common/sampling.hpp>
 #include <thrill/common/reservoir_sampling.hpp>
 
 #include <tlx/math.hpp>
@@ -169,12 +170,9 @@ public:
             sLOG << "Drawing" << local_samples_ << "samples locally from"
                  << samples_.size() << "pre-samples";
             std::vector<ValueType> subsample;
-            common::ReservoirSamplingFast<ValueType, decltype(rng_)> subsampler(
-                local_samples_, subsample, rng_);
-            for (const ValueType& v : samples_) {
-                subsampler.add(v);
-            }
-            // cast the const'ness away, subsampler is dead afterwards
+            common::Sampling<> subsampler(rng_);
+            subsampler(samples_.begin(), samples_.end(),
+                       local_samples_, subsample);
             samples_.swap(subsample);
             LOGC(samples_.size() != local_samples_)
                 << "ERROR: SAMPLE SIZE IS WRONG";
