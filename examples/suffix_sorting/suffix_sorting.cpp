@@ -3,7 +3,7 @@
  *
  * Part of Project Thrill - http://project-thrill.org
  *
- * Copyright (C) 2016 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2016-2017 Timo Bingmann <tb@panthema.net>
  * Copyright (C) 2016 Florian Kurpicz <florian.kurpicz@tu-dortmund.de>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
@@ -195,20 +195,28 @@ public:
         else if (algorithm_ == "dc7") {
             suffix_array = DC7<Index>(input_dia.Keep(), input_size, 256);
         }
-        else if (algorithm_ == "de") {
-            suffix_array = PrefixDoublingDementiev<Index>(input_dia.Keep(), input_size, pack_input_);
+        else if (algorithm_ == "pdw") {
+            suffix_array = PrefixDoublingWindow<Index>(
+                input_dia.Keep(), input_size, pack_input_);
+        }
+        else if (algorithm_ == "pds") {
+            suffix_array = PrefixDoublingSorting<Index>(
+                input_dia.Keep(), input_size, pack_input_);
         }
         else if (algorithm_ == "dis") {
-            suffix_array = PrefixDoublingDiscardingDementiev<Index>(input_dia.Keep(), input_size, pack_input_);
+            suffix_array = PrefixDoublingDiscarding<Index>(
+                input_dia.Keep(), input_size, pack_input_);
         }
         else if (algorithm_ == "q") {
-            suffix_array = PrefixQuadrupling<Index>(input_dia.Keep(), input_size, pack_input_);
+            suffix_array = PrefixQuadrupling<Index>(
+                input_dia.Keep(), input_size, pack_input_);
         }
         else if (algorithm_ == "qd") {
-            suffix_array = PrefixQuadruplingDiscarding<Index>(input_dia.Keep(), input_size, pack_input_);
+            suffix_array = PrefixQuadruplingDiscarding<Index>(
+                input_dia.Keep(), input_size, pack_input_);
         }
         else {
-            suffix_array = PrefixDoubling<Index>(input_dia.Keep(), input_size, pack_input_);
+            die("Unknown algorithm \"" << algorithm_ << "\"");
         }
 
         suffix_array.Execute();
@@ -289,7 +297,8 @@ int main(int argc, char* argv[]) {
     cp.add_string('a', "algorithm", ss.algorithm_,
                   "The algorithm which is used to construct the suffix array. "
                   "Available are: "
-                  "[fl]ick (default), [de]mentiev, dementiev with [dis]carding, "
+                  "[pdw]indow (default), [pds]orting, "
+                  "prefix doubling with [dis]carding, "
                   "[q]uadrupling, [qd] quadrupling with carding, "
                   "[dc3], and [dc7]");
 

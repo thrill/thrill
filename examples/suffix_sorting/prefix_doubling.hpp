@@ -19,15 +19,15 @@ namespace suffix_sorting {
 
 template <typename Index, typename InputDIA>
 thrill::DIA<Index>
-PrefixDoubling(const InputDIA& input_dia, size_t input_size, bool packed);
+PrefixDoublingWindow(const InputDIA& input_dia, size_t input_size, bool packed);
 
 template <typename Index, typename InputDIA>
 thrill::DIA<Index>
-PrefixDoublingDementiev(const InputDIA& input_dia, size_t input_size, bool packed);
+PrefixDoublingSorting(const InputDIA& input_dia, size_t input_size, bool packed);
 
 template <typename Index, typename InputDIA>
 thrill::DIA<Index>
-PrefixDoublingDiscardingDementiev(const InputDIA& input_dia, size_t input_size, bool packed);
+PrefixDoublingDiscarding(const InputDIA& input_dia, size_t input_size, bool packed);
 
 } // namespace suffix_sorting
 } // namespace examples

@@ -24,16 +24,16 @@ thrill_build_prog(rl_bwt)
 thrill_build_prog(just_sort)
 
 thrill_test_multiple(prefix_doubling1_aaa
-  suffix_sorting -c -s 10000 -a fl unary)
+  suffix_sorting -c -s 10000 -a pdw unary)
 
 thrill_test_multiple(prefix_doubling1_random
-  suffix_sorting -c -s 100000 -a fl random)
+  suffix_sorting -c -s 100000 -a pdw random)
 
 thrill_test_multiple(prefix_doubling2_aaa
-  suffix_sorting -c -s 10000 -a de unary)
+  suffix_sorting -c -s 10000 -a pds unary)
 
 thrill_test_multiple(prefix_doubling2_random
-  suffix_sorting -c -s 100000 -a de random)
+  suffix_sorting -c -s 100000 -a pds random)
 
 thrill_test_multiple(prefix_doubling3_aaa
   suffix_sorting -c -s 10000 -a dis unary)
