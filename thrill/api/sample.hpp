@@ -43,44 +43,30 @@ public:
     template <typename ParentDIA>
     SampleNode(const ParentDIA& parent, size_t sample_size)
         : Super(parent.ctx(), "Sample", { parent.id() }, { parent.node() }),
-          sample_size_(sample_size), hyp_(42 /* dummy seed */),
+          local_size_(0), sample_size_(sample_size), local_samples_(0),
+          hyp_(42 /* dummy seed */),
+          sampler_(sample_size, samples_, rng_),
           parent_stack_empty_(ParentDIA::stack_empty)
     {
         auto save_fn = [this](const ValueType& input) {
-            writer_.Put(input);
+            ++local_size_;
+            sampler_.add(input);
         };
         auto lop_chain = parent.stack().push(save_fn).fold();
         parent.node()->AddChild(this, lop_chain);
     }
 
-    bool OnPreOpFile(const data::File& file, size_t /* parent_index */) final {
-        if (!parent_stack_empty_) {
-            LOGC(common::g_debug_push_file)
-                << "Sample rejected File from parent "
-                << "due to non-empty function stack.";
-            return false;
-        }
-        assert(file_.num_items() == 0);
-        file_ = file.Copy();
-        return true;
-    }
-
-    void StopPreOp(size_t /* id */) final {
-        // Push local elements to children
-        writer_.Close();
-    }
-
     void Execute() final {
         local_timer_.Start();
-        const size_t local_size = file_.num_items();
-        sLOG << "SampleNode::Execute() processing" << local_size
-             << "elements, sample size =" << sample_size_;
+        sLOG << "SampleNode::Execute() processing" << local_size_
+             << "elements of which" << samples_.size()
+             << "were presampled, global sample size =" << sample_size_;
 
         const size_t my_rank = context_.my_rank();
         const size_t num_workers = context_.num_workers();
 
         if (num_workers == 1) {
-            sample_size_ = std::min(sample_size_, local_size);
+            sample_size_ = std::min(sample_size_, local_size_);
             local_samples_ = sample_size_;
             sLOG << "SampleNode::Execute (alone) => all"
                  << local_samples_ << "samples";
@@ -89,7 +75,7 @@ public:
 
         // + 1 for the seed to avoid an extra broadcast
         std::vector<size_t> input_sizes(num_workers + 1);
-        input_sizes[my_rank] = local_size;
+        input_sizes[my_rank] = local_size_;
         if (context_.my_rank() == 0) { // set the seed
             input_sizes[num_workers] = std::random_device{}();
         }
@@ -124,7 +110,7 @@ public:
         if (/* total input size = */ tree[0] < sample_size_) {
             // more samples requested than there are elements
             sample_size_ = tree[0];
-            local_samples_ = local_size;
+            local_samples_ = local_size_;
             sLOG << "SampleNode::Execute (underfull)"
                  << local_samples_ << "of" << sample_size_ << "samples";
             return;
@@ -157,45 +143,50 @@ public:
                 index = 2 * index + 1;
                 total = left;
             }
+            if (total == 0) break;
         }
 
         local_samples_ = total;
-        assert(local_size <= local_samples_);
+        assert(local_samples_ <= local_size_);
+        assert(local_samples_ <= samples_.size());
 
         local_timer_.Stop();
         sLOG << "SampleNode::Execute"
              << local_samples_ << "of" << sample_size_ << "samples"
+             << "(got" << local_size_ << "=>"
+             << samples_.size() << "elements),"
              << "communication time:" << comm_timer_.Microseconds() / 1000.0;
     }
 
     void PushData(bool consume) final {
         local_timer_.Start();
-        samples_.clear();
 
-        const size_t local_size = file_.num_items();
-        if (local_samples_ == local_size) {
-            LOG << "Sample: returning all local items";
-            auto reader = file_.GetReader(consume);
-            local_timer_.Stop(); // don't measure PushItem
-            while (reader.HasNext()) {
-                this->PushItem(reader.template Next<ValueType>());
-            }
-        } else {
+        sLOGC(local_samples_ > samples_.size())
+            << "WTF ERROR CAN'T DRAW" << local_samples_ << "FROM"
+            << samples_.size() << "PRESAMPLES";
+
+        if (local_samples_ < samples_.size()) {
             sLOG << "Drawing" << local_samples_ << "samples locally from"
-                 << local_size << "input elements";
-            common::ReservoirSamplingFast<ValueType> sampler(
-                local_samples_, samples_, rng_);
-
-            auto reader = file_.GetReader(consume);
-            while (reader.HasNext()) {
-                sampler.add(reader.template Next<ValueType>());
+                 << samples_.size() << "pre-samples";
+            std::vector<ValueType> subsample;
+            common::ReservoirSamplingFast<ValueType, decltype(rng_)> subsampler(
+                local_samples_, subsample, rng_);
+            for (const ValueType& v : samples_) {
+                subsampler.add(v);
             }
-            local_timer_.Stop(); // don't measure PushItem
-
-            for (const ValueType& v : sampler.samples()) {
-                this->PushItem(v);
-            }
+            // cast the const'ness away, subsampler is dead afterwards
+            samples_.swap(subsample);
+            LOGC(samples_.size() != local_samples_)
+                << "ERROR: SAMPLE SIZE IS WRONG";
         }
+        local_timer_.Stop(); // don't measure PushItem
+
+        for (const ValueType& v : samples_) {
+            this->PushItem(v);
+        }
+        if (consume)
+            std::vector<ValueType>().swap(samples_);
+
         sLOG << "SampleNode::PushData finished; total local time excl PushData:"
              << local_timer_.Microseconds() / 1000.0
              << "ms, communication:" << comm_timer_.Microseconds() / 1000.0
@@ -205,22 +196,20 @@ public:
     }
 
     void Dispose() final {
-        file_.Clear();
+        std::vector<ValueType>().swap(samples_);
     }
 
 private:
-    //! Local data file
-    data::File file_ { context_.GetFile(this) };
-    //! Data writer to local file (only active in PreOp).
-    data::File::Writer writer_ { file_.GetWriter() };
-    //! number of samples to draw globally
-    size_t sample_size_, local_samples_;
+    //! local input size, number of samples to draw globally, and locally
+    size_t local_size_, sample_size_, local_samples_;
     //! local samples
     std::vector<ValueType> samples_;
     //! Hypergeometric distribution to calculate local sample sizes
     common::hypergeometric hyp_;
     //! Random generator for reservoir sampler
-    std::default_random_engine rng_ { std::random_device { } () };
+    std::mt19937 rng_ { std::random_device { } () };
+    //! Reservoir sampler for pre-op
+    common::ReservoirSamplingFast<ValueType, decltype(rng_)> sampler_;
     //! Timers for local work and communication
     common::StatsTimerStopped local_timer_, comm_timer_;
     //! Whether the parent stack is empty
