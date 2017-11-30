@@ -21,6 +21,7 @@
 #include <tlx/math.hpp>
 
 #include <algorithm>
+#include <cassert>
 #include <vector>
 
 namespace thrill {
@@ -33,6 +34,7 @@ template <typename ValueType>
 class SampleNode final : public DOpNode<ValueType>
 {
     static constexpr bool debug = false;
+    static constexpr bool verbose = false;
 
     using Super = DOpNode<ValueType>;
     using Super::context_;
@@ -69,9 +71,10 @@ public:
     }
 
     void Execute() final {
-        LOG << "SampleNode::Execute() processing";
+        local_timer_.Start();
         const size_t local_size = file_.num_items();
-        sLOG << "local_size" << local_size;
+        sLOG << "SampleNode::Execute() processing" << local_size
+             << "elements, sample size =" << sample_size_;
 
         const size_t my_rank = context_.my_rank();
         const size_t num_workers = context_.num_workers();
@@ -79,46 +82,46 @@ public:
         if (num_workers == 1) {
             sample_size_ = std::min(sample_size_, local_size);
             local_samples_ = sample_size_;
-            sLOG << "SampleNode::Execute (alone)"
-                 << local_samples_ << "of" << sample_size_ << "samples";
-
+            sLOG << "SampleNode::Execute (alone) => all"
+                 << local_samples_ << "samples";
             return;
         }
 
-        std::vector<size_t> input_sizes(num_workers);
+        // + 1 for the seed to avoid an extra broadcast
+        std::vector<size_t> input_sizes(num_workers + 1);
         input_sizes[my_rank] = local_size;
-        // there's no group::all_gather... do it totally naively
-        for (size_t i = 0; i < num_workers; ++i) {
-            input_sizes[i] = context_.net.Broadcast(input_sizes[i], i);
+        if (context_.my_rank() == 0) { // set the seed
+            input_sizes[num_workers] = std::random_device{}();
         }
+        // there's no allgather... fake it with a vector allreduce
+        local_timer_.Stop(), comm_timer_.Start();
+        input_sizes = context_.net.AllReduce(
+            input_sizes, common::ComponentSum<decltype(input_sizes)>());
+        comm_timer_.Stop(), local_timer_.Start();
 
-        // Determine and broadcast seed
-        size_t seed = 0;
-        if (context_.my_rank() == 0) {
-            seed = std::random_device{}();
-        }
-        seed = context_.net.Broadcast(seed, 0);
-        // Seed hypergeometric distribution with the same value on each PE
-        hyp_.seed(seed);
+        // Extract the seed
+        const size_t seed = input_sizes[num_workers];
 
-        // Build size tree
+        // Build size tree (complete binary tree in level order, so that the
+        // children of node i are at positions 2i+1 and 2i+2)
         const size_t num_leaves = tlx::round_up_to_power_of_two(num_workers);
+        const size_t height = tlx::integer_log2_ceil(num_workers);
         std::vector<size_t> tree(2 * num_leaves - 1);
+        // Fill leaf level with input sizes
         for (size_t i = 0; i < num_workers; ++i) {
             tree[num_leaves + i - 1] = input_sizes[i];
         }
-        const size_t height = tlx::integer_log2_ceil(num_workers);
-        for (size_t i = 0; i < height; ++i) {
-            const size_t min = num_leaves / (1ULL << (i + 1)) - 1;
-            for (size_t j = min; j <= 2 * min; ++j) {
-                tree[j] = tree[2 * j + 1] + tree[2 * j + 2];
+        for (size_t level = 0; level < height; ++level) {
+            const size_t min = num_leaves / (1ULL << (level + 1)) - 1;
+            for (size_t i = min; i <= 2 * min; ++i) {
+                tree[i] = tree[2 * i + 1] + tree[2 * i + 2];
             }
         }
 
-        LOG << "Input sizes: " << input_sizes;
-        LOG << "Tree: " << tree;
+        LOGC(verbose) << "Input sizes: " << input_sizes;
+        LOGC(verbose) << "Tree: " << tree;
 
-        if (tree[0] < sample_size_) {
+        if (/* total input size = */ tree[0] < sample_size_) {
             // more samples requested than there are elements
             sample_size_ = tree[0];
             local_samples_ = local_size;
@@ -127,67 +130,78 @@ public:
             return;
         }
 
-        size_t total = sample_size_, base = 1;
-        for (size_t i = 0; i < height; ++i) {
+        // total = #samples to originate from current subtree,
+        // index = current index in tree array
+        size_t total = sample_size_, index = 0;
+        for (size_t level = 0; level < height; ++level) {
             // get hypergeometric deviate. the sequence of calls is exactly the
             // same up to two workers' LCA in the binary tree above all workers,
             // i.e. until they no longer depend on each other
-            hyp_.seed(seed + base);
-            size_t left = hyp_(tree[base], tree[base + 1], total);
+            hyp_.seed(seed + index);
+            size_t left = hyp_(tree[2 * index + 1], tree[2 * index + 2], total);
             // descend into correct branch
-            const bool go_right = my_rank & (1ULL << (height - i - 1));
+            const bool go_right = my_rank & (1ULL << (height - level - 1));
 
-            sLOG << "Level" << i << "distributing" << total << "samples,"
-                 << "base index:" << base
-                 << "left size:" << tree[base] << "right:" << tree[base + 1]
-                 << "result for left:" << left
-                 << "going" << (go_right ? "right" : "left");
+            sLOGC(verbose)
+                << "Level" << level << "distributing" << total << "samples,"
+                << "tree index:" << index
+                << "left subtree size:" << tree[2 * index + 1]
+                << "right:" << tree[2 * index + 2]
+                << "=> samples from left:" << left
+                << "going" << (go_right ? "right" : "left");
 
             if (go_right) {
-                base = 2 * base + 3;
+                index = 2 * index + 2;
                 total = total - left;
             } else {
-                base = 2 * base + 1;
+                index = 2 * index + 1;
                 total = left;
             }
         }
 
         local_samples_ = total;
+        assert(local_size <= local_samples_);
 
-        if (local_samples_ > local_size) {
-            sLOG1 << "Sample error: need" << local_samples_ << ">"
-                  << local_size << "(=available) elements from this worker";
-        }
-
+        local_timer_.Stop();
         sLOG << "SampleNode::Execute"
-             << local_samples_ << "of" << sample_size_ << "samples";
+             << local_samples_ << "of" << sample_size_ << "samples"
+             << "communication time:" << comm_timer_.Microseconds() / 1000.0;
     }
 
     void PushData(bool consume) final {
+        local_timer_.Start();
         samples_.clear();
 
         const size_t local_size = file_.num_items();
         if (local_samples_ == local_size) {
             LOG << "Sample: returning all local items";
             auto reader = file_.GetReader(consume);
+            local_timer_.Stop(); // don't measure PushItem
             while (reader.HasNext()) {
                 this->PushItem(reader.template Next<ValueType>());
             }
-            return;
-        }
+        } else {
+            sLOG << "Drawing" << local_samples_ << "samples locally from"
+                 << local_size << "input elements";
+            common::ReservoirSamplingFast<ValueType> sampler(
+                local_samples_, samples_, rng_);
 
-        sLOG << "Drawing" << local_samples_ << "locally from" << local_size;
-        common::ReservoirSamplingFast<ValueType> sampler(
-            local_samples_, samples_, rng_);
+            auto reader = file_.GetReader(consume);
+            while (reader.HasNext()) {
+                sampler.add(reader.template Next<ValueType>());
+            }
+            local_timer_.Stop(); // don't measure PushItem
 
-        auto reader = file_.GetReader(consume);
-        while (reader.HasNext()) {
-            sampler.add(reader.template Next<ValueType>());
+            for (const ValueType& v : sampler.samples()) {
+                this->PushItem(v);
+            }
         }
-
-        for (const ValueType& v : sampler.samples()) {
-            this->PushItem(v);
-        }
+        sLOG << "SampleNode::PushData finished; total local time excl PushData:"
+             << local_timer_.Microseconds() / 1000.0
+             << "ms, communication:" << comm_timer_.Microseconds() / 1000.0
+             << "ms =" << comm_timer_.Microseconds() * 100.0 /
+            (comm_timer_.Microseconds() + local_timer_.Microseconds())
+             << "%";
     }
 
     void Dispose() final {
@@ -205,8 +219,10 @@ private:
     std::vector<ValueType> samples_;
     //! Hypergeometric distribution to calculate local sample sizes
     common::hypergeometric hyp_;
-    //! Random generator for eviction
+    //! Random generator for reservoir sampler
     std::default_random_engine rng_ { std::random_device { } () };
+    //! Timers for local work and communication
+    common::StatsTimerStopped local_timer_, comm_timer_;
     //! Whether the parent stack is empty
     const bool parent_stack_empty_;
 
