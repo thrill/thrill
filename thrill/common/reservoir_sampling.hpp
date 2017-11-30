@@ -68,7 +68,7 @@ private:
     //! number of items seen
     size_t count_ = 0;
     //! reservoir
-    std::vector<Type> samples_;
+    std::vector<Type>& samples_;
     //! source of randomness
     RNG& rng_;
 };
