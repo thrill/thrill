@@ -259,6 +259,8 @@ void TalkAllToAllViaCatStream(net::Group* net) {
             /*----------------------------------------------------------------*/
             // check Stream statistics
 
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
             ASSERT_EQ(2 * total_workers, stream->tx_items());
             ASSERT_EQ(2 * total_workers, stream->rx_items());
 
