@@ -29,13 +29,25 @@ namespace thrill {
 namespace api {
 
 /*!
+ * A DIANode which performs sampling *without* replacement.
+ *
+ * The implementation is an adaptation of Algorithm P from Sanders, Lamm,
+ * Hübschle-Schneider, Schrade, Dachsbacher, ACM TOMS 2017: "Efficient Random
+ * Sampling - Parallel, Vectorized, Cache-Efficient, and Online".  The
+ * modification is in how samples are assigned to workers.  Instead of doing
+ * log(num_workers) splits to assign samples to ranges of workers, do
+ * O(log(input_size)) splits to assign samples to input ranges.  Workers only
+ * compute the ranges which overlap their local input range, and then add up the
+ * ranges that are fully contained in their local input range.  This ensures
+ * consistency while requiring only a single prefix-sum and two scalar
+ * broadcasts.
+ *
  * \ingroup api_layer
  */
 template <typename ValueType>
 class SampleNode final : public DOpNode<ValueType>
 {
     static constexpr bool debug = false;
-    static constexpr bool verbose = false;
 
     using Super = DOpNode<ValueType>;
     using Super::context_;
@@ -49,24 +61,21 @@ public:
           sampler_(sample_size, samples_, rng_),
           parent_stack_empty_(ParentDIA::stack_empty)
     {
-        auto save_fn = [this](const ValueType& input) {
-            ++local_size_;
+        auto presample_fn = [this](const ValueType& input) {
             sampler_.add(input);
         };
-        auto lop_chain = parent.stack().push(save_fn).fold();
+        auto lop_chain = parent.stack().push(presample_fn).fold();
         parent.node()->AddChild(this, lop_chain);
     }
 
     void Execute() final {
         local_timer_.Start();
+        local_size_ = sampler_.count();
         sLOG << "SampleNode::Execute() processing" << local_size_
              << "elements of which" << samples_.size()
              << "were presampled, global sample size =" << sample_size_;
 
-        const size_t my_rank = context_.my_rank();
-        const size_t num_workers = context_.num_workers();
-
-        if (num_workers == 1) {
+        if (context_.num_workers() == 1) {
             sample_size_ = std::min(sample_size_, local_size_);
             local_samples_ = sample_size_;
             sLOG << "SampleNode::Execute (alone) => all"
@@ -74,80 +83,35 @@ public:
             return;
         }
 
-        // + 1 for the seed to avoid an extra broadcast
-        std::vector<size_t> input_sizes(num_workers + 1);
-        input_sizes[my_rank] = local_size_;
-        if (context_.my_rank() == 0) { // set the seed
-            input_sizes[num_workers] = std::random_device{}();
-        }
-        // there's no allgather... fake it with a vector allreduce
-        local_timer_.Stop(), comm_timer_.Start();
-        input_sizes = context_.net.AllReduce(
-            input_sizes, common::ComponentSum<decltype(input_sizes)>());
-        comm_timer_.Stop(), local_timer_.Start();
+        // Compute number of input elements left of self and total input size
+        size_t local_rank = local_size_;
+        size_t global_size = context_.net.ExPrefixSumTotal(local_rank);
 
-        // Extract the seed
-        const size_t seed = input_sizes[num_workers];
-
-        // Build size tree (complete binary tree in level order, so that the
-        // children of node i are at positions 2i+1 and 2i+2)
-        const size_t num_leaves = tlx::round_up_to_power_of_two(num_workers);
-        const size_t height = tlx::integer_log2_ceil(num_workers);
-        std::vector<size_t> tree(2 * num_leaves - 1);
-        // Fill leaf level with input sizes
-        for (size_t i = 0; i < num_workers; ++i) {
-            tree[num_leaves + i - 1] = input_sizes[i];
-        }
-        for (size_t level = 0; level < height; ++level) {
-            const size_t min = num_leaves / (1ULL << (level + 1)) - 1;
-            for (size_t i = min; i <= 2 * min; ++i) {
-                tree[i] = tree[2 * i + 1] + tree[2 * i + 2];
-            }
-        }
-
-        LOGC(verbose) << "Input sizes: " << input_sizes;
-        LOGC(verbose) << "Tree: " << tree;
-
-        if (/* total input size = */ tree[0] < sample_size_) {
-            // more samples requested than there are elements
-            sample_size_ = tree[0];
+        if (global_size <= sample_size_) {
+            // Requested sample is larger than the number of elements,
+            // return everything
+            assert(samples_.size() == local_size_);
             local_samples_ = local_size_;
             sLOG << "SampleNode::Execute (underfull)"
                  << local_samples_ << "of" << sample_size_ << "samples";
             return;
         }
 
-        // total = #samples to originate from current subtree,
-        // index = current index in tree array
-        size_t total = sample_size_, index = 0;
-        for (size_t level = 0; level < height; ++level) {
-            // get hypergeometric deviate. the sequence of calls is exactly the
-            // same up to two workers' LCA in the binary tree above all workers,
-            // i.e. until they no longer depend on each other
-            hyp_.seed(seed + index);
-            size_t left = hyp_(tree[2 * index + 1], tree[2 * index + 2], total);
-            // descend into correct branch
-            const bool go_right = my_rank & (1ULL << (height - level - 1));
-
-            sLOGC(verbose)
-                << "Level" << level << "distributing" << total << "samples,"
-                << "tree index:" << index
-                << "left subtree size:" << tree[2 * index + 1]
-                << "right:" << tree[2 * index + 2]
-                << "=> samples from left:" << left
-                << "going" << (go_right ? "right" : "left");
-
-            if (go_right) {
-                index = 2 * index + 2;
-                total = total - left;
-            } else {
-                index = 2 * index + 1;
-                total = left;
-            }
-            if (total == 0) break;
+        // Determine and broadcast seed
+        size_t seed = 0;
+        if (context_.my_rank() == 0) {
+            seed = std::random_device{}();
         }
+        local_timer_.Stop(), comm_timer_.Start();
+        seed = context_.net.Broadcast(seed);
+        comm_timer_.Stop(), local_timer_.Start();
 
-        local_samples_ = total;
+        // Calculate number of local samples by recursively splitting the range
+        // considered in half and assigning samples there
+        local_samples_ = calc_local_samples(
+            local_rank, local_rank + local_size_,
+            0, global_size, sample_size_, seed);
+
         assert(local_samples_ <= local_size_);
         assert(local_samples_ <= samples_.size());
 
@@ -166,6 +130,8 @@ public:
             << "WTF ERROR CAN'T DRAW" << local_samples_ << "FROM"
             << samples_.size() << "PRESAMPLES";
 
+        // Most likely, we'll need to draw the requested number of samples from
+        // the presample that we computed in the PreOp
         if (local_samples_ < samples_.size()) {
             sLOG << "Drawing" << local_samples_ << "samples locally from"
                  << samples_.size() << "pre-samples";
@@ -198,6 +164,67 @@ public:
     }
 
 private:
+    size_t hash_combine(size_t seed, size_t v) {
+        // technically v needs to be hashed...
+        return seed ^ (v + 0x9e3779b9 + (seed << 6) + (seed >> 2));
+    }
+
+    // ranges are exclusive, like iterator begin / end
+    size_t calc_local_samples(size_t my_begin, size_t my_end,
+                              size_t range_begin, size_t range_end,
+                              size_t sample_size, size_t seed) {
+        // handle empty ranges and case without any samples
+        if (range_begin >= range_end) return 0;
+        if (my_begin >= my_end) return 0;
+        if (sample_size == 0) return 0;
+
+        // is the range contained in my part? then all samples are mine
+        if (my_begin <= range_begin && range_end <= my_end) {
+            LOG << "my range [" << my_begin << ", " << my_end
+                << ") is contained in the currently considered range ["
+                << range_begin << ", " << range_end << ") and thus gets all "
+                << sample_size << " samples";
+            return sample_size;
+        }
+
+        // does my range overlap the global range?
+        if ((range_begin <= my_begin && my_begin <  range_end) ||
+            (range_begin <  my_end   && my_end   <= range_end)) {
+
+            // seed the distribution so that all PEs generate the same values in
+            // the same subtrees, but different values in different subtrees
+            size_t new_seed = hash_combine(hash_combine(seed, range_begin),
+                                           range_end);
+            hyp_.seed(new_seed);
+
+            const size_t left_size = (range_end - range_begin) / 2,
+                right_size = (range_end - range_begin) - left_size;
+            const size_t left_samples = hyp_(left_size, right_size, sample_size);
+
+            LOG << "my range [" << my_begin << ", " << my_end
+                << ") overlaps the currently considered range ["
+                << range_begin << ", " << range_end << "), splitting: "
+                << "left range [" << range_begin << ", " << range_begin + left_size
+                << ") gets " << left_samples << " samples, right range ["
+                << range_begin + left_size << ", " << range_end << ") the remaining "
+                << sample_size - left_samples << " for a total of " << sample_size
+                << " samples";
+
+            const size_t
+                left_result = calc_local_samples(
+                    my_begin, my_end, range_begin, range_begin + left_size,
+                    left_samples, seed),
+                right_result = calc_local_samples(
+                    my_begin, my_end, range_begin + left_size, range_end,
+                    sample_size - left_samples, seed);
+            return left_result + right_result;
+        }
+
+        // no overlap
+        return 0;
+    }
+
+
     //! local input size, number of samples to draw globally, and locally
     size_t local_size_, sample_size_, local_samples_;
     //! local samples
