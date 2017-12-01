@@ -669,8 +669,15 @@ DIA<Index> DC3(const InputDIA& input_dia, size_t input_size, size_t K) {
 template DIA<uint32_t> DC3<uint32_t>(
     const DIA<uint8_t>& input_dia, size_t input_size, size_t K);
 
-// template DIA<common::uint40> DC3<common::uint40>(
-//     const DIA<uint8_t>& input_dia, size_t input_size, size_t K);
+#if !THRILL_ON_TRAVIS
+
+template DIA<common::uint40> DC3<common::uint40>(
+    const DIA<uint8_t>& input_dia, size_t input_size, size_t K);
+
+template DIA<uint64_t> DC3<uint64_t>(
+    const DIA<uint8_t>& input_dia, size_t input_size, size_t K);
+
+#endif
 
 } // namespace suffix_sorting
 } // namespace examples

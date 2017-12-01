@@ -875,14 +875,24 @@ DIA<Index> PrefixQuadrupling(const InputDIA& input_dia, size_t input_size, bool 
 template DIA<uint32_t> PrefixQuadrupling<uint32_t>(
     const DIA<uint8_t>& input_dia, size_t input_size, bool packed);
 
-template DIA<common::uint40> PrefixQuadrupling<common::uint40>(
+template DIA<uint32_t> PrefixQuadruplingDiscarding<uint32_t>(
     const DIA<uint8_t>& input_dia, size_t input_size, bool packed);
 
-template DIA<uint32_t> PrefixQuadruplingDiscarding<uint32_t>(
+#if !THRILL_ON_TRAVIS
+
+template DIA<common::uint40> PrefixQuadrupling<common::uint40>(
     const DIA<uint8_t>& input_dia, size_t input_size, bool packed);
 
 template DIA<common::uint40> PrefixQuadruplingDiscarding<common::uint40>(
     const DIA<uint8_t>& input_dia, size_t input_size, bool packed);
+
+template DIA<uint64_t> PrefixQuadrupling<uint64_t>(
+    const DIA<uint8_t>& input_dia, size_t input_size, bool packed);
+
+template DIA<uint64_t> PrefixQuadruplingDiscarding<uint64_t>(
+    const DIA<uint8_t>& input_dia, size_t input_size, bool packed);
+
+#endif
 
 } // namespace suffix_sorting
 } // namespace examples

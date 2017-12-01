@@ -832,20 +832,33 @@ DIA<Index> PrefixDoublingDiscarding(
 template DIA<uint32_t> PrefixDoublingWindow<uint32_t>(
     const DIA<uint8_t>& input_dia, size_t input_size, bool packed);
 
-template DIA<common::uint40> PrefixDoublingWindow<common::uint40>(
-    const DIA<uint8_t>& input_dia, size_t input_size, bool packed);
-
 template DIA<uint32_t> PrefixDoublingSorting<uint32_t>(
-    const DIA<uint8_t>& input_dia, size_t input_size, bool packed);
-
-template DIA<common::uint40> PrefixDoublingSorting<common::uint40>(
     const DIA<uint8_t>& input_dia, size_t input_size, bool packed);
 
 template DIA<uint32_t> PrefixDoublingDiscarding<uint32_t>(
     const DIA<uint8_t>& input_dia, size_t input_size, bool packed);
 
+#if !THRILL_ON_TRAVIS
+
+template DIA<common::uint40> PrefixDoublingWindow<common::uint40>(
+    const DIA<uint8_t>& input_dia, size_t input_size, bool packed);
+
+template DIA<common::uint40> PrefixDoublingSorting<common::uint40>(
+    const DIA<uint8_t>& input_dia, size_t input_size, bool packed);
+
 template DIA<common::uint40> PrefixDoublingDiscarding<common::uint40>(
     const DIA<uint8_t>& input_dia, size_t input_size, bool packed);
+
+template DIA<uint64_t> PrefixDoublingWindow<uint64_t>(
+    const DIA<uint8_t>& input_dia, size_t input_size, bool packed);
+
+template DIA<uint64_t> PrefixDoublingSorting<uint64_t>(
+    const DIA<uint8_t>& input_dia, size_t input_size, bool packed);
+
+template DIA<uint64_t> PrefixDoublingDiscarding<uint64_t>(
+    const DIA<uint8_t>& input_dia, size_t input_size, bool packed);
+
+#endif
 
 } // namespace suffix_sorting
 } // namespace examples
