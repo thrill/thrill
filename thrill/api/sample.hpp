@@ -124,7 +124,8 @@ public:
     }
 
     void PushData(bool consume) final {
-        local_timer_.Start();
+        // don't start global timer in pushdata!
+        common::StatsTimerStart push_timer;
 
         sLOGC(local_samples_ > samples_.size())
             << "WTF ERROR CAN'T DRAW" << local_samples_ << "FROM"
@@ -143,7 +144,8 @@ public:
             LOGC(samples_.size() != local_samples_)
                 << "ERROR: SAMPLE SIZE IS WRONG";
         }
-        local_timer_.Stop(); // don't measure PushItem
+        push_timer.Stop(); // don't measure PushItem
+        local_timer_ += push_timer;
 
         for (const ValueType& v : samples_) {
             this->PushItem(v);
