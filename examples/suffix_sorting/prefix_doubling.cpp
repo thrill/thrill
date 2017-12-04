@@ -15,16 +15,12 @@
 #include <thrill/api/collapse.hpp>
 #include <thrill/api/dia.hpp>
 #include <thrill/api/generate.hpp>
-#include <thrill/api/max.hpp>
-#include <thrill/api/merge.hpp>
 #include <thrill/api/prefixsum.hpp>
 #include <thrill/api/print.hpp>
 #include <thrill/api/size.hpp>
 #include <thrill/api/sort.hpp>
-#include <thrill/api/sum.hpp>
 #include <thrill/api/union.hpp>
 #include <thrill/api/window.hpp>
-#include <thrill/api/zip.hpp>
 #include <thrill/common/logger.hpp>
 #include <thrill/common/uint_types.hpp>
 
@@ -327,13 +323,21 @@ DIA<Index> PrefixDoublingSorting(
 
     // count number of duplicate character pairs, these are 0 indicators
     auto number_duplicates =
-        names.Keep()
+        names
         .Filter([](const IndexRank& ir) {
                     return ir.rank == Index(0);
                 })
-        .Size();
+        .SizeFuture();
 
-    if (number_duplicates == 0) {
+    // construct lexnames array by maxing ranks = filling in zeros with names.
+    names =
+        names
+        .PrefixSum(
+            [](const IndexRank& a, const IndexRank& b) {
+                return IndexRank { b.index, std::max(a.rank, b.rank) };
+            });
+
+    if (number_duplicates.get() == 0) {
         if (input_dia.context().my_rank() == 0)
             sLOG1 << "Finished before doubling in loop";
 
@@ -347,18 +351,10 @@ DIA<Index> PrefixDoublingSorting(
         return sa.Collapse();
     }
 
-    // construct lexnames array by maxing ranks = filling in zeros with names.
-    names =
-        names
-        .PrefixSum(
-            [](const IndexRank& a, const IndexRank& b) {
-                return IndexRank { b.index, std::max(a.rank, b.rank) };
-            });
-
     if (debug_print)
         names.Keep().Print("names before loop");
 
-    auto last_number_duplicates = number_duplicates;
+    auto last_number_duplicates = number_duplicates.get();
 
     while (true) {
         // reorder names such that 2^k+i and 2^(k+1)+i are adjacent
@@ -428,19 +424,25 @@ DIA<Index> PrefixDoublingSorting(
             names.Keep().Print("names indicator");
 
         number_duplicates =
-            names.Keep()
+            names
             .Filter([](const IndexRank& ir) {
                         return ir.rank == Index(0);
                     })
-            .Size();
+            .SizeFuture();
+
+        names =
+            names
+            .PrefixSum([](const IndexRank& a, const IndexRank& b) {
+                           return IndexRank { b.index, std::max(a.rank, b.rank) };
+                       });
 
         if (input_dia.context().my_rank() == 0) {
             sLOG1 << "iteration" << iteration - 1
-                  << "duplicates" << number_duplicates;
+                  << "duplicates" << number_duplicates.get();
         }
 
-        if (number_duplicates > last_number_duplicates) {
-            sLOG1 << "number_duplicates" << number_duplicates
+        if (number_duplicates.get() > last_number_duplicates) {
+            sLOG1 << "number_duplicates" << number_duplicates.get()
                   << "last_number_duplicates" << last_number_duplicates;
 
             auto sa =
@@ -452,9 +454,9 @@ DIA<Index> PrefixDoublingSorting(
             return sa.Collapse();
         }
 
-        last_number_duplicates = number_duplicates;
+        last_number_duplicates = number_duplicates.get();
 
-        if (number_duplicates == 0) {
+        if (number_duplicates.get() == 0) {
             auto sa =
                 names
                 .Map([](const IndexRank& ir) {
@@ -463,12 +465,6 @@ DIA<Index> PrefixDoublingSorting(
 
             return sa.Collapse();
         }
-
-        names =
-            names
-            .PrefixSum([](const IndexRank& a, const IndexRank& b) {
-                           return IndexRank { b.index, std::max(a.rank, b.rank) };
-                       });
 
         if (debug_print)
             names.Keep().Print("names");
@@ -491,15 +487,21 @@ DIA<Index> PrefixDoublingWindow(
         input_dia, input_size, packed, iteration);
 
     auto number_duplicates =
-        names.Keep()
+        names
         .Filter([](const IndexRank& ir) {
                     return ir.rank == Index(0);
                 })
-        .Size();
+        .SizeFuture();
+
+    names =
+        names
+        .PrefixSum([](const IndexRank& a, const IndexRank& b) {
+                       return IndexRank { b.index, std::max(a.rank, b.rank) };
+                   });
 
     // The first rank is always 0 and all other duplicates have "rank" 0
     // before we compute the correct new rank.
-    if (number_duplicates == 0) {
+    if (number_duplicates.get() == 0) {
         if (input_dia.context().my_rank() == 0)
             sLOG1 << "Finished before doubling in loop.";
 
@@ -510,12 +512,6 @@ DIA<Index> PrefixDoublingWindow(
                  });
         return sa.Collapse();
     }
-
-    names =
-        names
-        .PrefixSum([](const IndexRank& a, const IndexRank& b) {
-                       return IndexRank { b.index, std::max(a.rank, b.rank) };
-                   });
 
     if (debug_print)
         names.Keep().Print("names");
@@ -561,20 +557,26 @@ DIA<Index> PrefixDoublingWindow(
             names.Keep().Print("names");
 
         number_duplicates =
-            names.Keep()
+            names
             .Filter([](const IndexRank& ir) {
                         return ir.rank == Index(0);
                     })
-            .Size();
+            .SizeFuture();
+
+        names =
+            names
+            .PrefixSum([](const IndexRank& a, const IndexRank& b) {
+                           return IndexRank { b.index, std::max(a.rank, b.rank) };
+                       });
 
         if (input_dia.context().my_rank() == 0) {
             sLOG1 << "iteration" << iteration
                   << "shift_by" << shift_by
-                  << "duplicates" << number_duplicates;
+                  << "duplicates" << number_duplicates.get();
         }
         ++iteration;
 
-        if (number_duplicates == 0) {
+        if (number_duplicates.get() == 0) {
             auto sa =
                 names
                 .Map([](const IndexRank& ir) {
@@ -582,12 +584,6 @@ DIA<Index> PrefixDoublingWindow(
                      });
             return sa.Collapse();
         }
-
-        names =
-            names
-            .PrefixSum([](const IndexRank& a, const IndexRank& b) {
-                           return IndexRank { b.index, std::max(a.rank, b.rank) };
-                       });
 
         if (debug_print)
             names.Keep().Print("names");
