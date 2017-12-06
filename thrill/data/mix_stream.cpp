@@ -27,8 +27,9 @@ MixStreamData::MixStreamData(Multiplexer& multiplexer, const StreamId& id,
                              size_t local_worker_id, size_t dia_id)
     : StreamData(multiplexer, id, local_worker_id, dia_id),
       queue_(multiplexer_.block_pool_, num_workers(),
-             local_worker_id, dia_id)
-{ }
+             local_worker_id, dia_id) {
+    remaining_closing_blocks_ = num_hosts() * workers_per_host();
+}
 
 MixStreamData::~MixStreamData() {
     LOG << "~MixStreamData() deleted";

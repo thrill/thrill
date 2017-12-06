@@ -22,8 +22,7 @@ StreamData::StreamData(Multiplexer& multiplexer, const StreamId& id,
     : id_(id),
       local_worker_id_(local_worker_id),
       dia_id_(dia_id),
-      multiplexer_(multiplexer),
-      remaining_closing_blocks_((num_hosts() - 1) * workers_per_host())
+      multiplexer_(multiplexer)
 { }
 
 StreamData::~StreamData() = default;

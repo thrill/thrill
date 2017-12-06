@@ -28,6 +28,8 @@ CatStreamData::CatStreamData(Multiplexer& multiplexer, const StreamId& id,
                              size_t local_worker_id, size_t dia_id)
     : StreamData(multiplexer, id, local_worker_id, dia_id) {
 
+    remaining_closing_blocks_ = (num_hosts() - 1) * workers_per_host();
+
     queues_.reserve(num_workers());
 
     // construct StreamSink array
