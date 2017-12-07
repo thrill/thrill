@@ -367,6 +367,9 @@ static inline void Initialize() {
         if (r != MPI_SUCCESS)
             throw Exception("Error during MPI_Init_thread()", r);
 
+        if (provided != MPI_THREAD_MULTIPLE)
+            LOG1 << "WARNING: MPI_Init_thread() only provided= " << provided;
+
         // register atexit method
         atexit(&Deinitialize);
     }
