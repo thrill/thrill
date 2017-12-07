@@ -137,7 +137,8 @@ void StreamSink::AppendPinnedBlock(PinnedBlock&& block, bool is_last_block) {
         stream_->tx_int_bytes_ += block.size();
         stream_->tx_int_blocks_++;
 
-        return target_mix_stream_->OnStreamBlock(my_worker_rank(), std::move(block));
+        return target_mix_stream_->OnStreamBlock(
+            my_worker_rank(), block_counter_ - 1, std::move(block));
     }
 
     sem_.wait();
@@ -149,6 +150,7 @@ void StreamSink::AppendPinnedBlock(PinnedBlock&& block, bool is_last_block) {
     header.stream_id = id_;
     header.sender_worker = my_worker_rank();
     header.receiver_local_worker = peer_local_worker_;
+    header.seq = block_counter_ - 1;
     header.is_last_block = is_last_block;
 
     net::BufferBuilder bb;
@@ -209,7 +211,8 @@ void StreamSink::Close() {
     if (target_mix_stream_) {
         // StreamData statistics for internal transfer
         stream_->tx_int_blocks_++;
-        return target_mix_stream_->OnCloseStream(my_worker_rank());
+        return target_mix_stream_->OnStreamBlock(
+            my_worker_rank(), block_counter_ - 1, PinnedBlock());
     }
 
     // wait for the last Blocks to be transmitted (take away semaphore tokens)
@@ -221,6 +224,7 @@ void StreamSink::Close() {
     header.stream_id = id_;
     header.sender_worker = (host_rank_ * workers_per_host()) + local_worker_id_;
     header.receiver_local_worker = peer_local_worker_;
+    header.seq = block_counter_ - 1;
 
     net::BufferBuilder bb;
     header.Serialize(bb);

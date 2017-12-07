@@ -64,7 +64,7 @@ public:
         sizeof(MagicByte) + 3 * sizeof(uint32_t);
 
     static constexpr size_t total_size =
-        header_size + 3 * sizeof(size_t);
+        header_size + sizeof(size_t) + 3 * sizeof(uint32_t);
 } TLX_ATTRIBUTE_PACKED;
 
 static_assert(sizeof(MultiplexerHeader) == MultiplexerHeader::header_size,
@@ -81,13 +81,16 @@ class StreamMultiplexerHeader : public MultiplexerHeader
 {
 public:
     size_t stream_id = 0;
-    size_t receiver_local_worker = 0;
+    uint32_t receiver_local_worker = 0;
     //! global worker rank of sender
-    size_t sender_worker = 0;
+    uint32_t sender_worker = 0;
+    //! sequence number in Stream
+    uint32_t seq = 0;
 
     StreamMultiplexerHeader() = default;
 
-    explicit StreamMultiplexerHeader(MagicByte m, const PinnedBlock& b)
+    explicit StreamMultiplexerHeader(
+        MagicByte m, const PinnedBlock& b)
         : MultiplexerHeader(m, b) { }
 
     //! Serializes the whole block struct into a buffer
@@ -121,8 +124,10 @@ public:
     size_t partition_set_id = 0;
     // probably needed
     // size_t partition_index = 0;
-    size_t receiver_local_worker = 0;
-    size_t sender_worker = 0;
+    uint32_t receiver_local_worker = 0;
+    uint32_t sender_worker = 0;
+    //! sequence number in Stream
+    uint32_t seq = 0;
 
     PartitionMultiplexerHeader() = default;
 

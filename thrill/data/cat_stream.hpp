@@ -115,6 +115,11 @@ public:
 private:
     bool is_closed_ = false;
 
+    struct SeqReordering;
+
+    //! Block Sequence numbers
+    std::vector<SeqReordering> seq_;
+
     //! BlockQueues to store incoming Blocks with no attached destination.
     std::vector<BlockQueue> queues_;
 
@@ -123,11 +128,9 @@ private:
 
     //! called from Multiplexer when there is a new Block on a
     //! Stream.
-    void OnStreamBlock(size_t from, PinnedBlock&& b);
+    void OnStreamBlock(size_t from, uint32_t seq, PinnedBlock&& b);
 
-    //! called from Multiplexer when a CatStream closed notification was
-    //! received.
-    void OnCloseStream(size_t from);
+    void OnStreamBlockOrdered(size_t from, PinnedBlock&& b);
 
     //! Returns the loopback queue for the worker of this stream.
     BlockQueue * loopback_queue(size_t from_worker_id);

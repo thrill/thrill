@@ -19,6 +19,7 @@
 #include <tlx/string/hexdump.hpp>
 
 #include <algorithm>
+#include <map>
 #include <vector>
 
 namespace thrill {
@@ -31,6 +32,7 @@ CatStreamData::CatStreamData(Multiplexer& multiplexer, const StreamId& id,
     remaining_closing_blocks_ = (num_hosts() - 1) * workers_per_host();
 
     queues_.reserve(num_workers());
+    seq_.resize(num_workers());
 
     // construct StreamSink array
     for (size_t host = 0; host < num_hosts(); ++host) {
@@ -219,7 +221,15 @@ bool CatStreamData::closed() const {
     return closed;
 }
 
-void CatStreamData::OnStreamBlock(size_t from, PinnedBlock&& b) {
+struct CatStreamData::SeqReordering {
+    //! current top sequence number
+    uint32_t                        seq_ = 0;
+
+    //! queue of waiting Blocks, ordered by sequence number
+    std::map<uint32_t, PinnedBlock> waiting_;
+};
+
+void CatStreamData::OnStreamBlock(size_t from, uint32_t seq, PinnedBlock&& b) {
     assert(from < queues_.size());
     rx_timespan_.StartEventually();
 
@@ -227,30 +237,60 @@ void CatStreamData::OnStreamBlock(size_t from, PinnedBlock&& b) {
     rx_net_bytes_ += b.size();
     rx_net_blocks_++;
 
-    sLOG << "OnCatStreamBlock" << b;
+    LOG << "OnCatStreamBlock"
+        << " from=" << from
+        << " seq=" << seq
+        << " b=" << b;
 
     if (debug_data) {
         sLOG << "stream" << id_ << "receive from" << from << ":"
              << tlx::hexdump(b.ToString());
     }
 
-    queues_[from].AppendPinnedBlock(std::move(b), /* is_last_block */ false);
-}
+    if (TLX_UNLIKELY(seq != seq_[from].seq_)) {
+        // sequence mismatch: put into queue
+        die_unless(seq >= seq_[from].seq_);
 
-void CatStreamData::OnCloseStream(size_t from) {
-    assert(from < queues_.size());
-    queues_[from].Close();
+        seq_[from].waiting_.insert(
+            std::make_pair(seq, std::move(b)));
 
-    rx_net_blocks_++;
-
-    sLOG << "OnCatCloseStream from=" << from;
-
-    if (--remaining_closing_blocks_ == 0) {
-        rx_lifetime_.StopEventually();
-        rx_timespan_.StopEventually();
+        return;
     }
 
-    sem_closing_blocks_.signal();
+    OnStreamBlockOrdered(from, std::move(b));
+
+    // try to process additional queued blocks
+    while (seq_[from].waiting_.begin()->first == seq_[from].seq_)
+    {
+        sLOG << "MixStreamData::OnStreamBlock"
+             << "processing delayed block with seq"
+             << seq_[from].waiting_.begin()->first;
+
+        OnStreamBlockOrdered(
+            from, std::move(seq_[from].waiting_.begin()->second));
+
+        seq_[from].waiting_.erase(
+            seq_[from].waiting_.begin());
+    }
+}
+
+void CatStreamData::OnStreamBlockOrdered(size_t from, PinnedBlock&& b) {
+    if (b.IsValid()) {
+        queues_[from].AppendPinnedBlock(std::move(b), /* is_last_block */ false);
+    }
+    else {
+        queues_[from].Close();
+
+        die_unless(remaining_closing_blocks_ > 0);
+        if (--remaining_closing_blocks_ == 0) {
+            rx_lifetime_.StopEventually();
+            rx_timespan_.StopEventually();
+        }
+
+        sem_closing_blocks_.signal();
+    }
+
+    seq_[from].seq_++;
 }
 
 BlockQueue* CatStreamData::loopback_queue(size_t from_worker_id) {

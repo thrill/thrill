@@ -303,14 +303,17 @@ void Multiplexer::OnMultiplexerHeader(Connection& s, net::Buffer&& buffer) {
             sLOG << "end of stream on" << s << "in CatStream" << id
                  << "from worker" << header.sender_worker;
 
-            stream->OnCloseStream(header.sender_worker);
+            stream->OnStreamBlock(
+                header.sender_worker, header.seq, PinnedBlock());
 
             AsyncReadMultiplexerHeader(s);
         }
         else {
             sLOG << "stream header from" << s << "on CatStream" << id
                  << "from worker" << header.sender_worker
-                 << "for local_worker" << local_worker;
+                 << "for local_worker" << local_worker
+                 << "seq" << header.seq
+                 << "size" << header.size;
 
             PinnedByteBlockPtr bytes = block_pool_.AllocateByteBlock(
                 alloc_size, local_worker);
@@ -333,14 +336,17 @@ void Multiplexer::OnMultiplexerHeader(Connection& s, net::Buffer&& buffer) {
             sLOG << "end of stream on" << s << "in MixStream" << id
                  << "from worker" << header.sender_worker;
 
-            stream->OnCloseStream(header.sender_worker);
+            stream->OnStreamBlock(header.sender_worker, header.seq,
+                                  PinnedBlock());
 
             AsyncReadMultiplexerHeader(s);
         }
         else {
             sLOG << "stream header from" << s << "on MixStream" << id
                  << "from worker" << header.sender_worker
-                 << "for local_worker" << local_worker;
+                 << "for local_worker" << local_worker
+                 << "seq" << header.seq
+                 << "size" << header.size;
 
             PinnedByteBlockPtr bytes = block_pool_.AllocateByteBlock(
                 alloc_size, local_worker);
@@ -362,18 +368,19 @@ void Multiplexer::OnCatStreamBlock(
     const CatStreamDataPtr& stream, PinnedByteBlockPtr&& bytes) {
 
     sLOG << "Multiplexer::OnCatStreamBlock()"
-         << "got block" << *bytes << "on" << s
+         << "got block" << *bytes << "seq" << header.seq << "on" << s
          << "in CatStream" << header.stream_id
          << "from worker" << header.sender_worker;
 
     stream->OnStreamBlock(
-        header.sender_worker,
-        PinnedBlock(std::move(bytes), 0, header.size,
+        header.sender_worker, header.seq,
+        PinnedBlock(std::move(bytes), /* begin */ 0, header.size,
                     header.first_item, header.num_items,
                     header.typecode_verify));
 
     if (header.is_last_block)
-        stream->OnCloseStream(header.sender_worker);
+        stream->OnStreamBlock(header.sender_worker, header.seq + 1,
+                              PinnedBlock());
 
     AsyncReadMultiplexerHeader(s);
 }
@@ -383,18 +390,19 @@ void Multiplexer::OnMixStreamBlock(
     const MixStreamDataPtr& stream, PinnedByteBlockPtr&& bytes) {
 
     sLOG << "Multiplexer::OnMixStreamBlock()"
-         << "got block" << *bytes << "on" << s
+         << "got block" << *bytes << "seq" << header.seq << "on" << s
          << "in MixStream" << header.stream_id
          << "from worker" << header.sender_worker;
 
     stream->OnStreamBlock(
-        header.sender_worker,
-        PinnedBlock(std::move(bytes), 0, header.size,
+        header.sender_worker, header.seq,
+        PinnedBlock(std::move(bytes), /* begin */ 0, header.size,
                     header.first_item, header.num_items,
                     header.typecode_verify));
 
     if (header.is_last_block)
-        stream->OnCloseStream(header.sender_worker);
+        stream->OnStreamBlock(header.sender_worker, header.seq + 1,
+                              PinnedBlock());
 
     AsyncReadMultiplexerHeader(s);
 }

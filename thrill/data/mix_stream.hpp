@@ -88,6 +88,11 @@ private:
     //! flag if Close() was completed
     bool is_closed_ = false;
 
+    struct SeqReordering;
+
+    //! Block Sequence numbers
+    std::vector<SeqReordering> seq_;
+
     //! BlockQueue to store incoming Blocks with source.
     MixBlockQueue queue_;
 
@@ -96,11 +101,10 @@ private:
     friend class StreamSink;
 
     //! called from Multiplexer when there is a new Block for this Stream.
-    void OnStreamBlock(size_t from, PinnedBlock&& b);
+    void OnStreamBlock(size_t from, uint32_t seq, PinnedBlock&& b);
 
-    //! called from Multiplexer when a MixStreamData closed notification was
-    //! received.
-    void OnCloseStream(size_t from);
+    //! called to process PinnedBlock in sequence
+    void OnStreamBlockOrdered(size_t from, PinnedBlock&& b);
 };
 
 // we have two types of MixStream smart pointers: one for internal use in the
