@@ -131,10 +131,14 @@ void Connection::SyncRecvSend(const void* send_data, size_t send_size,
 /******************************************************************************/
 // mpi::Group
 
+size_t Group::num_parallel_async() const {
+    return 16;
+}
+
 std::unique_ptr<net::Dispatcher> Group::ConstructDispatcher(
     mem::Manager& mem_manager) const {
     // construct mpi::Dispatcher
-    return std::make_unique<Dispatcher>(mem_manager, group_tag_, num_hosts());
+    return std::make_unique<Dispatcher>(mem_manager, num_hosts());
 }
 
 void Group::Barrier() {

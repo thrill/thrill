@@ -404,7 +404,7 @@ private:
         const WelcomeMsg hello = { thrill_sign, tcp.group_id(), my_rank_ };
 
         dispatcher_.AsyncWriteCopy(
-            tcp, &hello, sizeof(hello),
+            tcp, /* seq */ 0, &hello, sizeof(hello),
             AsyncWriteCallback::make<
                 Construction, &Construction::OnHelloSent>(this));
 
@@ -412,7 +412,7 @@ private:
             << "client " << tcp.peer_id() << " group id " << tcp.group_id();
 
         dispatcher_.AsyncRead(
-            tcp, sizeof(hello),
+            tcp, /* seq */ 0, sizeof(hello),
             AsyncReadBufferCallback::make<
                 Construction, &Construction::OnIncomingWelcome>(this));
 
@@ -495,7 +495,7 @@ private:
         const WelcomeMsg msg_out = { thrill_sign, msg_in->group_id, my_rank_ };
 
         dispatcher_.AsyncWriteCopy(
-            c, &msg_out, sizeof(msg_out),
+            c, /* seq */ 0, &msg_out, sizeof(msg_out),
             AsyncWriteCallback::make<
                 Construction, &Construction::OnHelloSent>(this));
 
@@ -525,7 +525,7 @@ private:
 
         // wait for welcome message from other side
         dispatcher_.AsyncRead(
-            connections_.back(), sizeof(WelcomeMsg),
+            connections_.back(), /* seq */ 0, sizeof(WelcomeMsg),
             AsyncReadBufferCallback::make<
                 Construction, &Construction::OnIncomingWelcomeAndReply>(this));
 

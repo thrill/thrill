@@ -540,7 +540,7 @@ public:
     //! \{
 
     //! asynchronously read n bytes and deliver them to the callback
-    virtual void AsyncRead(Connection& c, size_t size,
+    virtual void AsyncRead(Connection& c, uint32_t /* seq */, size_t size,
                            const AsyncReadBufferCallback& done_cb) {
         assert(c.IsValid());
 
@@ -560,7 +560,7 @@ public:
     }
 
     //! asynchronously read the full ByteBlock and deliver it to the callback
-    virtual void AsyncRead(Connection& c, size_t size,
+    virtual void AsyncRead(Connection& c, uint32_t /* seq */, size_t size,
                            data::PinnedByteBlockPtr&& block,
                            const AsyncReadByteBlockCallback& done_cb) {
         assert(c.IsValid());
@@ -583,7 +583,7 @@ public:
     //! asynchronously write buffer and callback when delivered. The buffer is
     //! MOVED into the async writer.
     virtual void AsyncWrite(
-        Connection& c, Buffer&& buffer,
+        Connection& c, uint32_t /* seq */, Buffer&& buffer,
         const AsyncWriteCallback& done_cb = AsyncWriteCallback()) {
         assert(c.IsValid());
 
@@ -604,7 +604,7 @@ public:
     //! asynchronously write buffer and callback when delivered. The buffer is
     //! MOVED into the async writer.
     virtual void AsyncWrite(
-        Connection& c, data::PinnedBlock&& block,
+        Connection& c, uint32_t /* seq */, data::PinnedBlock&& block,
         const AsyncWriteCallback& done_cb = AsyncWriteCallback()) {
         assert(c.IsValid());
 
@@ -625,17 +625,17 @@ public:
     //! asynchronously write buffer and callback when delivered. COPIES the data
     //! into a Buffer!
     void AsyncWriteCopy(
-        Connection& c, const void* buffer, size_t size,
+        Connection& c, uint32_t seq, const void* buffer, size_t size,
         const AsyncWriteCallback& done_cb = AsyncWriteCallback()) {
-        return AsyncWrite(c, Buffer(buffer, size), done_cb);
+        return AsyncWrite(c, seq, Buffer(buffer, size), done_cb);
     }
 
     //! asynchronously write buffer and callback when delivered. COPIES the data
     //! into a Buffer!
     void AsyncWriteCopy(
-        Connection& c, const std::string& str,
+        Connection& c, uint32_t seq, const std::string& str,
         const AsyncWriteCallback& done_cb = AsyncWriteCallback()) {
-        return AsyncWriteCopy(c, str.data(), str.size(), done_cb);
+        return AsyncWriteCopy(c, seq, str.data(), str.size(), done_cb);
     }
 
     //! \}

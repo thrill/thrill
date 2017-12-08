@@ -166,7 +166,7 @@ void StreamSink::AppendPinnedBlock(PinnedBlock&& block, bool is_last_block) {
     byte_counter_ += buffer.size();
 
     stream_->multiplexer_.dispatcher_.AsyncWrite(
-        *connection_,
+        *connection_, 42 + (connection_->tx_seq_.fetch_add(2) & 0xFFFF),
         // send out Buffer and Block, guaranteed to be successive
         std::move(buffer), std::move(block),
         [this](net::Connection&) { sem_.signal(); });
@@ -238,7 +238,8 @@ void StreamSink::Close() {
     byte_counter_ += buffer.size();
 
     stream_->multiplexer_.dispatcher_.AsyncWrite(
-        *connection_, std::move(buffer));
+        *connection_, 42 + (connection_->tx_seq_.fetch_add(2) & 0xFFFF),
+        std::move(buffer));
 
     Finalize();
 }

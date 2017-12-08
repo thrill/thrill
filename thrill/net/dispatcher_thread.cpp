@@ -86,20 +86,21 @@ void DispatcherThread::Cancel(Connection& c) {
 
 //! asynchronously read n bytes and deliver them to the callback
 void DispatcherThread::AsyncRead(
-    Connection& c, size_t size, const AsyncReadCallback& done_cb) {
+    Connection& c, uint32_t seq, size_t size,
+    const AsyncReadCallback& done_cb) {
     Enqueue([=, &c]() {
-                dispatcher_->AsyncRead(c, size, done_cb);
+                dispatcher_->AsyncRead(c, seq, size, done_cb);
             });
     WakeUpThread();
 }
 
 //! asynchronously read the full ByteBlock and deliver it to the callback
 void DispatcherThread::AsyncRead(
-    Connection& c, size_t size, data::PinnedByteBlockPtr&& block,
+    Connection& c, uint32_t seq, size_t size, data::PinnedByteBlockPtr&& block,
     const AsyncReadByteBlockCallback& done_cb) {
     assert(block.valid());
     Enqueue([=, &c, b = std::move(block)]() mutable {
-                dispatcher_->AsyncRead(c, size, std::move(b), done_cb);
+                dispatcher_->AsyncRead(c, seq, size, std::move(b), done_cb);
             });
     WakeUpThread();
 }
@@ -109,10 +110,10 @@ void DispatcherThread::AsyncRead(
 //! header and a payload Buffers that are hereby guaranteed to be written in
 //! order.
 void DispatcherThread::AsyncWrite(
-    Connection& c, Buffer&& buffer, const AsyncWriteCallback& done_cb) {
+    Connection& c, uint32_t seq, Buffer&& buffer, const AsyncWriteCallback& done_cb) {
     // the following captures the move-only buffer in a lambda.
     Enqueue([=, &c, b = std::move(buffer)]() mutable {
-                dispatcher_->AsyncWrite(c, std::move(b), done_cb);
+                dispatcher_->AsyncWrite(c, seq, std::move(b), done_cb);
             });
     WakeUpThread();
 }
@@ -120,14 +121,14 @@ void DispatcherThread::AsyncWrite(
 //! asynchronously write buffer and callback when delivered. The buffer is
 //! MOVED into the async writer.
 void DispatcherThread::AsyncWrite(
-    Connection& c, Buffer&& buffer, data::PinnedBlock&& block,
+    Connection& c, uint32_t seq, Buffer&& buffer, data::PinnedBlock&& block,
     const AsyncWriteCallback& done_cb) {
     assert(block.IsValid());
     // the following captures the move-only buffer in a lambda.
     Enqueue([=, &c,
              b1 = std::move(buffer), b2 = std::move(block)]() mutable {
-                dispatcher_->AsyncWrite(c, std::move(b1));
-                dispatcher_->AsyncWrite(c, std::move(b2), done_cb);
+                dispatcher_->AsyncWrite(c, seq, std::move(b1));
+                dispatcher_->AsyncWrite(c, seq + 1, std::move(b2), done_cb);
             });
     WakeUpThread();
 }
@@ -135,16 +136,17 @@ void DispatcherThread::AsyncWrite(
 //! asynchronously write buffer and callback when delivered. COPIES the data
 //! into a Buffer!
 void DispatcherThread::AsyncWriteCopy(
-    Connection& c, const void* buffer, size_t size,
+    Connection& c, uint32_t seq, const void* buffer, size_t size,
     const AsyncWriteCallback& done_cb) {
-    return AsyncWrite(c, Buffer(buffer, size), done_cb);
+    return AsyncWrite(c, seq, Buffer(buffer, size), done_cb);
 }
 
 //! asynchronously write buffer and callback when delivered. COPIES the data
 //! into a Buffer!
-void DispatcherThread::AsyncWriteCopy(Connection& c, const std::string& str,
-                                      const AsyncWriteCallback& done_cb) {
-    return AsyncWriteCopy(c, str.data(), str.size(), done_cb);
+void DispatcherThread::AsyncWriteCopy(
+    Connection& c, uint32_t seq,
+    const std::string& str, const AsyncWriteCallback& done_cb) {
+    return AsyncWriteCopy(c, seq, str.data(), str.size(), done_cb);
 }
 
 //! Enqueue job in queue for dispatching thread to run at its discretion.

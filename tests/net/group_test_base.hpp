@@ -226,8 +226,8 @@ static void TestDispatcherSyncSendAsyncRead(net::Group* net) {
 
     size_t received = 0;
     mem::Manager mem_manager(nullptr, "Dispatcher");
-    std::unique_ptr<net::Dispatcher>
-    dispatcher = net->ConstructDispatcher(mem_manager);
+    std::unique_ptr<net::Dispatcher> dispatcher =
+        net->ConstructDispatcher(mem_manager);
 
     net::AsyncReadCallback callback =
         [net, &received](net::Connection& /* s */, const net::Buffer& buffer) {
@@ -240,7 +240,8 @@ static void TestDispatcherSyncSendAsyncRead(net::Group* net) {
     for (size_t i = 0; i != net->num_hosts(); ++i)
     {
         if (i == net->my_host_rank()) continue;
-        dispatcher->AsyncRead(net->connection(i), sizeof(size_t), callback);
+        dispatcher->AsyncRead(
+            net->connection(i), /* seq */ 0, sizeof(size_t), callback);
     }
 
     while (received < net->num_hosts() - 1) {
@@ -273,7 +274,7 @@ void DisabledTestDispatcherAsyncWriteAndReadIntoStdFuture(net::Group* net) {
     // send a message to all other clients except ourselves.
     for (size_t i = 0; i < net->num_hosts(); ++i) {
         if (i == net->my_host_rank()) continue;
-        disp.AsyncWriteCopy(net->connection(i),
+        disp.AsyncWriteCopy(net->connection(i), /* seq */ 0,
                             "Hello " + std::to_string(i % 10));
         sLOG << "I just sent Hello to" << i;
     }
@@ -286,7 +287,7 @@ void DisabledTestDispatcherAsyncWriteAndReadIntoStdFuture(net::Group* net) {
         if (i == net->my_host_rank()) continue;
 
         disp.AsyncRead(
-            net->connection(i), 7,
+            net->connection(i), /* seq */ 0, /* size */ 7,
             [i, &results](net::Connection&, net::Buffer&& b) -> void {
                 sLOG << "Got Hello in callback from" << i;
                 results[i].set_value(std::move(b));

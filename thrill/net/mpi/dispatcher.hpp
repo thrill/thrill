@@ -34,21 +34,20 @@ namespace mpi {
 //! \ingroup net
 //! \{
 
+#define THRILL_NET_MPI_QUEUES 0
+
 class Dispatcher final : public net::Dispatcher
 {
     static constexpr bool debug = false;
+
+    class MpiAsync;
 
 public:
     //! type for file descriptor readiness callbacks
     using Callback = AsyncCallback;
 
     //! constructor
-    Dispatcher(mem::Manager& mem_manager,
-               int group_tag, size_t group_size)
-        : net::Dispatcher(mem_manager),
-          group_tag_(group_tag) {
-        watch_.resize(group_size);
-    }
+    Dispatcher(mem::Manager& mem_manager, size_t group_size);
 
     //! destructor
     ~Dispatcher();
@@ -99,10 +98,13 @@ public:
         watch_active_--;
     }
 
-    MPI_Request ISend(Connection& c, const void* data, size_t size);
+    MPI_Request ISend(
+        Connection& c, uint32_t seq, const void* data, size_t size);
+    MPI_Request IRecv(
+        Connection& c, uint32_t seq, void* data, size_t size);
 
     void AsyncWrite(
-        net::Connection& c, Buffer&& buffer,
+        net::Connection& c, uint32_t seq, Buffer&& buffer,
         const AsyncWriteCallback& done_cb = AsyncWriteCallback()) final {
         assert(c.IsValid());
 
@@ -111,20 +113,11 @@ public:
             return;
         }
 
-        assert(dynamic_cast<Connection*>(&c));
-        Connection* mpic = static_cast<Connection*>(&c);
-
-        // perform Isend.
-        MPI_Request req = ISend(*mpic, buffer.data(), buffer.size());
-
-        // store request and associated buffer (Isend needs memory).
-        mpi_async_requests_.emplace_back(req);
-        mpi_async_.emplace_back(c, std::move(buffer), done_cb);
-        mpi_async_out_.emplace_back();
+        QueueAsyncSend(c, MpiAsync(c, seq, std::move(buffer), done_cb));
     }
 
     void AsyncWrite(
-        net::Connection& c, data::PinnedBlock&& block,
+        net::Connection& c, uint32_t seq, data::PinnedBlock&& block,
         const AsyncWriteCallback& done_cb = AsyncWriteCallback()) final {
         assert(c.IsValid());
 
@@ -133,21 +126,10 @@ public:
             return;
         }
 
-        assert(dynamic_cast<Connection*>(&c));
-        Connection* mpic = static_cast<Connection*>(&c);
-
-        // perform Isend.
-        MPI_Request req = ISend(*mpic, block.data_begin(), block.size());
-
-        // store request and associated data::Block (Isend needs memory).
-        mpi_async_requests_.emplace_back(req);
-        mpi_async_.emplace_back(c, std::move(block), done_cb);
-        mpi_async_out_.emplace_back();
+        QueueAsyncSend(c, MpiAsync(c, seq, std::move(block), done_cb));
     }
 
-    MPI_Request IRecv(Connection& c, void* data, size_t size);
-
-    void AsyncRead(net::Connection& c, size_t size,
+    void AsyncRead(net::Connection& c, uint32_t seq, size_t size,
                    const AsyncReadBufferCallback& done_cb
                        = AsyncReadBufferCallback()) final {
         assert(c.IsValid());
@@ -157,21 +139,10 @@ public:
             return;
         }
 
-        assert(dynamic_cast<Connection*>(&c));
-        Connection* mpic = static_cast<Connection*>(&c);
-
-        // allocate associated buffer (Irecv needs memory).
-        mpi_async_.emplace_back(c, size, done_cb);
-        mpi_async_out_.emplace_back();
-
-        Buffer& buffer = mpi_async_.back().read_buffer_.buffer();
-
-        // perform Irecv.
-        MPI_Request req = IRecv(*mpic, buffer.data(), buffer.size());
-        mpi_async_requests_.emplace_back(req);
+        QueueAsyncRecv(c, MpiAsync(c, seq, size, done_cb));
     }
 
-    void AsyncRead(net::Connection& c, size_t size,
+    void AsyncRead(net::Connection& c, uint32_t seq, size_t size,
                    data::PinnedByteBlockPtr&& block,
                    const AsyncReadByteBlockCallback& done_cb) final {
         assert(c.IsValid());
@@ -182,17 +153,23 @@ public:
             return;
         }
 
-        assert(dynamic_cast<Connection*>(&c));
-        Connection* mpic = static_cast<Connection*>(&c);
-
-        // associated Block's memory (Irecv needs memory).
-
-        // perform Irecv.
-        MPI_Request req = IRecv(*mpic, block->data(), size);
-        mpi_async_.emplace_back(c, size, std::move(block), done_cb);
-        mpi_async_out_.emplace_back();
-        mpi_async_requests_.emplace_back(req);
+        QueueAsyncRecv(c, MpiAsync(c, seq, size, std::move(block), done_cb));
     }
+
+    //! Enqueue and run the encapsulated result
+    void QueueAsyncSend(net::Connection& c, MpiAsync&& a);
+
+    //! Enqueue and run the encapsulated result
+    void QueueAsyncRecv(net::Connection& c, MpiAsync&& a);
+
+    //! Issue the encapsulated request to the MPI layer
+    void PerformAsync(MpiAsync&& a);
+
+    //! Check send queue and perform waiting requests
+    void PumpSendQueue(int peer);
+
+    //! Check recv queue and perform waiting requests
+    void PumpRecvQueue(int peer);
 
     //! Run one iteration of dispatching using MPI_Iprobe().
     void DispatchOne(const std::chrono::milliseconds& timeout) final;
@@ -201,9 +178,6 @@ public:
     void Interrupt() final { }
 
 private:
-    //! group_tag attached to this Dispatcher
-    int group_tag_;
-
     //! callback vectors per peer
     struct Watch {
         //! boolean check whether any callbacks are registered
@@ -247,31 +221,31 @@ private:
         MpiAsync() : type_(NONE) { }
 
         //! Construct AsyncWrite with Buffer
-        MpiAsync(net::Connection& conn,
+        MpiAsync(net::Connection& conn, uint32_t seq,
                  Buffer&& buffer,
                  const AsyncWriteCallback& callback)
-            : type_(WRITE_BUFFER),
+            : type_(WRITE_BUFFER), seq_(seq),
               write_buffer_(conn, std::move(buffer), callback) { }
 
         //! Construct AsyncRead with Buffer
-        MpiAsync(net::Connection& conn,
+        MpiAsync(net::Connection& conn, uint32_t seq,
                  size_t buffer_size, const AsyncReadBufferCallback& callback)
-            : type_(READ_BUFFER),
+            : type_(READ_BUFFER), seq_(seq),
               read_buffer_(conn, buffer_size, callback) { }
 
         //! Construct AsyncWrite with Block
-        MpiAsync(net::Connection& conn,
+        MpiAsync(net::Connection& conn, uint32_t seq,
                  data::PinnedBlock&& block,
                  const AsyncWriteCallback& callback)
-            : type_(WRITE_BLOCK),
+            : type_(WRITE_BLOCK), seq_(seq),
               write_block_(conn, std::move(block), callback) { }
 
         //! Construct AsyncRead with ByteBuffer
-        MpiAsync(net::Connection& conn,
+        MpiAsync(net::Connection& conn, uint32_t seq,
                  size_t size,
                  data::PinnedByteBlockPtr&& block,
                  const AsyncReadByteBlockCallback& callback)
-            : type_(READ_BYTE_BLOCK),
+            : type_(READ_BYTE_BLOCK), seq_(seq),
               read_byte_block_(conn, size, std::move(block), callback) { }
 
         //! copy-constructor: default (work as long as union members are default
@@ -336,9 +310,25 @@ private:
                 read_byte_block_.DoCallback(size_check);
         }
 
+        //! Return mpi Connection pointer
+        Connection * connection() {
+            if (type_ == WRITE_BUFFER)
+                return static_cast<Connection*>(write_buffer_.connection());
+            else if (type_ == READ_BUFFER)
+                return static_cast<Connection*>(read_buffer_.connection());
+            else if (type_ == WRITE_BLOCK)
+                return static_cast<Connection*>(write_block_.connection());
+            else if (type_ == READ_BYTE_BLOCK)
+                return static_cast<Connection*>(read_byte_block_.connection());
+            die("Unknown Buffer type");
+        }
+
     private:
         //! type of this async
         Type type_;
+
+        //! sequence id
+        uint32_t seq_;
 
         //! the big unification of async receivers. these also hold reference
         //! counts on the Buffer or Block objects.
@@ -352,6 +342,7 @@ private:
         //! assign myself the other object's content
         void Acquire(MpiAsync&& ma) noexcept {
             assert(type_ == ma.type_);
+            seq_ = ma.seq_;
             // yes, this placement movement into the correct union component.
             if (type_ == WRITE_BUFFER)
                 new (&write_buffer_)AsyncWriteBuffer(std::move(ma.write_buffer_));
@@ -382,6 +373,20 @@ private:
     mem::vector<int> mpi_async_out_ {
         mem::Allocator<int>(mem_manager_)
     };
+
+#if THRILL_NET_MPI_QUEUES
+    //! queue of delayed requests for each peer
+    std::deque<std::deque<MpiAsync> > send_queue_;
+
+    //! queue of delayed requests for each peer
+    std::deque<std::deque<MpiAsync> > recv_queue_;
+
+    //! number of active requests
+    std::vector<size_t> send_active_;
+
+    //! number of active requests
+    std::vector<size_t> recv_active_;
+#endif
 };
 
 //! \}

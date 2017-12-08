@@ -163,6 +163,9 @@ private:
     //! closed
     bool closed_ = false;
 
+    //! number of parallel recv requests
+    size_t num_parallel_async_;
+
     //! number of active Cat/MixStreams
     std::atomic<size_t> active_streams_ { 0 };
 
@@ -203,20 +206,21 @@ private:
 
     //! expects the next MultiplexerHeader from a socket and passes to
     //! OnMultiplexerHeader
-    void AsyncReadMultiplexerHeader(Connection& s);
+    void AsyncReadMultiplexerHeader(size_t peer, Connection& s);
 
     //! parses MultiplexerHeader and decides whether to receive Block or close
     //! Stream
-    void OnMultiplexerHeader(Connection& s, net::Buffer&& buffer);
+    void OnMultiplexerHeader(
+        size_t peer, uint32_t seq, Connection& s, net::Buffer&& buffer);
 
     //! Receives and dispatches a Block to a CatStreamData
     void OnCatStreamBlock(
-        Connection& s, const StreamMultiplexerHeader& header,
+        size_t peer, Connection& s, const StreamMultiplexerHeader& header,
         const CatStreamDataPtr& stream, PinnedByteBlockPtr&& bytes);
 
     //! Receives and dispatches a Block to a MixStream
     void OnMixStreamBlock(
-        Connection& s, const StreamMultiplexerHeader& header,
+        size_t peer, Connection& s, const StreamMultiplexerHeader& header,
         const MixStreamDataPtr& stream, PinnedByteBlockPtr&& bytes);
 };
 

@@ -115,10 +115,14 @@ private:
 
 struct Multiplexer::Data {
     //! Streams have an ID in block headers. (worker id, stream id)
-    Repository<StreamSetBase> stream_sets_;
+    Repository<StreamSetBase>         stream_sets_;
 
-    explicit Data(size_t workers_per_host)
-        : stream_sets_(workers_per_host) { }
+    //! array of number of open requests
+    std::vector<std::atomic<size_t> > ongoing_requests_;
+
+    explicit Data(size_t num_hosts, size_t workers_per_host)
+        : stream_sets_(workers_per_host),
+          ongoing_requests_(num_hosts) { }
 };
 
 Multiplexer::Multiplexer(mem::Manager& mem_manager,
@@ -131,10 +135,23 @@ Multiplexer::Multiplexer(mem::Manager& mem_manager,
           "host " + mem::to_string(group.my_host_rank()) + " dispatcher"),
       group_(group),
       workers_per_host_(workers_per_host),
-      d_(std::make_unique<Data>(workers_per_host)) {
+      d_(std::make_unique<Data>(group_.num_hosts(), workers_per_host)) {
+
+    num_parallel_async_ = group_.num_parallel_async();
+    if (num_parallel_async_ == 0) {
+        // one async at a time (for TCP and mock backends)
+        num_parallel_async_ = 1;
+    }
+    else {
+        // k/2 asyncs at a time (for MPI backend)
+        num_parallel_async_ /= 2;
+        // at least one
+        num_parallel_async_ = std::max(size_t(1), num_parallel_async_);
+    }
+
     for (size_t id = 0; id < group_.num_hosts(); id++) {
         if (id == group_.my_host_rank()) continue;
-        AsyncReadMultiplexerHeader(group_.connection(id));
+        AsyncReadMultiplexerHeader(id, group_.connection(id));
     }
 }
 
@@ -259,16 +276,25 @@ common::JsonLogger& Multiplexer::logger() {
 
 /******************************************************************************/
 
-//! expects the next MultiplexerHeader from a socket and passes to
-//! OnMultiplexerHeader
-void Multiplexer::AsyncReadMultiplexerHeader(Connection& s) {
-    dispatcher_.AsyncRead(
-        s, MultiplexerHeader::total_size,
-        net::AsyncReadCallback::make<
-            Multiplexer, &Multiplexer::OnMultiplexerHeader>(this));
+void Multiplexer::AsyncReadMultiplexerHeader(size_t peer, Connection& s) {
+
+    while (d_->ongoing_requests_[peer] < num_parallel_async_) {
+        uint32_t seq = 42 + (s.rx_seq_.fetch_add(2) & 0xFFFF);
+        dispatcher_.AsyncRead(
+            s, seq, MultiplexerHeader::total_size,
+            [this, peer, seq](Connection& s, net::Buffer&& buffer) {
+                return OnMultiplexerHeader(peer, seq, s, std::move(buffer));
+            });
+
+        d_->ongoing_requests_[peer]++;
+    }
 }
 
-void Multiplexer::OnMultiplexerHeader(Connection& s, net::Buffer&& buffer) {
+void Multiplexer::OnMultiplexerHeader(
+    size_t peer, uint32_t seq, Connection& s, net::Buffer&& buffer) {
+
+    die_unless(d_->ongoing_requests_[peer] > 0);
+    d_->ongoing_requests_[peer]--;
 
     // received invalid Buffer: the connection has closed?
     if (!buffer.IsValid()) return;
@@ -305,8 +331,6 @@ void Multiplexer::OnMultiplexerHeader(Connection& s, net::Buffer&& buffer) {
 
             stream->OnStreamBlock(
                 header.sender_worker, header.seq, PinnedBlock());
-
-            AsyncReadMultiplexerHeader(s);
         }
         else {
             sLOG << "stream header from" << s << "on CatStream" << id
@@ -319,10 +343,13 @@ void Multiplexer::OnMultiplexerHeader(Connection& s, net::Buffer&& buffer) {
                 alloc_size, local_worker);
             sLOG << "new PinnedByteBlockPtr bytes=" << *bytes;
 
+            d_->ongoing_requests_[peer]++;
+
             dispatcher_.AsyncRead(
-                s, header.size, std::move(bytes),
-                [this, header, stream](Connection& s, PinnedByteBlockPtr&& bytes) {
-                    OnCatStreamBlock(s, header, stream, std::move(bytes));
+                s, seq + 1, header.size, std::move(bytes),
+                [this, peer, header, stream]
+                    (Connection& s, PinnedByteBlockPtr&& bytes) {
+                    OnCatStreamBlock(peer, s, header, stream, std::move(bytes));
                 });
         }
     }
@@ -338,8 +365,6 @@ void Multiplexer::OnMultiplexerHeader(Connection& s, net::Buffer&& buffer) {
 
             stream->OnStreamBlock(header.sender_worker, header.seq,
                                   PinnedBlock());
-
-            AsyncReadMultiplexerHeader(s);
         }
         else {
             sLOG << "stream header from" << s << "on MixStream" << id
@@ -351,21 +376,29 @@ void Multiplexer::OnMultiplexerHeader(Connection& s, net::Buffer&& buffer) {
             PinnedByteBlockPtr bytes = block_pool_.AllocateByteBlock(
                 alloc_size, local_worker);
 
+            d_->ongoing_requests_[peer]++;
+
             dispatcher_.AsyncRead(
-                s, header.size, std::move(bytes),
-                [this, header, stream](Connection& s, PinnedByteBlockPtr&& bytes) mutable {
-                    OnMixStreamBlock(s, header, stream, std::move(bytes));
+                s, seq + 1, header.size, std::move(bytes),
+                [this, peer, header, stream]
+                    (Connection& s, PinnedByteBlockPtr&& bytes) mutable {
+                    OnMixStreamBlock(peer, s, header, stream, std::move(bytes));
                 });
         }
     }
     else {
         die("Invalid magic byte in MultiplexerHeader");
     }
+
+    AsyncReadMultiplexerHeader(peer, s);
 }
 
 void Multiplexer::OnCatStreamBlock(
-    Connection& s, const StreamMultiplexerHeader& header,
+    size_t peer, Connection& s, const StreamMultiplexerHeader& header,
     const CatStreamDataPtr& stream, PinnedByteBlockPtr&& bytes) {
+
+    die_unless(d_->ongoing_requests_[peer] > 0);
+    d_->ongoing_requests_[peer]--;
 
     sLOG << "Multiplexer::OnCatStreamBlock()"
          << "got block" << *bytes << "seq" << header.seq << "on" << s
@@ -382,12 +415,15 @@ void Multiplexer::OnCatStreamBlock(
         stream->OnStreamBlock(header.sender_worker, header.seq + 1,
                               PinnedBlock());
 
-    AsyncReadMultiplexerHeader(s);
+    AsyncReadMultiplexerHeader(peer, s);
 }
 
 void Multiplexer::OnMixStreamBlock(
-    Connection& s, const StreamMultiplexerHeader& header,
+    size_t peer, Connection& s, const StreamMultiplexerHeader& header,
     const MixStreamDataPtr& stream, PinnedByteBlockPtr&& bytes) {
+
+    die_unless(d_->ongoing_requests_[peer] > 0);
+    d_->ongoing_requests_[peer]--;
 
     sLOG << "Multiplexer::OnMixStreamBlock()"
          << "got block" << *bytes << "seq" << header.seq << "on" << s
@@ -404,7 +440,7 @@ void Multiplexer::OnMixStreamBlock(
         stream->OnStreamBlock(header.sender_worker, header.seq + 1,
                               PinnedBlock());
 
-    AsyncReadMultiplexerHeader(s);
+    AsyncReadMultiplexerHeader(peer, s);
 }
 
 CatStreamDataPtr Multiplexer::CatLoopback(

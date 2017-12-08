@@ -151,6 +151,10 @@ void Manager::RunTask(const std::chrono::steady_clock::time_point& tp) {
 /******************************************************************************/
 // Group
 
+size_t Group::num_parallel_async() const {
+    return 0;
+}
+
 /*[[[perl
   for my $e (
     ["int", "Int"], ["unsigned int", "UnsignedInt"],

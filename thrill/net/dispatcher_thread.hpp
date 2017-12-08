@@ -109,36 +109,37 @@ public:
     //! \{
 
     //! asynchronously read n bytes and deliver them to the callback
-    void AsyncRead(Connection& c, size_t size,
+    void AsyncRead(Connection& c, uint32_t seq, size_t size,
                    const AsyncReadCallback& done_cb);
 
     //! asynchronously read the full ByteBlock and deliver it to the callback
-    void AsyncRead(Connection& c, size_t size, data::PinnedByteBlockPtr&& block,
+    void AsyncRead(Connection& c, uint32_t seq, size_t size,
+                   data::PinnedByteBlockPtr&& block,
                    const AsyncReadByteBlockCallback& done_cb);
 
     //! asynchronously write byte and block and callback when delivered. The
     //! block is reference counted by the async writer.
-    void AsyncWrite(Connection& c, Buffer&& buffer,
+    void AsyncWrite(Connection& c, uint32_t seq, Buffer&& buffer,
                     const AsyncWriteCallback& done_cb = AsyncWriteCallback());
 
     //! asynchronously write TWO buffers and callback when delivered. The
     //! buffer2 are MOVED into the async writer. This is most useful to write a
     //! header and a payload Buffers that are hereby guaranteed to be written in
     //! order.
-    void AsyncWrite(Connection& c,
+    void AsyncWrite(Connection& c, uint32_t seq,
                     Buffer&& buffer, data::PinnedBlock&& block,
                     const AsyncWriteCallback& done_cb = AsyncWriteCallback());
 
     //! asynchronously write buffer and callback when delivered. COPIES the data
     //! into a Buffer!
     void AsyncWriteCopy(
-        Connection& c, const void* buffer, size_t size,
+        Connection& c, uint32_t seq, const void* buffer, size_t size,
         const AsyncWriteCallback& done_cb = AsyncWriteCallback());
 
     //! asynchronously write buffer and callback when delivered. COPIES the data
     //! into a Buffer!
     void AsyncWriteCopy(
-        Connection& c, const std::string& str,
+        Connection& c, uint32_t seq, const std::string& str,
         const AsyncWriteCallback& done_cb = AsyncWriteCallback());
 
     //! \}

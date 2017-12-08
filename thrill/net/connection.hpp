@@ -460,6 +460,17 @@ public:
 
     //! \}
 
+    //! \name Sequence Numbers
+    //! \{
+
+    //! send sequence
+    std::atomic<uint32_t> tx_seq_ { 0 };
+
+    //! receive sequence
+    std::atomic<uint32_t> rx_seq_ { 0 };
+
+    //! \}
+
     //! \name Statistics
     //! {
 

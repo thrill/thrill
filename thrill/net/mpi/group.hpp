@@ -174,7 +174,12 @@ public:
 
     void Close() final { }
 
-    //! construct a mpi::Dispatcher exclusively for this Group.
+    //! Number of parallel sends or recvs requests supported by net backend
+    size_t num_parallel_async() const final;
+
+    //! Construct a network dispatcher object for the network backend used by
+    //! this group, matching its internal implementation. A dispatcher may be
+    //! shared between groups of the same type.
     std::unique_ptr<net::Dispatcher> ConstructDispatcher(
         mem::Manager& mem_manager) const final;
 

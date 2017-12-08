@@ -77,8 +77,13 @@ public:
     //! Close
     virtual void Close() = 0;
 
-    //! Construct a network dispatcher object for this group, matching its
-    //! internal implementation.
+    //! Number of parallel sends or recvs requests supported by net backend, or
+    //! zero if asyncs are processed sequentially as with TCP.
+    virtual size_t num_parallel_async() const;
+
+    //! Construct a network dispatcher object for the network backend used by
+    //! this group, matching its internal implementation. A dispatcher may be
+    //! shared between groups of the same type.
     virtual std::unique_ptr<class Dispatcher> ConstructDispatcher(
         mem::Manager& mem_manager) const = 0;
 
