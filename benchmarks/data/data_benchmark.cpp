@@ -705,7 +705,8 @@ public:
         for (unsigned i = 0; i < iterations_; i++) {
 
             StatsTimerStart total_timer;
-            StatsTimerStopped read_timer;
+            std::chrono::microseconds::rep read_time = 0;
+
             auto stream = ctx.GetNewStream<Stream>(/* dia_id */ 0);
 
             size_t my_rank = ctx.my_rank();
@@ -721,7 +722,7 @@ public:
                             bytes_ / ctx.num_workers(), min_size_, max_size_,
                             /* seed */ 42 + 3 * source + 7 * my_rank);
 
-                        read_timer.Start();
+                        StatsTimerStart read_timer;
                         size_t i = 0;
                         while (readers[source].HasNext()) {
                             auto x = readers[source].template Next<Type>();
@@ -734,6 +735,7 @@ public:
                         }
                         die_unless(!data.HasNext());
                         read_timer.Stop();
+                        read_time = std::max(read_time, read_timer.Microseconds());
                     });
             }
 
@@ -774,10 +776,10 @@ public:
                  << static_cast<double>(min_size_ + max_size_) / 2.0
                  << " total_time=" << total_timer
                  << " write_time=" << write_time
-                 << " read_time=" << read_timer
+                 << " read_time=" << read_time
                  << " total_speed_MiBs=" << CalcMiBs(bytes_, total_timer)
                  << " write_speed_MiBs=" << CalcMiBs(bytes_, write_time)
-                 << " read_speed_MiBs=" << CalcMiBs(bytes_, read_timer);
+                 << " read_speed_MiBs=" << CalcMiBs(bytes_, read_time);
         }
     }
 
