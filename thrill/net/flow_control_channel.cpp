@@ -49,16 +49,26 @@ FlowControlChannel::~FlowControlChannel() {
 
 void FlowControlChannel::Barrier() {
     RunTimer run_timer(timer_barrier_);
-    if (enable_stats) ++count_barrier_;
+    if (enable_stats || debug) ++count_barrier_;
+
+    LOG << "FCC::Barrier() ENTER count=" << count_barrier_;
 
     barrier_.Await(
         [&]() {
             RunTimer net_timer(timer_communication_);
 
+            LOG << "FCC::Barrier() COMMUNICATE BEGIN"
+                << " count=" << count_barrier_;
+
             // Global all reduce
             size_t i = 0;
             group_.AllReduce(i);
+
+            LOG << "FCC::Barrier() COMMUNICATE END"
+                << " count=" << count_barrier_;
         });
+
+    LOG << "FCC::Barrier() EXIT count=" << count_barrier_;
 }
 
 void FlowControlChannel::LocalBarrier() {

@@ -48,6 +48,7 @@ namespace net {
 class FlowControlChannel
 {
 private:
+    static constexpr bool debug = false;
     static constexpr bool enable_stats = false;
 
     //! The group associated with this channel.
@@ -236,7 +237,8 @@ public:
               bool inclusive = true) {
 
         RunTimer run_timer(timer_prefixsum_);
-        if (enable_stats) ++count_prefixsum_;
+        if (enable_stats || debug) ++count_prefixsum_;
+        LOG << "FCC::PrefixSum() ENTER count=" << count_prefixsum_;
 
         T local_value = value;
 
@@ -247,6 +249,9 @@ public:
         barrier_.Await(
             [&]() {
                 RunTimer net_timer(timer_communication_);
+
+                LOG << "FCC::PrefixSum() COMMUNICATE BEGIN"
+                    << " count=" << count_prefixsum_;
 
                 // global prefix
                 T** locals = reinterpret_cast<T**>(alloca(thread_count_ * sizeof(T*)));
@@ -278,7 +283,12 @@ public:
                     }
                     *(locals[0]) = base_sum;
                 }
+
+                LOG << "FCC::PrefixSum() COMMUNICATE END"
+                    << " count=" << count_prefixsum_;
             });
+
+        LOG << "FCC::PrefixSum() EXIT count=" << count_prefixsum_;
 
         return local_value;
     }
@@ -325,7 +335,8 @@ public:
                      const BinarySumOp& sum_op = BinarySumOp()) {
 
         RunTimer run_timer(timer_prefixsum_);
-        if (enable_stats) ++count_prefixsum_;
+        if (enable_stats || debug) ++count_prefixsum_;
+        LOG << "FCC::ExPrefixSumTotal() ENTER count=" << count_prefixsum_;
 
         using Result = std::pair<T*, T>;
 
@@ -336,6 +347,9 @@ public:
         barrier_.Await(
             [&]() {
                 RunTimer net_timer(timer_communication_);
+
+                LOG << "FCC::ExPrefixSumTotal() COMMUNICATE BEGIN"
+                    << " count=" << count_prefixsum_;
 
                 Result** locals = reinterpret_cast<Result**>(
                     alloca(thread_count_ * sizeof(Result*)));
@@ -368,7 +382,12 @@ public:
                 }
                 *(locals[0]->first) = base_sum;
                 locals[0]->second = total_sum;
+
+                LOG << "FCC::ExPrefixSumTotal() COMMUNICATE END"
+                    << " count=" << count_prefixsum_;
             });
+
+        LOG << "FCC::ExPrefixSumTotal() EXIT count=" << count_prefixsum_;
 
         return result.second;
     }
@@ -392,7 +411,8 @@ public:
     Broadcast(const T& value, size_t origin = 0) {
 
         RunTimer run_timer(timer_broadcast_);
-        if (enable_stats) ++count_broadcast_;
+        if (enable_stats || debug) ++count_broadcast_;
+        LOG << "FCC::Broadcast() ENTER count=" << count_broadcast_;
 
         T local = value;
 
@@ -410,12 +430,20 @@ public:
 
         barrier_.Await(
             [&]() {
+                LOG << "FCC::Broadcast() COMMUNICATE BEGIN"
+                    << " count=" << count_broadcast_;
+
                 // copy from primary PE to all others
                 T res = *GetLocalShared<T>(step, primary_pe);
                 for (size_t i = 0; i < thread_count_; i++) {
                     *GetLocalShared<T>(step, i) = res;
                 }
+
+                LOG << "FCC::Broadcast() COMMUNICATE END"
+                    << " count=" << count_broadcast_;
             });
+
+        LOG << "FCC::Broadcast() EXIT count=" << count_broadcast_;
 
         return local;
     }
@@ -440,7 +468,8 @@ public:
         assert(root < num_workers());
 
         RunTimer run_timer(timer_reduce_);
-        if (enable_stats) ++count_reduce_;
+        if (enable_stats || debug) ++count_reduce_;
+        LOG << "FCC::Reduce() ENTER count=" << count_reduce_;
 
         T local = value;
 
@@ -450,6 +479,9 @@ public:
         barrier_.Await(
             [&]() {
                 RunTimer net_timer(timer_communication_);
+
+                LOG << "FCC::Reduce() COMMUNICATE BEGIN"
+                    << " count=" << count_reduce_;
 
                 // local reduce
                 T local_sum = *GetLocalShared<T>(step, 0);
@@ -463,7 +495,12 @@ public:
                 // set the local value only at the root
                 if (root / thread_count_ == group_.my_host_rank())
                     *GetLocalShared<T>(step, root % thread_count_) = local_sum;
+
+                LOG << "FCC::Reduce() COMMUNICATE END"
+                    << " count=" << count_reduce_;
             });
+
+        LOG << "FCC::Reduce() EXIT count=" << count_reduce_;
 
         return local;
     }
@@ -485,7 +522,8 @@ public:
     AllReduce(const T& value, const BinarySumOp& sum_op = BinarySumOp()) {
 
         RunTimer run_timer(timer_allreduce_);
-        if (enable_stats) ++count_allreduce_;
+        if (enable_stats || debug) ++count_allreduce_;
+        LOG << "FCC::AllReduce() ENTER count=" << count_allreduce_;
 
         T local = value;
 
@@ -495,6 +533,9 @@ public:
         barrier_.Await(
             [&]() {
                 RunTimer net_timer(timer_communication_);
+
+                LOG << "FCC::AllReduce() COMMUNICATE BEGIN"
+                    << " count=" << count_allreduce_;
 
                 // local reduce
                 T local_sum = *GetLocalShared<T>(step, 0);
@@ -509,7 +550,12 @@ public:
                 for (size_t i = 0; i < thread_count_; i++) {
                     *GetLocalShared<T>(step, i) = local_sum;
                 }
+
+                LOG << "FCC::AllReduce() COMMUNICATE END"
+                    << " count=" << count_allreduce_;
             });
+
+        LOG << "FCC::AllReduce() EXIT count=" << count_allreduce_;
 
         return local;
     }
@@ -530,7 +576,8 @@ public:
     std::vector<T> Predecessor(size_t k, const std::vector<T>& my_values) {
 
         RunTimer run_timer(timer_predecessor_);
-        if (enable_stats) ++count_predecessor_;
+        if (enable_stats || debug) ++count_predecessor_;
+        LOG << "FCC::Predecessor() ENTER count=" << count_predecessor_;
 
         std::vector<T> result;
         size_t step = GetNextStep();
@@ -640,7 +687,14 @@ public:
         }
 
         // await until all threads have retrieved their value.
-        barrier_.Await([this]() { generation_++; });
+        barrier_.Await([this]() {
+                           LOG << "FCC::Predecessor() COMMUNICATE"
+                               << " count=" << count_predecessor_;
+
+                           generation_++;
+                       });
+
+        LOG << "FCC::Predecessor() EXIT count=" << count_predecessor_;
 
         return result;
     }
