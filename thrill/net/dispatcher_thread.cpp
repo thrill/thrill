@@ -20,20 +20,14 @@ namespace thrill {
 namespace net {
 
 DispatcherThread::DispatcherThread(
-    mem::Manager& mem_manager,
-    std::unique_ptr<class Dispatcher>&& dispatcher,
-    const mem::by_string& thread_name)
+    mem::Manager& mem_manager, std::unique_ptr<class Dispatcher> dispatcher,
+    size_t host_rank)
     : mem_manager_(&mem_manager, "DispatcherThread"),
       dispatcher_(std::move(dispatcher)),
-      name_(thread_name) {
+      host_rank_(host_rank) {
     // start thread
     thread_ = std::thread(&DispatcherThread::Work, this);
 }
-
-DispatcherThread::DispatcherThread(
-    mem::Manager& mem_manager, Group& group, const mem::by_string& thread_name)
-    : DispatcherThread(
-          mem_manager, group.ConstructDispatcher(mem_manager), thread_name) { }
 
 DispatcherThread::~DispatcherThread() {
     Terminate();
@@ -156,7 +150,8 @@ void DispatcherThread::Enqueue(Job&& job) {
 
 //! What happens in the dispatcher thread
 void DispatcherThread::Work() {
-    common::NameThisThread(name_);
+    common::NameThisThread(
+        "host " + mem::to_string(host_rank_) + " dispatcher");
     // pin DispatcherThread to last core
     common::SetCpuAffinity(std::thread::hardware_concurrency() - 1);
 

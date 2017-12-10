@@ -34,6 +34,8 @@ namespace tcp {
 //! \addtogroup net_tcp TCP Socket API
 //! \{
 
+class SelectDispatcher;
+
 /*!
  * Collection of NetConnections to workers, allows point-to-point client
  * communication and simple collectives like MPI.
@@ -99,8 +101,9 @@ public:
         return tcp_connection(id);
     }
 
-    std::unique_ptr<Dispatcher> ConstructDispatcher(
-        mem::Manager& mem_manager) const final;
+    using Dispatcher = tcp::SelectDispatcher;
+
+    std::unique_ptr<net::Dispatcher> ConstructDispatcher() const final;
 
     /*!
      * Assigns a connection to this net group.  This method swaps the net

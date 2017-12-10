@@ -63,12 +63,8 @@ public:
 
     DispatcherThread(
         mem::Manager& mem_manager,
-        std::unique_ptr<class Dispatcher>&& dispatcher,
-        const mem::by_string& thread_name);
-
-    DispatcherThread(
-        mem::Manager& mem_manager,
-        class Group& group, const mem::by_string& thread_name);
+        std::unique_ptr<class Dispatcher> dispatcher,
+        size_t host_rank);
 
     ~DispatcherThread();
 
@@ -173,8 +169,8 @@ private:
     //! whether to call Interrupt() in WakeUpThread()
     std::atomic<bool> busy_ { false };
 
-    //! thread name for logging
-    mem::by_string name_;
+    //! for thread name for logging
+    size_t host_rank_;
 };
 
 //! \}

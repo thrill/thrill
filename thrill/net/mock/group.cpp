@@ -150,10 +150,9 @@ net::Connection& Group::connection(size_t peer) {
 
 void Group::Close() { }
 
-std::unique_ptr<net::Dispatcher> Group::ConstructDispatcher(
-    mem::Manager& mem_manager) const {
+std::unique_ptr<net::Dispatcher> Group::ConstructDispatcher() const {
     // construct mock::Dispatcher
-    return std::make_unique<Dispatcher>(mem_manager);
+    return std::make_unique<Dispatcher>();
 }
 
 std::vector<std::unique_ptr<Group> >
@@ -220,9 +219,12 @@ struct Dispatcher::Watch {
     Callback except_cb;
 };
 
-Dispatcher::Dispatcher(mem::Manager& mem_manager)
-    : net::Dispatcher(mem_manager),
+Dispatcher::Dispatcher()
+    : net::Dispatcher(),
       d_(std::make_unique<Data>())
+{ }
+
+Dispatcher::~Dispatcher()
 { }
 
 //! Register a buffered read callback and a default exception callback.

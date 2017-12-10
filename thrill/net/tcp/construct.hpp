@@ -28,15 +28,15 @@ namespace tcp {
 
 //! Connect to peers via endpoints using TCP sockets. Construct a group_count
 //! tcp::Group objects at once. Within each Group this host has my_rank.
-void Construct(size_t my_rank,
+void Construct(SelectDispatcher& dispatcher, size_t my_rank,
                const std::vector<std::string>& endpoints,
                std::unique_ptr<Group>* groups, size_t group_count);
 
 //! Connect to peers via endpoints using TCP sockets. Construct a group_count
 //! net::Group objects at once. Within each Group this host has my_rank.
 std::vector<std::unique_ptr<net::Group> >
-Construct(size_t my_rank, const std::vector<std::string>& endpoints,
-          size_t group_count);
+Construct(SelectDispatcher& dispatcher, size_t my_rank,
+          const std::vector<std::string>& endpoints, size_t group_count);
 
 //! \}
 

@@ -32,9 +32,11 @@
 
 #if THRILL_HAVE_NET_TCP
 #include <thrill/net/tcp/construct.hpp>
+#include <thrill/net/tcp/select_dispatcher.hpp>
 #endif
 
 #if THRILL_HAVE_NET_MPI
+#include <thrill/net/mpi/dispatcher.hpp>
 #include <thrill/net/mpi/group.hpp>
 #endif
 
@@ -89,7 +91,8 @@ template <typename NetGroup>
 static inline
 std::vector<std::unique_ptr<HostContext> >
 ConstructLoopbackHostContexts(
-    const MemoryConfig& mem_config, size_t num_hosts, size_t workers_per_host) {
+    const MemoryConfig& mem_config,
+    size_t num_hosts, size_t workers_per_host) {
 
     static constexpr size_t kGroupCount = net::Manager::kGroupCount;
 
@@ -110,7 +113,9 @@ ConstructLoopbackHostContexts(
 
         host_context.emplace_back(
             std::make_unique<HostContext>(
-                h, mem_config, std::move(host_group), workers_per_host));
+                h, mem_config,
+                std::make_unique<typename NetGroup::Dispatcher>(),
+                std::move(host_group), workers_per_host));
     }
 
     return host_context;
@@ -128,6 +133,8 @@ RunLoopbackThreads(
     mem_config.print(workers_per_host);
 
     // construct a mock network of hosts
+    typename NetGroup::Dispatcher dispatcher;
+
     std::vector<std::unique_ptr<HostContext> > host_contexts =
         ConstructLoopbackHostContexts<NetGroup>(
             host_mem_config, num_hosts, workers_per_host);
@@ -356,7 +363,7 @@ void RunLocalSameThread(const std::function<void(Context&)>& job_startpoint) {
     mem_config.setup(4 * 1024 * 1024 * 1024llu);
     mem_config.print(workers_per_host);
 
-    // construct three full mesh connection cliques, deliver net::tcp::Groups.
+    // construct two full mesh connection cliques, deliver net::tcp::Groups.
     std::array<std::vector<std::unique_ptr<TestGroup> >, kGroupCount> group;
 
     for (size_t g = 0; g < kGroupCount; ++g) {
@@ -368,7 +375,9 @@ void RunLocalSameThread(const std::function<void(Context&)>& job_startpoint) {
     };
 
     HostContext host_context(
-        0, mem_config, std::move(host_group), workers_per_host);
+        0, mem_config,
+        std::make_unique<TestGroup::Dispatcher>(),
+        std::move(host_group), workers_per_host);
 
     Context ctx(host_context, 0);
     common::NameThisThread("worker " + mem::to_string(my_host_rank));
@@ -568,9 +577,12 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
     static constexpr size_t kGroupCount = net::Manager::kGroupCount;
 
     // construct three TCP network groups
+    auto dispatcher = std::make_unique<net::tcp::SelectDispatcher>();
+
     std::array<std::unique_ptr<net::tcp::Group>, kGroupCount> groups;
     net::tcp::Construct(
-        my_host_rank, hostlist, groups.data(), net::Manager::kGroupCount);
+        *dispatcher, my_host_rank, hostlist,
+        groups.data(), net::Manager::kGroupCount);
 
     std::array<net::GroupPtr, kGroupCount> host_groups = {
         { std::move(groups[0]), std::move(groups[1]) }
@@ -578,7 +590,8 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
 
     // construct HostContext
     HostContext host_context(
-        0, mem_config, std::move(host_groups), workers_per_host);
+        0, mem_config,
+        std::move(dispatcher), std::move(host_groups), workers_per_host);
 
     std::vector<std::thread> threads(workers_per_host);
 
@@ -657,6 +670,8 @@ int RunBackendMpi(const std::function<void(Context&)>& job_startpoint) {
     static constexpr size_t kGroupCount = net::Manager::kGroupCount;
 
     // construct three MPI network groups
+    auto dispatcher = std::make_unique<net::mpi::Dispatcher>(num_hosts);
+
     std::array<std::unique_ptr<net::mpi::Group>, kGroupCount> groups;
     net::mpi::Construct(num_hosts, groups.data(), kGroupCount);
 
@@ -666,7 +681,8 @@ int RunBackendMpi(const std::function<void(Context&)>& job_startpoint) {
 
     // construct HostContext
     HostContext host_context(
-        0, mem_config, std::move(host_groups), workers_per_host);
+        0, mem_config,
+        std::move(dispatcher), std::move(host_groups), workers_per_host);
 
     // launch worker threads
     std::vector<std::thread> threads(workers_per_host);
@@ -1025,17 +1041,16 @@ void MemoryConfig::print(size_t workers_per_host) const {
 
 HostContext::HostContext(
     size_t local_host_id,
-    const MemoryConfig& mem_config,
+    const MemoryConfig& mem_config, std::unique_ptr<net::Dispatcher> dispatcher,
     std::array<net::GroupPtr, net::Manager::kGroupCount>&& groups,
-
     size_t workers_per_host)
-
     : mem_config_(mem_config),
       base_logger_(MakeHostLogPath(groups[0]->my_host_rank())),
       logger_(&base_logger_, "host_rank", groups[0]->my_host_rank()),
       profiler_(std::make_unique<common::ProfileThread>()),
       local_host_id_(local_host_id),
       workers_per_host_(workers_per_host),
+      dispatcher_(mem_manager_, std::move(dispatcher), groups[0]->my_host_rank()),
       net_manager_(std::move(groups), logger_) {
 
     // write command line parameters to json log

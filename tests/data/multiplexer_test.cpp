@@ -73,8 +73,9 @@ TEST(StreamSet, TestLoopbacks) {
     auto groups = net::mock::Group::ConstructLoopbackMesh(hosts);
     net::Group* group = groups[0].get();
     mem::Manager mem_manager(nullptr, "Benchmark");
+    net::DispatcherThread disp(mem_manager, group->ConstructDispatcher(), 0);
     data::BlockPool block_pool(workers_per_host);
-    data::Multiplexer multiplexer(mem_manager, block_pool, workers_per_host, *group);
+    data::Multiplexer multiplexer(mem_manager, block_pool, disp, *group, workers_per_host);
 
     auto producer =
         [workers_per_host](data::CatStreamDataPtr stream, size_t my_id) {
@@ -126,8 +127,9 @@ struct Multiplexer : public ::testing::Test {
     static void FunctionSelect(
         net::Group* group, WorkerThread f1, WorkerThread f2, WorkerThread f3) {
         mem::Manager mem_manager(nullptr, "MultiplexerTest");
+        net::DispatcherThread disp(mem_manager, group->ConstructDispatcher(), 0);
         data::BlockPool block_pool;
-        data::Multiplexer multiplexer(mem_manager, block_pool, 1, *group);
+        data::Multiplexer multiplexer(mem_manager, block_pool, disp, *group, 1);
         switch (group->my_host_rank()) {
         case 0:
             common::NameThisThread("t0");
@@ -181,8 +183,9 @@ void TalkAllToAllViaCatStream(net::Group* net) {
 
     mem::Manager mem_manager(nullptr, "Benchmark");
     data::BlockPool block_pool(num_workers_per_host);
+    net::DispatcherThread disp(mem_manager, net->ConstructDispatcher(), 0);
     data::Multiplexer multiplexer(
-        mem_manager, block_pool, num_workers_per_host, *net);
+        mem_manager, block_pool, disp, *net, num_workers_per_host);
 
     auto thread_func =
         [&](size_t my_local_worker_id) {
@@ -524,8 +527,9 @@ void TalkAllToAllViaMixStream(net::Group* net) {
 
     mem::Manager mem_manager(nullptr, "Benchmark");
     data::BlockPool block_pool(num_workers_per_host);
+    net::DispatcherThread disp(mem_manager, net->ConstructDispatcher(), 0);
     data::Multiplexer multiplexer(
-        mem_manager, block_pool, num_workers_per_host, *net);
+        mem_manager, block_pool, disp, *net, num_workers_per_host);
 
     auto thread_func =
         [&](size_t my_local_worker_id) {

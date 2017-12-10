@@ -667,7 +667,7 @@ public:
 
             group_ = &ctx.net.group();
             std::unique_ptr<net::Dispatcher> dispatcher =
-                group_->ConstructDispatcher(mem_manager);
+                group_->ConstructDispatcher();
             dispatcher_ = dispatcher.get();
 
             t.Start();

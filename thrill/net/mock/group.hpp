@@ -133,8 +133,9 @@ public:
 
     void Close() final;
 
-    std::unique_ptr<net::Dispatcher> ConstructDispatcher(
-        mem::Manager& mem_manager) const final;
+    using Dispatcher = mock::Dispatcher;
+
+    std::unique_ptr<net::Dispatcher> ConstructDispatcher() const final;
 
     //! \}
 
@@ -175,7 +176,8 @@ public:
     //! type for file descriptor readiness callbacks
     using Callback = AsyncCallback;
 
-    explicit Dispatcher(mem::Manager& mem_manager);
+    Dispatcher();
+    ~Dispatcher();
 
     //! \name Implementation of Virtual Methods
     //! \{

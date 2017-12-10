@@ -180,8 +180,7 @@ public:
     //! Construct a network dispatcher object for the network backend used by
     //! this group, matching its internal implementation. A dispatcher may be
     //! shared between groups of the same type.
-    std::unique_ptr<net::Dispatcher> ConstructDispatcher(
-        mem::Manager& mem_manager) const final;
+    std::unique_ptr<net::Dispatcher> ConstructDispatcher() const final;
 
     //! run a MPI_Barrier() for synchronization.
     void Barrier();

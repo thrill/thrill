@@ -498,8 +498,7 @@ private:
 
 public:
     //! default constructor
-    explicit Dispatcher(mem::Manager& mem_manager)
-        : mem_manager_(mem_manager) { }
+    Dispatcher() = default;
 
     //! non-copyable: delete copy-constructor
     Dispatcher(const Dispatcher&) = delete;
@@ -731,9 +730,6 @@ protected:
 
     //! true if dispatcher needs to stop
     std::atomic<bool> terminate_ { false };
-
-    //! superior memory manager
-    mem::Manager& mem_manager_;
 
     /*------------------------------------------------------------------------*/
 

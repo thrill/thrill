@@ -26,8 +26,8 @@ extern std::mutex g_mutex;
 /******************************************************************************/
 // mpi::Dispatcher
 
-Dispatcher::Dispatcher(mem::Manager& mem_manager, size_t group_size)
-    : net::Dispatcher(mem_manager) {
+Dispatcher::Dispatcher(size_t group_size)
+    : net::Dispatcher() {
 
     watch_.resize(group_size);
 #if THRILL_NET_MPI_QUEUES

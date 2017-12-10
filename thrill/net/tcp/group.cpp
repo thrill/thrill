@@ -28,9 +28,9 @@ namespace net {
 namespace tcp {
 
 std::unique_ptr<Dispatcher>
-Group::ConstructDispatcher(mem::Manager& mem_manager) const {
+Group::ConstructDispatcher() const {
     // construct tcp::SelectDispatcher
-    return std::make_unique<SelectDispatcher>(mem_manager);
+    return std::make_unique<SelectDispatcher>();
 }
 
 std::vector<std::unique_ptr<Group> > Group::ConstructLoopbackMesh(
@@ -87,8 +87,9 @@ std::vector<std::unique_ptr<Group> > Group::ConstructLocalRealTCPMesh(
     for (size_t i = 0; i < num_hosts; i++) {
         threads[i] = std::thread(
             [i, &endpoints, &groups]() {
-                // construct Group i with endpoints
-                Construct(i, endpoints, groups.data() + i, 1);
+                // construct Group i with endpoints -- with temporary Dispatcher
+                net::tcp::SelectDispatcher dispatcher;
+                Construct(dispatcher, i, endpoints, groups.data() + i, 1);
             });
     }
 

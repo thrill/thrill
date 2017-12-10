@@ -69,9 +69,9 @@ class Multiplexer
     static constexpr bool debug = false;
 
 public:
-    Multiplexer(mem::Manager& mem_manager,
-                BlockPool& block_pool,
-                size_t workers_per_host, net::Group& group);
+    Multiplexer(mem::Manager& mem_manager, BlockPool& block_pool,
+                net::DispatcherThread& dispatcher, net::Group& group,
+                size_t workers_per_host);
 
     //! non-copyable: delete copy-constructor
     Multiplexer(const Multiplexer&) = delete;
@@ -149,7 +149,7 @@ private:
 
     //! dispatcher used for all communication by data::Multiplexer, the thread
     //! never leaves the data components!
-    net::DispatcherThread dispatcher_;
+    net::DispatcherThread& dispatcher_;
 
     // Holds NetConnections for outgoing Streams
     net::Group& group_;

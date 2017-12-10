@@ -90,6 +90,7 @@ public:
 #ifndef SWIG
     //! constructor from existing net Groups. Used by the construction methods.
     HostContext(size_t local_host_id, const MemoryConfig& mem_config,
+                std::unique_ptr<net::Dispatcher> dispatcher,
                 std::array<net::GroupPtr, net::Manager::kGroupCount>&& groups,
                 size_t workers_per_host);
 
@@ -165,6 +166,9 @@ private:
     //! host-global memory manager for internal memory only
     mem::Manager mem_manager_ { nullptr, "HostContext" };
 
+    //! main host network dispatcher thread backend
+    net::DispatcherThread dispatcher_;
+
     //! net manager constructs communication groups to other hosts.
     net::Manager net_manager_;
 
@@ -195,8 +199,8 @@ private:
 
     //! data multiplexer transmits large amounts of data asynchronously.
     data::Multiplexer data_multiplexer_ {
-        mem_manager_, block_pool_, workers_per_host_,
-        net_manager_.GetDataGroup()
+        mem_manager_, block_pool_,
+        dispatcher_, net_manager_.GetDataGroup(), workers_per_host_
     };
 };
 

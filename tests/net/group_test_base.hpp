@@ -225,9 +225,7 @@ static void TestDispatcherSyncSendAsyncRead(net::Group* net) {
     }
 
     size_t received = 0;
-    mem::Manager mem_manager(nullptr, "Dispatcher");
-    std::unique_ptr<net::Dispatcher> dispatcher =
-        net->ConstructDispatcher(mem_manager);
+    std::unique_ptr<net::Dispatcher> dispatcher = net->ConstructDispatcher();
 
     net::AsyncReadCallback callback =
         [net, &received](net::Connection& /* s */, const net::Buffer& buffer) {
@@ -255,7 +253,7 @@ static void TestDispatcherSyncSendAsyncRead(net::Group* net) {
 //! sleep for a new ticks until the dispatcher thread reaches select().
 static void TestDispatcherLaunchAndTerminate(net::Group* net) {
     mem::Manager mem_manager_(nullptr, "DispatcherTest");
-    net::DispatcherThread disp(mem_manager_, *net, "dispatcher");
+    net::DispatcherThread disp(mem_manager_, net->ConstructDispatcher(), 0);
 
     // sleep for a new ticks until the dispatcher thread reaches select().
     std::this_thread::sleep_for(std::chrono::microseconds(1));
@@ -268,8 +266,7 @@ void DisabledTestDispatcherAsyncWriteAndReadIntoStdFuture(net::Group* net) {
     static constexpr bool debug = false;
 
     mem::Manager mem_manager_(nullptr, "DispatcherTest");
-
-    net::DispatcherThread disp(mem_manager_, *net, "dispatcher");
+    net::DispatcherThread disp(mem_manager_, net->ConstructDispatcher(), 0);
 
     // send a message to all other clients except ourselves.
     for (size_t i = 0; i < net->num_hosts(); ++i) {

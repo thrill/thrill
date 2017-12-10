@@ -47,7 +47,7 @@ public:
     using Callback = AsyncCallback;
 
     //! constructor
-    Dispatcher(mem::Manager& mem_manager, size_t group_size);
+    Dispatcher(size_t group_size);
 
     //! destructor
     ~Dispatcher();
@@ -190,7 +190,7 @@ private:
     };
 
     //! callback watch vector
-    mem::vector<Watch> watch_ { mem::Allocator<Watch>(mem_manager_) };
+    std::vector<Watch> watch_;
 
     //! counter of active watches
     size_t watch_active_ { 0 };
@@ -360,19 +360,13 @@ private:
 
     //! array of asynchronous writers and readers (these have to align with
     //! mpi_async_requests_)
-    mem::vector<MpiAsync> mpi_async_ {
-        mem::Allocator<MpiAsync>(mem_manager_)
-    };
+    std::vector<MpiAsync> mpi_async_;
 
     //! array of current async MPI_Request for MPI_Testsome().
-    mem::vector<MPI_Request> mpi_async_requests_ {
-        mem::Allocator<MPI_Request>(mem_manager_)
-    };
+    std::vector<MPI_Request> mpi_async_requests_;
 
     //! array of output integer of finished requests for MPI_Testsome().
-    mem::vector<int> mpi_async_out_ {
-        mem::Allocator<int>(mem_manager_)
-    };
+    std::vector<int> mpi_async_out_;
 
 #if THRILL_NET_MPI_QUEUES
     //! queue of delayed requests for each peer

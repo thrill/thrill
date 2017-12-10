@@ -125,14 +125,12 @@ struct Multiplexer::Data {
           ongoing_requests_(num_hosts) { }
 };
 
-Multiplexer::Multiplexer(mem::Manager& mem_manager,
-                         BlockPool& block_pool,
-                         size_t workers_per_host, net::Group& group)
+Multiplexer::Multiplexer(mem::Manager& mem_manager, BlockPool& block_pool,
+                         net::DispatcherThread& dispatcher, net::Group& group,
+                         size_t workers_per_host)
     : mem_manager_(mem_manager),
       block_pool_(block_pool),
-      dispatcher_(
-          mem_manager, group,
-          "host " + mem::to_string(group.my_host_rank()) + " dispatcher"),
+      dispatcher_(dispatcher),
       group_(group),
       workers_per_host_(workers_per_host),
       d_(std::make_unique<Data>(group_.num_hosts(), workers_per_host)) {

@@ -135,10 +135,9 @@ size_t Group::num_parallel_async() const {
     return 16;
 }
 
-std::unique_ptr<net::Dispatcher> Group::ConstructDispatcher(
-    mem::Manager& mem_manager) const {
+std::unique_ptr<net::Dispatcher> Group::ConstructDispatcher() const {
     // construct mpi::Dispatcher
-    return std::make_unique<Dispatcher>(mem_manager, num_hosts());
+    return std::make_unique<Dispatcher>(num_hosts());
 }
 
 void Group::Barrier() {

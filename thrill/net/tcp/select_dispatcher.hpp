@@ -59,8 +59,7 @@ public:
     using Callback = AsyncCallback;
 
     //! constructor
-    explicit SelectDispatcher(mem::Manager& mem_manager)
-        : net::Dispatcher(mem_manager) {
+    explicit SelectDispatcher() : net::Dispatcher() {
         // allocate self-pipe
         common::MakePipe(self_pipe_);
 
@@ -189,7 +188,7 @@ private:
     //! handlers for all registered file descriptors. the fd integer range
     //! should be small enough, otherwise a more complicated data structure is
     //! needed.
-    mem::vector<Watch> watch_ { mem::Allocator<Watch>(mem_manager_) };
+    std::vector<Watch> watch_;
 
     //! Default exception handler
     static bool DefaultExceptionCallback() {

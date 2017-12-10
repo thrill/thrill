@@ -84,8 +84,7 @@ public:
     //! Construct a network dispatcher object for the network backend used by
     //! this group, matching its internal implementation. A dispatcher may be
     //! shared between groups of the same type.
-    virtual std::unique_ptr<class Dispatcher> ConstructDispatcher(
-        mem::Manager& mem_manager) const = 0;
+    virtual std::unique_ptr<class Dispatcher> ConstructDispatcher() const = 0;
 
     //! Number of of 1-factor iterations
     size_t OneFactorSize() const {
