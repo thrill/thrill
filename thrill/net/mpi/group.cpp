@@ -28,6 +28,11 @@ std::mutex g_mutex;
 /******************************************************************************/
 // mpi::Exception
 
+Exception::Exception(const std::string& what, int error_code)
+    : net::Exception(what + ": [" + std::to_string(error_code) + "] "
+                     + GetErrorString(error_code))
+{ }
+
 std::string Exception::GetErrorString(int error_code) {
     char string[MPI_MAX_ERROR_STRING];
     int resultlen;
@@ -38,86 +43,128 @@ std::string Exception::GetErrorString(int error_code) {
 /******************************************************************************/
 //! mpi::Connection
 
-void Connection::SyncSend(
-    const void* data, size_t size, Flags /* flags */) {
-    std::unique_lock<std::mutex> lock(g_mutex);
+std::string Connection::ToString() const {
+    return "peer: " + std::to_string(peer_);
+}
 
-    LOG << "MPI_Send()"
+std::ostream& Connection::OutputOstream(std::ostream& os) const {
+    return os << "[mpi::Connection"
+              << " group_tag_=" << group_->group_tag()
+              << " peer_=" << peer_
+              << "]";
+}
+
+void Connection::SyncSend(const void* data, size_t size, Flags /* flags */) {
+
+    LOG << "SyncSend()"
         << " data=" << data
         << " size=" << size
         << " peer_=" << peer_
-        << " group_tag_=" << group_tag_;
+        << " group_tag_=" << group_->group_tag();
 
     assert(size <= std::numeric_limits<int>::max());
 
-    int r = MPI_Send(const_cast<void*>(data), static_cast<int>(size), MPI_BYTE,
-                     peer_, group_tag_, MPI_COMM_WORLD);
+    bool done = false;
+    group_->dispatcher().RunInThread(
+        [=, &done](net::Dispatcher& dispatcher) {
 
-    if (r != MPI_SUCCESS)
-        throw Exception("Error during SyncSend", r);
+            auto& disp = static_cast<mpi::Dispatcher&>(dispatcher);
+
+            MPI_Request request =
+                disp.ISend(*this, /* seq */ 0, data, size);
+
+            disp.AddAsyncRequest(
+                request, [&done](MPI_Status&) { done = true; });
+        });
+
+    while (!done)
+        std::this_thread::yield();
 
     tx_bytes_ += size;
 }
 
 void Connection::SyncRecv(void* out_data, size_t size) {
-    std::unique_lock<std::mutex> lock(g_mutex);
 
-    LOG << "MPI_Recv()"
+    LOG << "SyncRecv()"
         << " out_data=" << out_data
         << " size=" << size
         << " peer_=" << peer_
-        << " group_tag_=" << group_tag_;
+        << " group_tag_=" << group_->group_tag();
 
     assert(size <= std::numeric_limits<int>::max());
 
-    MPI_Status status;
-    int r = MPI_Recv(out_data, static_cast<int>(size), MPI_BYTE,
-                     peer_, group_tag_, MPI_COMM_WORLD, &status);
-    if (r != MPI_SUCCESS)
-        throw Exception("Error during MPI_Recv()", r);
+    bool done = false;
+    group_->dispatcher().RunInThread(
+        [=, &done](net::Dispatcher& dispatcher) {
 
-    int count;
-    r = MPI_Get_count(&status, MPI_BYTE, &count);
-    if (r != MPI_SUCCESS)
-        throw Exception("Error during MPI_Get_count()", r);
+            auto& disp = static_cast<mpi::Dispatcher&>(dispatcher);
 
-    if (static_cast<size_t>(count) != size)
-        throw Exception("Error during SyncRecv: message truncated?");
+            MPI_Request request =
+                disp.IRecv(*this, /* seq */ 0, out_data, size);
+
+            disp.AddAsyncRequest(
+                request, [&done, size](MPI_Status& status) {
+                    int count;
+                    int r = MPI_Get_count(&status, MPI_BYTE, &count);
+                    if (r != MPI_SUCCESS)
+                        throw Exception("Error during MPI_Get_count()", r);
+
+                    if (static_cast<size_t>(count) != size)
+                        throw Exception("Error during SyncRecv(): message truncated?");
+
+                    done = true;
+                });
+        });
+
+    while (!done)
+        std::this_thread::yield();
 
     rx_bytes_ += size;
 }
 
 void Connection::SyncSendRecv(const void* send_data, size_t send_size,
                               void* recv_data, size_t recv_size) {
-    std::unique_lock<std::mutex> lock(g_mutex);
 
-    LOG << "MPI_Sendrecv()"
+    LOG << "SyncSendRecv()"
         << " send_data=" << send_data
         << " send_size=" << send_size
         << " recv_data=" << recv_data
         << " recv_size=" << recv_size
         << " peer_=" << peer_
-        << " group_tag_=" << group_tag_;
+        << " group_tag_=" << group_->group_tag();
 
     assert(send_size <= std::numeric_limits<int>::max());
     assert(recv_size <= std::numeric_limits<int>::max());
 
-    MPI_Status status;
-    int r = MPI_Sendrecv(const_cast<void*>(send_data),
-                         static_cast<int>(send_size), MPI_BYTE,
-                         peer_, group_tag_,
-                         recv_data, static_cast<int>(recv_size), MPI_BYTE,
-                         peer_, group_tag_, MPI_COMM_WORLD, &status);
-    if (r != MPI_SUCCESS)
-        throw Exception("Error during MPI_Sendrecv()", r);
+    unsigned done = 0;
+    group_->dispatcher().RunInThread(
+        [=, &done](net::Dispatcher& dispatcher) {
+            auto& disp = static_cast<mpi::Dispatcher&>(dispatcher);
 
-    int count;
-    r = MPI_Get_count(&status, MPI_BYTE, &count);
-    if (r != MPI_SUCCESS)
-        throw Exception("Error during MPI_Get_count()", r);
+            MPI_Request send_request =
+                disp.ISend(*this, /* seq */ 0, send_data, send_size);
 
-    if (static_cast<size_t>(count) != recv_size)
-        throw Exception("Error during SyncSendRecv: message truncated?");
+            MPI_Request recv_request =
+                disp.IRecv(*this, /* seq */ 0, recv_data, recv_size);
+
+            disp.AddAsyncRequest(
+                send_request, [&done](MPI_Status&) { ++done; });
+            disp.AddAsyncRequest(
+                recv_request, [&done, recv_size](MPI_Status& status) {
+                    int count;
+                    int r = MPI_Get_count(&status, MPI_BYTE, &count);
+                    if (r != MPI_SUCCESS)
+                        throw Exception("Error during MPI_Get_count()", r);
+
+                    if (static_cast<size_t>(count) != recv_size)
+                        throw Exception("Error during SyncSendRecv(): message truncated?");
+
+                    ++done;
+                });
+        });
+
+    while (done != 2)
+        std::this_thread::yield();
 
     tx_bytes_ += send_size;
     rx_bytes_ += recv_size;
@@ -141,10 +188,51 @@ std::unique_ptr<net::Dispatcher> Group::ConstructDispatcher() const {
 }
 
 void Group::Barrier() {
-    std::unique_lock<std::mutex> lock(g_mutex);
-    int r = MPI_Barrier(MPI_COMM_WORLD);
-    if (r != MPI_SUCCESS)
-        throw Exception("Error during MPI_Barrier()", r);
+
+    bool done = false;
+    dispatcher_.RunInThread(
+        [=, &done](net::Dispatcher& dispatcher) {
+            std::unique_lock<std::mutex> lock(g_mutex);
+
+            MPI_Request request;
+            int r = MPI_Ibarrier(MPI_COMM_WORLD, &request);
+            if (r != MPI_SUCCESS)
+                throw Exception("Error during MPI_Barrier()", r);
+
+            lock.unlock();
+
+            auto& disp = static_cast<mpi::Dispatcher&>(dispatcher);
+            disp.AddAsyncRequest(
+                request, [&done](MPI_Status&) { done = true; });
+        });
+
+    while (!done)
+        std::this_thread::yield();
+}
+
+template <typename MpiCall>
+void Group::WaitForRequest(MpiCall call) {
+
+    bool done = false;
+    dispatcher_.RunInThread(
+        [=, &done](net::Dispatcher& dispatcher) {
+            std::unique_lock<std::mutex> lock(g_mutex);
+
+            MPI_Request request;
+            int r = call(request);
+
+            if (r != MPI_SUCCESS)
+                throw Exception("Error during WaitForRequest", r);
+
+            lock.unlock();
+
+            auto& disp = static_cast<mpi::Dispatcher&>(dispatcher);
+            disp.AddAsyncRequest(
+                request, [&done](MPI_Status&) { done = true; });
+        });
+
+    while (!done)
+        std::this_thread::yield();
 }
 
 /******************************************************************************/
@@ -152,192 +240,383 @@ void Group::Barrier() {
 
 /*[[[perl
   for my $e (
-    ["int", "Int", "INT"], ["unsigned int", "UnsignedInt", "UNSIGNED"],
-    ["long", "Long", "LONG"], ["unsigned long", "UnsignedLong", "UNSIGNED_LONG"],
+    ["int", "Int", "INT"],
+    ["unsigned int", "UnsignedInt", "UNSIGNED"],
+    ["long", "Long", "LONG"],
+    ["unsigned long", "UnsignedLong", "UNSIGNED_LONG"],
     ["long long", "LongLong", "LONG_LONG"],
     ["unsigned long long", "UnsignedLongLong", "UNSIGNED_LONG_LONG"])
   {
     print "void Group::PrefixSumPlus$$e[1]($$e[0]& value) {\n";
-    print "    std::unique_lock<std::mutex> lock(g_mutex);\n";
-    print "    MPI_Scan(MPI_IN_PLACE, &value, 1, MPI_$$e[2], MPI_SUM, MPI_COMM_WORLD);\n";
+    print "    LOG << \"Group::PrefixSumPlus($$e[0]);\";\n";
+    print "    WaitForRequest(\n";
+    print "        [&](MPI_Request& request) {\n";
+    print "            return MPI_Iscan(MPI_IN_PLACE, &value, 1, MPI_INT,\n";
+    print "                             MPI_SUM, MPI_COMM_WORLD, &request);\n";
+    print "        });\n";
     print "}\n";
 
     print "void Group::ExPrefixSumPlus$$e[1]($$e[0]& value) {\n";
-    print "    std::unique_lock<std::mutex> lock(g_mutex);\n";
+    print "    LOG << \"Group::ExPrefixSumPlus($$e[0]);\";\n";
     print "    $$e[0] temp = value;\n";
-    print "    MPI_Exscan(&temp, &value, 1, MPI_$$e[2], MPI_SUM, MPI_COMM_WORLD);\n";
+    print "    WaitForRequest(\n";
+    print "        [&](MPI_Request& request) {\n";
+    print "            return MPI_Iexscan(&temp, &value, 1, MPI_$$e[2],\n";
+    print "                              MPI_SUM, MPI_COMM_WORLD, &request);\n";
+    print "        });\n";
     print "}\n";
 
     print "void Group::Broadcast$$e[1]($$e[0]& value, size_t origin) {\n";
-    print "    std::unique_lock<std::mutex> lock(g_mutex);\n";
-    print "    MPI_Bcast(&value, 1, MPI_$$e[2], origin, MPI_COMM_WORLD);\n";
+    print "    LOG << \"Group::Broadcast($$e[0]);\";\n";
+    print "    WaitForRequest(\n";
+    print "        [&](MPI_Request& request) {\n";
+    print "            return MPI_Ibcast(&value, 1, MPI_$$e[2], origin,\n";
+    print "                              MPI_COMM_WORLD, &request);\n";
+    print "        });\n";
     print "}\n";
 
     print "void Group::AllReducePlus$$e[1]($$e[0]& value) {\n";
-    print "    std::unique_lock<std::mutex> lock(g_mutex);\n";
-    print "    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_$$e[2], MPI_SUM, MPI_COMM_WORLD);\n";
+    print "    LOG << \"Group::AllReducePlus($$e[0]);\";\n";
+    print "    WaitForRequest(\n";
+    print "        [&](MPI_Request& request) {\n";
+    print "            return MPI_Iallreduce(\n";
+    print "                MPI_IN_PLACE, &value, 1, MPI_$$e[2],\n";
+    print "                MPI_SUM, MPI_COMM_WORLD, &request);\n";
+    print "        });\n";
     print "}\n";
 
     print "void Group::AllReduceMinimum$$e[1]($$e[0]& value) {\n";
-    print "    std::unique_lock<std::mutex> lock(g_mutex);\n";
-    print "    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_$$e[2], MPI_MIN, MPI_COMM_WORLD);\n";
+    print "    LOG << \"Group::AllReduceMinimum($$e[0]);\";\n";
+    print "    WaitForRequest(\n";
+    print "        [&](MPI_Request& request) {\n";
+    print "            return MPI_Iallreduce(\n";
+    print "                MPI_IN_PLACE, &value, 1, MPI_$$e[2],\n";
+    print "                MPI_MIN, MPI_COMM_WORLD, &request);\n";
+    print "        });\n";
     print "}\n";
 
     print "void Group::AllReduceMaximum$$e[1]($$e[0]& value) {\n";
-    print "    std::unique_lock<std::mutex> lock(g_mutex);\n";
-    print "    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_$$e[2], MPI_MAX, MPI_COMM_WORLD);\n";
+    print "    LOG << \"Group::AllReduceMaximum($$e[0]);\";\n";
+    print "    WaitForRequest(\n";
+    print "        [&](MPI_Request& request) {\n";
+    print "            return MPI_Iallreduce(\n";
+    print "                MPI_IN_PLACE, &value, 1, MPI_$$e[2],\n";
+    print "                 MPI_MAX, MPI_COMM_WORLD, &request);\n";
+    print "        });\n";
     print "}\n";
   }
 ]]]*/
 void Group::PrefixSumPlusInt(int& value) {
-    std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Scan(MPI_IN_PLACE, &value, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+    LOG << "Group::PrefixSumPlus(int);";
+    WaitForRequest(
+        [&](MPI_Request& request) {
+            return MPI_Iscan(MPI_IN_PLACE, &value, 1, MPI_INT,
+                             MPI_SUM, MPI_COMM_WORLD, &request);
+        });
 }
 void Group::ExPrefixSumPlusInt(int& value) {
-    std::unique_lock<std::mutex> lock(g_mutex);
+    LOG << "Group::ExPrefixSumPlus(int);";
     int temp = value;
-    MPI_Exscan(&temp, &value, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+    WaitForRequest(
+        [&](MPI_Request& request) {
+            return MPI_Iexscan(&temp, &value, 1, MPI_INT,
+                               MPI_SUM, MPI_COMM_WORLD, &request);
+        });
 }
 void Group::BroadcastInt(int& value, size_t origin) {
-    std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Bcast(&value, 1, MPI_INT, origin, MPI_COMM_WORLD);
+    LOG << "Group::Broadcast(int);";
+    WaitForRequest(
+        [&](MPI_Request& request) {
+            return MPI_Ibcast(&value, 1, MPI_INT, origin,
+                              MPI_COMM_WORLD, &request);
+        });
 }
 void Group::AllReducePlusInt(int& value) {
-    std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+    LOG << "Group::AllReducePlus(int);";
+    WaitForRequest(
+        [&](MPI_Request& request) {
+            return MPI_Iallreduce(
+                MPI_IN_PLACE, &value, 1, MPI_INT,
+                MPI_SUM, MPI_COMM_WORLD, &request);
+        });
 }
 void Group::AllReduceMinimumInt(int& value) {
-    std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
+    LOG << "Group::AllReduceMinimum(int);";
+    WaitForRequest(
+        [&](MPI_Request& request) {
+            return MPI_Iallreduce(
+                MPI_IN_PLACE, &value, 1, MPI_INT,
+                MPI_MIN, MPI_COMM_WORLD, &request);
+        });
 }
 void Group::AllReduceMaximumInt(int& value) {
-    std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+    LOG << "Group::AllReduceMaximum(int);";
+    WaitForRequest(
+        [&](MPI_Request& request) {
+            return MPI_Iallreduce(
+                MPI_IN_PLACE, &value, 1, MPI_INT,
+                MPI_MAX, MPI_COMM_WORLD, &request);
+        });
 }
 void Group::PrefixSumPlusUnsignedInt(unsigned int& value) {
-    std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Scan(MPI_IN_PLACE, &value, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
+    LOG << "Group::PrefixSumPlus(unsigned int);";
+    WaitForRequest(
+        [&](MPI_Request& request) {
+            return MPI_Iscan(MPI_IN_PLACE, &value, 1, MPI_INT,
+                             MPI_SUM, MPI_COMM_WORLD, &request);
+        });
 }
 void Group::ExPrefixSumPlusUnsignedInt(unsigned int& value) {
-    std::unique_lock<std::mutex> lock(g_mutex);
+    LOG << "Group::ExPrefixSumPlus(unsigned int);";
     unsigned int temp = value;
-    MPI_Exscan(&temp, &value, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
+    WaitForRequest(
+        [&](MPI_Request& request) {
+            return MPI_Iexscan(&temp, &value, 1, MPI_UNSIGNED,
+                               MPI_SUM, MPI_COMM_WORLD, &request);
+        });
 }
 void Group::BroadcastUnsignedInt(unsigned int& value, size_t origin) {
-    std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Bcast(&value, 1, MPI_UNSIGNED, origin, MPI_COMM_WORLD);
+    LOG << "Group::Broadcast(unsigned int);";
+    WaitForRequest(
+        [&](MPI_Request& request) {
+            return MPI_Ibcast(&value, 1, MPI_UNSIGNED, origin,
+                              MPI_COMM_WORLD, &request);
+        });
 }
 void Group::AllReducePlusUnsignedInt(unsigned int& value) {
-    std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
+    LOG << "Group::AllReducePlus(unsigned int);";
+    WaitForRequest(
+        [&](MPI_Request& request) {
+            return MPI_Iallreduce(
+                MPI_IN_PLACE, &value, 1, MPI_UNSIGNED,
+                MPI_SUM, MPI_COMM_WORLD, &request);
+        });
 }
 void Group::AllReduceMinimumUnsignedInt(unsigned int& value) {
-    std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_UNSIGNED, MPI_MIN, MPI_COMM_WORLD);
+    LOG << "Group::AllReduceMinimum(unsigned int);";
+    WaitForRequest(
+        [&](MPI_Request& request) {
+            return MPI_Iallreduce(
+                MPI_IN_PLACE, &value, 1, MPI_UNSIGNED,
+                MPI_MIN, MPI_COMM_WORLD, &request);
+        });
 }
 void Group::AllReduceMaximumUnsignedInt(unsigned int& value) {
-    std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_UNSIGNED, MPI_MAX, MPI_COMM_WORLD);
+    LOG << "Group::AllReduceMaximum(unsigned int);";
+    WaitForRequest(
+        [&](MPI_Request& request) {
+            return MPI_Iallreduce(
+                MPI_IN_PLACE, &value, 1, MPI_UNSIGNED,
+                MPI_MAX, MPI_COMM_WORLD, &request);
+        });
 }
 void Group::PrefixSumPlusLong(long& value) {
-    std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Scan(MPI_IN_PLACE, &value, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
+    LOG << "Group::PrefixSumPlus(long);";
+    WaitForRequest(
+        [&](MPI_Request& request) {
+            return MPI_Iscan(MPI_IN_PLACE, &value, 1, MPI_INT,
+                             MPI_SUM, MPI_COMM_WORLD, &request);
+        });
 }
 void Group::ExPrefixSumPlusLong(long& value) {
-    std::unique_lock<std::mutex> lock(g_mutex);
+    LOG << "Group::ExPrefixSumPlus(long);";
     long temp = value;
-    MPI_Exscan(&temp, &value, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
+    WaitForRequest(
+        [&](MPI_Request& request) {
+            return MPI_Iexscan(&temp, &value, 1, MPI_LONG,
+                               MPI_SUM, MPI_COMM_WORLD, &request);
+        });
 }
 void Group::BroadcastLong(long& value, size_t origin) {
-    std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Bcast(&value, 1, MPI_LONG, origin, MPI_COMM_WORLD);
+    LOG << "Group::Broadcast(long);";
+    WaitForRequest(
+        [&](MPI_Request& request) {
+            return MPI_Ibcast(&value, 1, MPI_LONG, origin,
+                              MPI_COMM_WORLD, &request);
+        });
 }
 void Group::AllReducePlusLong(long& value) {
-    std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
+    LOG << "Group::AllReducePlus(long);";
+    WaitForRequest(
+        [&](MPI_Request& request) {
+            return MPI_Iallreduce(
+                MPI_IN_PLACE, &value, 1, MPI_LONG,
+                MPI_SUM, MPI_COMM_WORLD, &request);
+        });
 }
 void Group::AllReduceMinimumLong(long& value) {
-    std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_LONG, MPI_MIN, MPI_COMM_WORLD);
+    LOG << "Group::AllReduceMinimum(long);";
+    WaitForRequest(
+        [&](MPI_Request& request) {
+            return MPI_Iallreduce(
+                MPI_IN_PLACE, &value, 1, MPI_LONG,
+                MPI_MIN, MPI_COMM_WORLD, &request);
+        });
 }
 void Group::AllReduceMaximumLong(long& value) {
-    std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_LONG, MPI_MAX, MPI_COMM_WORLD);
+    LOG << "Group::AllReduceMaximum(long);";
+    WaitForRequest(
+        [&](MPI_Request& request) {
+            return MPI_Iallreduce(
+                MPI_IN_PLACE, &value, 1, MPI_LONG,
+                MPI_MAX, MPI_COMM_WORLD, &request);
+        });
 }
 void Group::PrefixSumPlusUnsignedLong(unsigned long& value) {
-    std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Scan(MPI_IN_PLACE, &value, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
+    LOG << "Group::PrefixSumPlus(unsigned long);";
+    WaitForRequest(
+        [&](MPI_Request& request) {
+            return MPI_Iscan(MPI_IN_PLACE, &value, 1, MPI_INT,
+                             MPI_SUM, MPI_COMM_WORLD, &request);
+        });
 }
 void Group::ExPrefixSumPlusUnsignedLong(unsigned long& value) {
-    std::unique_lock<std::mutex> lock(g_mutex);
+    LOG << "Group::ExPrefixSumPlus(unsigned long);";
     unsigned long temp = value;
-    MPI_Exscan(&temp, &value, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
+    WaitForRequest(
+        [&](MPI_Request& request) {
+            return MPI_Iexscan(&temp, &value, 1, MPI_UNSIGNED_LONG,
+                               MPI_SUM, MPI_COMM_WORLD, &request);
+        });
 }
 void Group::BroadcastUnsignedLong(unsigned long& value, size_t origin) {
-    std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Bcast(&value, 1, MPI_UNSIGNED_LONG, origin, MPI_COMM_WORLD);
+    LOG << "Group::Broadcast(unsigned long);";
+    WaitForRequest(
+        [&](MPI_Request& request) {
+            return MPI_Ibcast(&value, 1, MPI_UNSIGNED_LONG, origin,
+                              MPI_COMM_WORLD, &request);
+        });
 }
 void Group::AllReducePlusUnsignedLong(unsigned long& value) {
-    std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
+    LOG << "Group::AllReducePlus(unsigned long);";
+    WaitForRequest(
+        [&](MPI_Request& request) {
+            return MPI_Iallreduce(
+                MPI_IN_PLACE, &value, 1, MPI_UNSIGNED_LONG,
+                MPI_SUM, MPI_COMM_WORLD, &request);
+        });
 }
 void Group::AllReduceMinimumUnsignedLong(unsigned long& value) {
-    std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_UNSIGNED_LONG, MPI_MIN, MPI_COMM_WORLD);
+    LOG << "Group::AllReduceMinimum(unsigned long);";
+    WaitForRequest(
+        [&](MPI_Request& request) {
+            return MPI_Iallreduce(
+                MPI_IN_PLACE, &value, 1, MPI_UNSIGNED_LONG,
+                MPI_MIN, MPI_COMM_WORLD, &request);
+        });
 }
 void Group::AllReduceMaximumUnsignedLong(unsigned long& value) {
-    std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_UNSIGNED_LONG, MPI_MAX, MPI_COMM_WORLD);
+    LOG << "Group::AllReduceMaximum(unsigned long);";
+    WaitForRequest(
+        [&](MPI_Request& request) {
+            return MPI_Iallreduce(
+                MPI_IN_PLACE, &value, 1, MPI_UNSIGNED_LONG,
+                MPI_MAX, MPI_COMM_WORLD, &request);
+        });
 }
 void Group::PrefixSumPlusLongLong(long long& value) {
-    std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Scan(MPI_IN_PLACE, &value, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
+    LOG << "Group::PrefixSumPlus(long long);";
+    WaitForRequest(
+        [&](MPI_Request& request) {
+            return MPI_Iscan(MPI_IN_PLACE, &value, 1, MPI_INT,
+                             MPI_SUM, MPI_COMM_WORLD, &request);
+        });
 }
 void Group::ExPrefixSumPlusLongLong(long long& value) {
-    std::unique_lock<std::mutex> lock(g_mutex);
+    LOG << "Group::ExPrefixSumPlus(long long);";
     long long temp = value;
-    MPI_Exscan(&temp, &value, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
+    WaitForRequest(
+        [&](MPI_Request& request) {
+            return MPI_Iexscan(&temp, &value, 1, MPI_LONG_LONG,
+                               MPI_SUM, MPI_COMM_WORLD, &request);
+        });
 }
 void Group::BroadcastLongLong(long long& value, size_t origin) {
-    std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Bcast(&value, 1, MPI_LONG_LONG, origin, MPI_COMM_WORLD);
+    LOG << "Group::Broadcast(long long);";
+    WaitForRequest(
+        [&](MPI_Request& request) {
+            return MPI_Ibcast(&value, 1, MPI_LONG_LONG, origin,
+                              MPI_COMM_WORLD, &request);
+        });
 }
 void Group::AllReducePlusLongLong(long long& value) {
-    std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
+    LOG << "Group::AllReducePlus(long long);";
+    WaitForRequest(
+        [&](MPI_Request& request) {
+            return MPI_Iallreduce(
+                MPI_IN_PLACE, &value, 1, MPI_LONG_LONG,
+                MPI_SUM, MPI_COMM_WORLD, &request);
+        });
 }
 void Group::AllReduceMinimumLongLong(long long& value) {
-    std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_LONG_LONG, MPI_MIN, MPI_COMM_WORLD);
+    LOG << "Group::AllReduceMinimum(long long);";
+    WaitForRequest(
+        [&](MPI_Request& request) {
+            return MPI_Iallreduce(
+                MPI_IN_PLACE, &value, 1, MPI_LONG_LONG,
+                MPI_MIN, MPI_COMM_WORLD, &request);
+        });
 }
 void Group::AllReduceMaximumLongLong(long long& value) {
-    std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_LONG_LONG, MPI_MAX, MPI_COMM_WORLD);
+    LOG << "Group::AllReduceMaximum(long long);";
+    WaitForRequest(
+        [&](MPI_Request& request) {
+            return MPI_Iallreduce(
+                MPI_IN_PLACE, &value, 1, MPI_LONG_LONG,
+                MPI_MAX, MPI_COMM_WORLD, &request);
+        });
 }
 void Group::PrefixSumPlusUnsignedLongLong(unsigned long long& value) {
-    std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Scan(MPI_IN_PLACE, &value, 1, MPI_UNSIGNED_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
+    LOG << "Group::PrefixSumPlus(unsigned long long);";
+    WaitForRequest(
+        [&](MPI_Request& request) {
+            return MPI_Iscan(MPI_IN_PLACE, &value, 1, MPI_INT,
+                             MPI_SUM, MPI_COMM_WORLD, &request);
+        });
 }
 void Group::ExPrefixSumPlusUnsignedLongLong(unsigned long long& value) {
-    std::unique_lock<std::mutex> lock(g_mutex);
+    LOG << "Group::ExPrefixSumPlus(unsigned long long);";
     unsigned long long temp = value;
-    MPI_Exscan(&temp, &value, 1, MPI_UNSIGNED_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
+    WaitForRequest(
+        [&](MPI_Request& request) {
+            return MPI_Iexscan(&temp, &value, 1, MPI_UNSIGNED_LONG_LONG,
+                               MPI_SUM, MPI_COMM_WORLD, &request);
+        });
 }
 void Group::BroadcastUnsignedLongLong(unsigned long long& value, size_t origin) {
-    std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Bcast(&value, 1, MPI_UNSIGNED_LONG_LONG, origin, MPI_COMM_WORLD);
+    LOG << "Group::Broadcast(unsigned long long);";
+    WaitForRequest(
+        [&](MPI_Request& request) {
+            return MPI_Ibcast(&value, 1, MPI_UNSIGNED_LONG_LONG, origin,
+                              MPI_COMM_WORLD, &request);
+        });
 }
 void Group::AllReducePlusUnsignedLongLong(unsigned long long& value) {
-    std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_UNSIGNED_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
+    LOG << "Group::AllReducePlus(unsigned long long);";
+    WaitForRequest(
+        [&](MPI_Request& request) {
+            return MPI_Iallreduce(
+                MPI_IN_PLACE, &value, 1, MPI_UNSIGNED_LONG_LONG,
+                MPI_SUM, MPI_COMM_WORLD, &request);
+        });
 }
 void Group::AllReduceMinimumUnsignedLongLong(unsigned long long& value) {
-    std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_UNSIGNED_LONG_LONG, MPI_MIN, MPI_COMM_WORLD);
+    LOG << "Group::AllReduceMinimum(unsigned long long);";
+    WaitForRequest(
+        [&](MPI_Request& request) {
+            return MPI_Iallreduce(
+                MPI_IN_PLACE, &value, 1, MPI_UNSIGNED_LONG_LONG,
+                MPI_MIN, MPI_COMM_WORLD, &request);
+        });
 }
 void Group::AllReduceMaximumUnsignedLongLong(unsigned long long& value) {
-    std::unique_lock<std::mutex> lock(g_mutex);
-    MPI_Allreduce(MPI_IN_PLACE, &value, 1, MPI_UNSIGNED_LONG_LONG, MPI_MAX, MPI_COMM_WORLD);
+    LOG << "Group::AllReduceMaximum(unsigned long long);";
+    WaitForRequest(
+        [&](MPI_Request& request) {
+            return MPI_Iallreduce(
+                MPI_IN_PLACE, &value, 1, MPI_UNSIGNED_LONG_LONG,
+                MPI_MAX, MPI_COMM_WORLD, &request);
+        });
 }
 // [[[end]]]
 
@@ -366,12 +645,12 @@ static inline void Initialize() {
 
         int provided;
         int r = MPI_Init_thread(&argc, reinterpret_cast<char***>(&argv),
-                                MPI_THREAD_MULTIPLE, &provided);
+                                MPI_THREAD_SERIALIZED, &provided);
         if (r != MPI_SUCCESS)
             throw Exception("Error during MPI_Init_thread()", r);
 
-        if (provided != MPI_THREAD_MULTIPLE)
-            LOG1 << "WARNING: MPI_Init_thread() only provided= " << provided;
+        if (provided < MPI_THREAD_SERIALIZED)
+            die("ERROR: MPI_Init_thread() only provided= " << provided);
 
         // register atexit method
         atexit(&Deinitialize);
@@ -386,7 +665,7 @@ static inline void Initialize() {
  *
  * Returns true if this Thrill host participates in the Group.
  */
-bool Construct(size_t group_size,
+bool Construct(size_t group_size, DispatcherThread& dispatcher,
                std::unique_ptr<Group>* groups, size_t group_count) {
     std::unique_lock<std::mutex> lock(g_mutex);
 
@@ -406,7 +685,7 @@ bool Construct(size_t group_size,
         throw Exception("mpi::Construct(): fewer MPI processes than hosts requested.");
 
     for (size_t i = 0; i < group_count; i++) {
-        groups[i] = std::make_unique<Group>(my_rank, i, group_size);
+        groups[i] = std::make_unique<Group>(my_rank, i, group_size, dispatcher);
     }
 
     return (static_cast<size_t>(my_rank) < group_size);

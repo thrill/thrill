@@ -11,6 +11,7 @@
 #include <gtest/gtest.h>
 #include <thrill/common/logger.hpp>
 #include <thrill/net/dispatcher_thread.hpp>
+#include <thrill/net/mpi/dispatcher.hpp>
 #include <thrill/net/mpi/group.hpp>
 
 #include "flow_control_test_base.hpp"
@@ -24,9 +25,11 @@ void MpiTest(const std::function<void(net::Group*)>& thread_function) {
     sLOG0 << "MpiTest num_hosts" << num_hosts;
 
     // construct MPI network group and run program
+    net::DispatcherThread dispatcher(
+        std::make_unique<net::mpi::Dispatcher>(num_hosts), num_hosts);
     std::unique_ptr<net::mpi::Group> group;
 
-    if (net::mpi::Construct(num_hosts, &group, 1)) {
+    if (net::mpi::Construct(num_hosts, dispatcher, &group, 1)) {
         // only run if construction included this host in the group.
 
         // we cannot run a truly threaded test anyway.

@@ -103,7 +103,15 @@ ConstructLoopbackHostContexts(
         group[g] = NetGroup::ConstructLoopbackMesh(num_hosts);
     }
 
+    std::vector<std::unique_ptr<net::DispatcherThread> > dispatcher;
+    for (size_t h = 0; h < num_hosts; ++h) {
+        dispatcher.emplace_back(
+            std::make_unique<net::DispatcherThread>(
+                std::make_unique<typename NetGroup::Dispatcher>(), h));
+    }
+
     // construct host context
+
     std::vector<std::unique_ptr<HostContext> > host_context;
 
     for (size_t h = 0; h < num_hosts; h++) {
@@ -113,8 +121,7 @@ ConstructLoopbackHostContexts(
 
         host_context.emplace_back(
             std::make_unique<HostContext>(
-                h, mem_config,
-                std::make_unique<typename NetGroup::Dispatcher>(),
+                h, mem_config, std::move(dispatcher[h]),
                 std::move(host_group), workers_per_host));
     }
 
@@ -374,10 +381,12 @@ void RunLocalSameThread(const std::function<void(Context&)>& job_startpoint) {
         { std::move(group[0][0]), std::move(group[1][0]) }
     };
 
+    auto dispatcher = std::make_unique<net::DispatcherThread>(
+        std::make_unique<TestGroup::Dispatcher>(), my_host_rank);
+
     HostContext host_context(
         0, mem_config,
-        std::make_unique<TestGroup::Dispatcher>(),
-        std::move(host_group), workers_per_host);
+        std::move(dispatcher), std::move(host_group), workers_per_host);
 
     Context ctx(host_context, 0);
     common::NameThisThread("worker " + mem::to_string(my_host_rank));
@@ -577,11 +586,11 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
     static constexpr size_t kGroupCount = net::Manager::kGroupCount;
 
     // construct three TCP network groups
-    auto dispatcher = std::make_unique<net::tcp::SelectDispatcher>();
+    auto select_dispatcher = std::make_unique<net::tcp::SelectDispatcher>();
 
     std::array<std::unique_ptr<net::tcp::Group>, kGroupCount> groups;
     net::tcp::Construct(
-        *dispatcher, my_host_rank, hostlist,
+        *select_dispatcher, my_host_rank, hostlist,
         groups.data(), net::Manager::kGroupCount);
 
     std::array<net::GroupPtr, kGroupCount> host_groups = {
@@ -589,6 +598,10 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
     };
 
     // construct HostContext
+
+    auto dispatcher = std::make_unique<net::DispatcherThread>(
+        std::move(select_dispatcher), my_host_rank);
+
     HostContext host_context(
         0, mem_config,
         std::move(dispatcher), std::move(host_groups), workers_per_host);
@@ -614,6 +627,9 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
     }
 
     if (!Deinitialize()) return -1;
+
+    // terminate dispatcher, this waits for unfinished AsyncWrites.
+    dispatcher->Terminate();
 
     return global_result;
 }
@@ -670,10 +686,11 @@ int RunBackendMpi(const std::function<void(Context&)>& job_startpoint) {
     static constexpr size_t kGroupCount = net::Manager::kGroupCount;
 
     // construct three MPI network groups
-    auto dispatcher = std::make_unique<net::mpi::Dispatcher>(num_hosts);
+    auto dispatcher = std::make_unique<net::DispatcherThread>(
+        std::make_unique<net::mpi::Dispatcher>(num_hosts), mpi_rank);
 
     std::array<std::unique_ptr<net::mpi::Group>, kGroupCount> groups;
-    net::mpi::Construct(num_hosts, groups.data(), kGroupCount);
+    net::mpi::Construct(num_hosts, *dispatcher, groups.data(), kGroupCount);
 
     std::array<net::GroupPtr, kGroupCount> host_groups = {
         { std::move(groups[0]), std::move(groups[1]) }
@@ -1041,7 +1058,8 @@ void MemoryConfig::print(size_t workers_per_host) const {
 
 HostContext::HostContext(
     size_t local_host_id,
-    const MemoryConfig& mem_config, std::unique_ptr<net::Dispatcher> dispatcher,
+    const MemoryConfig& mem_config,
+    std::unique_ptr<net::DispatcherThread> dispatcher,
     std::array<net::GroupPtr, net::Manager::kGroupCount>&& groups,
     size_t workers_per_host)
     : mem_config_(mem_config),
@@ -1050,7 +1068,7 @@ HostContext::HostContext(
       profiler_(std::make_unique<common::ProfileThread>()),
       local_host_id_(local_host_id),
       workers_per_host_(workers_per_host),
-      dispatcher_(mem_manager_, std::move(dispatcher), groups[0]->my_host_rank()),
+      dispatcher_(std::move(dispatcher)),
       net_manager_(std::move(groups), logger_) {
 
     // write command line parameters to json log

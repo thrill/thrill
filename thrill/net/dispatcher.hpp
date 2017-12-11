@@ -44,11 +44,6 @@ using TimerCallback = tlx::delegate<bool(), mem::GPoolAllocator<char> >;
 //! Signature of async connection readability/writability callbacks.
 using AsyncCallback = tlx::delegate<bool(), mem::GPoolAllocator<char> >;
 
-//! Signature of async read direct memory callbacks.
-using AsyncReadMemoryCallback = tlx::delegate<
-          void(Connection& c, uint8_t* data, size_t size),
-          mem::GPoolAllocator<char> >;
-
 //! Signature of async read Buffer callbacks.
 using AsyncReadBufferCallback = tlx::delegate<
           void(Connection& c, Buffer&& buffer), mem::GPoolAllocator<char> >;
@@ -70,8 +65,8 @@ class AsyncReadBuffer
 {
 public:
     //! Construct buffered reader with callback
-    AsyncReadBuffer(Connection& conn,
-                    size_t buffer_size, const AsyncReadBufferCallback& callback)
+    AsyncReadBuffer(Connection& conn, size_t buffer_size,
+                    const AsyncReadBufferCallback& callback)
         : conn_(&conn),
           buffer_(buffer_size),
           callback_(callback) {
@@ -176,8 +171,7 @@ class AsyncWriteBuffer
 {
 public:
     //! Construct buffered writer with callback
-    AsyncWriteBuffer(Connection& conn,
-                     Buffer&& buffer,
+    AsyncWriteBuffer(Connection& conn, Buffer&& buffer,
                      const AsyncWriteCallback& callback)
         : conn_(&conn),
           buffer_(std::move(buffer)),
@@ -384,8 +378,7 @@ class AsyncWriteBlock
 {
 public:
     //! Construct block writer with callback
-    AsyncWriteBlock(Connection& conn,
-                    data::PinnedBlock&& block,
+    AsyncWriteBlock(Connection& conn, data::PinnedBlock&& block,
                     const AsyncWriteCallback& callback)
         : conn_(&conn),
           block_(std::move(block)),

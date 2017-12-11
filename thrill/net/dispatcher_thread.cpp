@@ -20,10 +20,8 @@ namespace thrill {
 namespace net {
 
 DispatcherThread::DispatcherThread(
-    mem::Manager& mem_manager, std::unique_ptr<class Dispatcher> dispatcher,
-    size_t host_rank)
-    : mem_manager_(&mem_manager, "DispatcherThread"),
-      dispatcher_(std::move(dispatcher)),
+    std::unique_ptr<class Dispatcher> dispatcher, size_t host_rank)
+    : dispatcher_(std::move(dispatcher)),
       host_rank_(host_rank) {
     // start thread
     thread_ = std::thread(&DispatcherThread::Work, this);
@@ -33,7 +31,6 @@ DispatcherThread::~DispatcherThread() {
     Terminate();
 }
 
-//! Terminate the dispatcher thread (if now already done).
 void DispatcherThread::Terminate() {
     if (terminate_) return;
 
@@ -45,7 +42,13 @@ void DispatcherThread::Terminate() {
     thread_.join();
 }
 
-//! Register a relative timeout callback
+void DispatcherThread::RunInThread(const AsyncDispatcherThreadCallback& cb) {
+    Enqueue([this, cb = std::move(cb)]() {
+                cb(*dispatcher_);
+            });
+    WakeUpThread();
+}
+
 void DispatcherThread::AddTimer(
     std::chrono::milliseconds timeout, const TimerCallback& cb) {
     Enqueue([=]() {
@@ -54,7 +57,6 @@ void DispatcherThread::AddTimer(
     WakeUpThread();
 }
 
-//! Register a buffered read callback and a default exception callback.
 void DispatcherThread::AddRead(Connection& c, const AsyncCallback& read_cb) {
     Enqueue([=, &c]() {
                 dispatcher_->AddRead(c, read_cb);
@@ -62,7 +64,6 @@ void DispatcherThread::AddRead(Connection& c, const AsyncCallback& read_cb) {
     WakeUpThread();
 }
 
-//! Register a buffered write callback and a default exception callback.
 void DispatcherThread::AddWrite(Connection& c, const AsyncCallback& write_cb) {
     Enqueue([=, &c]() {
                 dispatcher_->AddWrite(c, write_cb);
@@ -70,7 +71,6 @@ void DispatcherThread::AddWrite(Connection& c, const AsyncCallback& write_cb) {
     WakeUpThread();
 }
 
-//! Cancel all callbacks on a given connection.
 void DispatcherThread::Cancel(Connection& c) {
     Enqueue([=, &c]() {
                 dispatcher_->Cancel(c);
@@ -78,7 +78,6 @@ void DispatcherThread::Cancel(Connection& c) {
     WakeUpThread();
 }
 
-//! asynchronously read n bytes and deliver them to the callback
 void DispatcherThread::AsyncRead(
     Connection& c, uint32_t seq, size_t size,
     const AsyncReadCallback& done_cb) {
@@ -88,7 +87,6 @@ void DispatcherThread::AsyncRead(
     WakeUpThread();
 }
 
-//! asynchronously read the full ByteBlock and deliver it to the callback
 void DispatcherThread::AsyncRead(
     Connection& c, uint32_t seq, size_t size, data::PinnedByteBlockPtr&& block,
     const AsyncReadByteBlockCallback& done_cb) {
@@ -99,10 +97,6 @@ void DispatcherThread::AsyncRead(
     WakeUpThread();
 }
 
-//! asynchronously write TWO buffers and callback when delivered. The
-//! buffer2 are MOVED into the async writer. This is most useful to write a
-//! header and a payload Buffers that are hereby guaranteed to be written in
-//! order.
 void DispatcherThread::AsyncWrite(
     Connection& c, uint32_t seq, Buffer&& buffer, const AsyncWriteCallback& done_cb) {
     // the following captures the move-only buffer in a lambda.
@@ -112,8 +106,6 @@ void DispatcherThread::AsyncWrite(
     WakeUpThread();
 }
 
-//! asynchronously write buffer and callback when delivered. The buffer is
-//! MOVED into the async writer.
 void DispatcherThread::AsyncWrite(
     Connection& c, uint32_t seq, Buffer&& buffer, data::PinnedBlock&& block,
     const AsyncWriteCallback& done_cb) {
@@ -127,28 +119,22 @@ void DispatcherThread::AsyncWrite(
     WakeUpThread();
 }
 
-//! asynchronously write buffer and callback when delivered. COPIES the data
-//! into a Buffer!
 void DispatcherThread::AsyncWriteCopy(
     Connection& c, uint32_t seq, const void* buffer, size_t size,
     const AsyncWriteCallback& done_cb) {
     return AsyncWrite(c, seq, Buffer(buffer, size), done_cb);
 }
 
-//! asynchronously write buffer and callback when delivered. COPIES the data
-//! into a Buffer!
 void DispatcherThread::AsyncWriteCopy(
     Connection& c, uint32_t seq,
     const std::string& str, const AsyncWriteCallback& done_cb) {
     return AsyncWriteCopy(c, seq, str.data(), str.size(), done_cb);
 }
 
-//! Enqueue job in queue for dispatching thread to run at its discretion.
 void DispatcherThread::Enqueue(Job&& job) {
     return jobqueue_.push(std::move(job));
 }
 
-//! What happens in the dispatcher thread
 void DispatcherThread::Work() {
     common::NameThisThread(
         "host " + mem::to_string(host_rank_) + " dispatcher");
@@ -181,9 +167,10 @@ void DispatcherThread::Work() {
 
         busy_ = false;
     }
+
+    LOG << "DispatcherThread finished.";
 }
 
-//! wake up select() in dispatching thread.
 void DispatcherThread::WakeUpThread() {
     if (busy_)
         dispatcher_->Interrupt();

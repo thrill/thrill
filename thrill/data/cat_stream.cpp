@@ -262,7 +262,7 @@ void CatStreamData::OnStreamBlock(size_t from, uint32_t seq, PinnedBlock&& b) {
     // try to process additional queued blocks
     while (seq_[from].waiting_.begin()->first == seq_[from].seq_)
     {
-        sLOG << "MixStreamData::OnStreamBlock"
+        sLOG << "CatStreamData::OnStreamBlock"
              << "processing delayed block with seq"
              << seq_[from].waiting_.begin()->first;
 
@@ -279,6 +279,12 @@ void CatStreamData::OnStreamBlockOrdered(size_t from, PinnedBlock&& b) {
         queues_[from].AppendPinnedBlock(std::move(b), /* is_last_block */ false);
     }
     else {
+        sLOG << "CatStreamData::OnCloseStream"
+             << "stream" << id_
+             << "from" << from
+             << "for worker" << my_worker_rank()
+             << "remaining_closing_blocks_" << remaining_closing_blocks_;
+
         queues_[from].Close();
 
         die_unless(remaining_closing_blocks_ > 0);

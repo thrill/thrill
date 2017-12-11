@@ -23,6 +23,9 @@ namespace mpi {
 //! The Grand MPI Library Invocation Mutex (The GMLIM)
 extern std::mutex g_mutex;
 
+//! number of simultaneous transfers
+static const size_t g_simultaneous = 32;
+
 /******************************************************************************/
 // mpi::Dispatcher
 
@@ -41,6 +44,9 @@ Dispatcher::Dispatcher(size_t group_size)
 Dispatcher::~Dispatcher() {
     LOG << "~mpi::Dispatcher()"
         << " mpi_async_.size()=" << mpi_async_.size();
+
+    // lock the GMLIM
+    std::unique_lock<std::mutex> lock(g_mutex);
 
     for (size_t i = 0; i < mpi_async_requests_.size(); ++i) {
         int r = MPI_Cancel(&mpi_async_requests_[i]);
@@ -66,7 +72,8 @@ MPI_Request Dispatcher::ISend(
         throw Exception("Error during MPI_Isend()", r);
 
     LOG << "MPI_Isend() data=" << data << " size=" << size
-        << " seq=" << seq << " request=" << request;
+        << " peer=" << c.peer() << " seq=" << seq
+        << " request=" << request;
 
     c.tx_bytes_ += size;
 
@@ -87,11 +94,23 @@ MPI_Request Dispatcher::IRecv(
         throw Exception("Error during MPI_Irecv()", r);
 
     LOG << "MPI_Irecv() data=" << data << " size=" << size
-        << " seq=" << seq << " request=" << request;
+        << " peer=" << c.peer() << " seq=" << seq
+        << " request=" << request;
 
     c.rx_bytes_ += size;
 
     return request;
+}
+
+void Dispatcher::AddAsyncRequest(
+    const MPI_Request& req, const AsyncRequestCallback& callback) {
+
+    LOG << "AddAsyncRequest() req=" << req;
+
+    // store request and associated buffer (Isend needs memory).
+    mpi_async_requests_.emplace_back(req);
+    mpi_async_.emplace_back(MpiAsync(callback));
+    mpi_async_out_.emplace_back();
 }
 
 void Dispatcher::QueueAsyncSend(net::Connection& c, MpiAsync&& a) {
@@ -100,7 +119,7 @@ void Dispatcher::QueueAsyncSend(net::Connection& c, MpiAsync&& a) {
     Connection* mpic = static_cast<Connection*>(&c);
 
     int peer = mpic->peer();
-    if (send_active_[peer] < 32) {
+    if (send_active_[peer] < g_simultaneous) {
         // perform immediately
         PerformAsync(std::move(a));
     }
@@ -121,7 +140,7 @@ void Dispatcher::QueueAsyncRecv(net::Connection& c, MpiAsync&& a) {
 
     int peer = mpic->peer();
 
-    if (recv_active_[peer] < 32) {
+    if (recv_active_[peer] < g_simultaneous) {
         // perform immediately
         PerformAsync(std::move(a));
     }
@@ -137,7 +156,7 @@ void Dispatcher::QueueAsyncRecv(net::Connection& c, MpiAsync&& a) {
 
 void Dispatcher::PumpSendQueue(int peer) {
 #if THRILL_NET_MPI_QUEUES
-    while (send_active_[peer] < 32 && !send_queue_[peer].empty()) {
+    while (send_active_[peer] < g_simultaneous && !send_queue_[peer].empty()) {
         MpiAsync a = std::move(send_queue_[peer].front());
         send_queue_[peer].pop_front();
         PerformAsync(std::move(a));
@@ -153,7 +172,7 @@ void Dispatcher::PumpSendQueue(int peer) {
 
 void Dispatcher::PumpRecvQueue(int peer) {
 #if THRILL_NET_MPI_QUEUES
-    while (recv_active_[peer] < 32 && !recv_queue_[peer].empty()) {
+    while (recv_active_[peer] < g_simultaneous && !recv_queue_[peer].empty()) {
         MpiAsync a = std::move(recv_queue_[peer].front());
         recv_queue_[peer].pop_front();
         PerformAsync(std::move(a));
@@ -319,8 +338,8 @@ void Dispatcher::DispatchOne(const std::chrono::milliseconds& /* timeout */) {
         MPI_Status out_status;
 
         // (mpi_async_requests_.size() >= 10)
-        sLOG << "DispatchOne(): MPI_Testany()"
-             << " mpi_async_requests_=" << mpi_async_requests_.size();
+        sLOG0 << "DispatchOne(): MPI_Testany()"
+              << " mpi_async_requests_=" << mpi_async_requests_.size();
 
         int r = MPI_Testany(
             // in: Length of array_of_requests (integer).
@@ -342,22 +361,19 @@ void Dispatcher::DispatchOne(const std::chrono::milliseconds& /* timeout */) {
             lock.unlock();
         }
         else {
-            int out_size;
-            MPI_Get_count(&out_status, MPI_BYTE, &out_size);
-
+            die_unless((unsigned)out_index < mpi_async_requests_.size());
             lock.unlock();
 
             LOG << "DispatchOne(): MPI_Testany() out_flag=" << out_flag
                 << " done #" << out_index
-                << " out_size=" << out_size
                 << " out_tag=" << out_status.MPI_TAG;
 
             // perform callback
-            mpi_async_[out_index].DoCallback(out_size);
+            mpi_async_[out_index].DoCallback(out_status);
 
 #if THRILL_NET_MPI_QUEUES
             MpiAsync& a = mpi_async_[out_index];
-            int peer = a.connection()->peer();
+            int peer = a.connection() ? a.connection()->peer() : 0;
             MpiAsync::Type a_type = a.type_;
 #endif
 

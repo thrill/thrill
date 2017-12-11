@@ -49,6 +49,10 @@ using AsyncReadByteBlockCallback = tlx::delegate<
 using AsyncWriteCallback = tlx::delegate<
           void(Connection&), mem::GPoolAllocator<char> >;
 
+//! Signature of generic dispatcher callback.
+using AsyncDispatcherThreadCallback = tlx::delegate<
+          void(class Dispatcher&), mem::GPoolAllocator<char> >;
+
 /*!
  * DispatcherThread contains a net::Dispatcher object and an associated thread
  * that runs in the dispatching loop.
@@ -62,7 +66,6 @@ public:
     using Job = tlx::delegate<void(), mem::GPoolAllocator<char> >;
 
     DispatcherThread(
-        mem::Manager& mem_manager,
         std::unique_ptr<class Dispatcher> dispatcher,
         size_t host_rank);
 
@@ -76,8 +79,8 @@ public:
     //! Terminate the dispatcher thread (if now already done).
     void Terminate();
 
-    // *** note that callbacks are passed by value, because they must be copied
-    // *** into the closured by the methods. -tb
+    //! Run generic callback in dispatcher thread to enqueue stuff.
+    void RunInThread(const AsyncDispatcherThreadCallback& cb);
 
     //! \name Timeout Callbacks
     //! \{
@@ -151,9 +154,6 @@ private:
     void WakeUpThread();
 
 private:
-    //! common memory stats, should become a HostContext member.
-    mem::Manager mem_manager_;
-
     //! Queue of jobs to be run by dispatching thread at its discretion.
     common::ConcurrentQueue<Job, mem::GPoolAllocator<Job> > jobqueue_;
 

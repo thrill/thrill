@@ -73,7 +73,7 @@ TEST(StreamSet, TestLoopbacks) {
     auto groups = net::mock::Group::ConstructLoopbackMesh(hosts);
     net::Group* group = groups[0].get();
     mem::Manager mem_manager(nullptr, "Benchmark");
-    net::DispatcherThread disp(mem_manager, group->ConstructDispatcher(), 0);
+    net::DispatcherThread disp(group->ConstructDispatcher(), 0);
     data::BlockPool block_pool(workers_per_host);
     data::Multiplexer multiplexer(mem_manager, block_pool, disp, *group, workers_per_host);
 
@@ -127,7 +127,7 @@ struct Multiplexer : public ::testing::Test {
     static void FunctionSelect(
         net::Group* group, WorkerThread f1, WorkerThread f2, WorkerThread f3) {
         mem::Manager mem_manager(nullptr, "MultiplexerTest");
-        net::DispatcherThread disp(mem_manager, group->ConstructDispatcher(), 0);
+        net::DispatcherThread disp(group->ConstructDispatcher(), 0);
         data::BlockPool block_pool;
         data::Multiplexer multiplexer(mem_manager, block_pool, disp, *group, 1);
         switch (group->my_host_rank()) {
@@ -144,6 +144,8 @@ struct Multiplexer : public ::testing::Test {
             if (f3) f3(multiplexer);
             break;
         }
+        multiplexer.Close();
+        disp.Terminate();
     }
 
     static void Execute(WorkerThread f1 = nullptr,
@@ -183,7 +185,7 @@ void TalkAllToAllViaCatStream(net::Group* net) {
 
     mem::Manager mem_manager(nullptr, "Benchmark");
     data::BlockPool block_pool(num_workers_per_host);
-    net::DispatcherThread disp(mem_manager, net->ConstructDispatcher(), 0);
+    net::DispatcherThread disp(net->ConstructDispatcher(), 0);
     data::Multiplexer multiplexer(
         mem_manager, block_pool, disp, *net, num_workers_per_host);
 
@@ -527,7 +529,7 @@ void TalkAllToAllViaMixStream(net::Group* net) {
 
     mem::Manager mem_manager(nullptr, "Benchmark");
     data::BlockPool block_pool(num_workers_per_host);
-    net::DispatcherThread disp(mem_manager, net->ConstructDispatcher(), 0);
+    net::DispatcherThread disp(net->ConstructDispatcher(), 0);
     data::Multiplexer multiplexer(
         mem_manager, block_pool, disp, *net, num_workers_per_host);
 

@@ -34,7 +34,47 @@ namespace mpi {
 //! \ingroup net
 //! \{
 
-#define THRILL_NET_MPI_QUEUES 0
+#define THRILL_NET_MPI_QUEUES 1
+
+//! Signature of async MPI request callbacks.
+using AsyncRequestCallback = tlx::delegate<
+          void(MPI_Status&), mem::GPoolAllocator<char> >;
+
+class AsyncRequest
+{
+public:
+    //! Construct buffered reader with callback
+    AsyncRequest(const AsyncRequestCallback& callback)
+        : callback_(callback) {
+        LOGC(debug_async)
+            << "AsyncRequest()";
+    }
+
+    //! non-copyable: delete copy-constructor
+    AsyncRequest(const AsyncRequest&) = delete;
+    //! non-copyable: delete assignment operator
+    AsyncRequest& operator = (const AsyncRequest&) = delete;
+    //! move-constructor: default
+    AsyncRequest(AsyncRequest&&) = default;
+    //! move-assignment operator: default
+    AsyncRequest& operator = (AsyncRequest&&) = default;
+
+    ~AsyncRequest() {
+        LOGC(debug_async)
+            << "~AsyncRequest()";
+    }
+
+    void DoCallback(MPI_Status& s) {
+        if (callback_) {
+            callback_(s);
+            callback_ = AsyncRequestCallback();
+        }
+    }
+
+private:
+    //! functional object to call once data is complete
+    AsyncRequestCallback callback_;
+};
 
 class Dispatcher final : public net::Dispatcher
 {
@@ -102,6 +142,9 @@ public:
         Connection& c, uint32_t seq, const void* data, size_t size);
     MPI_Request IRecv(
         Connection& c, uint32_t seq, void* data, size_t size);
+
+    void AddAsyncRequest(
+        const MPI_Request& req, const AsyncRequestCallback& callback);
 
     void AsyncWrite(
         net::Connection& c, uint32_t seq, Buffer&& buffer,
@@ -213,12 +256,18 @@ private:
     public:
         enum Type {
             NONE,
+            REQUEST,
             WRITE_BUFFER, READ_BUFFER,
             WRITE_BLOCK, READ_BYTE_BLOCK
         };
 
         //! default constructor for resize
-        MpiAsync() : type_(NONE) { }
+        MpiAsync() : type_(NONE), seq_(0) { }
+
+        //! construct generic MPI async request
+        MpiAsync(const AsyncRequestCallback& callback)
+            : type_(REQUEST), seq_(0),
+              arequest_(callback) { }
 
         //! Construct AsyncWrite with Buffer
         MpiAsync(net::Connection& conn, uint32_t seq,
@@ -276,7 +325,9 @@ private:
 
         ~MpiAsync() {
             // call the active content's destructor
-            if (type_ == WRITE_BUFFER)
+            if (type_ == REQUEST)
+                arequest_.~AsyncRequest();
+            else if (type_ == WRITE_BUFFER)
                 write_buffer_.~AsyncWriteBuffer();
             else if (type_ == READ_BUFFER)
                 read_buffer_.~AsyncReadBuffer();
@@ -287,32 +338,30 @@ private:
         }
 
         //! Dispatch done message to correct callback.
-        void DoCallback() {
-            if (type_ == WRITE_BUFFER)
+        void DoCallback(MPI_Status& s) {
+            if (type_ == REQUEST)
+                arequest_.DoCallback(s);
+            else if (type_ == WRITE_BUFFER)
                 write_buffer_.DoCallback();
-            else if (type_ == READ_BUFFER)
-                read_buffer_.DoCallback();
+            else if (type_ == READ_BUFFER) {
+                int size;
+                MPI_Get_count(&s, MPI_BYTE, &size);
+                read_buffer_.DoCallback(size);
+            }
             else if (type_ == WRITE_BLOCK)
                 write_block_.DoCallback();
-            else if (type_ == READ_BYTE_BLOCK)
-                read_byte_block_.DoCallback();
-        }
-
-        //! Dispatch done message to correct callback.
-        void DoCallback(size_t size_check) {
-            if (type_ == WRITE_BUFFER)
-                write_buffer_.DoCallback();
-            else if (type_ == READ_BUFFER)
-                read_buffer_.DoCallback(size_check);
-            else if (type_ == WRITE_BLOCK)
-                write_block_.DoCallback();
-            else if (type_ == READ_BYTE_BLOCK)
-                read_byte_block_.DoCallback(size_check);
+            else if (type_ == READ_BYTE_BLOCK) {
+                int size;
+                MPI_Get_count(&s, MPI_BYTE, &size);
+                read_byte_block_.DoCallback(size);
+            }
         }
 
         //! Return mpi Connection pointer
         Connection * connection() {
-            if (type_ == WRITE_BUFFER)
+            if (type_ == REQUEST)
+                return nullptr;
+            else if (type_ == WRITE_BUFFER)
                 return static_cast<Connection*>(write_buffer_.connection());
             else if (type_ == READ_BUFFER)
                 return static_cast<Connection*>(read_buffer_.connection());
@@ -333,6 +382,7 @@ private:
         //! the big unification of async receivers. these also hold reference
         //! counts on the Buffer or Block objects.
         union {
+            AsyncRequest       arequest_;
             AsyncWriteBuffer   write_buffer_;
             AsyncReadBuffer    read_buffer_;
             AsyncWriteBlock    write_block_;
@@ -344,7 +394,9 @@ private:
             assert(type_ == ma.type_);
             seq_ = ma.seq_;
             // yes, this placement movement into the correct union component.
-            if (type_ == WRITE_BUFFER)
+            if (type_ == REQUEST)
+                new (&arequest_)AsyncRequest(std::move(ma.arequest_));
+            else if (type_ == WRITE_BUFFER)
                 new (&write_buffer_)AsyncWriteBuffer(std::move(ma.write_buffer_));
             else if (type_ == READ_BUFFER)
                 new (&read_buffer_)AsyncReadBuffer(std::move(ma.read_buffer_));

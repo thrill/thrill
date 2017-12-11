@@ -22,7 +22,7 @@
 #ifndef THRILL_NET_MPI_GROUP_HEADER
 #define THRILL_NET_MPI_GROUP_HEADER
 
-#include <thrill/net/dispatcher.hpp>
+#include <thrill/net/dispatcher_thread.hpp>
 #include <thrill/net/group.hpp>
 
 #include <algorithm>
@@ -37,7 +37,7 @@ namespace mpi {
 //! \ingroup net
 //! \{
 
-class Dispatcher;
+class Group;
 
 /*!
  * A derived exception class which looks up MPI error strings.
@@ -48,12 +48,10 @@ public:
     explicit Exception(const std::string& what)
         : net::Exception(what) { }
 
+    Exception(const std::string& what, int error_code);
+
     //! return the MPI error string
     static std::string GetErrorString(int error_code);
-
-    Exception(const std::string& what, int error_code)
-        : net::Exception(what + ": [" + std::to_string(error_code) + "] "
-                         + GetErrorString(error_code)) { }
 };
 
 /*!
@@ -67,8 +65,8 @@ class Connection final : public net::Connection
 
 public:
     //! construct from group tag and MPI peer
-    void Initialize(int group_tag, int peer) {
-        group_tag_ = group_tag;
+    void Initialize(Group* group, int peer) {
+        group_ = group;
         peer_ = peer;
     }
 
@@ -80,16 +78,9 @@ public:
     //! return the MPI peer number
     int peer() const { return peer_; }
 
-    std::string ToString() const final {
-        return "peer: " + std::to_string(peer_);
-    }
+    std::string ToString() const final;
 
-    std::ostream& OutputOstream(std::ostream& os) const final {
-        return os << "[mpi::Connection"
-                  << " group_tag_=" << group_tag_
-                  << " peer_=" << peer_
-                  << "]";
-    }
+    std::ostream& OutputOstream(std::ostream& os) const final;
 
     //! \}
 
@@ -130,8 +121,8 @@ public:
     //! \}
 
 private:
-    //! Group number used as MPI tag.
-    int group_tag_;
+    //! Group reference
+    Group* group_;
 
     //! Outgoing peer id of this Connection.
     int peer_;
@@ -152,13 +143,15 @@ public:
     //! \{
 
     //! Initialize a Group for the given size and rank
-    Group(size_t my_rank, int group_tag, size_t group_size)
+    Group(size_t my_rank, int group_tag, size_t group_size,
+          DispatcherThread& dispatcher)
         : net::Group(my_rank),
           group_tag_(group_tag),
-          conns_(group_size) {
+          conns_(group_size),
+          dispatcher_(dispatcher) {
         // create virtual connections
         for (size_t i = 0; i < group_size; ++i)
-            conns_[i].Initialize(group_tag, static_cast<int>(i));
+            conns_[i].Initialize(this, static_cast<int>(i));
     }
 
     //! return MPI tag used to communicate
@@ -166,6 +159,9 @@ public:
 
     //! number of hosts configured.
     size_t num_hosts() const final { return conns_.size(); }
+
+    //! reference to the main MPI dispatcher thread
+    DispatcherThread& dispatcher() { return dispatcher_; }
 
     net::Connection& connection(size_t peer) final {
         assert(peer < conns_.size());
@@ -193,6 +189,12 @@ private:
 
     //! vector of virtual connection objects to remote peers
     std::vector<Connection> conns_;
+
+    //! reference to the main MPI dispatcher thread
+    DispatcherThread& dispatcher_;
+
+    template <typename MpiCall>
+    void WaitForRequest(MpiCall call);
 
     //! \name Virtual Synchronous Collectives to Override Implementations
     //! \{
@@ -263,7 +265,7 @@ private:
  * Obviously, group_size must be less-or-equal to the number of processes
  * started with mpirun -np.
  */
-bool Construct(size_t group_size,
+bool Construct(size_t group_size, DispatcherThread& dispatcher,
                std::unique_ptr<Group>* groups, size_t group_count);
 
 /*!

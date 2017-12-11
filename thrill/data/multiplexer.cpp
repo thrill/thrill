@@ -165,9 +165,6 @@ void Multiplexer::Close() {
     // destroy all still open Streams
     d_->stream_sets_.map().clear();
 
-    // terminate dispatcher, this waits for unfinished AsyncWrites.
-    dispatcher_.Terminate();
-
     closed_ = true;
 }
 
