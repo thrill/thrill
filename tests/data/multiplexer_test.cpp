@@ -115,6 +115,8 @@ TEST(StreamSet, TestLoopbacks) {
     stream0->Close();
     stream1->Close();
     stream2->Close();
+    // stop DispatcherThread before Multiplexer
+    disp.Terminate();
 }
 
 /******************************************************************************/
@@ -144,7 +146,7 @@ struct Multiplexer : public ::testing::Test {
             if (f3) f3(multiplexer);
             break;
         }
-        multiplexer.Close();
+        // stop DispatcherThread before Multiplexer
         disp.Terminate();
     }
 
@@ -286,6 +288,9 @@ void TalkAllToAllViaCatStream(net::Group* net) {
     std::thread t0 = std::thread(thread_func, 0);
     std::thread t1 = std::thread(thread_func, 1);
     t0.join(), t1.join();
+
+    // stop DispatcherThread before Multiplexer
+    disp.Terminate();
 }
 
 TEST_F(Multiplexer, TalkAllToAllViaCatStreamForManyNetSizes) {
@@ -619,6 +624,9 @@ void TalkAllToAllViaMixStream(net::Group* net) {
     std::thread t0 = std::thread(thread_func, 0);
     std::thread t1 = std::thread(thread_func, 1);
     t0.join(), t1.join();
+
+    // stop DispatcherThread before Multiplexer
+    disp.Terminate();
 }
 
 TEST_F(Multiplexer, TalkAllToAllViaMixStreamForManyNetSizes) {

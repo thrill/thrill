@@ -94,6 +94,9 @@ public:
                 std::array<net::GroupPtr, net::Manager::kGroupCount>&& groups,
                 size_t workers_per_host);
 
+    //! destructor
+    ~HostContext();
+
     //! Construct a number of mock hosts running in this process.
     static std::vector<std::unique_ptr<HostContext> >
     ConstructLoopback(size_t num_hosts, size_t workers_per_host);

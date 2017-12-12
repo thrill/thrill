@@ -1081,6 +1081,11 @@ HostContext::HostContext(
         mem::StartMemProfiler(*profiler_, logger_);
 }
 
+HostContext::~HostContext() {
+    // stop dispatcher _before_ stopping multiplexer
+    dispatcher_->Terminate();
+}
+
 std::string HostContext::MakeHostLogPath(size_t host_rank) {
     const char* env_log = getenv("THRILL_LOG");
     if (env_log == nullptr) {

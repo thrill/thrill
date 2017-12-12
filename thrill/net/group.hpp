@@ -306,9 +306,8 @@ void ExecuteGroupThreads(
     }
 
     // tear down mesh by closing all group objects
-    for (size_t i = 0; i < num_hosts; ++i) {
+    for (size_t i = 0; i < num_hosts; ++i)
         groups[i]->Close();
-    }
 }
 
 //! Construct a mock or tcp-loopback Group network and run a thread for each
