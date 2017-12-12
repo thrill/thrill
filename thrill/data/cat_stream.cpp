@@ -79,7 +79,7 @@ void CatStreamData::set_dia_id(size_t dia_id) {
     }
 }
 
-std::vector<CatStreamData::Writer> CatStreamData::GetWriters() {
+CatStreamData::Writers CatStreamData::GetWriters() {
     size_t hard_ram_limit = multiplexer_.block_pool_.hard_ram_limit();
     size_t block_size_base = hard_ram_limit / 16 / multiplexer_.num_workers();
     size_t block_size = tlx::round_down_to_power_of_two(block_size_base);
@@ -103,7 +103,7 @@ std::vector<CatStreamData::Writer> CatStreamData::GetWriters() {
 
     tx_timespan_.StartEventually();
 
-    std::vector<Writer> result;
+    Writers result(my_worker_rank());
     result.reserve(num_workers());
 
     for (size_t host = 0; host < num_hosts(); ++host) {
@@ -328,7 +328,7 @@ const StreamData& CatStream::data() const {
     return *ptr_;
 }
 
-std::vector<CatStream::Writer> CatStream::GetWriters() {
+CatStream::Writers CatStream::GetWriters() {
     return ptr_->GetWriters();
 }
 

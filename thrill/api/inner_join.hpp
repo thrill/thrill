@@ -305,9 +305,9 @@ private:
 
     //! data streams for inter-worker communication of DIA elements
     data::MixStreamPtr hash_stream1_ { context_.GetNewMixStream(this) };
-    std::vector<data::Stream::Writer> hash_writers1_ { hash_stream1_->GetWriters() };
+    data::MixStream::Writers hash_writers1_ { hash_stream1_->GetWriters() };
     data::MixStreamPtr hash_stream2_ { context_.GetNewMixStream(this) };
-    std::vector<data::Stream::Writer> hash_writers2_ { hash_stream2_->GetWriters() };
+    data::MixStream::Writers hash_writers2_ { hash_stream2_->GetWriters() };
 
     //! location detection and associated files
     data::File pre_file1_ { context_.GetFile(this) };

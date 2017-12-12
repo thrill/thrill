@@ -42,7 +42,7 @@ void MixStreamData::set_dia_id(size_t dia_id) {
     queue_.set_dia_id(dia_id);
 }
 
-std::vector<MixStreamData::Writer> MixStreamData::GetWriters() {
+MixStreamData::Writers MixStreamData::GetWriters() {
     size_t hard_ram_limit = multiplexer_.block_pool_.hard_ram_limit();
     size_t block_size_base = hard_ram_limit / 16 / multiplexer_.num_workers();
     size_t block_size = tlx::round_down_to_power_of_two(block_size_base);
@@ -66,7 +66,7 @@ std::vector<MixStreamData::Writer> MixStreamData::GetWriters() {
 
     tx_timespan_.StartEventually();
 
-    std::vector<Writer> result;
+    Writers result(my_worker_rank());
     result.reserve(num_workers());
 
     for (size_t host = 0; host < num_hosts(); ++host) {
@@ -242,7 +242,7 @@ const StreamData& MixStream::data() const {
     return *ptr_;
 }
 
-std::vector<MixStream::Writer> MixStream::GetWriters() {
+MixStream::Writers MixStream::GetWriters() {
     return ptr_->GetWriters();
 }
 

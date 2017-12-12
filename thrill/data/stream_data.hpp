@@ -47,6 +47,34 @@ class StreamData : public tlx::ReferenceCounter
 public:
     using Writer = BlockWriter<StreamSink>;
 
+    /*!
+     * An extra class derived from std::vector<> for delivery of the
+     * BlockWriters of a Stream. The purpose is to enforce a custom way to close
+     * stream writers cyclically such that PE k first sends it's Close-packet to
+     * k+1, k+2, etc.
+     */
+    class Writers : public std::vector<BlockWriter<StreamSink> >
+    {
+    public:
+        Writers(size_t my_worker_rank = 0);
+
+        //! copyable: default copy-constructor
+        Writers(const Writers&) = default;
+        //! copyable: default assignment operator
+        Writers& operator = (const Writers&) = default;
+        //! move-constructor: default
+        Writers(Writers&&) = default;
+        //! move-assignment operator: default
+        Writers& operator = (Writers&&) = default;
+
+        //! custom destructor to close writers is a cyclic fashion
+        ~Writers();
+
+    private:
+        //! rank of this worker
+        size_t my_worker_rank_;
+    };
+
     StreamData(Multiplexer& multiplexer, const StreamId& id,
                size_t local_worker_id, size_t dia_id);
 
@@ -78,7 +106,7 @@ public:
 
     //! Creates BlockWriters for each worker. BlockWriter can only be opened
     //! once, otherwise the block sequence is incorrectly interleaved!
-    virtual std::vector<Writer> GetWriters() = 0;
+    virtual Writers GetWriters() = 0;
 
     ///////// expose these members - getters would be too java-ish /////////////
 

@@ -179,7 +179,7 @@ private:
     size_t totalsize_ = 0;
 
     data::CatStreamPtr stream_ { context_.GetNewCatStream(this) };
-    std::vector<data::CatStream::Writer> emitter_ { stream_->GetWriters() };
+    data::CatStream::Writers emitter_ { stream_->GetWriters() };
     std::vector<data::File> files_;
 
     void RunUserFunc(data::File& f, bool consume) {

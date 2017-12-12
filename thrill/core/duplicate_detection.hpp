@@ -203,7 +203,7 @@ public:
 
         data::CatStreamPtr duplicates_stream = context.GetNewCatStream(dia_id);
 
-        std::vector<data::CatStream::Writer> duplicates_writers =
+        data::CatStream::Writers duplicates_writers =
             duplicates_stream->GetWriters();
 
         std::vector<GolombBitStreamWriter> duplicates_gbsw;

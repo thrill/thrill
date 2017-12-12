@@ -119,8 +119,7 @@ private:
                               size_t num_workers,
                               size_t max_hash) {
 
-        std::vector<data::CatStream::Writer> writers =
-            stream_pointer->GetWriters();
+        data::CatStream::Writers writers = stream_pointer->GetWriters();
 
         for (size_t i = 0, j = 0; i < num_workers; ++i) {
             common::Range range_i =
@@ -261,7 +260,7 @@ public:
 
         data::CatStreamPtr location_stream = context_.GetNewCatStream(dia_id_);
 
-        std::vector<data::CatStream::Writer> location_writers =
+        data::CatStream::Writers location_writers =
             location_stream->GetWriters();
 
         std::vector<GolombBitStreamWriter> location_gbsw;

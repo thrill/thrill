@@ -295,7 +295,8 @@ private:
     core::LocationDetection<HashCount> location_detection_;
 
     data::CatStreamPtr stream_ { context_.GetNewCatStream(this) };
-    std::vector<data::Stream::Writer> emitter_;
+    data::CatStream::Writers emitter_;
+
     std::deque<data::File> files_;
     data::File sorted_elems_ { context_.GetFile(this) };
     size_t totalsize_ = 0;

@@ -52,6 +52,20 @@ void StreamData::OnAllClosed(const char* stream_type) {
 }
 
 /******************************************************************************/
+
+StreamData::Writers::Writers(size_t my_worker_rank)
+    : my_worker_rank_(my_worker_rank)
+{ }
+
+StreamData::Writers::~Writers() {
+    // close BlockWriters in a cyclic fashion
+    size_t s = size();
+    for (size_t i = 0; i < s; ++i) {
+        operator [] ((i + my_worker_rank_) % s).Close();
+    }
+}
+
+/******************************************************************************/
 // Stream
 
 Stream::~Stream()

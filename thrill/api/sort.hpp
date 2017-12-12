@@ -445,8 +445,7 @@ private:
         data::File::ConsumeReader unsorted_reader =
             unsorted_file_.GetConsumeReader();
 
-        std::vector<data::MixStream::Writer> data_writers =
-            data_stream->GetWriters();
+        data::MixStream::Writers data_writers = data_stream->GetWriters();
 
         // enlarge emitters array to next power of two to have direct access,
         // because we fill the splitter set up with sentinels == last splitter,
@@ -565,8 +564,7 @@ private:
         data::MixStreamPtr sample_stream = context_.GetNewMixStream(this);
 
         // Send all samples to worker 0.
-        std::vector<data::MixStream::Writer> sample_writers =
-            sample_stream->GetWriters();
+        data::MixStream::Writers sample_writers = sample_stream->GetWriters();
 
         for (const SampleIndexPair& sample : samples_) {
             // send samples but add the local prefix to index ranks

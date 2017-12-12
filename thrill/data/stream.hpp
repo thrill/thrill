@@ -38,6 +38,7 @@ class Stream : public tlx::ReferenceCounter
 {
 public:
     using Writer = StreamData::Writer;
+    using Writers = StreamData::Writers;
 
     virtual ~Stream();
 
@@ -55,7 +56,7 @@ public:
 
     //! Creates BlockWriters for each worker. BlockWriter can only be opened
     //! once, otherwise the block sequence is incorrectly interleaved!
-    virtual std::vector<Writer> GetWriters() = 0;
+    virtual Writers GetWriters() = 0;
 
     /*!
      * Scatters a File to many worker: elements from [offset[0],offset[1]) are
@@ -98,7 +99,7 @@ public:
 #endif
         }
 
-        std::vector<Writer> writers = GetWriters();
+        Writers writers = GetWriters();
 
         size_t num_workers = writers.size();
         assert(offsets.size() == num_workers + 1);

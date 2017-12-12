@@ -86,7 +86,7 @@ private:
     std::vector<ValueType>* out_vector_;
 
     data::CatStreamPtr stream_ { context_.GetNewCatStream(this) };
-    std::vector<data::CatStream::Writer> emitters_;
+    data::CatStream::Writers emitters_;
 };
 
 template <typename ValueType, typename Stack>
