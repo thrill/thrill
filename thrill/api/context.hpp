@@ -429,9 +429,7 @@ public:
     //! \{
 
     //! a random generator
-    std::default_random_engine rng_ {
-        std::random_device { } () + (local_worker_id_ << 16)
-    };
+    std::default_random_engine rng_;
 
     //! \}
 
