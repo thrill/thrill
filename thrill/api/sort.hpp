@@ -355,6 +355,8 @@ private:
         }
         if (samples.size() == 0) return;
 
+        LOG << "FindAndSendSplitters() samples.size()=" << samples.size();
+
         // Find splitters
         std::sort(samples.begin(), samples.end(),
                   [this](
@@ -362,11 +364,13 @@ private:
                       return LessSampleIndex(a, b);
                   });
 
-        size_t splitting_size = samples.size() / num_total_workers;
+        double splitting_size = static_cast<double>(samples.size())
+                                / static_cast<double>(num_total_workers);
 
         // Send splitters to other workers
         for (size_t i = 1; i < num_total_workers; ++i) {
-            splitters.push_back(samples[i * splitting_size]);
+            splitters.push_back(
+                samples[static_cast<size_t>(i * splitting_size)]);
             for (size_t j = 1; j < num_total_workers; j++) {
                 sample_writers[j].Put(splitters.back());
             }
@@ -699,7 +703,7 @@ private:
         local_out_size_ += vec.size();
 
         // advise block pool to write out data if necessary
-        context_.block_pool().AdviseFree(vec.size() * sizeof(ValueType));
+        // context_.block_pool().AdviseFree(vec.size() * sizeof(ValueType));
 
         timer_sort_.Start();
         sort_algorithm_(vec.begin(), vec.end(), compare_function_);
