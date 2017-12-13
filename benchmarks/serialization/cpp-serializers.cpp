@@ -151,7 +151,7 @@ int main() {
         auto r = f.GetConsumeReader();
         r.Next<std::pair<std::string, std::vector<std::size_t> > >();
     }
-    LOG1 << timer.Milliseconds();
+    LOG1 << timer;
 }
 
 /******************************************************************************/

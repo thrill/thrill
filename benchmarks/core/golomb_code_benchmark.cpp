@@ -89,8 +89,8 @@ int main(int argc, char* argv[]) {
     std::cout
         << "RESULT"
         << " benchmark=golomb"
-        << " write_timer=" << write_timer.Milliseconds()
-        << " read_timer=" << read_timer.Milliseconds()
+        << " write_timer=" << write_timer
+        << " read_timer=" << read_timer
         << " size=" << file_size
         << " num_elements=" << num_elements
         << " average_distance=" << average_distance

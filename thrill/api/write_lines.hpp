@@ -136,7 +136,7 @@ public:
             << "total_lines" << stats_total_elements_
             << "total_writes" << stats_total_writes_
             << "total_files" << out_serial_
-            << "write_time" << timer.Milliseconds();
+            << "write_time" << timer;
     }
 
     void Execute() final { }

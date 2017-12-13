@@ -55,7 +55,7 @@ int main(int argc, char* argv[]) {
                 .Sort().Size();
                 timer.Stop();
                 if (!ctx.my_rank()) {
-                    LOG1 << "ITERATION " << i << " RESULT" << " time=" << timer.Milliseconds();
+                    LOG1 << "ITERATION " << i << " RESULT" << " time=" << timer;
                 }
             }
         });

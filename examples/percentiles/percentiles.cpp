@@ -80,15 +80,15 @@ void Percentiles(api::Context& ctx, const std::string& input_path) {
     if (ctx.my_rank() == 0) {
         if (use_detection) {
             LOG1 << "RESULT " << "benchmark=median " << "detection=ON"
-                 << " time=" << timer.Milliseconds()
+                 << " time=" << timer
                  << " traffic=" << ctx.net_manager().Traffic()
-                 << " machines=" << ctx.num_hosts();
+                 << " hosts=" << ctx.num_hosts();
         }
         else {
             LOG1 << "RESULT " << "benchmark=median " << "detection=OFF"
-                 << " time=" << timer.Milliseconds()
+                 << " time=" << timer
                  << " traffic=" << ctx.net_manager().Traffic()
-                 << " machines=" << ctx.num_hosts();
+                 << " hosts=" << ctx.num_hosts();
         }
     }
 }

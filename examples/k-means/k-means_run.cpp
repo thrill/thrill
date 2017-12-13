@@ -111,6 +111,8 @@ static void RunKMeansGenerated(
     const std::string& svg_path, double svg_scale,
     const std::vector<std::string>& input_paths) {
 
+    thrill::common::StatsTimerStart timer;
+
     std::default_random_engine rng(123456);
     std::uniform_real_distribution<float> dist(0.0, 1000.0);
 
@@ -138,6 +140,22 @@ static void RunKMeansGenerated(
     if (svg_path.size() && dimensions == 2) {
         OutputSVG(svg_path, svg_scale, points, result);
     }
+
+    ctx.net.Barrier();
+    if (ctx.my_rank() == 0) {
+        auto traffic = ctx.net_manager().Traffic();
+        LOG1 << "RESULT"
+             << " benchmark=k-means"
+             << " bisecting=" << bisecting
+             << " dimensions=" << dimensions
+             << " num_clusters=" << num_clusters
+             << " iterations=" << iterations
+             << " eps=" << eps
+             << " cost=" << cost
+             << " time=" << timer
+             << " traffic=" << traffic.total()
+             << " hosts=" << ctx.num_hosts();
+    }
 }
 
 template <typename Point>
@@ -146,6 +164,8 @@ static void RunKMeansFile(
     size_t dimensions, size_t num_clusters, size_t iterations, double eps,
     const std::string& svg_path, double svg_scale,
     const std::vector<std::string>& input_paths) {
+
+    thrill::common::StatsTimerStart timer;
 
     auto points =
         ReadLines(ctx, input_paths).Map(
@@ -177,6 +197,22 @@ static void RunKMeansFile(
 
     if (svg_path.size() && dimensions == 2) {
         OutputSVG(svg_path, svg_scale, points.Collapse(), result);
+    }
+
+    ctx.net.Barrier();
+    if (ctx.my_rank() == 0) {
+        auto traffic = ctx.net_manager().Traffic();
+        LOG1 << "RESULT"
+             << " benchmark=k-means"
+             << " bisecting=" << bisecting
+             << " dimensions=" << dimensions
+             << " num_clusters=" << num_clusters
+             << " iterations=" << iterations
+             << " eps=" << eps
+             << " cost=" << cost
+             << " time=" << timer
+             << " traffic=" << traffic.total()
+             << " hosts=" << ctx.num_hosts();
     }
 }
 

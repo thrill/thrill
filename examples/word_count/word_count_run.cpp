@@ -57,8 +57,8 @@ static void RunWordCount(
         if (ctx.my_rank() == 0) {
             LOG1 << "RESULT"
                  << " benchmark=wordcount"
-                 << " time=" << timer.Milliseconds()
                  << " files=" << input_filelist.size()
+                 << " time=" << timer
                  << " traffic=" << ctx.net_manager().Traffic()
                  << " hosts=" << ctx.num_hosts();
         }
@@ -89,10 +89,10 @@ static void RunHashWordCount(
         if (ctx.my_rank() == 0) {
             LOG1 << "RESULT"
                  << " benchmark=wordcount_hash"
-                 << " time=" << timer.Milliseconds()
                  << " files=" << input_filelist.size()
-                 << " traffic=" << ctx.net_manager().Traffic()
-                 << " machines=" << ctx.num_hosts();
+                 << " time=" << timer
+                 << " traffic= " << ctx.net_manager().Traffic()
+                 << " hosts=" << ctx.num_hosts();
         }
     }
 }

@@ -54,7 +54,7 @@ int main(int argc, char* argv[]) {
                                 }).Size();
                  timer.Stop();
 
-                 LOG1 << "RESULT" << " benchmark=reduce time=" << timer.Milliseconds();
+                 LOG1 << "RESULT" << " benchmark=reduce time=" << timer;
              });
 }
 

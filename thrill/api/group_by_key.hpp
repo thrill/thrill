@@ -280,7 +280,7 @@ public:
         timer.Stop();
         LOG << "RESULT"
             << " name=multiwaymerge"
-            << " time=" << timer.Milliseconds()
+            << " time=" << timer
             << " multiwaymerge=" << (num_runs > 1);
     }
 

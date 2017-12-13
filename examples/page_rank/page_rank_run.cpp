@@ -179,19 +179,19 @@ static void RunJoinPageRankEdgePerLine(
     if (ctx.my_rank() == 0) {
         if (UseLocationDetection) {
             LOG1 << "RESULT benchmark=pagerank_gen detection=ON"
-                 << " time=" << timer.Milliseconds()
                  << " pages=" << num_pages
                  << " iterations=" << iterations
+                 << " time=" << timer
                  << " traffic= " << ctx.net_manager().Traffic()
-                 << " machines=" << ctx.num_hosts();
+                 << " hosts=" << ctx.num_hosts();
         }
         else {
             LOG1 << "RESULT benchmark=pagerank_gen detection=OFF"
-                 << " time=" << timer.Milliseconds()
                  << " pages=" << num_pages
                  << " iterations=" << iterations
+                 << " time=" << timer
                  << " traffic=" << ctx.net_manager().Traffic()
-                 << " machines=" << ctx.num_hosts();
+                 << " hosts=" << ctx.num_hosts();
         }
     }
 }
@@ -246,8 +246,8 @@ static void RunPageRankGenerated(
              << " pages=" << num_pages
              << " edges=" << number_edges
              << " iterations=" << iterations
-             << " time=" << timer.Milliseconds()
-             << " machines=" << ctx.num_hosts();
+             << " time=" << timer
+             << " hosts=" << ctx.num_hosts();
     }
 }
 
@@ -293,17 +293,17 @@ static void RunPageRankJoinGenerated(
     if (ctx.my_rank() == 0) {
         if (UseLocationDetection) {
             LOG1 << "RESULT benchmark=pagerank_gen detection=ON"
-                 << " time=" << timer.Milliseconds()
                  << " pages=" << num_pages
-                 << " traffic=" << ctx.net_manager().Traffic()
-                 << " machines=" << ctx.num_hosts();
+                 << " time=" << timer
+                 << " traffic= " << ctx.net_manager().Traffic()
+                 << " hosts=" << ctx.num_hosts();
         }
         else {
             LOG1 << "RESULT benchmark=pagerank_gen detection=OFF"
-                 << " time=" << timer.Milliseconds()
                  << " pages=" << num_pages
+                 << " time=" << timer
                  << " traffic=" << ctx.net_manager().Traffic()
-                 << " machines=" << ctx.num_hosts();
+                 << " hosts=" << ctx.num_hosts();
         }
     }
 }

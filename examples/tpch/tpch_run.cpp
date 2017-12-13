@@ -260,16 +260,16 @@ static size_t JoinTPCH4(
         if (use_detection) {
             LOG1 << "RESULT " << "benchmark=tpch " << "detection=ON"
                  << " items=" << num_items
-                 << " time=" << timer.Milliseconds()
+                 << " time=" << timer
                  << " traffic=" << ctx.net_manager().Traffic()
-                 << " machines=" << ctx.num_hosts();
+                 << " hosts=" << ctx.num_hosts();
         }
         else {
             LOG1 << "RESULT " << "benchmark=tpch " << "detection=OFF"
                  << " items=" << num_items
-                 << " time=" << timer.Milliseconds()
+                 << " time=" << timer
                  << " traffic=" << ctx.net_manager().Traffic()
-                 << " machines=" << ctx.num_hosts();
+                 << " hosts=" << ctx.num_hosts();
         }
     }
 

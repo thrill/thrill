@@ -83,7 +83,7 @@ void RunBenchmark(api::Context& ctx, core::DefaultReduceConfig& base_config) {
         << " workers=" << workers
         << " max_partition_fill_rate=" << config.limit_partition_fill_rate()
         << " bucket_rate=" << config.bucket_rate()
-        << " time=" << timer.Milliseconds()
+        << " time=" << timer
         << std::endl;
 }
 

@@ -72,7 +72,7 @@ int main(int argc, char* argv[]) {
                           LOG1 // << "\n"
                               << "RESULT"
                               << " name=total"
-                              << " time=" << timer.Milliseconds()
+                              << " time=" << timer
                               << " filename=" << input
                               << " sanity1=" << res1
                               << " sanity2=" << res2;

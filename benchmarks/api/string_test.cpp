@@ -64,7 +64,7 @@ int main(int argc, char* argv[]) {
                          }).Size();
 
                      timer.Stop();
-                     std::cout << "RESULT" << " time=" << timer.Milliseconds() << std::endl;
+                     std::cout << "RESULT" << " time=" << timer << std::endl;
                  });
     }
 }

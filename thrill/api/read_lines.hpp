@@ -163,7 +163,7 @@ private:
                 << "total_bytes" << total_bytes_
                 << "total_reads" << total_reads_
                 << "total_lines" << total_elements_
-                << "read_time" << read_timer.Milliseconds();
+                << "read_time" << read_timer;
         }
     };
 

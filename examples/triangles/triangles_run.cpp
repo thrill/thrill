@@ -98,16 +98,16 @@ static size_t CountTrianglesGenerated(
         if (use_detection) {
             LOG1 << "RESULT " << "benchmark=triangles " << "detection=ON"
                  << " vertices=" << num_vertices
-                 << " time=" << timer.Milliseconds()
+                 << " time=" << timer
                  << " traffic=" << ctx.net_manager().Traffic()
-                 << " machines=" << ctx.num_hosts();
+                 << " hosts=" << ctx.num_hosts();
         }
         else {
             LOG1 << "RESULT " << "benchmark=triangles " << "detection=OFF"
                  << " vertices=" << num_vertices
-                 << " time=" << timer.Milliseconds()
+                 << " time=" << timer
                  << " traffic=" << ctx.net_manager().Traffic()
-                 << " machines=" << ctx.num_hosts();
+                 << " hosts=" << ctx.num_hosts();
         }
     }
 
