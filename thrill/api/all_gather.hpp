@@ -81,7 +81,7 @@ public:
 
     void StopPreOp(size_t /* id */) final {
         // data has been pushed during pre-op -> close emitters
-        std::vector<data::CatStream::Writer>().swap(emitters_);
+        emitters_.Close();
     }
 
     //! Closes the output file

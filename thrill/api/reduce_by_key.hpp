@@ -215,7 +215,7 @@ private:
     data::MixStreamPtr mix_stream_;
     data::CatStreamPtr cat_stream_;
 
-    std::vector<data::Stream::Writer> emitters_;
+    data::Stream::Writers emitters_;
     //! handle to additional thread for post phase
     std::thread thread_;
 

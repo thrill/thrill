@@ -77,8 +77,7 @@ private:
                             size_t num_workers,
                             size_t max_hash) {
 
-        std::vector<data::CatStream::Writer> writers =
-            stream_pointer->GetWriters();
+        data::CatStream::Writers writers = stream_pointer->GetWriters();
 
         size_t prev_hash = size_t(-1);
 
@@ -260,7 +259,7 @@ public:
         // close duplicate delta writers
         duplicates_dw.clear();
         duplicates_gbsw.clear();
-        duplicates_writers.clear();
+        duplicates_writers.Close();
 
         // read inbound duplicate hash bits into non_duplicates hash table
         assert(non_duplicates.size() == 0);

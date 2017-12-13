@@ -98,14 +98,13 @@ public:
         assert(k < result_size_);
         const size_t recipient = common::CalculatePartition(
             result_size_, context_.num_workers(), k);
-        assert(recipient < emitter_.size());
-        emitter_[recipient].Put(v);
+        assert(recipient < emitters_.size());
+        emitters_[recipient].Put(v);
     }
 
     void StopPreOp(size_t /* id */) final {
         // data has been pushed during pre-op -> close emitters
-        for (size_t i = 0; i < emitter_.size(); i++)
-            emitter_[i].Close();
+        emitters_.Close();
     }
 
     void Execute() override {
@@ -179,7 +178,7 @@ private:
     size_t totalsize_ = 0;
 
     data::CatStreamPtr stream_ { context_.GetNewCatStream(this) };
-    data::CatStream::Writers emitter_ { stream_->GetWriters() };
+    data::CatStream::Writers emitters_ { stream_->GetWriters() };
     std::vector<data::File> files_;
 
     void RunUserFunc(data::File& f, bool consume) {

@@ -188,8 +188,8 @@ public:
             }
         }
 
-        hash_writers1_.clear();
-        hash_writers2_.clear();
+        hash_writers1_.Close();
+        hash_writers2_.Close();
 
         MainOp();
     }

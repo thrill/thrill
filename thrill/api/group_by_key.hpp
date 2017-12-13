@@ -138,7 +138,7 @@ public:
     }
 
     void StartPreOp(size_t /* id */) final {
-        emitter_ = stream_->GetWriters();
+        emitters_ = stream_->GetWriters();
         pre_writer_ = pre_file_.GetWriter();
         if (UseLocationDetection)
             location_detection_.Initialize(DIABase::mem_limit_);
@@ -152,8 +152,8 @@ public:
             location_detection_.Insert(HashCount { hash, 1 });
         }
         else {
-            const size_t recipient = hash % emitter_.size();
-            emitter_[recipient].Put(v);
+            const size_t recipient = hash % emitters_.size();
+            emitters_[recipient].Put(v);
         }
     }
 
@@ -191,12 +191,11 @@ public:
 
                 size_t hr = hash_function_(key) % max_hash;
                 auto target_processor = target_processors.find(hr);
-                emitter_[target_processor->second].Put(in);
+                emitters_[target_processor->second].Put(in);
             }
         }
         // data has been pushed during pre-op -> close emitters
-        for (size_t i = 0; i < emitter_.size(); i++)
-            emitter_[i].Close();
+        emitters_.Close();
 
         MainOp();
     }
@@ -295,7 +294,7 @@ private:
     core::LocationDetection<HashCount> location_detection_;
 
     data::CatStreamPtr stream_ { context_.GetNewCatStream(this) };
-    data::CatStream::Writers emitter_;
+    data::CatStream::Writers emitters_;
 
     std::deque<data::File> files_;
     data::File sorted_elems_ { context_.GetFile(this) };

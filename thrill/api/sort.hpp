@@ -340,7 +340,7 @@ private:
     void FindAndSendSplitters(
         std::vector<SampleIndexPair>& splitters, size_t sample_size,
         data::MixStreamPtr& sample_stream,
-        std::vector<data::MixStream::Writer>& sample_writers) {
+        data::MixStream::Writers& sample_writers) {
 
         // Get samples from other workers
         size_t num_total_workers = context_.num_workers();
@@ -530,9 +530,7 @@ private:
             data_writers[b0].Put(el0);
         }
 
-        // close writers and flush data
-        for (size_t j = 0; j < data_writers.size(); j++)
-            data_writers[j].Close();
+        // implicitly close writers and flush data
     }
 
     void MainOp() {

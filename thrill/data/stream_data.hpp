@@ -68,6 +68,9 @@ public:
         Writers& operator = (Writers&&) = default;
 
         //! custom destructor to close writers is a cyclic fashion
+        void Close();
+
+        //! custom destructor to close writers is a cyclic fashion
         ~Writers();
 
     private:

@@ -53,7 +53,7 @@ public:
     //! Executes the scatter operation: source sends out its data.
     void Execute() final {
 
-        std::vector<data::CatStream::Writer> emitters = stream_->GetWriters();
+        data::CatStream::Writers emitters = stream_->GetWriters();
 
         if (context_.my_rank() == source_id_)
         {

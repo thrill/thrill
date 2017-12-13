@@ -219,7 +219,7 @@ private:
     data::MixStreamPtr mix_stream_;
     data::CatStreamPtr cat_stream_;
 
-    std::vector<data::Stream::Writer> emitters_;
+    data::Stream::Writers emitters_;
 
     size_t result_size_;
 

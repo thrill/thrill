@@ -325,7 +325,7 @@ public:
         // close target-worker writers
         location_dw.clear();
         location_gbsw.clear();
-        location_writers.clear();
+        location_writers.Close();
 
         // read location notifications and store them in the unordered_map
 
