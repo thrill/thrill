@@ -74,11 +74,10 @@ void SpeedupTest(api::Context& ctx, size_t equal, size_t elements) {
         }
     }
     else {
-        auto traffic = ctx.net_manager().Traffic();
         LOG1 << "RESULT" << " benchmark=duplicates detection=ON"
              << " elements=" << elements
              << " time=" << timer.Milliseconds()
-             << " traffic=" << traffic.first + traffic.second
+             << " traffic=" << ctx.net_manager().Traffic()
              << " machines=" << ctx.num_hosts();
     }
 }

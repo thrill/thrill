@@ -78,17 +78,16 @@ void Percentiles(api::Context& ctx, const std::string& input_path) {
     timer.Stop();
 
     if (ctx.my_rank() == 0) {
-        auto traffic = ctx.net_manager().Traffic();
         if (use_detection) {
             LOG1 << "RESULT " << "benchmark=median " << "detection=ON"
                  << " time=" << timer.Milliseconds()
-                 << " traffic=" << traffic.first + traffic.second
+                 << " traffic=" << ctx.net_manager().Traffic()
                  << " machines=" << ctx.num_hosts();
         }
         else {
             LOG1 << "RESULT " << "benchmark=median " << "detection=OFF"
                  << " time=" << timer.Milliseconds()
-                 << " traffic=" << traffic.first + traffic.second
+                 << " traffic=" << ctx.net_manager().Traffic()
                  << " machines=" << ctx.num_hosts();
         }
     }

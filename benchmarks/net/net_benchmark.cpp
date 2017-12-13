@@ -400,7 +400,6 @@ void Bandwidth::Test(api::Context& ctx) {
                 << " hosts=" << ctx.num_hosts()
                 << " outer_repeat=" << outer_repeat
                 << " inner_repeats=" << inner_repeats_
-                << " ping_pongs=" << counter_
                 << " time[us]=" << time
                 << " time_per_ping_pong[us]="
                 << static_cast<double>(time) / static_cast<double>(counter_)

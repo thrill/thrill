@@ -30,6 +30,19 @@ namespace net {
 //! \addtogroup net_layer
 //! \{
 
+struct Traffic {
+    //! transmitted bytes
+    size_t tx;
+    //! received bytes
+    size_t rx;
+    //! both transmitted and received bytes
+    size_t total() const { return tx + rx; }
+    //! constructor
+    Traffic(size_t tx, size_t rx) : tx(tx), rx(rx) { }
+    //! formatting: print total
+    friend std::ostream& operator << (std::ostream& os, const Traffic& t);
+};
+
 /*!
  * Initializes communication channels, manages communication channels and
  * handles errors.
@@ -81,7 +94,7 @@ public:
     void Close();
 
     //! calculate overall traffic for final stats
-    std::pair<size_t, size_t> Traffic() const;
+    net::Traffic Traffic() const;
 
     //! \name Methods for ProfileTask
     //! \{

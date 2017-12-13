@@ -40,6 +40,10 @@ void RunLoopbackGroupTest(
 #endif
 }
 
+std::ostream& operator << (std::ostream& os, const Traffic& t) {
+    return os << t.total();
+}
+
 /******************************************************************************/
 // Manager
 
@@ -60,7 +64,7 @@ void Manager::Close() {
     }
 }
 
-std::pair<size_t, size_t> Manager::Traffic() const {
+net::Traffic Manager::Traffic() const {
     size_t total_tx = 0, total_rx = 0;
 
     for (size_t g = 0; g < kGroupCount; ++g) {
@@ -74,7 +78,7 @@ std::pair<size_t, size_t> Manager::Traffic() const {
         }
     }
 
-    return std::make_pair(total_tx, total_rx);
+    return net::Traffic(total_tx, total_rx);
 }
 
 void Manager::RunTask(const std::chrono::steady_clock::time_point& tp) {

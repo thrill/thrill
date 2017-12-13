@@ -95,19 +95,18 @@ static size_t CountTrianglesGenerated(
     ctx.net.Barrier();
 
     if (ctx.my_rank() == 0) {
-        auto traffic = ctx.net_manager().Traffic();
         if (use_detection) {
             LOG1 << "RESULT " << "benchmark=triangles " << "detection=ON"
                  << " vertices=" << num_vertices
                  << " time=" << timer.Milliseconds()
-                 << " traffic=" << traffic.first + traffic.second
+                 << " traffic=" << ctx.net_manager().Traffic()
                  << " machines=" << ctx.num_hosts();
         }
         else {
             LOG1 << "RESULT " << "benchmark=triangles " << "detection=OFF"
                  << " vertices=" << num_vertices
                  << " time=" << timer.Milliseconds()
-                 << " traffic=" << traffic.first + traffic.second
+                 << " traffic=" << ctx.net_manager().Traffic()
                  << " machines=" << ctx.num_hosts();
         }
     }

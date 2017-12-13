@@ -257,19 +257,18 @@ static size_t JoinTPCH4(
     ctx.net.Barrier();
 
     if (ctx.my_rank() == 0) {
-        auto traffic = ctx.net_manager().Traffic();
         if (use_detection) {
             LOG1 << "RESULT " << "benchmark=tpch " << "detection=ON"
                  << " items=" << num_items
                  << " time=" << timer.Milliseconds()
-                 << " traffic=" << traffic.first + traffic.second
+                 << " traffic=" << ctx.net_manager().Traffic()
                  << " machines=" << ctx.num_hosts();
         }
         else {
             LOG1 << "RESULT " << "benchmark=tpch " << "detection=OFF"
                  << " items=" << num_items
                  << " time=" << timer.Milliseconds()
-                 << " traffic=" << traffic.first + traffic.second
+                 << " traffic=" << ctx.net_manager().Traffic()
                  << " machines=" << ctx.num_hosts();
         }
     }
