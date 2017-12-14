@@ -111,6 +111,7 @@ void Dispatcher::AddAsyncRequest(
     mpi_async_requests_.emplace_back(req);
     mpi_async_.emplace_back(MpiAsync(callback));
     mpi_async_out_.emplace_back();
+    mpi_status_out_.emplace_back();
 }
 
 void Dispatcher::QueueAsyncSend(net::Connection& c, MpiAsync&& a) {
@@ -199,6 +200,7 @@ void Dispatcher::PerformAsync(MpiAsync&& a) {
         mpi_async_requests_.emplace_back(req);
         mpi_async_.emplace_back(std::move(a));
         mpi_async_out_.emplace_back();
+        mpi_status_out_.emplace_back();
 
 #if THRILL_NET_MPI_QUEUES
         send_active_[c->peer()]++;
@@ -216,6 +218,7 @@ void Dispatcher::PerformAsync(MpiAsync&& a) {
         mpi_async_requests_.emplace_back(req);
         mpi_async_.emplace_back(std::move(a));
         mpi_async_out_.emplace_back();
+        mpi_status_out_.emplace_back();
 
 #if THRILL_NET_MPI_QUEUES
         send_active_[c->peer()]++;
@@ -233,6 +236,7 @@ void Dispatcher::PerformAsync(MpiAsync&& a) {
         mpi_async_requests_.emplace_back(req);
         mpi_async_.emplace_back(std::move(a));
         mpi_async_out_.emplace_back();
+        mpi_status_out_.emplace_back();
 
 #if THRILL_NET_MPI_QUEUES
         recv_active_[c->peer()]++;
@@ -250,6 +254,7 @@ void Dispatcher::PerformAsync(MpiAsync&& a) {
         mpi_async_requests_.emplace_back(req);
         mpi_async_.emplace_back(std::move(a));
         mpi_async_out_.emplace_back();
+        mpi_status_out_.emplace_back();
 
 #if THRILL_NET_MPI_QUEUES
         recv_active_[c->peer()]++;
@@ -267,8 +272,9 @@ void Dispatcher::DispatchOne(const std::chrono::milliseconds& /* timeout */) {
 
         die_unless(mpi_async_.size() == mpi_async_requests_.size());
         die_unless(mpi_async_.size() == mpi_async_out_.size());
+        die_unless(mpi_async_.size() == mpi_status_out_.size());
 
-#if 0
+#if 1
         int out_count;
 
         sLOG << "DispatchOne(): MPI_Testsome()"
@@ -286,7 +292,7 @@ void Dispatcher::DispatchOne(const std::chrono::milliseconds& /* timeout */) {
             mpi_async_out_.data(),
             // out: Array of status objects for operations that completed (array
             // of status).
-            MPI_STATUSES_IGNORE);
+            mpi_status_out_.data());
 
         lock.unlock();
 
@@ -306,6 +312,7 @@ void Dispatcher::DispatchOne(const std::chrono::milliseconds& /* timeout */) {
             {
                 size_t i = 0;
                 int k = 0;
+                std::vector<size_t> pump_send, pump_recv;
 
                 for (size_t j = 0; j < mpi_async_.size(); ++j)
                 {
@@ -315,8 +322,33 @@ void Dispatcher::DispatchOne(const std::chrono::milliseconds& /* timeout */) {
                              << "which is $" << mpi_async_out_[k];
 
                         // perform callback
-                        mpi_async_[j].DoCallback();
+                        mpi_async_[j].DoCallback(mpi_status_out_[k]);
 
+#if THRILL_NET_MPI_QUEUES
+                        MpiAsync& a = mpi_async_[j];
+                        int peer = a.connection() ? a.connection()->peer() : 0;
+                        MpiAsync::Type a_type = a.type_;
+
+                        if (a_type == MpiAsync::WRITE_BUFFER ||
+                            a_type == MpiAsync::WRITE_BLOCK)
+                        {
+                            die_unless(send_active_[peer] > 0);
+                            send_active_[peer]--;
+                            LOG << "DispatchOne() send_active_[" << peer << "]="
+                                << send_active_[peer];
+                            pump_send.emplace_back(peer);
+                        }
+                        else if (a_type == MpiAsync::READ_BUFFER ||
+                                 a_type == MpiAsync::READ_BYTE_BLOCK)
+                        {
+                            die_unless(recv_active_[peer] > 0);
+                            recv_active_[peer]--;
+                            LOG << "DispatchOne() recv_active_[" << peer << "]="
+                                << recv_active_[peer];
+                            PumpRecvQueue(peer);
+                            pump_recv.emplace_back(peer);
+                        }
+#endif
                         // skip over finished request
                         ++k;
                         continue;
@@ -331,6 +363,12 @@ void Dispatcher::DispatchOne(const std::chrono::milliseconds& /* timeout */) {
                 mpi_async_.resize(i);
                 mpi_async_requests_.resize(i);
                 mpi_async_out_.resize(i);
+                mpi_status_out_.resize(i);
+
+                for (const size_t & peer : pump_send)
+                    PumpSendQueue(peer);
+                for (const size_t & peer : pump_recv)
+                    PumpRecvQueue(peer);
             }
         }
 #else
@@ -380,6 +418,7 @@ void Dispatcher::DispatchOne(const std::chrono::milliseconds& /* timeout */) {
             mpi_async_.erase(mpi_async_.begin() + out_index);
             mpi_async_requests_.erase(mpi_async_requests_.begin() + out_index);
             mpi_async_out_.erase(mpi_async_out_.begin() + out_index);
+            mpi_status_out_.erase(mpi_status_out_.begin() + out_index);
 
 #if THRILL_NET_MPI_QUEUES
             if (a_type == MpiAsync::WRITE_BUFFER ||

@@ -420,6 +420,9 @@ private:
     //! array of output integer of finished requests for MPI_Testsome().
     std::vector<int> mpi_async_out_;
 
+    //! array of output MPI_Status of finished requests for MPI_Testsome().
+    std::vector<MPI_Status> mpi_status_out_;
+
 #if THRILL_NET_MPI_QUEUES
     //! queue of delayed requests for each peer
     std::deque<std::deque<MpiAsync> > send_queue_;
