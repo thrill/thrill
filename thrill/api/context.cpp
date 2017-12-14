@@ -1122,6 +1122,8 @@ Context::Context(HostContext& host_context, size_t local_worker_id)
       flow_manager_(host_context.flow_manager()),
       block_pool_(host_context.block_pool()),
       multiplexer_(host_context.data_multiplexer()),
+      rng_(std::random_device { }
+           () + (local_worker_id_ << 16)),
       base_logger_(&host_context.base_logger_) {
     assert(local_worker_id < workers_per_host());
 }

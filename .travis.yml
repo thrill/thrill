@@ -27,8 +27,8 @@ matrix:
             - ubuntu-toolchain-r-test
           packages:
             - g++-5
-            - openmpi-bin
-            - libopenmpi-dev
+            - mpich
+            - libmpich-dev
             - libbz2-dev
             - libssl-dev
 
@@ -81,12 +81,12 @@ matrix:
       os: linux
       addons: *clang37
 
-    # clang 3.7 on MacOSX without AddressSanitizer, Debug & Release, not FULL_BUILD
-    - env: CMAKE_CC="clang" CMAKE_CXX="clang++" BUILD_TYPE="Debug" COMPILER_FLAGS=""
-      os: osx
+    # # clang 3.7 on MacOSX without AddressSanitizer, Debug & Release, not FULL_BUILD
+    # - env: CMAKE_CC="clang" CMAKE_CXX="clang++" BUILD_TYPE="Debug" COMPILER_FLAGS=""
+    #   os: osx
 
-    - env: CMAKE_CC="clang" CMAKE_CXX="clang++" BUILD_TYPE="Release" COMPILER_FLAGS=""
-      os: osx
+    # - env: CMAKE_CC="clang" CMAKE_CXX="clang++" BUILD_TYPE="Release" COMPILER_FLAGS=""
+    #   os: osx
 
 env:
   global:
@@ -101,7 +101,6 @@ before_script:
   - $CMAKE_CXX --version
   - cmake --version
   - gzip --version || true
-  - bzip2 --version || true
   - xz --version || true
 
   # enable -Werror on thrill/thrill master branch
@@ -125,6 +124,7 @@ script:
   - make -C examples/suffix_sorting dc3.o
   - make -C examples/suffix_sorting dc7.o
   - make -C examples/suffix_sorting prefix_quadrupling.o
+  - make -C examples/k-means k-means_run.cpp.o
 
   - ctest
       -DCTEST_SITE:STRING="travis-$TRAVIS_REPO_SLUG"
