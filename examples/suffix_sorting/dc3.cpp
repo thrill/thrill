@@ -104,12 +104,8 @@ struct IndexRank {
 template <typename Index, typename AlphabetType>
 struct StringFragmentMod0 {
     Index        index;
-    AlphabetType t0, t1;
     Index        r1, r2;
-
-    AlphabetType at_radix(size_t /* depth */) const { return t0; }
-    Index        sort_rank() const { return r1; }
-    const Index  * ranks() const { return &r1; }
+    AlphabetType t0, t1;
 
     friend std::ostream& operator << (std::ostream& os,
                                       const StringFragmentMod0& sf) {
@@ -123,12 +119,8 @@ struct StringFragmentMod0 {
 template <typename Index, typename AlphabetType>
 struct StringFragmentMod1 {
     Index        index;
-    AlphabetType t0;
     Index        r0, r1;
-
-    AlphabetType at_radix(size_t /* depth */) const { return t0; }
-    Index        sort_rank() const { return r0; }
-    const Index  * ranks() const { return &r0; }
+    AlphabetType t0;
 
     friend std::ostream& operator << (std::ostream& os,
                                       const StringFragmentMod1& sf) {
@@ -141,12 +133,8 @@ struct StringFragmentMod1 {
 template <typename Index, typename AlphabetType>
 struct StringFragmentMod2 {
     Index        index;
-    AlphabetType t0, t1;
     Index        r0, r2;
-
-    AlphabetType at_radix(size_t /* depth */) const { return t0; }
-    Index        sort_rank() const { return r0; }
-    const Index  * ranks() const { return &r0; }
+    AlphabetType t0, t1;
 
     friend std::ostream& operator << (std::ostream& os,
                                       const StringFragmentMod2& sf) {
@@ -162,7 +150,8 @@ struct StringFragment {
 
     struct Common {
         Index        index;
-        AlphabetType t[2];
+        Index        ranks[2];
+        AlphabetType text[2];
     } TLX_ATTRIBUTE_PACKED;
 
     union {
@@ -199,18 +188,8 @@ struct StringFragment {
         abort();
     }
 
-    const Index * ranks(size_t imod3) const {
-        switch (imod3) {
-        case 0: return mod0.ranks();
-        case 1: return mod1.ranks();
-        case 2: return mod2.ranks();
-        }
-        abort();
-    }
-
-    const Index * ranks() const {
-        return ranks(index % 3);
-    }
+    AlphabetType at_radix(size_t depth) const { return common.text[depth]; }
+    Index        sort_rank() const { return common.ranks[0]; }
 } TLX_ATTRIBUTE_PACKED;
 
 static constexpr size_t fragment_comparator_params[3][3][3] =
@@ -237,11 +216,11 @@ struct FragmentComparator {
 
         for (size_t d = 0; d < params[0]; ++d)
         {
-            if (a.common.t[d] == b.common.t[d]) continue;
-            return (a.common.t[d] < b.common.t[d]);
+            if (a.common.text[d] == b.common.text[d]) continue;
+            return (a.common.text[d] < b.common.text[d]);
         }
 
-        return (a.ranks(ai)[params[1]] < b.ranks(bi)[params[2]]);
+        return a.common.ranks[params[1]] < b.common.ranks[params[2]];
     }
 };
 
@@ -561,8 +540,8 @@ DC3Recursive(const InputDIA& input_dia, size_t input_size, size_t K) {
         .Map([](const IndexCR12Pair& ip) {
                  return StringFragmentMod0 {
                      ip.index,
-                     ip.cr0.chars.ch[0], ip.cr0.chars.ch[1],
-                     ip.cr0.rank1, ip.cr0.rank2
+                     ip.cr0.rank1, ip.cr0.rank2,
+                     ip.cr0.chars.ch[0], ip.cr0.chars.ch[1]
                  };
              })
         .Filter([input_size](const StringFragmentMod0& mod0) {
@@ -574,8 +553,8 @@ DC3Recursive(const InputDIA& input_dia, size_t input_size, size_t K) {
         .Map([](const IndexCR12Pair& ip) {
                  return StringFragmentMod1 {
                      ip.index + Index(1),
-                     ip.cr0.chars.ch[1],
-                     ip.cr0.rank1, ip.cr0.rank2
+                     ip.cr0.rank1, ip.cr0.rank2,
+                     ip.cr0.chars.ch[1]
                  };
              })
         .Filter([input_size](const StringFragmentMod1& mod1) {
@@ -587,8 +566,8 @@ DC3Recursive(const InputDIA& input_dia, size_t input_size, size_t K) {
         .Map([](const IndexCR12Pair& ip) {
                  return StringFragmentMod2 {
                      ip.index + Index(2),
-                     ip.cr0.chars.ch[2], ip.cr1.chars.ch[0],
-                     ip.cr0.rank2, ip.cr1.rank1
+                     ip.cr0.rank2, ip.cr1.rank1,
+                     ip.cr0.chars.ch[2], ip.cr1.chars.ch[0]
                  };
              })
         .Filter([input_size](const StringFragmentMod2& mod2) {
