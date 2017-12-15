@@ -160,9 +160,12 @@ public:
         // Flush hash table before the postOp
         pre_phase_.FlushAll();
         pre_phase_.CloseAll();
-        // waiting for the additional thread to finish the reduce
-        if (use_post_thread_) thread_.join();
-        use_mix_stream_ ? mix_stream_.reset() : cat_stream_.reset();
+        if (use_post_thread_) {
+            // waiting for the additional thread to finish the reduce
+            thread_.join();
+            // deallocate stream if already processed
+            use_mix_stream_ ? mix_stream_.reset() : cat_stream_.reset();
+        }
     }
 
     void Execute() final { }
@@ -177,6 +180,9 @@ public:
             // not final reduced, and no additional thread, perform post reduce
             post_phase_.Initialize(DIABase::mem_limit_);
             ProcessChannel();
+
+            // deallocate stream if already processed
+            use_mix_stream_ ? mix_stream_.reset() : cat_stream_.reset();
 
             reduced_ = true;
         }

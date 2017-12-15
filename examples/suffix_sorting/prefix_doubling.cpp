@@ -17,6 +17,7 @@
 #include <thrill/api/generate.hpp>
 #include <thrill/api/prefixsum.hpp>
 #include <thrill/api/print.hpp>
+#include <thrill/api/reduce_to_index.hpp>
 #include <thrill/api/size.hpp>
 #include <thrill/api/sort.hpp>
 #include <thrill/api/union.hpp>
@@ -519,9 +520,14 @@ DIA<Index> PrefixDoublingWindow(
     while (true) {
         auto isa =
             names
-            .Sort([](const IndexRank& a, const IndexRank& b) {
-                      return a.index < b.index;
-                  });
+            // .Sort([](const IndexRank& a, const IndexRank& b) {
+            //           return a.index < b.index;
+            //       });
+            .ReduceToIndex(
+                SkipPreReducePhaseTag,
+                [](const IndexRank& a) { return static_cast<size_t>(a.index); },
+                [](const IndexRank&, const IndexRank& b) { return b; },
+                input_size);
 
         if (debug_print)
             isa.Keep().Print("isa");

@@ -62,7 +62,7 @@ public:
 
     //! use an additional thread in ReduceNode and ReduceToIndexNode to process
     //! the pre and post phases simultaneously.
-    static constexpr bool use_post_thread_ = true;
+    static constexpr bool use_post_thread_ = false;
 
     //! \name Accessors
     //! \{
@@ -150,6 +150,16 @@ public:
     void Dispose() {
         std::vector<data::File>().swap(partition_files_);
         std::vector<size_t>().swap(items_per_partition_);
+    }
+
+    //! Initialize table for SkipPreReducePhase
+    void InitializeSkip() {
+        // num_partitions_ == number of workers
+        num_buckets_per_partition_ = 1;
+        num_buckets_ = num_buckets_per_partition_ * num_partitions_;
+
+        assert(num_buckets_per_partition_ > 0);
+        assert(num_buckets_ > 0);
     }
 
     //! \name Accessors
@@ -244,12 +254,17 @@ public:
     //! \name Switches for VolatileKey
     //! \{
 
-    Key key(const TableItem& t) {
+    Key key(const TableItem& t) const {
         return MakeTableItem::GetKey(t, key_extractor_);
     }
 
-    TableItem reduce(const TableItem& a, const TableItem& b) {
+    TableItem reduce(const TableItem& a, const TableItem& b) const {
         return MakeTableItem::Reduce(a, b, reduce_function_);
+    }
+
+    typename IndexFunction::Result calculate_index(const TableItem& kv) const {
+        return index_function_(
+            key(kv), num_partitions_, num_buckets_per_partition_, num_buckets_);
     }
 
     //! \}

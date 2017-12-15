@@ -188,10 +188,7 @@ public:
      */
     bool Insert(const TableItem& kv) {
 
-        typename IndexFunction::Result h = index_function_(
-            key(kv), num_partitions_,
-            num_buckets_per_partition_, num_buckets_);
-
+        typename IndexFunction::Result h = calculate_index(kv);
         assert(h.partition_id < num_partitions_);
 
         if (TLX_UNLIKELY(key_equal_function_(key(kv), Key()))) {
@@ -498,6 +495,9 @@ public:
     }
 
     //! \}
+
+public:
+    using Super::calculate_index;
 
 private:
     using Super::config_;

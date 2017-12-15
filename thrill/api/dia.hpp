@@ -50,6 +50,14 @@ const struct VolatileKeyFlag<true> VolatileKeyTag;
 //! global const VolatileKeyFlag instance
 const struct VolatileKeyFlag<false> NoVolatileKeyTag;
 
+//! tag structure for ReduceToIndex()
+struct SkipPreReducePhaseTag {
+    SkipPreReducePhaseTag() { }
+};
+
+//! global const SkipPreReducePhaseTag instance
+const struct SkipPreReducePhaseTag SkipPreReducePhaseTag;
+
 //! tag structure for Window() and FlatWindow()
 struct DisjointTag {
     DisjointTag() { }
@@ -1153,17 +1161,17 @@ public:
     /*!
      * ReduceToIndex is a DOp, which groups elements of the DIA with the
      * key_extractor returning an unsigned integers and reduces each key-bucket
-     * to a single element using the associative reduce_function.
-     * In contrast to ReduceBy, ReduceToIndex returns a DIA in a defined order,
-     * which has the reduced element with key i in position i.
+     * to a single element using the associative reduce_function.  In contrast
+     * to ReduceBy, ReduceToIndex returns a DIA in a defined order, which has
+     * the reduced element with key i in position i.
      *
      * The reduce_function defines how two elements can be reduced to a single
-     * element of equal type. The key of the reduced element has to be equal
-     * to the keys of the input elements. Since ReduceToIndex is a DOp,
-     * it creates a new DIANode. The DIA returned by ReduceToIndex links to
-     * this newly created DIANode. The stack_ of the returned DIA consists
-     * of the PostOp of ReduceToIndex, as a reduced element can
-     * directly be chained to the following LOps.
+     * element of equal type. The key of the reduced element has to be equal to
+     * the keys of the input elements. Since ReduceToIndex is a DOp, it creates
+     * a new DIANode. The DIA returned by ReduceToIndex links to this newly
+     * created DIANode. The stack_ of the returned DIA consists of the PostOp of
+     * ReduceToIndex, as a reduced element can directly be chained to the
+     * following LOps.
      *
      * \param key_extractor Key extractor function, which maps each element to a
      * key of possibly different type.
@@ -1196,16 +1204,16 @@ public:
         const ReduceConfig& reduce_config = ReduceConfig()) const;
 
     /*!
-     * ReduceToIndexByKey is a DOp, which groups elements of the DIA with the
+     * ReduceToIndex is a DOp, which groups elements of the DIA with the
      * key_extractor returning an unsigned integers and reduces each key-bucket
-     * to a single element using the associative reduce_function.
-     * In contrast to ReduceByKey, ReduceToIndexByKey returns a DIA in a defined
-     * order, which has the reduced element with key i in position i.
-     * The reduce_function defines how two elements can be reduced to a single
-     * element of equal type.
+     * to a single element using the associative reduce_function.  In contrast
+     * to ReduceByKey, ReduceToIndex returns a DIA in a defined order, which has
+     * the reduced element with key i in position i.  The reduce_function
+     * defines how two elements can be reduced to a single element of equal
+     * type.
      *
-     * ReduceToIndexByKey is the equivalent to ReduceByKey, as the
-     * reduce_function is allowed to change the key.  Since ReduceToIndexByKey
+     * ReduceToIndex is the equivalent to ReduceByKey, as the
+     * reduce_function is allowed to change the key.  Since ReduceToIndex
      * is a DOp, it creates a new DIANode. The DIA returned by ReduceToIndex
      * links to this newly created DIANode. The stack_ of the returned DIA
      * consists of the PostOp of ReduceToIndex, as a reduced element can
@@ -1237,6 +1245,53 @@ public:
               typename ReduceConfig = class DefaultReduceToIndexConfig>
     auto ReduceToIndex(
         const VolatileKeyFlag<VolatileKeyValue>&,
+        const KeyExtractor& key_extractor,
+        const ReduceFunction& reduce_function,
+        size_t size,
+        const ValueType& neutral_element = ValueType(),
+        const ReduceConfig& reduce_config = ReduceConfig()) const;
+
+    /*!
+     * ReduceToIndex is a DOp, which groups elements of the DIA with the
+     * key_extractor returning an unsigned integers and reduces each key-bucket
+     * to a single element using the associative reduce_function.  In contrast
+     * to ReduceByKey, ReduceToIndex returns a DIA in a defined order, which has
+     * the reduced element with key i in position i.  The reduce_function
+     * defines how two elements can be reduced to a single element of equal
+     * type.
+     *
+     * ReduceToIndex is the equivalent to ReduceByKey, as the
+     * reduce_function is allowed to change the key.  Since ReduceToIndex
+     * is a DOp, it creates a new DIANode. The DIA returned by ReduceToIndex
+     * links to this newly created DIANode. The stack_ of the returned DIA
+     * consists of the PostOp of ReduceToIndex, as a reduced element can
+     * directly be chained to the following LOps.
+     *
+     * \param key_extractor Key extractor function, which maps each element to a
+     * key of possibly different type.
+     *
+     * \tparam ReduceFunction Type of the reduce_function. This is a function
+     * reducing two elements of L's result type to a single element of equal
+     * type.
+     *
+     * \param reduce_function Reduce function, which defines how the key buckets
+     * are reduced to a single element. This function is applied associative but
+     * not necessarily commutative.
+     *
+     * \param size Resulting DIA size. Consequently, the key_extractor function
+     * but always return < size for any element in the input DIA.
+     *
+     * \param neutral_element Item value with which to start the reduction in
+     * each array cell.
+     *
+     * \param reduce_config Reduce configuration.
+     *
+     * \ingroup dia_dops
+     */
+    template <typename KeyExtractor, typename ReduceFunction,
+              typename ReduceConfig = class DefaultReduceToIndexConfig>
+    auto ReduceToIndex(
+        const struct SkipPreReducePhaseTag&,
         const KeyExtractor& key_extractor,
         const ReduceFunction& reduce_function,
         size_t size,
@@ -1758,6 +1813,9 @@ using api::VolatileKeyTag;
 
 //! imported from api namespace
 using api::NoVolatileKeyTag;
+
+//! imported from api namespace
+using api::SkipPreReducePhaseTag;
 
 //! imported from api namespace
 using api::CutTag;

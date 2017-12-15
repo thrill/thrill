@@ -55,7 +55,7 @@ class DefaultReduceToIndexConfig : public core::DefaultReduceConfig
  */
 template <typename ValueType,
           typename KeyExtractor, typename ReduceFunction,
-          typename ReduceConfig, bool VolatileKey>
+          typename ReduceConfig, bool VolatileKey, bool SkipPreReducePhase>
 class ReduceToIndexNode final : public DOpNode<ValueType>
 {
     static constexpr bool debug = false;
@@ -122,7 +122,10 @@ public:
         // reduce each bucket to a single value, afterwards send data to another
         // worker given by the shuffle algorithm.
         auto pre_op_fn = [this](const ValueType& input) {
-                             return pre_phase_.Insert(input);
+                             if (SkipPreReducePhase)
+                                 pre_phase_.InsertSkip(input);
+                             else
+                                 pre_phase_.Insert(input);
                          };
 
         // close the function stack with our pre op and register it at parent
@@ -140,14 +143,20 @@ public:
     void StartPreOp(size_t /* id */) final {
         if (!use_post_thread_) {
             // use pre_phase without extra thread
-            pre_phase_.Initialize(DIABase::mem_limit_);
+            if (!SkipPreReducePhase)
+                pre_phase_.Initialize(DIABase::mem_limit_);
+            else
+                pre_phase_.InitializeSkip();
 
             // re-parameterize with resulting key range on this worker - this is
-            // only know after Initialize() of the pre_phase_.
+            // only known after Initialize() of the pre_phase_.
             post_phase_.SetRange(pre_phase_.key_range(context_.my_rank()));
         }
         else {
-            pre_phase_.Initialize(DIABase::mem_limit_ / 2);
+            if (!SkipPreReducePhase)
+                pre_phase_.Initialize(DIABase::mem_limit_ / 2);
+            else
+                pre_phase_.InitializeSkip();
 
             // re-parameterize with resulting key range on this worker - this is
             // only know after Initialize() of the pre_phase_.
@@ -162,11 +171,15 @@ public:
     void StopPreOp(size_t /* id */) final {
         LOG << *this << " running StopPreOp";
         // Flush hash table before the postOp
-        pre_phase_.FlushAll();
+        if (!SkipPreReducePhase)
+            pre_phase_.FlushAll();
         pre_phase_.CloseAll();
-        // waiting for the additional thread to finish the reduce
-        if (use_post_thread_) thread_.join();
-        use_mix_stream_ ? mix_stream_.reset() : cat_stream_.reset();
+        if (use_post_thread_) {
+            // waiting for the additional thread to finish the reduce
+            thread_.join();
+            // deallocate stream if already processed
+            use_mix_stream_ ? mix_stream_.reset() : cat_stream_.reset();
+        }
     }
 
     void Execute() final { }
@@ -181,6 +194,9 @@ public:
             // not final reduced, and no additional thread, perform post reduce
             post_phase_.Initialize(DIABase::mem_limit_);
             ProcessChannel();
+
+            // deallocate stream if already processed
+            use_mix_stream_ ? mix_stream_.reset() : cat_stream_.reset();
 
             reduced_ = true;
         }
@@ -301,8 +317,66 @@ auto DIA<ValueType, Stack>::ReduceToIndex(
         "The key has to be an unsigned long int (aka. size_t).");
 
     using ReduceNode = ReduceToIndexNode<
-              DOpResult, KeyExtractor, ReduceFunction,
-              ReduceConfig, VolatileKeyValue>;
+              DOpResult, KeyExtractor, ReduceFunction, ReduceConfig,
+              VolatileKeyValue, /* SkipPreReducePhase */ false>;
+
+    auto node = tlx::make_counting<ReduceNode>(
+        *this, "ReduceToIndex", key_extractor, reduce_function,
+        size, neutral_element, reduce_config);
+
+    return DIA<DOpResult>(node);
+}
+
+template <typename ValueType, typename Stack>
+template <typename KeyExtractor, typename ReduceFunction, typename ReduceConfig>
+auto DIA<ValueType, Stack>::ReduceToIndex(
+    const struct SkipPreReducePhaseTag&,
+    const KeyExtractor& key_extractor,
+    const ReduceFunction& reduce_function,
+    size_t size,
+    const ValueType& neutral_element,
+    const ReduceConfig& reduce_config) const {
+    assert(IsValid());
+
+    using DOpResult
+              = typename common::FunctionTraits<ReduceFunction>::result_type;
+
+    static_assert(
+        std::is_convertible<
+            ValueType,
+            typename common::FunctionTraits<ReduceFunction>::template arg<0>
+            >::value,
+        "ReduceFunction has the wrong input type");
+
+    static_assert(
+        std::is_convertible<
+            ValueType,
+            typename common::FunctionTraits<ReduceFunction>::template arg<1>
+            >::value,
+        "ReduceFunction has the wrong input type");
+
+    static_assert(
+        std::is_same<
+            DOpResult,
+            ValueType>::value,
+        "ReduceFunction has the wrong output type");
+
+    static_assert(
+        std::is_same<
+            typename std::decay<typename common::FunctionTraits<KeyExtractor>::
+                                template arg<0> >::type,
+            ValueType>::value,
+        "KeyExtractor has the wrong input type");
+
+    static_assert(
+        std::is_same<
+            typename common::FunctionTraits<KeyExtractor>::result_type,
+            size_t>::value,
+        "The key has to be an unsigned long int (aka. size_t).");
+
+    using ReduceNode = ReduceToIndexNode<
+              DOpResult, KeyExtractor, ReduceFunction, ReduceConfig,
+              /* VolatileKey */ false, /* SkipPreReducePhase */ true>;
 
     auto node = tlx::make_counting<ReduceNode>(
         *this, "ReduceToIndex", key_extractor, reduce_function,
