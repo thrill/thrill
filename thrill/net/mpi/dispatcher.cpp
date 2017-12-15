@@ -267,12 +267,12 @@ void Dispatcher::DispatchOne(const std::chrono::milliseconds& /* timeout */) {
     // use MPI_Testsome() to check for finished writes
     if (mpi_async_requests_.size())
     {
-        // lock the GMLIM
-        std::unique_lock<std::mutex> lock(g_mutex);
-
         die_unless(mpi_async_.size() == mpi_async_requests_.size());
         die_unless(mpi_async_.size() == mpi_async_out_.size());
         die_unless(mpi_async_.size() == mpi_status_out_.size());
+
+        // lock the GMLIM
+        std::unique_lock<std::mutex> lock(g_mutex);
 
 #if 1
         int out_count;
@@ -310,22 +310,28 @@ void Dispatcher::DispatchOne(const std::chrono::milliseconds& /* timeout */) {
 
             // rewrite the arrays, process and remove all finished requests.
             {
-                size_t i = 0;
+                // output index for shifting unfinished requests to (left of i)
+                size_t out = 0;
+                // index into output arrays mpi_async_out_ and mpi_status_out_.
                 int k = 0;
-                std::vector<size_t> pump_send, pump_recv;
 
-                for (size_t j = 0; j < mpi_async_.size(); ++j)
+                // Callbacks or pumping the queue may add new requests to the
+                // end of the arrays. However, since these indexes cannot be in
+                // the result set (mpi_async_out_), the loop will just copy them
+                // correctly; hence no special handling is needed.
+
+                for (size_t i = 0; i < mpi_async_.size(); ++i)
                 {
-                    if (k < out_count && mpi_async_out_[k] == static_cast<int>(j)) {
+                    if (k < out_count && mpi_async_out_[k] == static_cast<int>(i)) {
 
                         sLOG << "Working #" << k
                              << "which is $" << mpi_async_out_[k];
 
                         // perform callback
-                        mpi_async_[j].DoCallback(mpi_status_out_[k]);
+                        mpi_async_[i].DoCallback(mpi_status_out_[k]);
 
 #if THRILL_NET_MPI_QUEUES
-                        MpiAsync& a = mpi_async_[j];
+                        MpiAsync& a = mpi_async_[i];
                         int peer = a.connection() ? a.connection()->peer() : 0;
                         MpiAsync::Type a_type = a.type_;
 
@@ -336,7 +342,7 @@ void Dispatcher::DispatchOne(const std::chrono::milliseconds& /* timeout */) {
                             send_active_[peer]--;
                             LOG << "DispatchOne() send_active_[" << peer << "]="
                                 << send_active_[peer];
-                            pump_send.emplace_back(peer);
+                            PumpSendQueue(peer);
                         }
                         else if (a_type == MpiAsync::READ_BUFFER ||
                                  a_type == MpiAsync::READ_BYTE_BLOCK)
@@ -346,29 +352,25 @@ void Dispatcher::DispatchOne(const std::chrono::milliseconds& /* timeout */) {
                             LOG << "DispatchOne() recv_active_[" << peer << "]="
                                 << recv_active_[peer];
                             PumpRecvQueue(peer);
-                            pump_recv.emplace_back(peer);
                         }
 #endif
                         // skip over finished request
                         ++k;
                         continue;
                     }
-                    if (i != j) {
-                        mpi_async_[i] = std::move(mpi_async_[j]);
-                        mpi_async_requests_[i] = std::move(mpi_async_requests_[j]);
+                    if (i != out) {
+                        // shift unfinished requests from back of array
+                        mpi_async_[out] = std::move(mpi_async_[i]);
+                        mpi_async_requests_[out] = std::move(mpi_async_requests_[i]);
                     }
-                    ++i;
+                    ++out;
                 }
 
-                mpi_async_.resize(i);
-                mpi_async_requests_.resize(i);
-                mpi_async_out_.resize(i);
-                mpi_status_out_.resize(i);
-
-                for (const size_t & peer : pump_send)
-                    PumpSendQueue(peer);
-                for (const size_t & peer : pump_recv)
-                    PumpRecvQueue(peer);
+                // shrink arrays
+                mpi_async_.resize(out);
+                mpi_async_requests_.resize(out);
+                mpi_async_out_.resize(out);
+                mpi_status_out_.resize(out);
             }
         }
 #else
