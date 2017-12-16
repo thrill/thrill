@@ -99,6 +99,7 @@ bool LinuxaioQueue::CancelRequest(Request* req) {
         if (pos != waiting_requests_.end())
         {
             waiting_requests_.erase(pos);
+            lock.unlock();
 
             // polymorphic_downcast to linuxaio_request,
             // request is canceled, but was not yet posted.
@@ -120,6 +121,7 @@ bool LinuxaioQueue::CancelRequest(Request* req) {
         if (canceled_io_operation)
         {
             posted_requests_.erase(pos);
+            lock.unlock();
 
             // polymorphic_downcast to linuxaio_request,
 
