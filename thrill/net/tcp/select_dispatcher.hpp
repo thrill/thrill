@@ -76,6 +76,15 @@ public:
                                & SelectDispatcher::SelfPipeCallback>(this));
     }
 
+    //! non-copyable: delete copy-constructor
+    SelectDispatcher(const SelectDispatcher&) = delete;
+    //! non-copyable: delete assignment operator
+    SelectDispatcher& operator = (const SelectDispatcher&) = delete;
+    //! move-constructor: default
+    SelectDispatcher(SelectDispatcher&&) = default;
+    //! move-assignment operator: default
+    SelectDispatcher& operator = (SelectDispatcher&&) = default;
+
     ~SelectDispatcher() {
         ::close(self_pipe_[0]);
         ::close(self_pipe_[1]);

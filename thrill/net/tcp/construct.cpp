@@ -105,6 +105,8 @@ public:
             dispatcher_.Dispatch();
         }
 
+        dispatcher_.Cancel(listener_);
+
         // All connected, Dispose listener.
         listener_.Close();
 
