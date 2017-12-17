@@ -41,17 +41,22 @@ class Range
 {
 public:
     Range() = default;
-    Range(size_t _begin, size_t _end) : begin(_begin), end(_end) { }
+    Range(size_t begin, size_t end) : begin(begin), end(end) { }
 
     static Range Invalid() {
         return Range(std::numeric_limits<size_t>::max(),
                      std::numeric_limits<size_t>::min());
     }
 
+    //! \name Attributes
+    //! \{
+
     //! begin index
     size_t begin = 0;
     //! end index
     size_t end = 0;
+
+    //! \}
 
     //! size of range
     size_t size() const { return end - begin; }
@@ -64,17 +69,33 @@ public:
     //! swap boundaries, making a valid range invalid.
     void Swap() { std::swap(begin, end); }
 
-    //! calculate a partition range [begin,end) by taking the current Range
-    //! splitting it into p parts and taking the i-th one.
-    Range Partition(size_t index, size_t parts) const {
-        assert(index < parts);
-        return Range(CalculateBeginOfPart(index, parts),
-                     CalculateBeginOfPart(index + 1, parts));
+    //! return shifted Range
+    Range operator + (const size_t& shift) const {
+        return Range(begin + shift, end + shift);
     }
 
-    size_t CalculateBeginOfPart(size_t index, size_t parts) const {
-        assert(index <= parts);
-        return (index * size() + parts - 1) / parts;
+    //! true if the Range contains x
+    bool Contains(size_t x) const {
+        return x >= begin && x < end;
+    }
+
+    //! calculate a partition range [begin,end) by taking the current Range
+    //! splitting it into p parts and taking the i-th one.
+    Range Partition(size_t i, size_t parts) const {
+        assert(i < parts);
+        return Range(CalculateBeginOfPart(i, parts),
+                     CalculateBeginOfPart(i + 1, parts));
+    }
+
+    size_t CalculateBeginOfPart(size_t i, size_t parts) const {
+        assert(i <= parts);
+        return (i * size() + parts - 1) / parts + begin;
+    }
+
+    //! calculate the partition (ranging from 0 to parts - 1) into which index
+    //! falls
+    size_t FindPartition(size_t index, size_t parts) const {
+        return ((index - begin) * parts) / size();
     }
 
     //! ostream-able

@@ -69,4 +69,23 @@ TEST(Math, OneFactor) {
     }
 }
 
+TEST(Math, Range) {
+    using common::Range;
+
+    Range r = Range(1000, 20042323);
+    size_t num_subranges = 39;
+
+    for (size_t i = 0; i < num_subranges; ++i) {
+        sLOG1 << r.Partition(i, num_subranges)
+              << r.Partition(i, num_subranges).size();
+    }
+
+    for (size_t i = r.begin; i < r.end; ++i) {
+        size_t x = r.FindPartition(i, num_subranges);
+        if (!r.Partition(x, num_subranges).Contains(i))
+            sLOG1 << i << x << r.Partition(x, num_subranges);
+        die_unless(r.Partition(x, num_subranges).Contains(i));
+    }
+}
+
 /******************************************************************************/

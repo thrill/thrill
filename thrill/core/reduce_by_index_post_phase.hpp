@@ -69,6 +69,12 @@ public:
     //! non-copyable: delete assignment operator
     ReduceByIndexPostPhase& operator = (const ReduceByIndexPostPhase&) = delete;
 
+    //! Sets the range of indexes to be handled by this index table
+    void SetRange(const common::Range& range) {
+        range_ = range;
+        full_range_ = range;
+    }
+
     void Initialize(size_t limit_memory_bytes) {
         assert(range_.IsValid() || range_.IsEmpty());
         limit_memory_bytes_ = limit_memory_bytes;
@@ -78,23 +84,50 @@ public:
         neutral_element_key_ = key(neutral);
 
         if (range_.size() * sizeof(TableItem) < limit_memory_bytes) {
+            num_subranges_ = 0;
+
             // all good, we can store the whole index range
             items_.resize(range_.size(), neutral);
+
+            LOG << "ReduceByIndexPostPhase()"
+                << " limit_memory_bytes_=" << limit_memory_bytes_
+                << " num_subranges_=" << 0
+                << " range_=" << range_;
         }
         else {
             // we have to outsource some subranges
-            size_t num_subranges =
+            num_subranges_ =
                 1 + (range_.size() * sizeof(TableItem) / limit_memory_bytes);
             // we keep the first subrange in memory and only the other ones go
             // into a file
-            range_ = full_range_.Partition(0, num_subranges);
-            for (size_t partition = 1; partition < num_subranges; partition++) {
-                auto file = ctx_.GetFile(dia_id_);
-                auto writer = file.GetWriter();
+            range_ = full_range_.Partition(0, num_subranges_);
+
+            items_.resize(range_.size(), neutral);
+
+            LOG << "ReduceByIndexPostPhase()"
+                << " limit_memory_bytes_=" << limit_memory_bytes_
+                << " num_subranges_=" << num_subranges_
+                << " full_range_=" << full_range_
+                << " range_=" << range_
+                << " range_.size()=" << range_.size();
+
+            subranges_.reserve(num_subranges_ - 1);
+            subrange_files_.reserve(num_subranges_ - 1);
+            subrange_writers_.reserve(num_subranges_ - 1);
+
+            for (size_t partition = 1; partition < num_subranges_; partition++) {
+                auto file = ctx_.GetFilePtr(dia_id_);
+                auto writer = file->GetWriter();
                 common::Range subrange =
-                    full_range_.Partition(partition, num_subranges);
-                subrange_files_.emplace_back(
-                    subrange, std::move(file), std::move(writer));
+                    full_range_.Partition(partition, num_subranges_);
+
+                LOG << "ReduceByIndexPostPhase()"
+                    << " partition=" << partition
+                    << " subrange=" << subrange;
+
+                subranges_.emplace_back(subrange);
+                subrange_files_.emplace_back(std::move(file));
+                subrange_writers_.emplace_back(std::move(writer));
             }
         }
     }
@@ -102,40 +135,50 @@ public:
     bool Insert(const TableItem& kv) {
         size_t item_key = key(kv);
         assert(item_key >= full_range_.begin && item_key < full_range_.end);
-        size_t offset = item_key - range_.begin;
 
-        if (item_key >= range_.begin && item_key < range_.end) {
-            // store elements in reverse order
-            size_t local_index = range_.size() - offset - 1;
+        LOG << "Insert() item_key=" << item_key
+            << " full_range_=" << full_range_
+            << " range_" << range_;
 
-            if (item_key != neutral_element_key_) { // normal index
-                if (key(items_[local_index]) == item_key) {
-                    items_[local_index] = reduce(items_[local_index], kv);
+        if (item_key < range_.end) {
+            // items is in the main range
+            size_t offset = item_key - full_range_.begin;
+
+            if (item_key != neutral_element_key_) {
+                // normal index
+                if (key(items_[offset]) == item_key) {
+                    items_[offset] = reduce(items_[offset], kv);
                     return false;
                 }
                 else {
-                    items_[local_index] = kv;
+                    items_[offset] = kv;
                     return true;
                 }
             }
-            else {      // special handling for element with neutral index
+            else {
+                // special handling for element with neutral index
                 if (neutral_element_index_occupied_) {
-                    items_[local_index] = reduce(items_[local_index], kv);
+                    items_[offset] = reduce(items_[offset], kv);
                     return false;
                 }
                 else {
-                    items_[local_index] = kv;
+                    items_[offset] = kv;
                     neutral_element_index_occupied_ = true;
                     return true;
                 }
             }
         }
         else {
-            common::Range& subrange =
-                std::get<0>(subrange_files_[offset / range_.size() - 1]);
-            tlx::unused(subrange); // for release build
-            data::File::Writer& writer =
-                std::get<2>(subrange_files_[offset / range_.size() - 1]);
+            // items has to be stored in an overflow File
+            size_t r = full_range_.FindPartition(item_key, num_subranges_) - 1;
+
+            const common::Range& subrange = subranges_.at(r);
+            data::File::Writer& writer = subrange_writers_.at(r);
+
+            LOG << "Insert() item_key=" << item_key
+                << " r=" << r
+                << " subrange=" << subrange;
+
             assert(item_key >= subrange.begin && item_key < subrange.end);
             writer.Put(kv);
             return false;
@@ -145,87 +188,88 @@ public:
     void PushData(bool consume = false, data::File::Writer* pwriter = nullptr) {
         assert(!pwriter || consume);
 
-        if (!cache_) {
-            if (!consume) {
-                if (subrange_files_.empty()) {
-                    Flush();
-                }
-                else {
-                    data::FilePtr cache = ctx_.GetFilePtr(dia_id_);
-                    data::File::Writer writer = cache_->GetWriter();
-                    PushData(true, &writer);
-                    cache_ = cache;
-                    writer.Close();
-                }
-                return;
-            }
-
-            for (auto& subrange_file : subrange_files_) {
-                std::get<2>(subrange_file).Close();
-            }
-
-            if (pwriter) {
-                FlushAndConsume<true>(pwriter);
-            }
-            else {
-                FlushAndConsume();
-            }
-
-            for (auto& subrange_file : subrange_files_) {
-                ReduceByIndexPostPhase<TableItem, Key, Value, KeyExtractor,
-                                       ReduceFunction, Emitter, VolatileKey,
-                                       ReduceConfig_>
-                subtable(ctx_, dia_id_, key_extractor_, reduce_function_,
-                         emitter_.emit_, config_, neutral_element_);
-                subtable.SetRange(std::get<0>(subrange_file));
-                subtable.Initialize(limit_memory_bytes_);
-                auto reader = std::get<1>(subrange_file).GetConsumeReader();
-                while (reader.HasNext()) {
-                    subtable.Insert(reader.template Next<TableItem>());
-                }
-                subtable.PushData(consume || pwriter, pwriter);
-            }
-        }
-        else {
+        if (cache_) {
             // previous PushData() has stored data in cache_
             data::File::Reader reader = cache_->GetReader(consume);
             while (reader.HasNext())
                 emitter_.Emit(reader.Next<TableItem>());
+            return;
+        }
+
+        if (!consume) {
+            if (subranges_.empty()) {
+                Flush();
+            }
+            else {
+                data::FilePtr cache = ctx_.GetFilePtr(dia_id_);
+                data::File::Writer writer = cache_->GetWriter();
+                PushData(true, &writer);
+                cache_ = cache;
+                writer.Close();
+            }
+            return;
+        }
+
+        // close File writers
+        for (auto& w : subrange_writers_) {
+            w.Close();
+        }
+
+        if (pwriter) {
+            FlushAndConsume<true>(pwriter);
+        }
+        else {
+            FlushAndConsume();
+        }
+
+        for (size_t i = 0; i < subranges_.size(); ++i) {
+            ReduceByIndexPostPhase<TableItem, Key, Value, KeyExtractor,
+                                   ReduceFunction, Emitter, VolatileKey,
+                                   ReduceConfig>
+            subtable(ctx_, dia_id_, key_extractor_, reduce_function_,
+                     emitter_.emit_, config_, neutral_element_);
+            subtable.SetRange(subranges_[i]);
+            subtable.Initialize(limit_memory_bytes_);
+
+            {
+                // insert items
+                auto reader = subrange_files_[i]->GetConsumeReader();
+                while (reader.HasNext()) {
+                    subtable.Insert(reader.template Next<TableItem>());
+                }
+            }
+
+            subtable.PushData(consume || pwriter, pwriter);
+
+            // delete File
+            subrange_files_[i].reset();
         }
     }
 
     void Dispose() {
         std::vector<TableItem>().swap(items_);
-        std::vector<std::tuple<common::Range, data::File, data::File::Writer> >()
-        .swap(subrange_files_);
+
+        std::vector<common::Range>().swap(subranges_);
+        std::vector<data::FilePtr>().swap(subrange_files_);
+        std::vector<data::File::Writer>().swap(subrange_writers_);
     }
-
-    //! \name Accessors
-    //! \{
-
-    //! Sets the range of indexes to be handled by this index table
-    void SetRange(const common::Range& range) {
-        range_ = range;
-        full_range_ = range;
-    }
-
-    //! \}
 
 private:
     void Flush() {
-        for (auto iterator = items_.rbegin(); iterator != items_.rend(); iterator++) {
-            emitter_.Emit(*iterator);
+        for (auto it = items_.begin(); it != items_.end(); ++it) {
+            emitter_.Emit(*it);
         }
     }
 
     template <bool DoCache = false>
     void FlushAndConsume(data::File::Writer* writer = nullptr) {
-        while (!items_.empty()) {
-            emitter_.Emit(items_.back());
-            if (DoCache) { writer->Put(items_.back()); }
-            items_.pop_back();
+        for (auto it = items_.begin(); it != items_.end(); ++it) {
+            emitter_.Emit(*it);
+            if (DoCache) { writer->Put(*it); }
         }
         neutral_element_index_occupied_ = false;
+        // free array
+        std::vector<TableItem>().swap(items_);
     }
 
     Key key(const TableItem& t) {
@@ -274,12 +318,21 @@ private:
     //! including subranges
     common::Range full_range_;
 
-    //! Store for items in range of this workers.
+    //! Store for items in range of this worker.
     //! Stored in reverse order so we can consume while emitting.
     std::vector<TableItem> items_;
 
-    //! Store for items in nonactive subranges
-    std::vector<std::tuple<common::Range, data::File, data::File::Writer> > subrange_files_;
+    //! number of subranges
+    size_t num_subranges_;
+
+    //! Subranges
+    std::vector<common::Range> subranges_;
+
+    //! Subranges external Files
+    std::vector<data::FilePtr> subrange_files_;
+
+    //! Subranges external File Writers
+    std::vector<data::File::Writer> subrange_writers_;
 
     //! File for storing data in-case we need multiple re-reduce levels.
     data::FilePtr cache_ = nullptr;
