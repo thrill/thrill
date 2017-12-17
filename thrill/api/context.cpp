@@ -483,7 +483,7 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
 
     // select environment variables
 
-    const char* str_rank = getenv("THRILL_RANK");
+    const char* str_rank = "THRILL_RANK";
     const char* env_rank = getenv(str_rank);
 
     if (env_rank == nullptr) {
