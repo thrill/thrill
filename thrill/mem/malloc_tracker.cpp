@@ -877,6 +877,7 @@ void * malloc(size_t size) NOEXCEPT {
     }
 
     if (profile_operations) {
+#if !__APPLE__
         static thread_local bool recursive = false;
 
         if (!recursive) {
@@ -887,6 +888,7 @@ void * malloc(size_t size) NOEXCEPT {
 
             recursive = false;
         }
+#endif
     }
 
     {

@@ -49,7 +49,7 @@ void radix_sort_CI(Iterator begin, Iterator end, size_t K,
     Char* cc = char_cache;
     for (Iterator it = begin; it != end; ++it, ++cc) {
         *cc = it->at_radix(depth);
-        assert(*cc < K);
+        assert(static_cast<size_t>(*cc) < K);
     }
 
     // count character occurrences

@@ -81,12 +81,12 @@ matrix:
       os: linux
       addons: *clang37
 
-    # # clang 3.7 on MacOSX without AddressSanitizer, Debug & Release, not FULL_BUILD
-    # - env: CMAKE_CC="clang" CMAKE_CXX="clang++" BUILD_TYPE="Debug" COMPILER_FLAGS=""
-    #   os: osx
+    # clang 3.7 on MacOSX without AddressSanitizer, Debug & Release, not FULL_BUILD
+    - env: CMAKE_CC="clang" CMAKE_CXX="clang++" BUILD_TYPE="Debug" COMPILER_FLAGS=""
+      os: osx
 
-    # - env: CMAKE_CC="clang" CMAKE_CXX="clang++" BUILD_TYPE="Release" COMPILER_FLAGS=""
-    #   os: osx
+    - env: CMAKE_CC="clang" CMAKE_CXX="clang++" BUILD_TYPE="Release" COMPILER_FLAGS=""
+      os: osx
 
 env:
   global:

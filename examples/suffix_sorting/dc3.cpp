@@ -545,7 +545,7 @@ DC3Recursive(const InputDIA& input_dia, size_t input_size, size_t K) {
                  };
              })
         .Filter([input_size](const StringFragmentMod0& mod0) {
-                    return mod0.index < input_size;
+                    return mod0.index < Index(input_size);
                 });
 
     auto fragments_mod1 =
@@ -558,7 +558,7 @@ DC3Recursive(const InputDIA& input_dia, size_t input_size, size_t K) {
                  };
              })
         .Filter([input_size](const StringFragmentMod1& mod1) {
-                    return mod1.index < input_size;
+                    return mod1.index < Index(input_size);
                 });
 
     auto fragments_mod2 =
@@ -571,7 +571,7 @@ DC3Recursive(const InputDIA& input_dia, size_t input_size, size_t K) {
                  };
              })
         .Filter([input_size](const StringFragmentMod2& mod2) {
-                    return mod2.index < input_size;
+                    return mod2.index < Index(input_size);
                 });
 
     if (debug_print) {
@@ -620,7 +620,7 @@ DC3Recursive(const InputDIA& input_dia, size_t input_size, size_t K) {
             {
                 std::cout << std::setw(5) << index << " =";
                 for (Index i = index;
-                     i < index + Index(64) && i < input_size; ++i) {
+                     i < index + Index(64) && i < Index(input_size); ++i) {
                     std::cout << ' ' << input_vec[i];
                 }
                 std::cout << '\n';

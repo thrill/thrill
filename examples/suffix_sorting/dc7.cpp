@@ -720,7 +720,7 @@ DC7Recursive(const InputDIA& input_dia, size_t input_size, size_t K) {
                  };
              })
         .Filter([input_size](const StringFragmentMod0& mod0) {
-                    return mod0.index < input_size;
+                    return mod0.index < Index(input_size);
                 });
 
     auto fragments_mod1 =
@@ -735,7 +735,7 @@ DC7Recursive(const InputDIA& input_dia, size_t input_size, size_t K) {
                  };
              })
         .Filter([input_size](const StringFragmentMod1& mod1) {
-                    return mod1.index < input_size;
+                    return mod1.index < Index(input_size);
                 });
 
     auto fragments_mod2 =
@@ -750,7 +750,7 @@ DC7Recursive(const InputDIA& input_dia, size_t input_size, size_t K) {
                  };
              })
         .Filter([input_size](const StringFragmentMod2& mod2) {
-                    return mod2.index < input_size;
+                    return mod2.index < Index(input_size);
                 });
 
     auto fragments_mod3 =
@@ -765,7 +765,7 @@ DC7Recursive(const InputDIA& input_dia, size_t input_size, size_t K) {
                  };
              })
         .Filter([input_size](const StringFragmentMod3& mod3) {
-                    return mod3.index < input_size;
+                    return mod3.index < Index(input_size);
                 });
 
     auto fragments_mod4 =
@@ -780,7 +780,7 @@ DC7Recursive(const InputDIA& input_dia, size_t input_size, size_t K) {
                  };
              })
         .Filter([input_size](const StringFragmentMod4& mod4) {
-                    return mod4.index < input_size;
+                    return mod4.index < Index(input_size);
                 });
 
     auto fragments_mod5 =
@@ -795,7 +795,7 @@ DC7Recursive(const InputDIA& input_dia, size_t input_size, size_t K) {
                  };
              })
         .Filter([input_size](const StringFragmentMod5& mod5) {
-                    return mod5.index < input_size;
+                    return mod5.index < Index(input_size);
                 });
 
     auto fragments_mod6 =
@@ -809,7 +809,7 @@ DC7Recursive(const InputDIA& input_dia, size_t input_size, size_t K) {
                  };
              })
         .Filter([input_size](const StringFragmentMod6& mod6) {
-                    return mod6.index < input_size;
+                    return mod6.index < Index(input_size);
                 });
 
     if (debug_print) {
@@ -886,7 +886,7 @@ DC7Recursive(const InputDIA& input_dia, size_t input_size, size_t K) {
             for (const Index& index : vec) {
                 std::cout << std::setw(5) << p << std::setw(5) << index << " =";
                 for (Index i = index;
-                     i < index + Index(64) && i < input_size; ++i) {
+                     i < index + Index(64) && i < Index(input_size); ++i) {
                     std::cout << ' ' << uint64_t(input_vec[i]);
                 }
                 std::cout << '\n';
