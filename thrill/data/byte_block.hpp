@@ -98,6 +98,11 @@ public:
         return data_ != nullptr;
     }
 
+    //! true if being deleted
+    bool is_deleted() const {
+        return pin_count_.empty();
+    }
+
     //! increment pin count, must be >= 1 before.
     void IncPinCount(size_t local_worker_id);
 

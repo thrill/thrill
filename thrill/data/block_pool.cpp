@@ -577,7 +577,7 @@ PinRequestPtr BlockPool::PinBlock(const Block& block, size_t local_worker_id) {
         die_unless(d_->reading_.find(block_ptr) == d_->reading_.end());
 
         LOGC(debug_pin)
-            << "BlockPool::PinBlock block=" << &block
+            << "BlockPool::PinBlock block=" << block
             << " already pinned by another thread"
             << d_->pin_count_;
 
@@ -682,7 +682,7 @@ PinRequestPtr BlockPool::PinBlock(const Block& block, size_t local_worker_id) {
     }
 
     LOGC(debug_em)
-        << "BlockPool::PinBlock block=" << &block
+        << "BlockPool::PinBlock block=" << block
         << " requested from external memory"
         << d_->pin_count_;
 
@@ -713,7 +713,7 @@ void BlockPool::OnReadComplete(
 
     LOGC(debug_em)
         << "OnReadComplete():"
-        << " req " << req << " block " << block_ptr
+        << " req " << req << " block " << *block_ptr
         << " size " << block_size << " done,"
         << " from " << block_ptr->em_bid_ << " success = " << success;
     req->check_error();
@@ -913,16 +913,19 @@ size_t BlockPool::reading_blocks() noexcept {
 }
 
 void BlockPool::DestroyBlock(ByteBlock* block_ptr) {
+    // this method is called by ByteBlockPtr's deleter when the reference
+    // counter reaches zero to deallocate the block.
+    std::unique_lock<std::mutex> lock(mutex_);
+
     LOGC(debug_blc)
         << "BlockPool::DestroyBlock() block_ptr=" << block_ptr
         << " byte_block=" << *block_ptr;
 
-    std::unique_lock<std::mutex> lock(mutex_);
-    // this method is called by ByteBlockPtr's deleter when the reference
-    // counter reaches zero to deallocate the block.
-
     // pinned blocks cannot be destroyed since they are always unpinned first
     die_unless(block_ptr->total_pins_ == 0);
+
+    // delete pin_count_ -> mark block as being deleted
+    block_ptr->pin_count_.clear();
 
     do {
         if (block_ptr->in_memory())
@@ -933,6 +936,12 @@ void BlockPool::DestroyBlock(ByteBlock* block_ptr) {
                 // get reference count to request, since complete handler
                 // removes it from the map.
                 io::RequestPtr req = it->second;
+
+                LOGC(debug_em)
+                    << "DestroyBlock()"
+                    << " canceling write I/O request " << req
+                    << " for block " << *block_ptr;
+
                 lock.unlock();
                 // cancel I/O request
                 if (!req->cancel()) {
@@ -955,6 +964,12 @@ void BlockPool::DestroyBlock(ByteBlock* block_ptr) {
                 // get reference count to request, since complete handler
                 // removes it from the map.
                 io::RequestPtr req = it->second->req_;
+
+                LOGC(debug_em)
+                    << "DestroyBlock()"
+                    << " canceling read I/O request " << req
+                    << " for block " << *block_ptr;
+
                 lock.unlock();
                 // cancel I/O request
                 if (!req->cancel()) {
@@ -1004,9 +1019,10 @@ void BlockPool::DestroyBlock(ByteBlock* block_ptr) {
             << "BlockPool::DestroyBlock() block_ptr=" << block_ptr
             << " unpinned block in memory, remove from list";
 
-        die_unless(d_->unpinned_blocks_.exists(block_ptr));
-        d_->unpinned_blocks_.erase(block_ptr);
-        d_->unpinned_bytes_ -= block_ptr->size();
+        if (d_->unpinned_blocks_.exists(block_ptr)) {
+            d_->unpinned_blocks_.erase(block_ptr);
+            d_->unpinned_bytes_ -= block_ptr->size();
+        }
 
         // release memory
         sLOGC(debug_alloc)
@@ -1259,8 +1275,9 @@ void BlockPool::OnWriteComplete(
     std::unique_lock<std::mutex> lock(mutex_);
 
     LOGC(debug_em)
-        << "OnWriteComplete(): " << req
-        << " done, to " << block_ptr->em_bid_ << " success = " << success;
+        << "OnWriteComplete(): request " << req << " done,"
+        << " block " << *block_ptr << " to " << block_ptr->em_bid_
+        << " success = " << success;
     req->check_error();
 
     die_unless(!block_ptr->ext_file_);
@@ -1270,17 +1287,22 @@ void BlockPool::OnWriteComplete(
     if (!success)
     {
         // request was canceled. this is not an I/O error, but intentional,
-        // e.g. because the block was deleted.
+        // e.g. because the block was deleted or if it was re-pinned while being
+        // written to disk.
 
-        die_unless(!d_->unpinned_blocks_.exists(block_ptr));
-        d_->unpinned_blocks_.put(block_ptr);
-        d_->unpinned_bytes_ += block_ptr->size();
+        if (!block_ptr->is_deleted()) {
+            die_unless(!d_->unpinned_blocks_.exists(block_ptr));
+            d_->unpinned_blocks_.put(block_ptr);
+            d_->unpinned_bytes_ += block_ptr->size();
+        }
 
         d_->bm_->delete_block(block_ptr->em_bid_);
         block_ptr->em_bid_ = io::BID<0>();
     }
-    else    // success
+    else
     {
+        // success
+
         d_->swapped_.insert(block_ptr);
         d_->swapped_bytes_ += block_ptr->size();
 
