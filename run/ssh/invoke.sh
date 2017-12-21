@@ -21,8 +21,10 @@ dir=
 user=$(whoami)
 with_perf=0
 with_perf_graph=0
+timeout=
+more_env=
 
-while getopts "u:h:H:cvC:w:pP" opt; do
+while getopts "u:h:H:cvC:w:pPx:T:" opt; do
     case "$opt" in
     h)  # this overrides the user environment variable
         THRILL_SSHLIST=$OPTARG
@@ -44,8 +46,13 @@ while getopts "u:h:H:cvC:w:pP" opt; do
         ;;
     P)  with_perf_graph=1
         ;;
+    T)  timeout=$OPTARG
+        ;;
     w)  # this overrides the user environment variable
         export THRILL_WORKERS_PER_HOST=$OPTARG
+        ;;
+    x)  # more environment variables
+        more_env="$more_env \"$OPTARG\""
         ;;
     :)  echo "Option -$OPTARG requires an argument." >&2
         exit 1
@@ -70,8 +77,10 @@ if [ -z "$cmd" ]; then
     echo "  -h <list>  space-delimited list of nodes"
     echo "  -H <list>  list of internal IPs passed to Thrill exe (else: -h list)"
     echo "  -u <name>  ssh user name"
+    echo "  -T <num>   kill Thrill job after <num> seconds"
     echo "  -w <num>   set thrill workers per host variable"
     echo "  -v         verbose output"
+    echo "  -x v=arg   set environment variable, all THRILL_* are automatically set."
     exit 1
 fi
 
@@ -145,6 +154,9 @@ for hostport in $THRILL_SSHLIST; do
       # run with perf
       RUN_PREFIX="exec perf record -g -o perf-$rank.data"
   fi
+  if [ "$timeout" != "" ]; then
+      RUN_PREFIX="$RUN_PREFIX timeout ${timeout}"
+  fi
 
   if [ "$copy" == "1" ]; then
       REMOTENAME="/tmp/$cmdbase.$hostport.$$"
@@ -157,7 +169,7 @@ for hostport in $THRILL_SSHLIST; do
             "$cmd" "$user@$host:$REMOTENAME" &&
         ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o TCPKeepAlive=yes \
             $user@$host \
-            "export $THRILL_EXPORTS && chmod +x \"$REMOTENAME\" && cd $dir && $RUN_PREFIX \"$REMOTENAME\" $*" &&
+            "export $THRILL_EXPORTS $more_env && chmod +x \"$REMOTENAME\" && cd $dir && $RUN_PREFIX \"$REMOTENAME\" $*" &&
         if [ -n "$THRILL_LOG" ]; then
             scp -o BatchMode=yes -o StrictHostKeyChecking=no -o TCPKeepAlive=yes -o Compression=yes \
                 "$user@$host:/tmp/$THRILL_LOG-*" "."
@@ -168,7 +180,7 @@ for hostport in $THRILL_SSHLIST; do
       ssh \
           -o BatchMode=yes -o StrictHostKeyChecking=no \
           $user@$host \
-          "export $THRILL_EXPORTS && cd $dir && $RUN_PREFIX $command $*" &
+          "export $THRILL_EXPORTS $more_env && cd $dir && $RUN_PREFIX $command $*" &
   fi
   # save PID of ssh child for later
   SSHPIDS[$rank]=$!
