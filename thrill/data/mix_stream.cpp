@@ -180,7 +180,8 @@ void MixStreamData::OnStreamBlock(size_t from, uint32_t seq, PinnedBlock&& b) {
     OnStreamBlockOrdered(from, std::move(b));
 
     // try to process additional queued blocks
-    while (seq_[from].waiting_.begin()->first == seq_[from].seq_)
+    while (!seq_[from].waiting_.empty() &&
+           seq_[from].waiting_.begin()->first == seq_[from].seq_)
     {
         sLOG << "MixStreamData::OnStreamBlock"
              << "processing delayed block with seq"
