@@ -77,9 +77,10 @@ public:
     using real_type = fp_t;
 
     hypergeometric_distribution(size_t seed = 0)
-        : rng(seed != 0 ? seed : std::random_device{}()) {}
+        : rng(seed != 0 ? seed : std::random_device { }
+              ()) { }
 
-    int_t operator()(int_t good, int_t bad, int_t sample) {
+    int_t operator () (int_t good, int_t bad, int_t sample) {
         if (sample < 1) {
             sLOG1 << "hypergeometric distribution error: sample < 1:" << sample;
             return static_cast<int_t>(-1);
@@ -106,11 +107,13 @@ private:
         fp_t x0, x2, xp, gl, gl0;
         int_t k, n;
 
-        static fp_t a[10] = {8.333333333333333e-02,-2.777777777777778e-03,
-                             7.936507936507937e-04,-5.952380952380952e-04,
-                             8.417508417508418e-04,-1.917526917526918e-03,
-                             6.410256410256410e-03,-2.955065359477124e-02,
-                             1.796443723688307e-01,-1.39243221690590e+00};
+        static fp_t a[10] = {
+            8.333333333333333e-02, -2.777777777777778e-03,
+            7.936507936507937e-04, -5.952380952380952e-04,
+            8.417508417508418e-04, -1.917526917526918e-03,
+            6.410256410256410e-03, -2.955065359477124e-02,
+            1.796443723688307e-01, -1.39243221690590e+00
+        };
         x0 = x;
         n = 0;
         if ((x == 1.0) || (x == 2.0))
@@ -122,20 +125,20 @@ private:
             n = static_cast<int_t>(7 - x);
             x0 = x + n;
         }
-        x2 = 1.0/(x0*x0);
-        xp = 2*M_PI;
+        x2 = 1.0 / (x0 * x0);
+        xp = 2 * M_PI;
         gl0 = a[9];
-        for (k=8; k>=0; k--)
+        for (k = 8; k >= 0; k--)
         {
             gl0 *= x2;
             gl0 += a[k];
         }
-        gl = gl0/x0 + 0.5*std::log(xp) + (x0-0.5)*std::log(x0) - x0;
+        gl = gl0 / x0 + 0.5 * std::log(xp) + (x0 - 0.5) * std::log(x0) - x0;
         if (x <= 7.0)
         {
-            for (k=1; k<=n; k++)
+            for (k = 1; k <= n; k++)
             {
-                gl -= std::log(x0-1.0);
+                gl -= std::log(x0 - 1.0);
                 x0 -= 1.0;
             }
         }
@@ -224,18 +227,18 @@ private:
     int_t rk_hypergeometric(int_t good, int_t bad, int_t sample) {
         if (sample > 10) {
             return rk_hypergeometric_hrua(good, bad, sample);
-        } else {
+        }
+        else {
             return rk_hypergeometric_hyp(good, bad, sample);
         }
     }
 
     // Data members:
-    std::mt19937 rng; // random number generator
+    std::mt19937 rng;                          // random number generator
     std::uniform_real_distribution<fp_t> dist; // [0.0...1.0) distribution
 };
 
 using hypergeometric = hypergeometric_distribution<>;
-
 
 } // namespace common
 } // namespace thrill

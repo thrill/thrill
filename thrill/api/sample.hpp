@@ -16,8 +16,8 @@
 #include <thrill/api/dop_node.hpp>
 #include <thrill/common/hypergeometric_distribution.hpp>
 #include <thrill/common/logger.hpp>
-#include <thrill/common/sampling.hpp>
 #include <thrill/common/reservoir_sampling.hpp>
+#include <thrill/common/sampling.hpp>
 
 #include <tlx/math.hpp>
 
@@ -62,8 +62,8 @@ public:
           parent_stack_empty_(ParentDIA::stack_empty)
     {
         auto presample_fn = [this](const ValueType& input) {
-            sampler_.add(input);
-        };
+                                sampler_.add(input);
+                            };
         auto lop_chain = parent.stack().push(presample_fn).fold();
         parent.node()->AddChild(this, lop_chain);
     }
@@ -100,7 +100,7 @@ public:
         // Determine and broadcast seed
         size_t seed = 0;
         if (context_.my_rank() == 0) {
-            seed = std::random_device{}();
+            seed = std::random_device { } ();
         }
         local_timer_.Stop(), comm_timer_.Start();
         seed = context_.net.Broadcast(seed);
@@ -155,7 +155,7 @@ public:
              << local_timer_.Microseconds() / 1000.0
              << "ms, communication:" << comm_timer_.Microseconds() / 1000.0
              << "ms =" << comm_timer_.Microseconds() * 100.0 /
-            (comm_timer_.Microseconds() + local_timer_.Microseconds())
+        (comm_timer_.Microseconds() + local_timer_.Microseconds())
              << "%";
     }
 
@@ -188,8 +188,8 @@ private:
         }
 
         // does my range overlap the global range?
-        if ((range_begin <= my_begin && my_begin <  range_end) ||
-            (range_begin <  my_end   && my_end   <= range_end)) {
+        if ((range_begin <= my_begin && my_begin < range_end) ||
+            (range_begin < my_end && my_end <= range_end)) {
 
             // seed the distribution so that all PEs generate the same values in
             // the same subtrees, but different values in different subtrees
@@ -212,18 +212,17 @@ private:
 
             const size_t
                 left_result = calc_local_samples(
-                    my_begin, my_end, range_begin, range_begin + left_size,
-                    left_samples, seed),
+                my_begin, my_end, range_begin, range_begin + left_size,
+                left_samples, seed),
                 right_result = calc_local_samples(
-                    my_begin, my_end, range_begin + left_size, range_end,
-                    sample_size - left_samples, seed);
+                my_begin, my_end, range_begin + left_size, range_end,
+                sample_size - left_samples, seed);
             return left_result + right_result;
         }
 
         // no overlap
         return 0;
     }
-
 
     //! local input size, number of samples to draw globally, and locally
     size_t local_size_, sample_size_, local_samples_;
@@ -239,7 +238,6 @@ private:
     common::StatsTimerStopped local_timer_, comm_timer_;
     //! Whether the parent stack is empty
     const bool parent_stack_empty_;
-
 };
 
 template <typename ValueType, typename Stack>

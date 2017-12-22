@@ -90,7 +90,7 @@ public:
         : size_(size), samples_(samples), rng_(rng) {
         samples_.reserve(size_);
         W_ = std::exp(std::log(uniform(rng_)) / size);
-        gap_ = std::floor(std::log(uniform(rng_)) / std::log(1-W_));
+        gap_ = std::floor(std::log(uniform(rng_)) / std::log(1 - W_));
     }
 
     //! visit item, maybe add it to the sample.

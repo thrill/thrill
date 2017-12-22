@@ -30,49 +30,51 @@ namespace common {
 //! Hübschle-Schneider, Schrade, Dachsbacher, ACM TOMS 2017: Efficient Random
 //! Sampling - Parallel, Vectorized, Cache-Efficient, and Online
 template <typename RNG = std::mt19937>
-class Sampling {
+class Sampling
+{
 public:
     static constexpr bool debug = false;
 
-    Sampling(RNG& rng) : rng_(rng), hyp_(rng()) {}
+    Sampling(RNG& rng) : rng_(rng), hyp_(rng()) { }
 
     template <typename Iterator,
               typename Type = typename std::iterator_traits<Iterator>::value_type>
-    void operator()(Iterator begin, Iterator end, size_t size,
-                    std::vector<Type>& samples) {
+    void operator () (Iterator begin, Iterator end, size_t size,
+                      std::vector<Type>& samples) {
         samples.resize(size);
         do_sample(begin, end, size, samples.begin());
     }
 
     template <typename Iterator, typename OutputIterator>
-    void operator()(Iterator begin, Iterator end, size_t size,
-                    OutputIterator out_begin)
-    {
+    void operator () (Iterator begin, Iterator end, size_t size,
+                      OutputIterator out_begin) {
         do_sample(begin, end, size, out_begin);
     }
 
 private:
     template <typename Iterator, typename OutputIterator>
     void do_sample(Iterator begin, Iterator end, size_t size,
-                   OutputIterator out_begin)
-    {
-        if (size == 0) return; // degenerate
+                   OutputIterator out_begin) {
+        if (size == 0) return;  // degenerate
 
         const size_t insize = end - begin;
-        if (size == insize) { // degenerate
+        if (size == insize) {   // degenerate
             std::copy(begin, end, out_begin);
-        } else if (insize > 64) { // recursive step
+        }
+        else if (insize > 64) { // recursive step
             size_t left_size = insize / 2;
             size_t left = hyp_(left_size, insize - left_size, size);
             sLOG << "Splitting input of size" << insize << "into two, left"
                  << left_size << "elements get" << left << "of"
                  << size << "samples";
-            do_sample(begin, begin + left_size, left,        out_begin);
-            do_sample(begin + left_size, end,   size - left, out_begin + left);
-        } else if (insize > 32 && size > 8) { // hash base case
+            do_sample(begin, begin + left_size, left, out_begin);
+            do_sample(begin + left_size, end, size - left, out_begin + left);
+        }
+        else if (insize > 32 && size > 8) { // hash base case
             sLOG << "Base case for size" << insize << "and" << size << "samples";
             hash_sample(begin, end, size, out_begin);
-        } else { // mini base case
+        }
+        else {                              // mini base case
             sLOG << "Mini case for size" << insize << "and" << size << "samples";
             std::vector<size_t> sample;
             sample.reserve(size);
@@ -92,8 +94,7 @@ private:
     template <typename Iterator, typename OutIterator,
               typename Type = typename std::iterator_traits<Iterator>::value_type>
     void hash_sample(Iterator begin, Iterator end, size_t size,
-                     OutIterator out_begin)
-    {
+                     OutIterator out_begin) {
         const size_t insize = end - begin;
         if (insize <= size) {
             // degenerate case
@@ -108,7 +109,7 @@ private:
         const size_t table_lg = 3 + tlx::integer_log2_floor(size);
         const size_t table_size = 1ULL << table_lg;
         const size_t address_mask = (table_lg >= population_lg) ? 0 :
-            population_lg - table_lg;
+                                    population_lg - table_lg;
 
         sLOG << "Table size:" << table_size << "(lg:" << table_lg << " pop_lg:"
              << population_lg << " mask:" << address_mask << ")";
@@ -125,21 +126,21 @@ private:
             size_t variate, index;
             while (true) {
                 // Take sample
-                variate = dist(rng_); //N * randblock[array_index++];
+                variate = dist(rng_); // N * randblock[array_index++];
                 index = variate >> address_mask;
                 size_t hash_elem = hash_table[index];
 
                 // Table lookup
-                if (TLX_LIKELY(hash_elem == dummy)) break; // done
-                else if (hash_elem == variate) continue; // already sampled
+                if (TLX_LIKELY(hash_elem == dummy)) break;  // done
+                else if (hash_elem == variate) continue;    // already sampled
                 else {
-                increment:
+increment:
                     ++index;
                     index &= (table_size - 1);
                     hash_elem = hash_table[index];
-                    if (hash_elem == dummy) break; // done
-                    else if (hash_elem == variate) continue; // already sampled
-                    goto increment; // keep incrementing
+                    if (hash_elem == dummy) break;            // done
+                    else if (hash_elem == variate) continue;  // already sampled
+                    goto increment;                           // keep incrementing
                 }
             }
             // Add sample
