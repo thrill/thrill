@@ -208,6 +208,8 @@ elseif(MSVC)
   list(APPEND THRILL_DEFINITIONS "_SCL_SECURE_NO_WARNINGS")
   # windef.h bizzarly defines min and max as macros, unless this is defined.
   list(APPEND THRILL_DEFINITIONS "NOMINMAX")
+  # a necessary bizzare define, otherwise <cmath> does not declare M_PI
+  list(APPEND THRILL_DEFINITIONS "_USE_MATH_DEFINES")
 endif()
 
 if(THRILL_USE_IWYU)
