@@ -19,7 +19,7 @@ using namespace thrill;
 
 TEST(JsonLogger, Test1) {
 
-    common::JsonLogger logger("/dev/stdout");
+    common::JsonLogger logger("");
 
     logger << "Node" << "Sort\nNode"
            << "bool" << true
@@ -44,7 +44,7 @@ TEST(JsonLogger, Test1) {
 
 TEST(JsonLogger, Sublogger) {
 
-    common::JsonLogger base_logger("/dev/stdout");
+    common::JsonLogger base_logger("");
 
     common::JsonLogger sub_logger(&base_logger, "base", 42);
     sub_logger << "test" << "output";

@@ -19,6 +19,8 @@
 #include <cerrno>
 #include <chrono>
 #include <cstring>
+#include <fstream>
+#include <iostream>
 #include <string>
 #include <vector>
 
@@ -29,10 +31,13 @@ namespace common {
 // JsonLogger
 
 JsonLogger::JsonLogger(const std::string& path) {
-    if (path.empty()) return;
+    if (path.empty()) {
+        os_ = std::make_unique<std::ostream>(std::cout.rdbuf());
+        return;
+    }
 
-    os_.open(path.c_str());
-    if (!os_.good()) {
+    os_ = std::make_unique<std::ofstream>(path.c_str());
+    if (!os_->good()) {
         die("Could not open json log output: "
             << path << " : " << strerror(errno));
     }
@@ -52,8 +57,8 @@ JsonLine JsonLogger::line() {
         return out;
     }
 
-    JsonLine out(this, os_);
-    os_ << '{';
+    JsonLine out(this, *os_);
+    *os_ << '{';
 
     // output timestamp in microseconds
     out << "ts"
