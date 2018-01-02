@@ -15,6 +15,7 @@
 #include <tlx/cmdline_parser.hpp>
 
 #include <csignal>
+#include <fstream>
 #include <iostream>
 #include <string>
 

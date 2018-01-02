@@ -19,6 +19,7 @@
 #include <tlx/cmdline_parser.hpp>
 
 #include <algorithm>
+#include <fstream>
 #include <iomanip>
 #include <random>
 #include <string>
