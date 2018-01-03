@@ -620,18 +620,13 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
     }
 
     // join worker threads
-    int global_result = 0;
-
     for (size_t i = 0; i < workers_per_host; i++) {
         threads[i].join();
     }
 
     if (!Deinitialize()) return -1;
 
-    // terminate dispatcher, this waits for unfinished AsyncWrites.
-    dispatcher->Terminate();
-
-    return global_result;
+    return 0;
 }
 #endif
 
@@ -717,15 +712,13 @@ int RunBackendMpi(const std::function<void(Context&)>& job_startpoint) {
     }
 
     // join worker threads
-    int global_result = 0;
-
     for (size_t i = 0; i < workers_per_host; i++) {
         threads[i].join();
     }
 
     if (!Deinitialize()) return -1;
 
-    return global_result;
+    return 0;
 }
 #endif
 
@@ -793,15 +786,13 @@ int RunBackendIb(const std::function<void(Context&)>& job_startpoint) {
     }
 
     // join worker threads
-    int global_result = 0;
-
     for (size_t i = 0; i < workers_per_host; i++) {
         threads[i].join();
     }
 
     if (!Deinitialize()) return -1;
 
-    return global_result;
+    return 0;
 }
 #endif
 
@@ -1230,15 +1221,6 @@ void Context::Launch(const std::function<void(Context&)>& job_startpoint) {
     logger_ << "class" << "Context"
             << "event" << "job-done"
             << "elapsed" << overall_timer;
-
-    // wait for all local workers to finish, prior to closing multiplexer's
-    // streams.
-    net.LocalBarrier();
-
-    if (my_rank() == 0)
-        multiplexer_.Close();
-
-    net.LocalBarrier();
 
     overall_timer.Stop();
 
