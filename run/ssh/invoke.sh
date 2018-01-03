@@ -141,7 +141,7 @@ trap '[ $(jobs -p | wc -l) != 0 ] && kill $(jobs -p)' SIGINT SIGTERM EXIT
 for hostport in $THRILL_SSHLIST; do
   host=$(echo $hostport | awk 'BEGIN { FS=":" } { printf "%s", $1 }')
   if [ $verbose -ne 0 ]; then
-    echo "Connecting to $user@$host to invoke $dir$cmdbase"
+    echo "Connecting to $user@$host to invoke $dir/$cmdbase"
   fi
   THRILL_EXPORTS=$(env | awk -F= '/^THRILL_/ { printf("%s", $1 "=\"" $2 "\" ") }')
   THRILL_EXPORTS="${THRILL_EXPORTS}THRILL_RANK=\"$rank\" THRILL_DIE_WITH_PARENT=1"
@@ -176,7 +176,7 @@ for hostport in $THRILL_SSHLIST; do
         fi
       ) &
   else
-      command="$dir$cmdbase"
+      command="$dir/$cmdbase"
       ssh \
           -o BatchMode=yes -o StrictHostKeyChecking=no \
           $user@$host \
