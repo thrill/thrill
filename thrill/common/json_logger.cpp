@@ -31,8 +31,16 @@ namespace common {
 // JsonLogger
 
 JsonLogger::JsonLogger(const std::string& path) {
-    if (path.empty()) {
+    if (path.empty() || path == "/dev/null") {
+        // os_ remains nullptr
+        return;
+    }
+    if (path == "/dev/stdout") {
         os_ = std::make_unique<std::ostream>(std::cout.rdbuf());
+        return;
+    }
+    if (path == "/dev/stderr") {
+        os_ = std::make_unique<std::ostream>(std::cerr.rdbuf());
         return;
     }
 
@@ -55,6 +63,11 @@ JsonLine JsonLogger::line() {
             out << common_;
 
         return out;
+    }
+
+    if (!os_) {
+        static std::ofstream dummy_of_;
+        return JsonLine(this, dummy_of_);
     }
 
     JsonLine out(this, *os_);
