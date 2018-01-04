@@ -139,12 +139,9 @@ public:
     //! Timers from first rx / tx package until rx / tx direction is closed.
     common::StatsTimerStopped tx_timespan_, rx_timespan_;
 
-    //! number of pinned bytes PinnedBlocks to queue in the network layer
-    static constexpr size_t num_queue_ = 16 * 1024 * 1024;
-
     //! semaphore to stall the amount of PinnedBlocks (measured in bytes) passed
     //! to the network layer for transmission.
-    common::Semaphore sem_queue_ { num_queue_ };
+    common::Semaphore sem_queue_;
 
     ///////////////////////////////////////////////////////////////////////////
 
