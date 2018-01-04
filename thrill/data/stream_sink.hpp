@@ -136,13 +136,6 @@ private:
     size_t peer_local_worker_ = size_t(-1);
     bool closed_ = false;
 
-    //! number of PinnedBlocks to queue in the network layer
-    static constexpr size_t num_queue_ = 8;
-
-    //! semaphore to stall the amount of PinnedBlocks passed to the network
-    //! layer for transmission.
-    common::Semaphore sem_ { num_queue_ };
-
     size_t item_counter_ = 0;
     size_t byte_counter_ = 0;
     size_t block_counter_ = 0;

@@ -54,13 +54,14 @@ public:
         cv_.notify_all();
         return res;
     }
-    //! function decrements the semaphore and blocks if the semaphore is <= 0
+    //! function decrements the semaphore and blocks if the semaphore is < delta
     //! until another thread signals a change
-    size_t wait() {
+    size_t wait(size_t delta = 1) {
         std::unique_lock<std::mutex> lock(mutex_);
-        while (value_ <= 0)
+        while (value_ < delta)
             cv_.wait(lock);
-        return --value_;
+        value_ -= delta;
+        return value_;
     }
 
     //! return the current value -- should only be used for debugging.
