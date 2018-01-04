@@ -54,7 +54,8 @@ void ProfileThread::Worker() {
     while (!terminate_)
     {
         if (tasks_.empty()) {
-            cv_.wait(mutex_, [this]() { return !tasks_.empty(); });
+            while (tasks_.empty())
+                cv_.wait(mutex_);
             continue;
         }
 

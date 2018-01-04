@@ -87,7 +87,8 @@ ssize_t Connection::SendOne(const void* data, size_t size, Flags flags) {
 
 net::Buffer Connection::RecvNext() {
     std::unique_lock<std::mutex> lock(d_->mutex_);
-    d_->cv_.wait(lock, [=]() { return !d_->inbound_.empty(); });
+    while (d_->inbound_.empty())
+        d_->cv_.wait(lock);
     net::Buffer msg = std::move(d_->inbound_.front());
     d_->inbound_.pop_front();
 

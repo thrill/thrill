@@ -457,8 +457,8 @@ BlockPool::~BlockPool() {
     // wait for deletion of last ByteBlocks. this may actually be needed, when
     // the I/O handlers have been finished, and the corresponding references are
     // freed, but DestroyBlock() could not be called yet.
-    d_->cv_total_byte_blocks_.wait(
-        lock, [this]() { return d_->total_byte_blocks_ == 0; });
+    while (d_->total_byte_blocks_ != 0)
+        d_->cv_total_byte_blocks_.wait(lock);
 
     d_->pin_count_.AssertZero();
     die_unequal(d_->total_ram_bytes_, 0u);

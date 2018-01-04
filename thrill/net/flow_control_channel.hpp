@@ -122,7 +122,8 @@ private:
         void WaitCounter(size_t this_step) {
 #if THRILL_HAVE_THREAD_SANITIZER
             std::unique_lock<std::mutex> lock(mutex);
-            cv.wait(lock, [&]() { return (counter != this_step); });
+            while (counter != this_step)
+                cv.wait(lock);
 #else
             // busy wait on generation counter of predecessor
             while (counter.load(std::memory_order_relaxed) != this_step) { }

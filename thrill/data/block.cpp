@@ -65,8 +65,8 @@ PinnedBlock PinRequest::Wait() {
     if (ready_) return block_;
 
     std::unique_lock<std::mutex> lock(block_pool_->mutex_);
-    block_pool_->cv_read_complete_.wait(
-        lock, [this]() { return ready_.load(); });
+    while (!ready_.load())
+        block_pool_->cv_read_complete_.wait(lock);
     lock.unlock();
     return block_;
 }
