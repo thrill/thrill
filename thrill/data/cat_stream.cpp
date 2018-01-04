@@ -25,9 +25,10 @@
 namespace thrill {
 namespace data {
 
-CatStreamData::CatStreamData(Multiplexer& multiplexer, const StreamId& id,
+CatStreamData::CatStreamData(Multiplexer& multiplexer, size_t send_size_limit,
+                             const StreamId& id,
                              size_t local_worker_id, size_t dia_id)
-    : StreamData(multiplexer, id, local_worker_id, dia_id) {
+    : StreamData(multiplexer, send_size_limit, id, local_worker_id, dia_id) {
 
     remaining_closing_blocks_ = (num_hosts() - 1) * workers_per_host();
 

@@ -24,9 +24,10 @@
 namespace thrill {
 namespace data {
 
-MixStreamData::MixStreamData(Multiplexer& multiplexer, const StreamId& id,
+MixStreamData::MixStreamData(Multiplexer& multiplexer, size_t send_size_limit,
+                             const StreamId& id,
                              size_t local_worker_id, size_t dia_id)
-    : StreamData(multiplexer, id, local_worker_id, dia_id),
+    : StreamData(multiplexer, send_size_limit, id, local_worker_id, dia_id),
       seq_(num_workers()),
       queue_(multiplexer_.block_pool_, num_workers(),
              local_worker_id, dia_id) {

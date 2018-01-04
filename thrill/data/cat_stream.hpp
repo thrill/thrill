@@ -69,8 +69,8 @@ public:
     using Handle = CatStream;
 
     //! Creates a new stream instance
-    CatStreamData(Multiplexer& multiplexer, const StreamId& id,
-                  size_t local_worker_id, size_t dia_id);
+    CatStreamData(Multiplexer& multiplexer, size_t send_size_limit,
+                  const StreamId& id, size_t local_worker_id, size_t dia_id);
 
     //! non-copyable: delete copy-constructor
     CatStreamData(const CatStreamData&) = delete;

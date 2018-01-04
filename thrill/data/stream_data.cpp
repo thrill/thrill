@@ -20,9 +20,10 @@ namespace data {
 /******************************************************************************/
 // StreamData
 
-StreamData::StreamData(Multiplexer& multiplexer, const StreamId& id,
+StreamData::StreamData(Multiplexer& multiplexer, size_t send_size_limit,
+                       const StreamId& id,
                        size_t local_worker_id, size_t dia_id)
-    : sem_queue_(16 * 1024 * 1024),
+    : sem_queue_(send_size_limit),
       id_(id),
       local_worker_id_(local_worker_id),
       dia_id_(dia_id),
