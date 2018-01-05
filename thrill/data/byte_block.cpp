@@ -3,13 +3,14 @@
  *
  * Part of Project Thrill - http://project-thrill.org
  *
- * Copyright (C) 2015 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2015-2018 Timo Bingmann <tb@panthema.net>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
 
 #include <thrill/data/block_pool.hpp>
 #include <thrill/data/byte_block.hpp>
+#include <thrill/data/file.hpp>
 #include <thrill/mem/pool.hpp>
 
 #include <tlx/string/join_generic.hpp>
@@ -22,6 +23,8 @@ namespace data {
 
 size_t start_block_size = 4 * 1024;
 size_t default_block_size = 2 * 1024 * 1024;
+
+size_t File::default_prefetch_size_ = 2 * default_block_size;
 
 ByteBlock::ByteBlock(BlockPool* block_pool, Byte* data, size_t size)
     : data_(data), size_(size),

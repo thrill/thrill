@@ -700,6 +700,22 @@ PinRequestPtr BlockPool::PinBlock(const Block& block, size_t local_worker_id) {
     return read;
 }
 
+std::pair<size_t, size_t> BlockPool::MaxMergeDegreePrefetch(size_t num_files) {
+    size_t avail_bytes = hard_ram_limit() / workers_per_host_ / 2;
+    size_t avail_blocks = avail_bytes / default_block_size;
+
+    if (num_files >= avail_blocks) {
+        // more files than blocks available -> partial merge of avail_bytes
+        // Files with prefetch = 0, which is at most one block per File.
+        return std::make_pair(avail_blocks, 0u);
+    }
+    else {
+        // less files than available Blocks -> split prefetch size equally
+        // among Files.
+        return std::make_pair(num_files, avail_bytes / num_files);
+    }
+}
+
 void PinRequest::OnComplete(io::Request* req, bool success) {
     return block_pool_->OnReadComplete(this, req, success);
 }

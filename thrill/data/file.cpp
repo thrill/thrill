@@ -65,23 +65,23 @@ File::Writer File::GetWriter(size_t block_size) {
         FileBlockSink(tlx::CountingPtrNoDelete<File>(this)), block_size);
 }
 
-File::KeepReader File::GetKeepReader(size_t num_prefetch) const {
+File::KeepReader File::GetKeepReader(size_t prefetch_size) const {
     return KeepReader(
-        KeepFileBlockSource(*this, local_worker_id_, num_prefetch));
+        KeepFileBlockSource(*this, local_worker_id_, prefetch_size));
 }
 
-File::ConsumeReader File::GetConsumeReader(size_t num_prefetch) {
+File::ConsumeReader File::GetConsumeReader(size_t prefetch_size) {
     return ConsumeReader(
-        ConsumeFileBlockSource(this, local_worker_id_, num_prefetch));
+        ConsumeFileBlockSource(this, local_worker_id_, prefetch_size));
 }
 
-File::Reader File::GetReader(bool consume, size_t num_prefetch) {
+File::Reader File::GetReader(bool consume, size_t prefetch_size) {
     if (consume)
         return ConstructDynBlockReader<ConsumeFileBlockSource>(
-            this, local_worker_id_, num_prefetch);
+            this, local_worker_id_, prefetch_size);
     else
         return ConstructDynBlockReader<KeepFileBlockSource>(
-            *this, local_worker_id_, num_prefetch);
+            *this, local_worker_id_, prefetch_size);
 }
 
 std::string File::ReadComplete() const {
@@ -106,26 +106,28 @@ std::ostream& operator << (std::ostream& os, const File& f) {
 
 KeepFileBlockSource::KeepFileBlockSource(
     const File& file, size_t local_worker_id,
-    size_t num_prefetch,
+    size_t prefetch_size,
     size_t first_block, size_t first_item)
     : file_(file), local_worker_id_(local_worker_id),
-      num_prefetch_(num_prefetch),
+      prefetch_size_(prefetch_size),
+      fetching_bytes_(0),
       first_block_(first_block), current_block_(first_block),
       first_item_(first_item) { }
 
-void KeepFileBlockSource::Prefetch(size_t prefetch) {
-    if (prefetch >= num_prefetch_) {
-        num_prefetch_ = prefetch;
-        // prefetch #desired blocks
-        while (fetching_blocks_.size() < num_prefetch_ &&
+void KeepFileBlockSource::Prefetch(size_t prefetch_size) {
+    if (prefetch_size >= prefetch_size_) {
+        prefetch_size_ = prefetch_size;
+        // prefetch #desired bytes
+        while (fetching_bytes_ < prefetch_size_ &&
                current_block_ < file_.num_blocks())
         {
-            fetching_blocks_.emplace_back(
-                NextUnpinnedBlock().Pin(local_worker_id_));
+            Block b = NextUnpinnedBlock();
+            fetching_bytes_ += b.size();
+            fetching_blocks_.emplace_back(b.Pin(local_worker_id_));
         }
     }
-    else if (prefetch < num_prefetch_) {
-        num_prefetch_ = prefetch;
+    else if (prefetch_size < prefetch_size_) {
+        prefetch_size_ = prefetch_size;
         // cannot discard prefetched Blocks
     }
 }
@@ -135,23 +137,25 @@ PinnedBlock KeepFileBlockSource::NextBlock() {
     if (current_block_ >= file_.num_blocks() && fetching_blocks_.empty())
         return PinnedBlock();
 
-    if (num_prefetch_ == 0)
+    if (prefetch_size_ == 0)
     {
         // operate without prefetching
         return NextUnpinnedBlock().PinWait(local_worker_id_);
     }
     else
     {
-        // prefetch #desired blocks
-        while (fetching_blocks_.size() < num_prefetch_ &&
+        // prefetch #desired bytes
+        while (fetching_bytes_ < prefetch_size_ &&
                current_block_ < file_.num_blocks())
         {
-            fetching_blocks_.emplace_back(
-                NextUnpinnedBlock().Pin(local_worker_id_));
+            Block b = NextUnpinnedBlock();
+            fetching_bytes_ += b.size();
+            fetching_blocks_.emplace_back(b.Pin(local_worker_id_));
         }
 
         // this might block if the prefetching is not finished
         PinnedBlock b = fetching_blocks_.front()->Wait();
+        fetching_bytes_ -= b.size();
         fetching_blocks_.pop_front();
         return b;
     }
@@ -175,30 +179,34 @@ Block KeepFileBlockSource::NextUnpinnedBlock() {
 // ConsumeFileBlockSource
 
 ConsumeFileBlockSource::ConsumeFileBlockSource(
-    File* file, size_t local_worker_id, size_t num_prefetch)
+    File* file, size_t local_worker_id, size_t prefetch_size)
     : file_(file), local_worker_id_(local_worker_id),
-      num_prefetch_(num_prefetch) {
-    Prefetch(num_prefetch_);
+      prefetch_size_(prefetch_size),
+      fetching_bytes_(0) {
+    Prefetch(prefetch_size_);
 }
 
 ConsumeFileBlockSource::ConsumeFileBlockSource(ConsumeFileBlockSource&& s)
     : file_(s.file_), local_worker_id_(s.local_worker_id_),
-      num_prefetch_(s.num_prefetch_),
-      fetching_blocks_(std::move(s.fetching_blocks_)) {
+      prefetch_size_(s.prefetch_size_),
+      fetching_blocks_(std::move(s.fetching_blocks_)),
+      fetching_bytes_(s.fetching_bytes_) {
     s.file_ = nullptr;
 }
 
-void ConsumeFileBlockSource::Prefetch(size_t prefetch) {
-    if (prefetch >= num_prefetch_) {
-        num_prefetch_ = prefetch;
-        while (fetching_blocks_.size() < num_prefetch_ && !file_->blocks_.empty()) {
-            fetching_blocks_.emplace_back(
-                file_->blocks_.front().Pin(local_worker_id_));
+void ConsumeFileBlockSource::Prefetch(size_t prefetch_size) {
+    if (prefetch_size >= prefetch_size_) {
+        prefetch_size_ = prefetch_size;
+        // prefetch #desired bytes
+        while (fetching_bytes_ < prefetch_size_ && !file_->blocks_.empty()) {
+            Block& b = file_->blocks_.front();
+            fetching_bytes_ += b.size();
+            fetching_blocks_.emplace_back(b.Pin(local_worker_id_));
             file_->blocks_.pop_front();
         }
     }
-    else if (prefetch < num_prefetch_) {
-        num_prefetch_ = prefetch;
+    else if (prefetch_size < prefetch_size_) {
+        prefetch_size_ = prefetch_size;
         // cannot discard prefetched Blocks
     }
 }
@@ -209,21 +217,23 @@ PinnedBlock ConsumeFileBlockSource::NextBlock() {
         return PinnedBlock();
 
     // operate without prefetching
-    if (num_prefetch_ == 0) {
+    if (prefetch_size_ == 0) {
         PinRequestPtr f = file_->blocks_.front().Pin(local_worker_id_);
         file_->blocks_.pop_front();
         return f->Wait();
     }
 
-    // prefetch #desired blocks
-    while (fetching_blocks_.size() < num_prefetch_ && !file_->blocks_.empty()) {
-        fetching_blocks_.emplace_back(
-            file_->blocks_.front().Pin(local_worker_id_));
+    // prefetch #desired bytes
+    while (fetching_bytes_ < prefetch_size_ && !file_->blocks_.empty()) {
+        Block& b = file_->blocks_.front();
+        fetching_bytes_ += b.size();
+        fetching_blocks_.emplace_back(b.Pin(local_worker_id_));
         file_->blocks_.pop_front();
     }
 
     // this might block if the prefetching is not finished
     PinnedBlock b = fetching_blocks_.front()->Wait();
+    fetching_bytes_ -= b.size();
     fetching_blocks_.pop_front();
     return b;
 }

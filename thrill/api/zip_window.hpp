@@ -231,13 +231,15 @@ public:
     bool OnPreOpFile(const data::File& file, size_t parent_index) final {
         assert(parent_index < kNumInputs);
         if (!parent_stack_empty_[parent_index]) {
-            LOG1 << "ZipWindow rejected File from parent "
-                 << "due to non-empty function stack.";
+            LOGC(context_.my_rank() == 0)
+                << "ZipWindow rejected File from parent "
+                << "due to non-empty function stack.";
             return false;
         }
 
         // accept file
-        LOG1 << "ZipWindow accepted File from parent " << parent_index;
+        LOGC(context_.my_rank() == 0)
+            << "ZipWindow accepted File from parent " << parent_index;
         assert(files_[parent_index].num_items() == 0);
         files_[parent_index] = file.Copy();
         return true;

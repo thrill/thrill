@@ -61,7 +61,9 @@ public:
     using KeepReader = BlockReader<KeepFileBlockSource>;
     using ConsumeReader = BlockReader<ConsumeFileBlockSource>;
 
-    static constexpr size_t default_prefetch = 2;
+    //! external static variable containing the default number of bytes to
+    //! prefetch in File readers
+    static size_t default_prefetch_size_;
 
     //! Constructor from BlockPool
     File(BlockPool& block_pool, size_t local_worker_id, size_t dia_id);
@@ -144,11 +146,11 @@ public:
      * read via the Reader or not.
      */
     Reader GetReader(
-        bool consume, size_t num_prefetch = File::default_prefetch);
+        bool consume, size_t prefetch_size = File::default_prefetch_size_);
 
     //! Get BlockReader for beginning of File
     KeepReader GetKeepReader(
-        size_t num_prefetch = File::default_prefetch) const;
+        size_t prefetch_size = File::default_prefetch_size_) const;
 
     /*!
      * Get consuming BlockReader for beginning of File
@@ -158,12 +160,12 @@ public:
      * not.
      */
     ConsumeReader GetConsumeReader(
-        size_t num_prefetch = File::default_prefetch);
+        size_t prefetch_size = File::default_prefetch_size_);
 
     //! Get BlockReader seeked to the corresponding item index
     template <typename ItemType>
     KeepReader GetReaderAt(
-        size_t index, size_t prefetch = default_prefetch) const;
+        size_t index, size_t prefetch = default_prefetch_size_) const;
 
     //! Read complete File into a std::string, obviously, this should only be
     //! used for debugging!
@@ -350,7 +352,7 @@ public:
     //! Start reading a File
     KeepFileBlockSource(
         const File& file, size_t local_worker_id,
-        size_t num_prefetch = File::default_prefetch,
+        size_t prefetch_size = File::default_prefetch_size_,
         size_t first_block = 0, size_t first_item = keep_first_item);
 
     //! Advance to next block of file, delivers current_ and end_ for
@@ -358,7 +360,7 @@ public:
     PinnedBlock NextBlock();
 
     //! Perform prefetch
-    void Prefetch(size_t prefetch);
+    void Prefetch(size_t prefetch_size);
 
 protected:
     //! Determine current unpinned Block to deliver via NextBlock()
@@ -374,11 +376,14 @@ private:
     //! local worker id reading the File
     size_t local_worker_id_;
 
-    //! number of block prefetch operations
-    size_t num_prefetch_;
+    //! number of bytes of prefetch for reader
+    size_t prefetch_size_;
 
     //! current prefetch operations
     std::deque<PinRequestPtr> fetching_blocks_;
+
+    //! current number of bytes in prefetch
+    size_t fetching_bytes_;
 
     //! number of the first block
     size_t first_block_;
@@ -406,7 +411,7 @@ public:
     //! prefetched.
     ConsumeFileBlockSource(
         File* file, size_t local_worker_id,
-        size_t num_prefetch = File::default_prefetch);
+        size_t prefetch_size = File::default_prefetch_size_);
 
     //! non-copyable: delete copy-constructor
     ConsumeFileBlockSource(const ConsumeFileBlockSource&) = delete;
@@ -416,7 +421,7 @@ public:
     ConsumeFileBlockSource(ConsumeFileBlockSource&& s);
 
     //! Perform prefetch
-    void Prefetch(size_t prefetch);
+    void Prefetch(size_t prefetch_size);
 
     //! Get the next block of file.
     PinnedBlock NextBlock();
@@ -431,17 +436,20 @@ private:
     //! local worker id reading the File
     size_t local_worker_id_;
 
-    //! number of block prefetch operations
-    size_t num_prefetch_;
+    //! number of bytes of prefetch for reader
+    size_t prefetch_size_;
 
     //! current prefetch operations
     std::deque<PinRequestPtr> fetching_blocks_;
+
+    //! current number of bytes in prefetch
+    size_t fetching_bytes_;
 };
 
 //! Get BlockReader seeked to the corresponding item index
 template <typename ItemType>
 typename File::KeepReader
-File::GetReaderAt(size_t index, size_t prefetch) const {
+File::GetReaderAt(size_t index, size_t prefetch_size) const {
     static constexpr bool debug = false;
 
     // perform binary search for item block with largest exclusive size
@@ -461,7 +469,7 @@ File::GetReaderAt(size_t index, size_t prefetch) const {
 
     // start Reader at given first valid item in located block
     KeepReader fr(
-        KeepFileBlockSource(*this, local_worker_id_, prefetch,
+        KeepFileBlockSource(*this, local_worker_id_, prefetch_size,
                             begin_block,
                             blocks_[begin_block].first_item_absolute()));
 
@@ -559,11 +567,15 @@ std::vector<Block> File::GetItemRange(size_t begin, size_t end) const {
 
 //! Take a vector of Readers and prefetch equally from them
 template <typename Reader>
-void StartPrefetch(std::vector<Reader>& readers, size_t prefetch) {
-    for (size_t p = 1; p <= prefetch; ++p) {
+void StartPrefetch(std::vector<Reader>& readers, size_t prefetch_size) {
+    for (size_t p = default_block_size; p < prefetch_size;
+         p += default_block_size)
+    {
         for (Reader& r : readers)
             r.source().Prefetch(p);
     }
+    for (Reader& r : readers)
+        r.source().Prefetch(prefetch_size);
 }
 
 //! \}

@@ -200,11 +200,12 @@ public:
                     CompareFunction compare_function, bool consume) {
 
         size_t merge_degree, prefetch;
-        std::tie(merge_degree, prefetch) = MaxMergeDegreePrefetch(files);
+        std::tie(merge_degree, prefetch) =
+            context_.block_pool().MaxMergeDegreePrefetch(files.size());
         // construct output merger of remaining Files
         seq.reserve(files.size());
         for (size_t t = 0; t < files.size(); ++t)
-            seq.emplace_back(files[t].GetReader(consume, 0));
+            seq.emplace_back(files[t].GetReader(consume, /* prefetch */ 0));
         StartPrefetch(seq, prefetch);
 
         return core::make_buffered_multiway_merge_tree<ElementType>(
@@ -513,26 +514,6 @@ private:
             SortAndWriteToFile(vec, files, key_extractor);
     }
 
-    //! calculate maximum merging degree from available memory and the number of
-    //! files. additionally calculate the prefetch size of each File.
-    std::pair<size_t, size_t> MaxMergeDegreePrefetch(std::deque<data::File>& files) {
-        // 1/4 of avail_blocks in api::Sort, as Join has two mergers and two vectors of
-        // data to join
-        size_t avail_blocks = DIABase::mem_limit_ / data::default_block_size / 4;
-        if (files.size() >= avail_blocks) {
-            // more files than blocks available -> partial merge of avail_blocks
-            // Files with prefetch = 0, which is one read Block per File.
-            return std::make_pair(avail_blocks, 0u);
-        }
-        else {
-            // less files than available Blocks -> split blocks equally among
-            // Files.
-            return std::make_pair(
-                files.size(),
-                std::min<size_t>(16u, (avail_blocks / files.size()) - 1));
-        }
-    }
-
     /*!
      * Merge files when there are too many for the merge tree to handle
      */
@@ -543,10 +524,10 @@ private:
         size_t merge_degree, prefetch;
 
         // merge batches of files if necessary
-        while (files.size() > MaxMergeDegreePrefetch(files).first)
+        while (std::tie(merge_degree, prefetch) =
+                   context_.block_pool().MaxMergeDegreePrefetch(files.size()),
+               files.size() > merge_degree)
         {
-            std::tie(merge_degree, prefetch) = MaxMergeDegreePrefetch(files);
-
             sLOG1 << "Partial multi-way-merge of"
                   << merge_degree << "files with prefetch" << prefetch;
 
@@ -555,7 +536,7 @@ private:
             seq.reserve(merge_degree);
 
             for (size_t t = 0; t < merge_degree; ++t)
-                seq.emplace_back(files[t].GetConsumeReader(0));
+                seq.emplace_back(files[t].GetConsumeReader(/* prefetch */ 0));
 
             StartPrefetch(seq, prefetch);
 

@@ -170,6 +170,10 @@ public:
     //! Pins a block by swapping it in if required.
     PinRequestPtr PinBlock(const Block& block, size_t local_worker_id);
 
+    //! calculate maximum merging degree from available memory and the number of
+    //! files. additionally calculate the prefetch size of each File.
+    std::pair<size_t, size_t> MaxMergeDegreePrefetch(size_t num_files);
+
 private:
     //! locked before internal state is changed
     std::mutex mutex_;
