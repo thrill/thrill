@@ -281,6 +281,8 @@ public:
 
     void Dispose() final {
         files_.clear();
+        for (size_t i = 0; i < kNumInputs; ++i)
+            streams_[i].reset();
     }
 
 private:
@@ -446,7 +448,7 @@ private:
         // perform scatters to exchange data, with different types.
         tlx::call_for_range<kNumInputs>(
             [=](auto index) {
-                (void)index;
+                tlx::unused(index);
                 this->DoScatter<decltype(index)::index>();
             });
     }
