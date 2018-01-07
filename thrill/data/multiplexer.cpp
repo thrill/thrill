@@ -148,7 +148,7 @@ Multiplexer::Multiplexer(mem::Manager& mem_manager, BlockPool& block_pool,
     }
 
     // calculate send queue size limit for StreamData semaphores
-    send_size_limit_ = block_pool.hard_ram_limit() / workers_per_host / 3;
+    send_size_limit_ = block_pool.hard_ram_limit() / workers_per_host / 4;
     if (send_size_limit_ < 2 * default_block_size)
         send_size_limit_ = 2 * default_block_size;
 
