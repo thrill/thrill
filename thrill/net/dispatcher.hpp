@@ -442,6 +442,8 @@ public:
             callback_(*conn_);
             callback_ = AsyncWriteCallback();
         }
+        // release Pin
+        block_.Reset();
     }
 
     //! Returns conn_
