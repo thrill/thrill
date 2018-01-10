@@ -267,11 +267,7 @@ public:
                 }
 
                 T base_sum = local_sum;
-                group_.ExPrefixSum(base_sum, sum_op);
-
-                if (host_rank_ == 0) {
-                    base_sum = initial;
-                }
+                group_.ExPrefixSum(base_sum, sum_op, initial);
 
                 if (inclusive) {
                     for (size_t i = 0; i < thread_count_; i++) {

@@ -32,12 +32,14 @@ static void TestSingleThreadPrefixSum(net::Group* net) {
     net::FlowControlChannelManager manager(*net, 1);
     net::FlowControlChannel& channel = manager.GetFlowControlChannel(0);
     size_t my_rank = net->my_host_rank();
-    size_t initial = 0;
+    size_t initial = 42;
 
-    size_t resInclusive = channel.PrefixSum(my_rank, initial, std::plus<size_t>(), true);
-    size_t resExclusive = channel.PrefixSum(my_rank, initial, std::plus<size_t>(), false);
-    size_t expectedInclusive = 0;
-    size_t expectedExclusive = 0;
+    size_t resInclusive =
+        channel.PrefixSum(my_rank, initial, std::plus<size_t>());
+    size_t resExclusive =
+        channel.ExPrefixSum(my_rank, initial, std::plus<size_t>());
+    size_t expectedInclusive = initial;
+    size_t expectedExclusive = initial;
 
     for (size_t i = 0; i <= my_rank; i++) {
         expectedInclusive += i;
@@ -57,23 +59,18 @@ static void TestSingleThreadVectorPrefixSum(net::Group* net) {
     size_t size = 3;
     size_t my_rank = net->my_host_rank();
     std::vector<size_t> initial(size);
-    std::fill(initial.begin(), initial.end(), 0);
+    std::fill(initial.begin(), initial.end(), 42);
     std::vector<size_t> val(size);
     std::fill(val.begin(), val.end(), my_rank);
 
-    auto addSizeTVectors =
-        [](const std::vector<size_t>& a, const std::vector<size_t>& b) {
-            std::vector<size_t> res(a.size());
-            for (size_t i = 0; i < a.size(); i++) {
-                res[i] = a[i] + b[i];
-            }
-            return res;
-        };
-
-    std::vector<size_t> resInclusive = channel.PrefixSum(val, initial, addSizeTVectors, true);
-    std::vector<size_t> resExclusive = channel.PrefixSum(val, initial, addSizeTVectors, false);
-    size_t expectedInclusive = 0;
-    size_t expectedExclusive = 0;
+    std::vector<size_t> resInclusive =
+        channel.PrefixSum(val, initial,
+                          common::ComponentSum<std::vector<size_t> >());
+    std::vector<size_t> resExclusive =
+        channel.ExPrefixSum(val, initial,
+                            common::ComponentSum<std::vector<size_t> >());
+    size_t expectedInclusive = 42;
+    size_t expectedExclusive = 42;
 
     for (size_t i = 0; i <= my_rank; i++) {
         expectedInclusive += i;
@@ -220,12 +217,14 @@ static void TestMultiThreadPrefixSum(net::Group* net) {
     ExecuteMultiThreads(
         net, count, [=](net::FlowControlChannel& channel) {
             size_t my_rank = channel.my_rank();
-            size_t initial = 0;
+            size_t initial = 42;
 
-            size_t resInclusive = channel.PrefixSum(my_rank, initial, std::plus<size_t>(), true);
-            size_t resExclusive = channel.PrefixSum(my_rank, initial, std::plus<size_t>(), false);
-            size_t expectedInclusive = 0;
-            size_t expectedExclusive = 0;
+            size_t resInclusive = channel.PrefixSum(
+                my_rank, initial, std::plus<size_t>());
+            size_t resExclusive = channel.ExPrefixSum(
+                my_rank, initial, std::plus<size_t>());
+            size_t expectedInclusive = 42;
+            size_t expectedExclusive = 42;
 
             for (size_t i = 0; i <= my_rank; i++) {
                 expectedInclusive += i;

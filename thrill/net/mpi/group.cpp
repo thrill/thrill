@@ -247,23 +247,24 @@ void Group::WaitForRequest(MpiCall call) {
     ["long long", "LongLong", "LONG_LONG"],
     ["unsigned long long", "UnsignedLongLong", "UNSIGNED_LONG_LONG"])
   {
-    print "void Group::PrefixSumPlus$$e[1]($$e[0]& value) {\n";
+    print "void Group::PrefixSumPlus$$e[1]($$e[0]& value, const $$e[0]& initial) {\n";
     print "    LOG << \"Group::PrefixSumPlus($$e[0]);\";\n";
     print "    WaitForRequest(\n";
     print "        [&](MPI_Request& request) {\n";
     print "            return MPI_Iscan(MPI_IN_PLACE, &value, 1, MPI_INT,\n";
     print "                             MPI_SUM, MPI_COMM_WORLD, &request);\n";
     print "        });\n";
+    print "    value += initial;\n";
     print "}\n";
 
-    print "void Group::ExPrefixSumPlus$$e[1]($$e[0]& value) {\n";
+    print "void Group::ExPrefixSumPlus$$e[1]($$e[0]& value, const $$e[0]& initial) {\n";
     print "    LOG << \"Group::ExPrefixSumPlus($$e[0]);\";\n";
-    print "    $$e[0] temp = value;\n";
     print "    WaitForRequest(\n";
     print "        [&](MPI_Request& request) {\n";
-    print "            return MPI_Iexscan(&temp, &value, 1, MPI_$$e[2],\n";
-    print "                              MPI_SUM, MPI_COMM_WORLD, &request);\n";
+    print "            return MPI_Iexscan(MPI_IN_PLACE, &value, 1, MPI_$$e[2],\n";
+    print "                               MPI_SUM, MPI_COMM_WORLD, &request);\n";
     print "        });\n";
+    print "    value = (my_rank_ == 0 ? initial : value + initial)\n";
     print "}\n";
 
     print "void Group::Broadcast$$e[1]($$e[0]& value, size_t origin) {\n";
@@ -306,22 +307,23 @@ void Group::WaitForRequest(MpiCall call) {
     print "}\n";
   }
 ]]]*/
-void Group::PrefixSumPlusInt(int& value) {
+void Group::PrefixSumPlusInt(int& value, const int& initial) {
     LOG << "Group::PrefixSumPlus(int);";
     WaitForRequest(
         [&](MPI_Request& request) {
             return MPI_Iscan(MPI_IN_PLACE, &value, 1, MPI_INT,
                              MPI_SUM, MPI_COMM_WORLD, &request);
         });
+    value += initial;
 }
-void Group::ExPrefixSumPlusInt(int& value) {
+void Group::ExPrefixSumPlusInt(int& value, const int& initial) {
     LOG << "Group::ExPrefixSumPlus(int);";
-    int temp = value;
     WaitForRequest(
         [&](MPI_Request& request) {
-            return MPI_Iexscan(&temp, &value, 1, MPI_INT,
+            return MPI_Iexscan(MPI_IN_PLACE, &value, 1, MPI_INT,
                                MPI_SUM, MPI_COMM_WORLD, &request);
         });
+    value = (my_rank_ == 0 ? initial : value + initial)
 }
 void Group::BroadcastInt(int& value, size_t origin) {
     LOG << "Group::Broadcast(int);";
@@ -358,22 +360,23 @@ void Group::AllReduceMaximumInt(int& value) {
                 MPI_MAX, MPI_COMM_WORLD, &request);
         });
 }
-void Group::PrefixSumPlusUnsignedInt(unsigned int& value) {
+void Group::PrefixSumPlusUnsignedInt(unsigned int& value, const unsigned int& initial) {
     LOG << "Group::PrefixSumPlus(unsigned int);";
     WaitForRequest(
         [&](MPI_Request& request) {
             return MPI_Iscan(MPI_IN_PLACE, &value, 1, MPI_INT,
                              MPI_SUM, MPI_COMM_WORLD, &request);
         });
+    value += initial;
 }
-void Group::ExPrefixSumPlusUnsignedInt(unsigned int& value) {
+void Group::ExPrefixSumPlusUnsignedInt(unsigned int& value, const unsigned int& initial) {
     LOG << "Group::ExPrefixSumPlus(unsigned int);";
-    unsigned int temp = value;
     WaitForRequest(
         [&](MPI_Request& request) {
-            return MPI_Iexscan(&temp, &value, 1, MPI_UNSIGNED,
+            return MPI_Iexscan(MPI_IN_PLACE, &value, 1, MPI_UNSIGNED,
                                MPI_SUM, MPI_COMM_WORLD, &request);
         });
+    value = (my_rank_ == 0 ? initial : value + initial)
 }
 void Group::BroadcastUnsignedInt(unsigned int& value, size_t origin) {
     LOG << "Group::Broadcast(unsigned int);";
@@ -410,22 +413,23 @@ void Group::AllReduceMaximumUnsignedInt(unsigned int& value) {
                 MPI_MAX, MPI_COMM_WORLD, &request);
         });
 }
-void Group::PrefixSumPlusLong(long& value) {
+void Group::PrefixSumPlusLong(long& value, const long& initial) {
     LOG << "Group::PrefixSumPlus(long);";
     WaitForRequest(
         [&](MPI_Request& request) {
             return MPI_Iscan(MPI_IN_PLACE, &value, 1, MPI_INT,
                              MPI_SUM, MPI_COMM_WORLD, &request);
         });
+    value += initial;
 }
-void Group::ExPrefixSumPlusLong(long& value) {
+void Group::ExPrefixSumPlusLong(long& value, const long& initial) {
     LOG << "Group::ExPrefixSumPlus(long);";
-    long temp = value;
     WaitForRequest(
         [&](MPI_Request& request) {
-            return MPI_Iexscan(&temp, &value, 1, MPI_LONG,
+            return MPI_Iexscan(MPI_IN_PLACE, &value, 1, MPI_LONG,
                                MPI_SUM, MPI_COMM_WORLD, &request);
         });
+    value = (my_rank_ == 0 ? initial : value + initial)
 }
 void Group::BroadcastLong(long& value, size_t origin) {
     LOG << "Group::Broadcast(long);";
@@ -462,22 +466,23 @@ void Group::AllReduceMaximumLong(long& value) {
                 MPI_MAX, MPI_COMM_WORLD, &request);
         });
 }
-void Group::PrefixSumPlusUnsignedLong(unsigned long& value) {
+void Group::PrefixSumPlusUnsignedLong(unsigned long& value, const unsigned long& initial) {
     LOG << "Group::PrefixSumPlus(unsigned long);";
     WaitForRequest(
         [&](MPI_Request& request) {
             return MPI_Iscan(MPI_IN_PLACE, &value, 1, MPI_INT,
                              MPI_SUM, MPI_COMM_WORLD, &request);
         });
+    value += initial;
 }
-void Group::ExPrefixSumPlusUnsignedLong(unsigned long& value) {
+void Group::ExPrefixSumPlusUnsignedLong(unsigned long& value, const unsigned long& initial) {
     LOG << "Group::ExPrefixSumPlus(unsigned long);";
-    unsigned long temp = value;
     WaitForRequest(
         [&](MPI_Request& request) {
-            return MPI_Iexscan(&temp, &value, 1, MPI_UNSIGNED_LONG,
+            return MPI_Iexscan(MPI_IN_PLACE, &value, 1, MPI_UNSIGNED_LONG,
                                MPI_SUM, MPI_COMM_WORLD, &request);
         });
+    value = (my_rank_ == 0 ? initial : value + initial)
 }
 void Group::BroadcastUnsignedLong(unsigned long& value, size_t origin) {
     LOG << "Group::Broadcast(unsigned long);";
@@ -514,22 +519,23 @@ void Group::AllReduceMaximumUnsignedLong(unsigned long& value) {
                 MPI_MAX, MPI_COMM_WORLD, &request);
         });
 }
-void Group::PrefixSumPlusLongLong(long long& value) {
+void Group::PrefixSumPlusLongLong(long long& value, const long long& initial) {
     LOG << "Group::PrefixSumPlus(long long);";
     WaitForRequest(
         [&](MPI_Request& request) {
             return MPI_Iscan(MPI_IN_PLACE, &value, 1, MPI_INT,
                              MPI_SUM, MPI_COMM_WORLD, &request);
         });
+    value += initial;
 }
-void Group::ExPrefixSumPlusLongLong(long long& value) {
+void Group::ExPrefixSumPlusLongLong(long long& value, const long long& initial) {
     LOG << "Group::ExPrefixSumPlus(long long);";
-    long long temp = value;
     WaitForRequest(
         [&](MPI_Request& request) {
-            return MPI_Iexscan(&temp, &value, 1, MPI_LONG_LONG,
+            return MPI_Iexscan(MPI_IN_PLACE, &value, 1, MPI_LONG_LONG,
                                MPI_SUM, MPI_COMM_WORLD, &request);
         });
+    value = (my_rank_ == 0 ? initial : value + initial)
 }
 void Group::BroadcastLongLong(long long& value, size_t origin) {
     LOG << "Group::Broadcast(long long);";
@@ -566,22 +572,23 @@ void Group::AllReduceMaximumLongLong(long long& value) {
                 MPI_MAX, MPI_COMM_WORLD, &request);
         });
 }
-void Group::PrefixSumPlusUnsignedLongLong(unsigned long long& value) {
+void Group::PrefixSumPlusUnsignedLongLong(unsigned long long& value, const unsigned long long& initial) {
     LOG << "Group::PrefixSumPlus(unsigned long long);";
     WaitForRequest(
         [&](MPI_Request& request) {
             return MPI_Iscan(MPI_IN_PLACE, &value, 1, MPI_INT,
                              MPI_SUM, MPI_COMM_WORLD, &request);
         });
+    value += initial;
 }
-void Group::ExPrefixSumPlusUnsignedLongLong(unsigned long long& value) {
+void Group::ExPrefixSumPlusUnsignedLongLong(unsigned long long& value, const unsigned long long& initial) {
     LOG << "Group::ExPrefixSumPlus(unsigned long long);";
-    unsigned long long temp = value;
     WaitForRequest(
         [&](MPI_Request& request) {
-            return MPI_Iexscan(&temp, &value, 1, MPI_UNSIGNED_LONG_LONG,
+            return MPI_Iexscan(MPI_IN_PLACE, &value, 1, MPI_UNSIGNED_LONG_LONG,
                                MPI_SUM, MPI_COMM_WORLD, &request);
         });
+    value = (my_rank_ == 0 ? initial : value + initial)
 }
 void Group::BroadcastUnsignedLongLong(unsigned long long& value, size_t origin) {
     LOG << "Group::Broadcast(unsigned long long);";
