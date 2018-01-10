@@ -325,8 +325,7 @@ private:
         // number of items in each DIAs, over all worker.
         size_prefixsum_ = local_size;
         ArraySizeT total_size = context_.net.ExPrefixSumTotal(
-            size_prefixsum_,
-            ArraySizeT(), common::ComponentSum<ArraySizeT>());
+            size_prefixsum_, common::ComponentSum<ArraySizeT>());
 
         size_t max_total_size =
             *std::max_element(total_size.begin(), total_size.end());

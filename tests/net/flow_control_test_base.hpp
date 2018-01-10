@@ -35,9 +35,9 @@ static void TestSingleThreadPrefixSum(net::Group* net) {
     size_t initial = 42;
 
     size_t resInclusive =
-        channel.PrefixSum(my_rank, initial, std::plus<size_t>());
+        channel.PrefixSum(my_rank, std::plus<size_t>(), initial);
     size_t resExclusive =
-        channel.ExPrefixSum(my_rank, initial, std::plus<size_t>());
+        channel.ExPrefixSum(my_rank, std::plus<size_t>(), initial);
     size_t expectedInclusive = initial;
     size_t expectedExclusive = initial;
 
@@ -63,12 +63,10 @@ static void TestSingleThreadVectorPrefixSum(net::Group* net) {
     std::vector<size_t> val(size);
     std::fill(val.begin(), val.end(), my_rank);
 
-    std::vector<size_t> resInclusive =
-        channel.PrefixSum(val, initial,
-                          common::ComponentSum<std::vector<size_t> >());
-    std::vector<size_t> resExclusive =
-        channel.ExPrefixSum(val, initial,
-                            common::ComponentSum<std::vector<size_t> >());
+    std::vector<size_t> resInclusive = channel.PrefixSum(
+        val, common::ComponentSum<std::vector<size_t> >(), initial);
+    std::vector<size_t> resExclusive = channel.ExPrefixSum(
+        val, common::ComponentSum<std::vector<size_t> >(), initial);
     size_t expectedInclusive = 42;
     size_t expectedExclusive = 42;
 
@@ -220,9 +218,9 @@ static void TestMultiThreadPrefixSum(net::Group* net) {
             size_t initial = 42;
 
             size_t resInclusive = channel.PrefixSum(
-                my_rank, initial, std::plus<size_t>());
+                my_rank, std::plus<size_t>(), initial);
             size_t resExclusive = channel.ExPrefixSum(
-                my_rank, initial, std::plus<size_t>());
+                my_rank, std::plus<size_t>(), initial);
             size_t expectedInclusive = 42;
             size_t expectedExclusive = 42;
 
@@ -352,13 +350,12 @@ static void TestHardcoreRaceConditionTest(net::Group* net) {
     ExecuteMultiThreads(
         net, count, [=](net::FlowControlChannel& channel) {
             size_t my_rank = channel.my_rank();
-            size_t initial = 0;
             std::vector<size_t> pres;
             std::vector<size_t> rres;
 
             for (int i = 0; i < 20; i++) {
                 // Make a prefix sum and push res
-                pres.push_back(channel.PrefixSum(my_rank, initial));
+                pres.push_back(channel.PrefixSum(my_rank));
                 // Make an all reduce and push res.
                 rres.push_back(channel.AllReduce(my_rank));
 

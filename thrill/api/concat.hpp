@@ -219,8 +219,8 @@ public:
         sLOG << "total_items" << total_items;
 
         VectorSizeT local_ranks = context_.net.PrefixSum(
-            local_sizes, VectorSizeT(num_inputs_),
-            common::ComponentSum<VectorSizeT>());
+            local_sizes, common::ComponentSum<VectorSizeT>(),
+            VectorSizeT(num_inputs_));
 
         sLOG << "local_ranks" << local_ranks;
 

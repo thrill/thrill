@@ -414,8 +414,7 @@ private:
         // number of items in each DIAs, over all worker.
         size_prefixsum_ = local_size;
         ArraySizeT total_size = context_.net.ExPrefixSumTotal(
-            size_prefixsum_,
-            ArraySizeT(), common::ComponentSum<ArraySizeT>());
+            size_prefixsum_, common::ComponentSum<ArraySizeT>());
 
         // calculate number of full windows in each DIA
         ArraySizeT total_window_count;
