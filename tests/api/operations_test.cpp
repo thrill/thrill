@@ -502,19 +502,14 @@ TEST(Operations, PrefixSumCorrectResults) {
     auto start_func =
         [](Context& ctx) {
 
-            auto integers = Generate(
-                ctx, 16,
-                [](const size_t& input) {
-                    return input + 1;
-                });
-
-            auto prefixsums = integers.PrefixSum();
-
+            auto integers = Generate(ctx, 16);
+            auto prefixsums = integers.PrefixSum(
+                std::plus<size_t>(), 42);
             std::vector<size_t> out_vec = prefixsums.AllGather();
 
-            size_t ctr = 0;
+            size_t ctr = 42;
             for (size_t i = 0; i < out_vec.size(); i++) {
-                ctr += i + 1;
+                ctr += i;
                 ASSERT_EQ(out_vec[i], ctr);
             }
 
@@ -524,7 +519,30 @@ TEST(Operations, PrefixSumCorrectResults) {
     api::RunLocalTests(start_func);
 }
 
-TEST(Operations, PrefixSumFacultyCorrectResults) {
+TEST(Operations, ExPrefixSumCorrectResults) {
+
+    auto start_func =
+        [](Context& ctx) {
+
+            auto integers = Generate(ctx, 16);
+            auto prefixsums = integers.ExPrefixSum(
+                std::plus<size_t>(), 42);
+            std::vector<size_t> out_vec = prefixsums.AllGather();
+
+            size_t ctr = 42;
+            for (size_t i = 0; i < out_vec.size(); i++) {
+                size_t next_ctr = ctr + i;
+                ASSERT_EQ(out_vec[i], ctr);
+                ctr = next_ctr;
+            }
+
+            ASSERT_EQ(16u, out_vec.size());
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+TEST(Operations, ExPrefixSumFacultyCorrectResults) {
 
     auto start_func =
         [](Context& ctx) {
@@ -535,14 +553,14 @@ TEST(Operations, PrefixSumFacultyCorrectResults) {
                     return input + 1;
                 });
 
-            auto prefixsums = integers.PrefixSum(
+            auto prefixsums = integers.ExPrefixSum(
                 [](size_t in1, size_t in2) {
                     return in1 * in2;
-                }, 1);
+                });
 
             std::vector<size_t> out_vec = prefixsums.AllGather();
 
-            size_t ctr = 1;
+            size_t ctr = 0;
             for (size_t i = 0; i < out_vec.size(); i++) {
                 ctr *= i + 1;
                 ASSERT_EQ(out_vec[i], ctr);

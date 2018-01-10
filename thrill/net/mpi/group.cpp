@@ -264,7 +264,7 @@ void Group::WaitForRequest(MpiCall call) {
     print "            return MPI_Iexscan(MPI_IN_PLACE, &value, 1, MPI_$$e[2],\n";
     print "                               MPI_SUM, MPI_COMM_WORLD, &request);\n";
     print "        });\n";
-    print "    value = (my_rank_ == 0 ? initial : value + initial)\n";
+    print "    value = (my_rank_ == 0 ? initial : value + initial);\n";
     print "}\n";
 
     print "void Group::Broadcast$$e[1]($$e[0]& value, size_t origin) {\n";
@@ -323,7 +323,7 @@ void Group::ExPrefixSumPlusInt(int& value, const int& initial) {
             return MPI_Iexscan(MPI_IN_PLACE, &value, 1, MPI_INT,
                                MPI_SUM, MPI_COMM_WORLD, &request);
         });
-    value = (my_rank_ == 0 ? initial : value + initial)
+    value = (my_rank_ == 0 ? initial : value + initial);
 }
 void Group::BroadcastInt(int& value, size_t origin) {
     LOG << "Group::Broadcast(int);";
@@ -376,7 +376,7 @@ void Group::ExPrefixSumPlusUnsignedInt(unsigned int& value, const unsigned int& 
             return MPI_Iexscan(MPI_IN_PLACE, &value, 1, MPI_UNSIGNED,
                                MPI_SUM, MPI_COMM_WORLD, &request);
         });
-    value = (my_rank_ == 0 ? initial : value + initial)
+    value = (my_rank_ == 0 ? initial : value + initial);
 }
 void Group::BroadcastUnsignedInt(unsigned int& value, size_t origin) {
     LOG << "Group::Broadcast(unsigned int);";
@@ -429,7 +429,7 @@ void Group::ExPrefixSumPlusLong(long& value, const long& initial) {
             return MPI_Iexscan(MPI_IN_PLACE, &value, 1, MPI_LONG,
                                MPI_SUM, MPI_COMM_WORLD, &request);
         });
-    value = (my_rank_ == 0 ? initial : value + initial)
+    value = (my_rank_ == 0 ? initial : value + initial);
 }
 void Group::BroadcastLong(long& value, size_t origin) {
     LOG << "Group::Broadcast(long);";
@@ -482,7 +482,7 @@ void Group::ExPrefixSumPlusUnsignedLong(unsigned long& value, const unsigned lon
             return MPI_Iexscan(MPI_IN_PLACE, &value, 1, MPI_UNSIGNED_LONG,
                                MPI_SUM, MPI_COMM_WORLD, &request);
         });
-    value = (my_rank_ == 0 ? initial : value + initial)
+    value = (my_rank_ == 0 ? initial : value + initial);
 }
 void Group::BroadcastUnsignedLong(unsigned long& value, size_t origin) {
     LOG << "Group::Broadcast(unsigned long);";
@@ -535,7 +535,7 @@ void Group::ExPrefixSumPlusLongLong(long long& value, const long long& initial) 
             return MPI_Iexscan(MPI_IN_PLACE, &value, 1, MPI_LONG_LONG,
                                MPI_SUM, MPI_COMM_WORLD, &request);
         });
-    value = (my_rank_ == 0 ? initial : value + initial)
+    value = (my_rank_ == 0 ? initial : value + initial);
 }
 void Group::BroadcastLongLong(long long& value, size_t origin) {
     LOG << "Group::Broadcast(long long);";
@@ -588,7 +588,7 @@ void Group::ExPrefixSumPlusUnsignedLongLong(unsigned long long& value, const uns
             return MPI_Iexscan(MPI_IN_PLACE, &value, 1, MPI_UNSIGNED_LONG_LONG,
                                MPI_SUM, MPI_COMM_WORLD, &request);
         });
-    value = (my_rank_ == 0 ? initial : value + initial)
+    value = (my_rank_ == 0 ? initial : value + initial);
 }
 void Group::BroadcastUnsignedLongLong(unsigned long long& value, size_t origin) {
     LOG << "Group::Broadcast(unsigned long long);";

@@ -24,7 +24,7 @@ namespace api {
 /*!
  * \ingroup api_layer
  */
-template <typename ValueType, typename SumFunction>
+template <typename ValueType, typename SumFunction, bool Inclusive>
 class PrefixSumNode final : public DOpNode<ValueType>
 {
     static constexpr bool debug = false;
@@ -35,11 +35,12 @@ class PrefixSumNode final : public DOpNode<ValueType>
 public:
     template <typename ParentDIA>
     PrefixSumNode(const ParentDIA& parent,
+                  const char* label,
                   const SumFunction& sum_function,
                   const ValueType& initial_element)
-        : Super(parent.ctx(), "PrefixSum", { parent.id() }, { parent.node() }),
+        : Super(parent.ctx(), label, { parent.id() }, { parent.node() }),
           sum_function_(sum_function),
-          local_sum_(initial_element),
+          local_sum_(),
           initial_element_(initial_element),
           parent_stack_empty_(ParentDIA::stack_empty)
     {
@@ -85,21 +86,27 @@ public:
     void Execute() final {
         LOG << "MainOp processing";
 
-        ValueType sum = context_.net.ExPrefixSum(
+        local_sum_ = context_.net.ExPrefixSum(
             local_sum_, sum_function_, initial_element_);
-
-        local_sum_ = sum;
     }
 
     void PushData(bool consume) final {
         data::File::Reader reader = file_.GetReader(consume);
-
-        ValueType sum = local_sum_;
         size_t num_items = file_.num_items();
 
-        for (size_t i = 0; i < num_items; ++i) {
-            sum = sum_function_(sum, reader.Next<ValueType>());
-            this->PushItem(sum);
+        if (Inclusive) {
+            ValueType sum = local_sum_;
+            for (size_t i = 0; i < num_items; ++i) {
+                sum = sum_function_(sum, reader.Next<ValueType>());
+                this->PushItem(sum);
+            }
+        }
+        else {
+            ValueType sum = local_sum_;
+            for (size_t i = 0; i < num_items; ++i) {
+                this->PushItem(sum);
+                sum = sum_function_(sum, reader.Next<ValueType>());
+            }
         }
     }
 
@@ -129,7 +136,8 @@ auto DIA<ValueType, Stack>::PrefixSum(
     const SumFunction& sum_function, const ValueType& initial_element) const {
     assert(IsValid());
 
-    using PrefixSumNode = api::PrefixSumNode<ValueType, SumFunction>;
+    using PrefixSumNode = api::PrefixSumNode<
+              ValueType, SumFunction, /* Inclusive */ true>;
 
     static_assert(
         std::is_convertible<
@@ -151,7 +159,41 @@ auto DIA<ValueType, Stack>::PrefixSum(
         "SumFunction has the wrong input type");
 
     auto node = tlx::make_counting<PrefixSumNode>(
-        *this, sum_function, initial_element);
+        *this, "PrefixSum", sum_function, initial_element);
+
+    return DIA<ValueType>(node);
+}
+
+template <typename ValueType, typename Stack>
+template <typename SumFunction>
+auto DIA<ValueType, Stack>::ExPrefixSum(
+    const SumFunction& sum_function, const ValueType& initial_element) const {
+    assert(IsValid());
+
+    using PrefixSumNode = api::PrefixSumNode<
+              ValueType, SumFunction, /* Inclusive */ false>;
+
+    static_assert(
+        std::is_convertible<
+            ValueType,
+            typename FunctionTraits<SumFunction>::template arg<0>
+            >::value,
+        "SumFunction has the wrong input type");
+
+    static_assert(
+        std::is_convertible<
+            ValueType,
+            typename FunctionTraits<SumFunction>::template arg<1> >::value,
+        "SumFunction has the wrong input type");
+
+    static_assert(
+        std::is_convertible<
+            typename FunctionTraits<SumFunction>::result_type,
+            ValueType>::value,
+        "SumFunction has the wrong input type");
+
+    auto node = tlx::make_counting<PrefixSumNode>(
+        *this, "ExPrefixSum", sum_function, initial_element);
 
     return DIA<ValueType>(node);
 }
