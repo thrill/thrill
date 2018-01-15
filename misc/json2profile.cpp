@@ -643,6 +643,10 @@ bool MakeSeries(const std::vector<Stats>& c_Stats, std::string& output,
     for (const Stats& c : c_Stats) {
         if (!where(c)) continue;
 
+        double value = select(c);
+        if (value != value || std::isinf(value))
+            continue;
+
         if (c.ts / 1000000 != ts_curr) {
             if (value_count) {
                 ts_sum /= value_count;
@@ -659,7 +663,7 @@ bool MakeSeries(const std::vector<Stats>& c_Stats, std::string& output,
         }
 
         ts_sum += c.ts;
-        value_sum += select(c);
+        value_sum += value;
         ++value_count;
     }
     oss << ']';
@@ -689,6 +693,10 @@ MakeSeriesVector(const std::vector<Stats>& c_Stats, const Select& select) {
     for (const Stats& c : c_Stats) {
         if (!where(c)) continue;
 
+        double value = select(c);
+        if (value != value || std::isinf(value))
+            continue;
+
         if (c.ts / 1000000 != ts_curr) {
             if (value_count) {
                 ts_sum /= value_count;
@@ -702,7 +710,7 @@ MakeSeriesVector(const std::vector<Stats>& c_Stats, const Select& select) {
         }
 
         ts_sum += c.ts;
-        value_sum += select(c);
+        value_sum += value;
         ++value_count;
     }
 
