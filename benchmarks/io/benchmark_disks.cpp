@@ -289,16 +289,16 @@ int main(int argc, char* argv[]) {
     if (allocstr.size())
     {
         if (allocstr == "RC")
-            return BenchmarkDisksAlloc<io::RandomCyclic>(
+            return BenchmarkDisksAlloc<io::random_cyclic>(
                 length, offset, batch_size, block_size, optrw);
         if (allocstr == "SR")
-            return BenchmarkDisksAlloc<io::SimpleRandom>(
+            return BenchmarkDisksAlloc<io::simple_random>(
                 length, offset, batch_size, block_size, optrw);
         if (allocstr == "FR")
-            return BenchmarkDisksAlloc<io::FullyRandom>(
+            return BenchmarkDisksAlloc<io::fully_random>(
                 length, offset, batch_size, block_size, optrw);
         if (allocstr == "S")
-            return BenchmarkDisksAlloc<io::Striping>(
+            return BenchmarkDisksAlloc<io::striping>(
                 length, offset, batch_size, block_size, optrw);
 
         std::cout << "Unknown allocation strategy '" << allocstr << "'" << std::endl;
@@ -306,7 +306,7 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    return BenchmarkDisksAlloc<THRILL_DEFAULT_ALLOC_STRATEGY>(
+    return BenchmarkDisksAlloc<FOXXLL_DEFAULT_ALLOC_STRATEGY>(
         length, offset, batch_size, block_size, optrw);
 }
 

@@ -54,7 +54,7 @@ TEST(BlockManager, Test1) {
     std::vector<int> disks(nblocks, 2);
     io::RequestPtr* reqs = new io::RequestPtr[nblocks];
     io::BlockManager* bm = io::BlockManager::GetInstance();
-    bm->new_blocks(io::Striping(), bids.begin(), bids.end());
+    bm->new_blocks(io::striping(), bids.begin(), bids.end());
 
     std::vector<block_type, mem::AlignedAllocator<block_type> > block(2);
     LOG << std::hex;
@@ -94,7 +94,7 @@ TEST(BlockManager, Test1) {
         for (size_t i = 0; i < nblocks; i++)
             vbids[i].size = 1024 + i;
 
-        bm->new_blocks(io::Striping(), vbids.begin(), vbids.end());
+        bm->new_blocks(io::striping(), vbids.begin(), vbids.end());
 
         for (size_t i = 0; i < nblocks; i++) {
             LOG << "Allocated block: offset=" << vbids[i].offset
@@ -111,7 +111,7 @@ TEST(BlockManager, Test2) {
     std::vector<block_type::bid_type> bids(32);
     std::vector<io::RequestPtr> requests;
     io::BlockManager* bm = io::BlockManager::GetInstance();
-    bm->new_blocks(io::Striping(), bids.begin(), bids.end());
+    bm->new_blocks(io::striping(), bids.begin(), bids.end());
     std::vector<block_type, mem::AlignedAllocator<block_type> > blocks(32);
     for (size_t vIndex = 0; vIndex < 32; ++vIndex) {
         for (int vIndex2 = 0; vIndex2 < block_type::size; ++vIndex2) {
@@ -149,10 +149,10 @@ TEST(BlockManager, Test3) {
     io::BlockManager* bm = io::BlockManager::GetInstance();
 
     LOG << "get 4 x " << totalblocks / 5;
-    bm->new_blocks(io::Striping(), b5a.begin(), b5a.end());
-    bm->new_blocks(io::Striping(), b5b.begin(), b5b.end());
-    bm->new_blocks(io::Striping(), b5c.begin(), b5c.end());
-    bm->new_blocks(io::Striping(), b5d.begin(), b5d.end());
+    bm->new_blocks(io::striping(), b5a.begin(), b5a.end());
+    bm->new_blocks(io::striping(), b5b.begin(), b5b.end());
+    bm->new_blocks(io::striping(), b5c.begin(), b5c.end());
+    bm->new_blocks(io::striping(), b5d.begin(), b5d.end());
 
     LOG << "free 2 x " << totalblocks / 5;
     bm->delete_blocks(b5a.begin(), b5a.end());
@@ -161,7 +161,7 @@ TEST(BlockManager, Test3) {
     // the external memory should now be fragmented enough,
     // s.t. the following request needs to be split into smaller ones
     LOG << "get 1 x " << totalblocks / 2;
-    bm->new_blocks(io::Striping(), b2.begin(), b2.end());
+    bm->new_blocks(io::striping(), b2.begin(), b2.end());
 
     bm->delete_blocks(b5b.begin(), b5b.end());
     bm->delete_blocks(b5d.begin(), b5d.end());

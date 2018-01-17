@@ -244,20 +244,20 @@ int main(int argc, char* argv[]) {
     if (allocstr.size())
     {
         if (allocstr == "RC")
-            return RunAlloc(io::RandomCyclic);
+            return RunAlloc(io::random_cyclic);
         if (allocstr == "SR")
-            return RunAlloc(io::SimpleRandom);
+            return RunAlloc(io::simple_random);
         if (allocstr == "FR")
-            return RunAlloc(io::FullyRandom);
+            return RunAlloc(io::fully_random);
         if (allocstr == "S")
-            return RunAlloc(io::Striping);
+            return RunAlloc(io::striping);
 
         std::cout << "Unknown allocation strategy '" << allocstr << "'" << std::endl;
         cp.print_usage();
         return -1;
     }
 
-    return RunAlloc(THRILL_DEFAULT_ALLOC_STRATEGY);
+    return RunAlloc(FOXXLL_DEFAULT_ALLOC_STRATEGY);
 #undef RunAlloc
 }
 

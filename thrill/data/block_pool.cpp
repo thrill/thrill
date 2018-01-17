@@ -1267,7 +1267,7 @@ io::RequestPtr BlockPool::Data::IntEvictBlock(ByteBlock* block_ptr) {
 
     // allocate EM block
     block_ptr->em_bid_.size = block_ptr->size();
-    bm_->new_block(io::FullyRandom(), block_ptr->em_bid_);
+    bm_->new_block(io::fully_random(), block_ptr->em_bid_);
 
     LOGC(debug_em)
         << "EvictBlock(): " << block_ptr << " - " << *block_ptr
