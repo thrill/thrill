@@ -17,6 +17,7 @@
 #define THRILL_IO_EXCEPTIONS_HEADER
 
 #include <thrill/mem/pool.hpp>
+#include <foxxll/common/exceptions.hpp>
 
 #include <stdexcept>
 #include <string>
@@ -25,38 +26,10 @@
 namespace thrill {
 namespace io {
 
-//! \addtogroup io_layer_req
-//! \{
+using namespace foxxll;
 
-class IoError : public std::exception
-{
-public:
-    explicit IoError(const mem::safe_string& message) noexcept
-        : std::exception(), safe_message_(message) { }
-
-    virtual const char * what() const noexcept {
-        return safe_message_.c_str();
-    }
-
-    const mem::safe_string& safe_message() const { return safe_message_; }
-
-private:
-    mem::safe_string safe_message_;
-};
-
-class BadExternalAlloc : public std::runtime_error
-{
-public:
-    BadExternalAlloc() noexcept
-        : std::runtime_error(std::string())
-    { }
-
-    explicit BadExternalAlloc(const std::string& message) noexcept
-        : std::runtime_error(message)
-    { }
-};
-
-//! \}
+using IoError = foxxll::io_error;
+using BadExternalAlloc = foxxll::bad_ext_alloc;
 
 } // namespace io
 } // namespace thrill

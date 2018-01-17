@@ -28,8 +28,6 @@
 namespace thrill {
 namespace io {
 
-class IoError;
-
 BlockManager::BlockManager() {
     Config* config = Config::GetInstance();
 

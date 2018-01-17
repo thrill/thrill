@@ -46,7 +46,7 @@ namespace io {
 //! Throws exception_type with "Error in [location] : [error_message]"
 #define THRILL_THROW2S(exception_type, location, error_message)   \
     do {                                                          \
-        mem::safe_ostringstream msg;                              \
+        std::ostringstream msg;                                   \
         msg << "Error in " << location << " : " << error_message; \
         throw exception_type(msg.str());                          \
     } while (false)
