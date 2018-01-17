@@ -341,7 +341,7 @@ public:
 
 private:
     //! calls BlockPool::OnReadComplete used to tlx::delegate
-    void OnComplete(io::Request* req, bool success);
+    void OnComplete(foxxll::request* req, bool success);
 
     PinRequest(BlockPool* block_pool, PinnedBlock&& block, bool ready = true)
         : block_pool_(block_pool), block_(std::move(block)), ready_(ready) { }
@@ -352,7 +352,7 @@ private:
     //! partially initialized for the read!
     PinnedBlock block_;
     //! running read request
-    io::RequestPtr req_;
+    foxxll::request_ptr req_;
 
     //! indication that the PinnedBlocks ready
     std::atomic<bool> ready_;

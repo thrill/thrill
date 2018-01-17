@@ -16,8 +16,8 @@
 #ifndef THRILL_IO_EXCEPTIONS_HEADER
 #define THRILL_IO_EXCEPTIONS_HEADER
 
-#include <thrill/mem/pool.hpp>
 #include <foxxll/common/exceptions.hpp>
+#include <thrill/mem/pool.hpp>
 
 #include <stdexcept>
 #include <string>

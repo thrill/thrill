@@ -17,6 +17,7 @@
 #define THRILL_IO_BLOCK_ALLOC_STRATEGY_HEADER
 
 #include <thrill/io/config_file.hpp>
+
 #include <foxxll/mng/block_alloc_strategy.hpp>
 
 #include <algorithm>

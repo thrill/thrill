@@ -20,10 +20,10 @@
 #include <thrill/common/logger.hpp>
 #include <thrill/data/block.hpp>
 #include <thrill/data/block_reader.hpp>
-#include <thrill/io/syscall_file.hpp>
 #include <thrill/net/buffer_builder.hpp>
 #include <thrill/vfs/file_io.hpp>
 
+#include <foxxll/io/syscall_file.hpp>
 #include <tlx/string/join.hpp>
 
 #include <algorithm>
@@ -152,10 +152,10 @@ public:
                 else {
                     // new method: map blocks into a File using io layer
 
-                    io::FileBasePtr file(
-                        new io::SyscallFile(
+                    foxxll::file_ptr file(
+                        new foxxll::syscall_file(
                             fi.path,
-                            io::FileBase::RDONLY | io::FileBase::NO_LOCK));
+                            foxxll::file::RDONLY | foxxll::file::NO_LOCK));
 
                     size_t item_off = 0;
 
