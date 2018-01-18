@@ -13,7 +13,6 @@
 #ifndef THRILL_DATA_STREAM_HEADER
 #define THRILL_DATA_STREAM_HEADER
 
-#include <thrill/common/semaphore.hpp>
 #include <thrill/common/stats_counter.hpp>
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/data/block_writer.hpp>

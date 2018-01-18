@@ -19,9 +19,9 @@
 #include <thrill/common/profile_thread.hpp>
 #include <thrill/common/string.hpp>
 #include <thrill/common/system_exception.hpp>
-#include <thrill/io/iostats.hpp>
 #include <thrill/vfs/file_io.hpp>
 
+#include <foxxll/io/iostats.hpp>
 #include <tlx/math/abs_diff.hpp>
 #include <tlx/string/format_si_iec_units.hpp>
 #include <tlx/string/parse_si_iec_units.hpp>
@@ -1235,10 +1235,10 @@ void Context::Launch(const std::function<void(Context&)>& job_startpoint) {
     stats.net_traffic_rx = local_worker_id_ == 0 ? net_manager_.Traffic().rx : 0;
 
     if (local_host_id_ == 0 && local_worker_id_ == 0) {
-        io::StatsData io_stats(*io::Stats::GetInstance());
-        stats.io_volume = io_stats.read_volume() + io_stats.write_volume();
+        foxxll::stats_data io_stats(*foxxll::stats::get_instance());
+        stats.io_volume = io_stats.get_read_bytes() + io_stats.get_write_bytes();
         stats.io_max_allocation =
-            io::BlockManager::GetInstance()->maximum_allocation();
+            foxxll::block_manager::get_instance()->maximum_allocation();
     }
     else {
         stats.io_volume = 0;

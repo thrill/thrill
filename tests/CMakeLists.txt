@@ -124,30 +124,6 @@ if(MPI_FOUND)
   add_test(net_mpi_test8 ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 8 ${CMAKE_CURRENT_BINARY_DIR}/net_mpi_test)
 endif()
 
-# compile io tests
-thrill_build_only(io/syscall_file_test)
-thrill_build_only(io/file_io_sizes_test)
-thrill_build_only(io/cancel_io_test)
-thrill_build_test(io/block_manager_test)
-thrill_build_test(io/config_file_test)
-
-# run io tests with different backend files
-thrill_test_only(io_syscall_file_test ".")
-
-thrill_test_only(io_cancel_io_test memory "./testdisk1")
-thrill_test_only(io_cancel_io_test syscall "./testdisk1")
-thrill_test_only(io_cancel_io_test mmap "./testdisk1")
-if(NOT APPLE)
-  thrill_test_only(io_cancel_io_test linuxaio "./testdisk1")
-endif()
-
-thrill_test_only(io_file_io_sizes_test memory "./testdisk1" 134217728)
-thrill_test_only(io_file_io_sizes_test syscall "./testdisk1" 134217728)
-thrill_test_only(io_file_io_sizes_test mmap "./testdisk1" 134217728)
-if(NOT APPLE)
-  thrill_test_only(io_file_io_sizes_test linuxaio "./testdisk1" 134217728)
-endif()
-
 thrill_build_test(vfs/sys_file_test)
 thrill_build_plain(vfs/s3_file_example)
 if(THRILL_USE_HDFS3)

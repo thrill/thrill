@@ -16,11 +16,13 @@
 #include <thrill/common/profile_task.hpp>
 #include <thrill/data/block.hpp>
 #include <thrill/data/byte_block.hpp>
-#include <thrill/io/block_manager.hpp>
-#include <thrill/io/request.hpp>
 #include <thrill/mem/manager.hpp>
 
+#include <foxxll/io/request.hpp>
+#include <foxxll/mng/block_manager.hpp>
+
 #include <algorithm>
+#include <condition_variable>
 #include <functional>
 #include <mutex>
 #include <string>

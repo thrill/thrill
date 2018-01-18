@@ -18,7 +18,6 @@ file(GLOB THRILL_SRCS
   ${CMAKE_CURRENT_SOURCE_DIR}/common/*.[ch]pp
   ${CMAKE_CURRENT_SOURCE_DIR}/core/*.[ch]pp
   ${CMAKE_CURRENT_SOURCE_DIR}/data/*.[ch]pp
-  ${CMAKE_CURRENT_SOURCE_DIR}/io/*.[ch]pp
   ${CMAKE_CURRENT_SOURCE_DIR}/mem/*.[ch]pp
   ${CMAKE_CURRENT_SOURCE_DIR}/net/*.[ch]pp
   ${CMAKE_CURRENT_SOURCE_DIR}/net/mock/*.[ch]pp
