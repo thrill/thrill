@@ -159,7 +159,7 @@ protected:
 
     //! number of remaining expected stream closing operations. Required to know
     //! when to stop rx_lifetime
-    size_t remaining_closing_blocks_;
+    std::atomic<size_t> remaining_closing_blocks_;
 
     //! number of received stream closing Blocks.
     tlx::Semaphore sem_closing_blocks_;
