@@ -12,16 +12,18 @@
 #ifndef THRILL_FRONTENDS_SWIG_PYTHON_THRILL_PYTHON_HEADER
 #define THRILL_FRONTENDS_SWIG_PYTHON_THRILL_PYTHON_HEADER
 
-#include <thrill/api/allgather.hpp>
+#include <thrill/api/all_gather.hpp>
 #include <thrill/api/cache.hpp>
 #include <thrill/api/collapse.hpp>
 #include <thrill/api/context.hpp>
 #include <thrill/api/dia.hpp>
 #include <thrill/api/distribute.hpp>
 #include <thrill/api/generate.hpp>
-#include <thrill/api/reduce.hpp>
+#include <thrill/api/reduce_by_key.hpp>
 #include <thrill/api/size.hpp>
+#include <thrill/api/sum.hpp>
 #include <thrill/common/string.hpp>
+#include <tlx/string/hexdump.hpp>
 
 #include <Python.h>
 #include <bytesobject.h>
@@ -135,7 +137,7 @@ struct Serialization<Archive, PyObjectRef>{
 
         PyBytes_AsStringAndSize(mar, &data, &len);
         if (debug)
-            sLOG0 << "Serialized:" << common::Hexdump(data, len);
+            sLOG0 << "Serialized:" << tlx::hexdump(data, len);
 
         ar.PutVarint(len).Append(data, len);
         Py_DECREF(mar);
@@ -190,6 +192,13 @@ class ReduceFunction
 {
 public:
     virtual ~ReduceFunction() { }
+    virtual PyObjectVarRef operator () (PyObject* obj1, PyObject* obj2) = 0;
+};
+
+class SumFunction
+{
+public:
+    virtual ~SumFunction() { }
     virtual PyObjectVarRef operator () (PyObject* obj1, PyObject* obj2) = 0;
 };
 
@@ -292,7 +301,7 @@ public:
             .Collapse());
     }
 
-    PyDIA ReduceBy(KeyExtractorFunction& key_extractor,
+    PyDIA ReduceByKey(KeyExtractorFunction& key_extractor,
                    ReduceFunction& reduce_function) const {
         assert(dia_.IsValid());
 
@@ -302,7 +311,7 @@ public:
             *dynamic_cast<SwigDirector_ReduceFunction*>(&reduce_function);
 
         return PyDIA(
-            dia_.ReduceBy(
+            dia_.ReduceByKey(
                 [&key_extractor,
                  // this holds a reference count to the callback object for the
                  // lifetime of the capture object.
@@ -328,6 +337,28 @@ public:
             // TODO(tb): remove the Cache one ReduceNode can be executed again.
             .Cache());
     }
+
+    PyObject * Sum(SumFunction& sum_function) const {
+        assert(dia_.IsValid());
+
+        SwigDirector_SumFunction& director =
+           *dynamic_cast<SwigDirector_SumFunction*>(&sum_function);
+
+        PyObjectRef ref = dia_.Sum(
+            [&sum_function,
+             // this holds a reference count to the callback object for the
+             // lifetime of the capture object.
+             ref = PyObjectRef(director.swig_get_self())
+            ](const PyObjectRef& obj1, const PyObjectRef& obj2) {
+                // increase reference count, since calling the sum_function
+                // implicitly passed ownership of the reference to the
+                // caller.
+                return PyObjectRef(
+                    sum_function(obj1.get_incref(), obj2.get_incref()),
+                    true);
+            });
+        return ref.get_incref();
+    }  
 
     PyDIA Cache() const {
         assert(dia_.IsValid());
@@ -392,20 +423,22 @@ public:
         return contexts;
     }
 
-    PyDIA Generate(GeneratorFunction& generator_function, size_t size) {
+    PyDIA Generate(size_t size, GeneratorFunction& generator_function) {
 
         // the object GeneratorFunction is actually an instance of the Director
         SwigDirector_GeneratorFunction& director =
             *dynamic_cast<SwigDirector_GeneratorFunction*>(&generator_function);
 
         PyObjDIA dia = api::Generate(
-            *this, [&generator_function,
+            *this, 
+            size,
+            [&generator_function,
                     // this holds a reference count to the callback object for the
                     // lifetime of the capture object.
                     ref = PyObjectRef(director.swig_get_self())
             ](size_t index) {
                 return PyObjectRef(generator_function(index), true);
-            }, size);
+            });
 
         return PyDIA(dia);
     }
