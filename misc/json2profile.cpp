@@ -11,6 +11,7 @@
 #include <thrill/common/json_logger.hpp>
 #include <thrill/common/logger.hpp>
 #include <tlx/cmdline_parser.hpp>
+#include <tlx/string/ends_with.hpp>
 #include <tlx/string/escape_html.hpp>
 #include <tlx/string/format_si_iec_units.hpp>
 
@@ -19,7 +20,7 @@
 #include <cereal/external/rapidjson/writer.h>
 
 #include <algorithm>
-#include <fstream>
+#include <cstdio>
 #include <iostream>
 #include <limits>
 #include <map>
@@ -518,12 +519,14 @@ std::vector<CStageBuilder> c_StageBuilder;
 
 size_t s_num_events = 0;
 
-void LoadJsonProfile(std::istream& in) {
-    std::string line;
+void LoadJsonProfile(FILE* in) {
+    char* line = nullptr;
+    size_t len = 0;
+    ssize_t rb;
 
-    while (std::getline(in, line)) {
+    while ((rb = getline(&line, &len, in)) >= 0) {
         rapidjson::Document d;
-        d.Parse<0>(line.c_str());
+        d.Parse<0>(line);
         if (d.HasParseError() || !d["class"].IsString()) continue;
 
         std::string class_str = d["class"].GetString();
@@ -565,6 +568,8 @@ void LoadJsonProfile(std::istream& in) {
             --s_num_events;
         }
     }
+
+    free(line);
 }
 
 uint64_t g_min_ts = 0, g_max_ts = 0;
@@ -1401,12 +1406,37 @@ int main(int argc, char* argv[]) {
         clp.print_usage(std::cerr);
         std::cerr << "No paths given, reading json from stdin." << std::endl;
         inputs.push_back("stdin");
-        LoadJsonProfile(std::cin);
+        LoadJsonProfile(stdin);
     }
     else {
         for (const std::string& input : inputs) {
-            std::ifstream in(input);
-            LoadJsonProfile(in);
+            if (tlx::ends_with(input, ".gz")) {
+                FILE* in = popen(("gzip -dc " + input).c_str(), "r");
+                if (in == nullptr) {
+                    std::cerr << "Could not open " << input;
+                    continue;
+                }
+                LoadJsonProfile(in);
+                pclose(in);
+            }
+            else if (tlx::ends_with(input, ".xz")) {
+                FILE* in = popen(("xz -dc " + input).c_str(), "r");
+                if (in == nullptr) {
+                    std::cerr << "Could not open " << input;
+                    continue;
+                }
+                LoadJsonProfile(in);
+                pclose(in);
+            }
+            else {
+                FILE* in = fopen(input.c_str(), "rb");
+                if (in == nullptr) {
+                    std::cerr << "Could not open " << input;
+                    continue;
+                }
+                LoadJsonProfile(in);
+                fclose(in);
+            }
         }
     }
 
