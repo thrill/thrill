@@ -383,6 +383,73 @@ static void TestHardcoreRaceConditionTest(net::Group* net) {
         });
 }
 
+/*!
+ * single threaded test for allgather collective
+ */
+static void TestAllGather(net::Group* net) {
+    net::FlowControlChannelManager manager(*net, 1);
+    net::FlowControlChannel& channel = manager.GetFlowControlChannel(0);
+    size_t my_rank = net->my_host_rank();
+    size_t hosts = net->num_hosts();
+
+    std::vector<size_t> expected(hosts);
+    for (size_t i = 0; i < hosts; i++) {
+        expected[i] = i;
+    }
+
+    auto res = channel.AllGather(my_rank);
+
+    for (size_t i = 0; i < hosts; i++) {
+        ASSERT_EQ(expected[i], res->at(i));
+    }
+}
+
+/*!
+ * multi threaded test for allgather collective
+ */
+static void TestAllGatherMultiThreaded(net::Group* net) {
+
+    const size_t count = 4;
+    size_t hosts = net->num_hosts();
+
+    ExecuteMultiThreads(
+        net, count, [=](net::FlowControlChannel& channel) {
+            size_t my_rank = channel.my_rank();
+
+            std::vector<size_t> expected(net->num_hosts());
+            for (size_t i = 0; i < hosts; i++) {
+                expected[i] = i;
+            }
+
+            auto res = channel.AllGather(my_rank);
+
+            for (size_t i = 0; i < hosts; i++) {
+                ASSERT_EQ(expected[i], res->at(i));
+            }
+        });
+}
+
+//! let group of p hosts perform an AllGather collective on std::string
+static void TestAllGatherString(net::Group* net) {
+    net::FlowControlChannelManager manager(*net, 1);
+    net::FlowControlChannel& channel = manager.GetFlowControlChannel(0);
+    size_t hosts = net->num_hosts();
+
+    const std::string template_string = "abcdefghijklmnopqrstuvwxyz";
+
+    std::string local_value = template_string.substr(0, net->my_host_rank());
+    auto result = channel.AllGather(local_value);
+
+    std::vector<std::string> expected(hosts);
+    for (size_t i = 0; i < hosts; ++i) {
+        expected[i] = template_string.substr(0, i);
+    }
+
+    for (size_t i = 0; i < hosts; ++i) {
+        ASSERT_EQ(expected[i], result->at(i));
+    }
+}
+
 #endif // !THRILL_TESTS_NET_FLOW_CONTROL_TEST_BASE_HEADER
 
 /******************************************************************************/
