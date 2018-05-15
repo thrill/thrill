@@ -305,12 +305,12 @@ DIA<IndexRank<Index> > PrefixDoublingPack(
             [](size_t index, const RingBuffer<CharCharIndex>& rb, auto emit) {
                 if (index == 0) {
                         // emit rank 1 for smallest character pair
-                    emit(IndexRank { rb[0].index, Index(0) });
+                    emit(IndexRank { rb[0].index, Index(1) });
                 }
                 // emit next rank if character pair is unequal, else 0 which
                 // will become the previous rank in the subsequent max().
                 emit(IndexRank {
-                         rb[1].index, Index(rb[0] == rb[1] ? 0 : index + 1)
+                         rb[1].index, Index(rb[0] == rb[1] ? 0 : index + 2)
                      });
             });
     }
