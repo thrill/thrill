@@ -9,6 +9,7 @@
  * Copyright (C) 2002-2005 Roman Dementiev <dementiev@mpi-sb.mpg.de>
  * Copyright (C) 2008, 2009 Andreas Beckmann <beckmann@cs.uni-frankfurt.de>
  * Copyright (C) 2013 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2017 Tim Zeitz <dev.tim.zeitz@gmail.com>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/

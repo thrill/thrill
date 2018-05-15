@@ -4,6 +4,7 @@
  * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2016 Alexander Noe <aleexnoe@gmail.com>
+ * Copyright (C) 2017 Tim Zeitz <dev.tim.zeitz@gmail.com>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
