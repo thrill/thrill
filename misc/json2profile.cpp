@@ -1344,40 +1344,108 @@ std::string ResultLines() {
 
     std::string title = GetProgramName();
 
-    SeriesVector cpu_series = MakeSeriesVector(
-        c_LinuxProcStats, [](const CLinuxProcStats& c) {
-            return c.cpu_user + c.cpu_sys;
-        });
-
-    SeriesVector net_series = MakeSeriesVector(
-        c_LinuxProcStats, [](const CLinuxProcStats& c) {
-            return c.net_tx_speed + c.net_rx_speed;
-        });
-
-    SeriesVector disk_series = MakeSeriesVector(
-        c_LinuxProcStats, [](const CLinuxProcStats& c) {
-            return c.diskstats_rd_bytes + c.diskstats_wr_bytes;
-        });
-
-    for (const auto& v : cpu_series) {
+    for (const auto& v : MakeSeriesVector(
+             c_LinuxProcStats, [](const CLinuxProcStats& c) {
+                 return c.cpu_user + c.cpu_sys;
+             }))
+    {
         oss << "RESULT"
             << "\ttitle=" << title
             << "\tts=" << v.first
             << "\tcpu=" << v.second << "\n";
     }
 
-    for (const auto& v : net_series) {
+    for (const auto& v : MakeSeriesVector(
+             c_LinuxProcStats, [](const CLinuxProcStats& c) {
+                 return c.net_tx_speed + c.net_rx_speed;
+             }))
+    {
         oss << "RESULT"
             << "\ttitle=" << title
             << "\tts=" << v.first
             << "\tnet=" << v.second << "\n";
     }
 
-    for (const auto& v : disk_series) {
+    for (const auto& v : MakeSeriesVector(
+             c_LinuxProcStats,
+             [](const CLinuxProcStats& c) {
+                 return c.diskstats_rd_bytes + c.diskstats_wr_bytes;
+             }))
+    {
         oss << "RESULT"
             << "\ttitle=" << title
             << "\tts=" << v.first
             << "\tdisk=" << v.second << "\n";
+    }
+
+    for (const auto& v : MakeSeriesVector(
+             c_BlockPool,
+             [](const CBlockPool& c) { return c.total_bytes; }))
+    {
+        oss << "RESULT"
+            << "\ttitle=" << title
+            << "\tts=" << v.first
+            << "\tdata_bytes=" << v.second << "\n";
+    }
+
+    for (const auto& v : MakeSeriesVector(
+             c_BlockPool,
+             [](const CBlockPool& c) { return c.ram_bytes; }))
+    {
+        oss << "RESULT"
+            << "\ttitle=" << title
+            << "\tts=" << v.first
+            << "\tram_bytes=" << v.second << "\n";
+    }
+
+    for (const auto& v : MakeSeriesVector(
+             c_BlockPool,
+             [](const CBlockPool& c) { return c.reading_bytes; }))
+    {
+        oss << "RESULT"
+            << "\ttitle=" << title
+            << "\tts=" << v.first
+            << "\treading_bytes=" << v.second << "\n";
+    }
+
+    for (const auto& v : MakeSeriesVector(
+             c_BlockPool,
+             [](const CBlockPool& c) { return c.writing_bytes; }))
+    {
+        oss << "RESULT"
+            << "\ttitle=" << title
+            << "\tts=" << v.first
+            << "\twriting_bytes=" << v.second << "\n";
+    }
+
+    for (const auto& v : MakeSeriesVector(
+             c_BlockPool,
+             [](const CBlockPool& c) { return c.pinned_bytes; }))
+    {
+        oss << "RESULT"
+            << "\ttitle=" << title
+            << "\tts=" << v.first
+            << "\tpinned_bytes=" << v.second << "\n";
+    }
+
+    for (const auto& v : MakeSeriesVector(
+             c_BlockPool,
+             [](const CBlockPool& c) { return c.unpinned_bytes; }))
+    {
+        oss << "RESULT"
+            << "\ttitle=" << title
+            << "\tts=" << v.first
+            << "\tunpinned_bytes=" << v.second << "\n";
+    }
+
+    for (const auto& v : MakeSeriesVector(
+             c_BlockPool,
+             [](const CBlockPool& c) { return c.swapped_bytes; }))
+    {
+        oss << "RESULT"
+            << "\ttitle=" << title
+            << "\tts=" << v.first
+            << "\tswapped_bytes=" << v.second << "\n";
     }
 
     return oss.str();
