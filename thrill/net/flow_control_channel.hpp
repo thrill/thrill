@@ -496,30 +496,29 @@ public:
                 auto local_gather = std::make_shared<std::vector<T> >(n);
 
                 if (tlx::is_power_of_two(group().num_hosts())) {
-                    // gather local values and insert at correct final positions in the vector
+                        // gather local values and insert at correct final positions in the vector
                     for (size_t i = 0; i < thread_count_; i++) {
-                        local_gather->at(thread_count_*group_.my_host_rank()+i) =
-                                GetLocalShared<std::pair<T, SharedVectorT> >(step, i)->first;
+                        local_gather->at(thread_count_ * group_.my_host_rank() + i) =
+                            GetLocalShared<std::pair<T, SharedVectorT> >(step, i)->first;
                     }
 
                     // global allgather
                     group_.AllGatherRecursiveDoublingPowerOfTwo(local_gather->data(), thread_count_);
                 }
                 else {
-                    // gather local values and insert at correct final positions in the vector
+                        // gather local values and insert at correct final positions in the vector
                     for (size_t i = 0; i < thread_count_; i++) {
                         local_gather->at(i) =
-                                GetLocalShared<std::pair<T, SharedVectorT> >(step, i)->first;
+                            GetLocalShared<std::pair<T, SharedVectorT> >(step, i)->first;
                     }
 
                     // global allgather
                     group_.AllGatherBruck(local_gather->data(), thread_count_);
                 }
 
-
                 // distribute shared pointer to worker threads
                 for (size_t i = 0; i < thread_count_; i++) {
-                    GetLocalShared<std::pair< T, SharedVectorT> >(step, i)->second = local_gather;
+                    GetLocalShared<std::pair<T, SharedVectorT> >(step, i)->second = local_gather;
                 }
             });
 

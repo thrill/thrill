@@ -137,13 +137,13 @@ TEST(MockGroup, HardcoreRaceConditionTest) {
     MockTestLess(TestHardcoreRaceConditionTest);
 }
 TEST(MockGroup, AllGather) {
-    MockTest(TestAllGather);
+    MockTestLess(TestAllGather);
 }
 TEST(MockGroup, AllGatherMultiThreaded) {
-    MockTest(TestAllGatherMultiThreaded);
+    MockTestLess(TestAllGatherMultiThreaded);
 }
 TEST(MockGroup, AllGatherString) {
-    MockTest(TestAllGatherString);
+    MockTestLess(TestAllGatherString);
 }
 // [[[end]]]
 

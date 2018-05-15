@@ -21,9 +21,9 @@
 #include <thrill/common/functional.hpp>
 #include <thrill/net/group.hpp>
 #include <tlx/math/ffs.hpp>
+#include <tlx/math/integer_log2.hpp>
 #include <tlx/math/is_power_of_two.hpp>
 #include <tlx/math/round_to_power_of_two.hpp>
-#include <tlx/math/integer_log2.hpp>
 
 #include <functional>
 
@@ -258,17 +258,17 @@ void Group::Broadcast(T& value, size_t origin) {
 template <typename T>
 void Group::AllGatherRecursiveDoublingPowerOfTwo(T* values, size_t n) {
     size_t num_hosts = this->num_hosts();
-    size_t my_rank 	 = my_host_rank();
+    size_t my_rank = my_host_rank();
     size_t d = tlx::integer_log2_ceil(num_hosts);
 
     for (size_t j = 0; j < d; ++j) {
-        size_t peer    = my_rank ^ (0x1 << j);
+        size_t peer = my_rank ^ (0x1 << j);
         // index of first element to be sent
         size_t snd_pos = (~((0x1 << j) - 1) & my_rank) * n;
         // index of first element to be received
         size_t rcv_pos = (~((0x1 << j) - 1) & peer) * n;
         // number of elements to be sent/received
-        size_t ins_n   = (0x1 << j) * n;
+        size_t ins_n = (0x1 << j) * n;
 
         connection(peer).SendReceive(values + snd_pos, values + rcv_pos, ins_n);
     }
@@ -277,8 +277,8 @@ void Group::AllGatherRecursiveDoublingPowerOfTwo(T* values, size_t n) {
 template <typename T>
 void Group::AllGatherBruck(T* values, size_t n) {
     size_t num_hosts = this->num_hosts();
-    size_t my_rank   = my_host_rank();
-    size_t size	     = num_hosts * n;
+    size_t my_rank = my_host_rank();
+    size_t size = num_hosts * n;
     std::vector<T> temp(size);
 
     for (size_t i = 0; i < n; ++i) {
@@ -289,9 +289,9 @@ void Group::AllGatherBruck(T* values, size_t n) {
         size_t snd_peer = (my_rank + num_hosts - (0x1 << j)) % num_hosts;
         size_t rcv_peer = (my_rank + (0x1 << j)) % num_hosts;
         // position for received data
-        size_t ins_pos  = (0x1 << j) * n;
+        size_t ins_pos = (0x1 << j) * n;
         // number of elements to be sent/received
-        size_t ins_n    = std::min((0x1 << j) * n, size - ins_pos);
+        size_t ins_n = std::min((0x1 << j) * n, size - ins_pos);
 
         if ((0x1 << j) & my_rank) {
             connection(rcv_peer).ReceiveN(temp.data() + ins_pos, ins_n);
@@ -305,9 +305,8 @@ void Group::AllGatherBruck(T* values, size_t n) {
 
     // local reorder: shift whole array by my_rank*n to the right
     for (size_t i = 0; i < size; ++i) {
-        values[i] = temp[(i + size - my_rank*n) % size];
+        values[i] = temp[(i + size - my_rank * n) % size];
     }
-
 }
 
 /******************************************************************************/

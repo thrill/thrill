@@ -288,7 +288,7 @@ public:
         }
 
         // receive PODs directly into memory.
-        SyncSendRecv(value, n*sizeof(T), out_value, n*sizeof(T));
+        SyncSendRecv(value, n * sizeof(T), out_value, n * sizeof(T));
     }
 
     template <typename T>
@@ -328,11 +328,11 @@ public:
         }
 
         // fixed_size items can be sent/recv without size header
-        BufferBuilder sendb(n*data::Serialization<BufferBuilder, T>::fixed_size);
+        BufferBuilder sendb(n * data::Serialization<BufferBuilder, T>::fixed_size);
         for (size_t i = 0; i < n; ++i) {
             data::Serialization<BufferBuilder, T>::Serialize(value[i], sendb);
         }
-        Buffer recvb(n*data::Serialization<BufferBuilder, T>::fixed_size);
+        Buffer recvb(n * data::Serialization<BufferBuilder, T>::fixed_size);
         SyncSendRecv(sendb.data(), sendb.size(),
                      recvb.data(), recvb.size());
         BufferReader br(recvb);
@@ -466,7 +466,7 @@ public:
             SyncSend(&hash_code, sizeof(hash_code));
         }
         // send PODs directly from memory.
-        SyncSend(value, n*sizeof(T));
+        SyncSend(value, n * sizeof(T));
     }
 
     //! Send an array of serializable non-POD fixed-length items T. if sending fails, a
@@ -484,7 +484,7 @@ public:
         // fixed_size items can be sent without size header
         static constexpr size_t fixed_size
             = data::Serialization<BufferBuilder, T>::fixed_size;
-        BufferBuilder bb(n*fixed_size);
+        BufferBuilder bb(n* fixed_size);
         for (size_t i = 0; i < n; ++i) {
             data::Serialization<BufferBuilder, T>::Serialize(value[i], bb);
         }
@@ -533,7 +533,7 @@ public:
             }
         }
         // receive PODs directly into memory.
-        SyncRecv(out_value, n*sizeof(T));
+        SyncRecv(out_value, n * sizeof(T));
     }
 
     //! Receive an array of serializable non-POD fixed-length items T.
@@ -553,7 +553,7 @@ public:
             }
         }
         // fixed_size items can be received without size header
-        Buffer b(n*data::Serialization<BufferBuilder, T>::fixed_size);
+        Buffer b(n * data::Serialization<BufferBuilder, T>::fixed_size);
         SyncRecv(b.data(), b.size());
         BufferReader br(b);
         for (size_t i = 0; i < n; ++i) {
