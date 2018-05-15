@@ -133,6 +133,18 @@ enum class Status : uint8_t {
     FULLY_DISCARDED = 2
 };
 
+std::ostream& operator << (std::ostream& os, const Status& s) {
+    switch (s) {
+    case Status::UNDECIDED:
+        return os << 'N';
+    case Status::UNIQUE:
+        return os << 'U';
+    case Status::FULLY_DISCARDED:
+        return os << 'D';
+    }
+    return os << '?';
+}
+
 //! A triple (index, rank, status)
 template <typename Index>
 struct IndexRankStatus {
@@ -155,7 +167,7 @@ struct IndexRankStatus {
 
     friend std::ostream& operator << (std::ostream& os, const IndexRankStatus& irs) {
         return os << "(index=" << irs.index << ",rank=" << irs.rank << ",status="
-                  << static_cast<uint8_t>(irs.status) << ")";
+                  << irs.status << ")";
     }
 } TLX_ATTRIBUTE_PACKED;
 
@@ -170,7 +182,7 @@ struct IndexRankRankStatus {
     friend std::ostream& operator << (std::ostream& os, const IndexRankRankStatus& irrs) {
         return os << "(index=" << irrs.index
                   << ",rank1=" << irrs.rank1 << ",rank2=" << irrs.rank2
-                  << ",status=" << static_cast<uint8_t>(irrs.status) << ")";
+                  << ",status=" << irrs.status << ")";
     }
 } TLX_ATTRIBUTE_PACKED;
 
@@ -293,12 +305,12 @@ DIA<IndexRank<Index> > PrefixDoublingPack(
             [](size_t index, const RingBuffer<CharCharIndex>& rb, auto emit) {
                 if (index == 0) {
                         // emit rank 1 for smallest character pair
-                    emit(IndexRank { rb[0].index, Index(1) });
+                    emit(IndexRank { rb[0].index, Index(0) });
                 }
                 // emit next rank if character pair is unequal, else 0 which
                 // will become the previous rank in the subsequent max().
                 emit(IndexRank {
-                         rb[1].index, Index(rb[0] == rb[1] ? 0 : index + 2)
+                         rb[1].index, Index(rb[0] == rb[1] ? 0 : index + 1)
                      });
             });
     }
@@ -619,6 +631,9 @@ DIA<Index> PrefixDoublingDiscarding(
                             return IndexRank { b.index, std::max(a.rank, b.rank) };
                         });
 
+    if (debug_print)
+        names.Keep().Print("names");
+
     auto names_unique =
         names
         .template FlatWindow<IndexRankStatus>(
@@ -640,6 +655,9 @@ DIA<Index> PrefixDoublingDiscarding(
                 }
             });
 
+    if (debug_print)
+        names_unique.Keep().Print("names_unique");
+
     auto names_unique_sorted =
         names_unique
         .Sort([iteration](const IndexRankStatus& a, const IndexRankStatus& b) {
@@ -652,9 +670,6 @@ DIA<Index> PrefixDoublingDiscarding(
                       return (a.index & mod_mask) < (b.index & mod_mask);
               });
 
-    if (debug_print)
-        names_unique_sorted.Keep().Print("names_unique_sorted");
-
     std::vector<DIA<IndexRank> > fully_discarded;
 
     while (true) {
@@ -663,7 +678,7 @@ DIA<Index> PrefixDoublingDiscarding(
         size_t names_size = names_unique_sorted.Keep().Size();
 
         if (debug_print)
-            names_unique_sorted.Keep().Print("names_unique_sorted begin of loop");
+            names_unique_sorted.Keep().Print("names_unique_sorted");
 
         auto discarded_names =
             names_unique_sorted.Keep()
@@ -709,6 +724,9 @@ DIA<Index> PrefixDoublingDiscarding(
                             emit(IndexRankRankStatus { rb[1].index, rb[1].rank, Index(0), Status::UNDECIDED });
                     }
                 });
+
+        if (debug_print)
+            discarded_names.Keep().Print("discarded_names");
 
         auto new_decided =
             discarded_names.Keep()
@@ -791,6 +809,9 @@ DIA<Index> PrefixDoublingDiscarding(
                      return IndexRank { ir.index, ir.rank3 + (ir.rank2 - ir.rank1) };
                  });
 
+        if (debug_print)
+            new_ranks.Keep().Print("new_ranks");
+
         names_unique =
             new_ranks
             .template FlatWindow<IndexRankStatus>(
@@ -815,6 +836,9 @@ DIA<Index> PrefixDoublingDiscarding(
                         emit(IndexRankStatus { rb[1].index, rb[1].rank, Status::UNIQUE });
                     }
                 });
+
+        if (debug_print)
+            names_unique.Keep().Print("names_unique");
 
         names_unique_sorted =
             names_unique
