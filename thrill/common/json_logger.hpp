@@ -18,8 +18,8 @@
 
 #include <array>
 #include <cassert>
-#include <fstream>
 #include <initializer_list>
+#include <memory>
 #include <mutex>
 #include <sstream>
 #include <string>
@@ -72,7 +72,7 @@ public:
     //! open JsonLogger with ofstream uninitialized to discard log output.
     JsonLogger() = default;
 
-    //! open JsonLogger with ofstream
+    //! open JsonLogger with ofstream. if path is empty, output goes to stdout
     explicit JsonLogger(const std::string& path);
 
     //! open JsonLogger with a super logger
@@ -97,7 +97,7 @@ public:
     JsonLogger* super_ = nullptr;
 
     //! direct output stream for top loggers
-    std::ofstream os_;
+    std::unique_ptr<std::ostream> os_;
 
     //! mutex to lock logger output
     std::mutex mutex_;

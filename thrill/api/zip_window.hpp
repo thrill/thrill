@@ -231,13 +231,15 @@ public:
     bool OnPreOpFile(const data::File& file, size_t parent_index) final {
         assert(parent_index < kNumInputs);
         if (!parent_stack_empty_[parent_index]) {
-            LOG1 << "ZipWindow rejected File from parent "
-                 << "due to non-empty function stack.";
+            LOGC(context_.my_rank() == 0)
+                << "ZipWindow rejected File from parent "
+                << "due to non-empty function stack.";
             return false;
         }
 
         // accept file
-        LOG1 << "ZipWindow accepted File from parent " << parent_index;
+        LOGC(context_.my_rank() == 0)
+            << "ZipWindow accepted File from parent " << parent_index;
         assert(files_[parent_index].num_items() == 0);
         files_[parent_index] = file.Copy();
         return true;
@@ -279,6 +281,8 @@ public:
 
     void Dispose() final {
         files_.clear();
+        for (size_t i = 0; i < kNumInputs; ++i)
+            streams_[i].reset();
     }
 
 private:
@@ -410,8 +414,7 @@ private:
         // number of items in each DIAs, over all worker.
         size_prefixsum_ = local_size;
         ArraySizeT total_size = context_.net.ExPrefixSumTotal(
-            size_prefixsum_,
-            ArraySizeT(), common::ComponentSum<ArraySizeT>());
+            size_prefixsum_, common::ComponentSum<ArraySizeT>());
 
         // calculate number of full windows in each DIA
         ArraySizeT total_window_count;
@@ -444,7 +447,7 @@ private:
         // perform scatters to exchange data, with different types.
         tlx::call_for_range<kNumInputs>(
             [=](auto index) {
-                (void)index;
+                tlx::unused(index);
                 this->DoScatter<decltype(index)::index>();
             });
     }

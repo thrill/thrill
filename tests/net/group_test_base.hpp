@@ -131,21 +131,23 @@ static void TestPrefixSumHypercubeString(net::Group* net) {
 static void TestPrefixSum(net::Group* net) {
     static constexpr bool debug = false;
 
-    const std::string result = "abcdefghijklmnopqrstuvwxyz";
+    const std::string result = "!?!abcdefghijklmnopqrstuvwxyz";
 
     {
-        std::string local_value = result.substr(net->my_host_rank(), 1);
-        net->PrefixSum(local_value, std::plus<std::string>());
+        std::string local_value = result.substr(3 + net->my_host_rank(), 1);
+        net->PrefixSum(
+            local_value, std::plus<std::string>(), std::string("!?!"));
         sLOG << "rank" << net->my_host_rank() << "hosts" << net->num_hosts()
              << "value" << local_value;
-        ASSERT_EQ(result.substr(0, net->my_host_rank() + 1), local_value);
+        ASSERT_EQ(result.substr(0, 3 + net->my_host_rank() + 1), local_value);
     }
     {
-        std::string local_value = result.substr(net->my_host_rank(), 1);
-        net->ExPrefixSum(local_value, std::plus<std::string>());
+        std::string local_value = result.substr(3 + net->my_host_rank(), 1);
+        net->ExPrefixSum(
+            local_value, std::plus<std::string>(), std::string("!?!"));
         sLOG << "rank" << net->my_host_rank() << "hosts" << net->num_hosts()
              << "value" << local_value;
-        ASSERT_EQ(result.substr(0, net->my_host_rank()), local_value);
+        ASSERT_EQ(result.substr(0, 3 + net->my_host_rank()), local_value);
     }
 }
 

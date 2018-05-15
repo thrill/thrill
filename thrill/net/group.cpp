@@ -165,12 +165,12 @@ size_t Group::num_parallel_async() const {
     ["long", "Long"], ["unsigned long", "UnsignedLong"],
     ["long long", "LongLong"], ["unsigned long long", "UnsignedLongLong"])
   {
-    print "void Group::PrefixSumPlus$$e[1]($$e[0]& value) {\n";
-    print "    return PrefixSumSelect(value, std::plus<$$e[0]>(), true);\n";
+    print "void Group::PrefixSumPlus$$e[1]($$e[0]& value, const $$e[0]& initial) {\n";
+    print "    return PrefixSumSelect(value, std::plus<$$e[0]>(), initial, true);\n";
     print "}\n";
 
-    print "void Group::ExPrefixSumPlus$$e[1]($$e[0]& value) {\n";
-    print "    return PrefixSumSelect(value, std::plus<$$e[0]>(), false);\n";
+    print "void Group::ExPrefixSumPlus$$e[1]($$e[0]& value, const $$e[0]& initial) {\n";
+    print "    return PrefixSumSelect(value, std::plus<$$e[0]>(), initial, false);\n";
     print "}\n";
 
     print "void Group::Broadcast$$e[1]($$e[0]& value, size_t origin) {\n";
@@ -190,11 +190,11 @@ size_t Group::num_parallel_async() const {
     print "}\n";
   }
 ]]]*/
-void Group::PrefixSumPlusInt(int& value) {
-    return PrefixSumSelect(value, std::plus<int>(), true);
+void Group::PrefixSumPlusInt(int& value, const int& initial) {
+    return PrefixSumSelect(value, std::plus<int>(), initial, true);
 }
-void Group::ExPrefixSumPlusInt(int& value) {
-    return PrefixSumSelect(value, std::plus<int>(), false);
+void Group::ExPrefixSumPlusInt(int& value, const int& initial) {
+    return PrefixSumSelect(value, std::plus<int>(), initial, false);
 }
 void Group::BroadcastInt(int& value, size_t origin) {
     return BroadcastSelect(value, origin);
@@ -208,11 +208,11 @@ void Group::AllReduceMinimumInt(int& value) {
 void Group::AllReduceMaximumInt(int& value) {
     return AllReduceSelect(value, common::maximum<int>());
 }
-void Group::PrefixSumPlusUnsignedInt(unsigned int& value) {
-    return PrefixSumSelect(value, std::plus<unsigned int>(), true);
+void Group::PrefixSumPlusUnsignedInt(unsigned int& value, const unsigned int& initial) {
+    return PrefixSumSelect(value, std::plus<unsigned int>(), initial, true);
 }
-void Group::ExPrefixSumPlusUnsignedInt(unsigned int& value) {
-    return PrefixSumSelect(value, std::plus<unsigned int>(), false);
+void Group::ExPrefixSumPlusUnsignedInt(unsigned int& value, const unsigned int& initial) {
+    return PrefixSumSelect(value, std::plus<unsigned int>(), initial, false);
 }
 void Group::BroadcastUnsignedInt(unsigned int& value, size_t origin) {
     return BroadcastSelect(value, origin);
@@ -226,11 +226,11 @@ void Group::AllReduceMinimumUnsignedInt(unsigned int& value) {
 void Group::AllReduceMaximumUnsignedInt(unsigned int& value) {
     return AllReduceSelect(value, common::maximum<unsigned int>());
 }
-void Group::PrefixSumPlusLong(long& value) {
-    return PrefixSumSelect(value, std::plus<long>(), true);
+void Group::PrefixSumPlusLong(long& value, const long& initial) {
+    return PrefixSumSelect(value, std::plus<long>(), initial, true);
 }
-void Group::ExPrefixSumPlusLong(long& value) {
-    return PrefixSumSelect(value, std::plus<long>(), false);
+void Group::ExPrefixSumPlusLong(long& value, const long& initial) {
+    return PrefixSumSelect(value, std::plus<long>(), initial, false);
 }
 void Group::BroadcastLong(long& value, size_t origin) {
     return BroadcastSelect(value, origin);
@@ -244,11 +244,11 @@ void Group::AllReduceMinimumLong(long& value) {
 void Group::AllReduceMaximumLong(long& value) {
     return AllReduceSelect(value, common::maximum<long>());
 }
-void Group::PrefixSumPlusUnsignedLong(unsigned long& value) {
-    return PrefixSumSelect(value, std::plus<unsigned long>(), true);
+void Group::PrefixSumPlusUnsignedLong(unsigned long& value, const unsigned long& initial) {
+    return PrefixSumSelect(value, std::plus<unsigned long>(), initial, true);
 }
-void Group::ExPrefixSumPlusUnsignedLong(unsigned long& value) {
-    return PrefixSumSelect(value, std::plus<unsigned long>(), false);
+void Group::ExPrefixSumPlusUnsignedLong(unsigned long& value, const unsigned long& initial) {
+    return PrefixSumSelect(value, std::plus<unsigned long>(), initial, false);
 }
 void Group::BroadcastUnsignedLong(unsigned long& value, size_t origin) {
     return BroadcastSelect(value, origin);
@@ -262,11 +262,11 @@ void Group::AllReduceMinimumUnsignedLong(unsigned long& value) {
 void Group::AllReduceMaximumUnsignedLong(unsigned long& value) {
     return AllReduceSelect(value, common::maximum<unsigned long>());
 }
-void Group::PrefixSumPlusLongLong(long long& value) {
-    return PrefixSumSelect(value, std::plus<long long>(), true);
+void Group::PrefixSumPlusLongLong(long long& value, const long long& initial) {
+    return PrefixSumSelect(value, std::plus<long long>(), initial, true);
 }
-void Group::ExPrefixSumPlusLongLong(long long& value) {
-    return PrefixSumSelect(value, std::plus<long long>(), false);
+void Group::ExPrefixSumPlusLongLong(long long& value, const long long& initial) {
+    return PrefixSumSelect(value, std::plus<long long>(), initial, false);
 }
 void Group::BroadcastLongLong(long long& value, size_t origin) {
     return BroadcastSelect(value, origin);
@@ -280,11 +280,11 @@ void Group::AllReduceMinimumLongLong(long long& value) {
 void Group::AllReduceMaximumLongLong(long long& value) {
     return AllReduceSelect(value, common::maximum<long long>());
 }
-void Group::PrefixSumPlusUnsignedLongLong(unsigned long long& value) {
-    return PrefixSumSelect(value, std::plus<unsigned long long>(), true);
+void Group::PrefixSumPlusUnsignedLongLong(unsigned long long& value, const unsigned long long& initial) {
+    return PrefixSumSelect(value, std::plus<unsigned long long>(), initial, true);
 }
-void Group::ExPrefixSumPlusUnsignedLongLong(unsigned long long& value) {
-    return PrefixSumSelect(value, std::plus<unsigned long long>(), false);
+void Group::ExPrefixSumPlusUnsignedLongLong(unsigned long long& value, const unsigned long long& initial) {
+    return PrefixSumSelect(value, std::plus<unsigned long long>(), initial, false);
 }
 void Group::BroadcastUnsignedLongLong(unsigned long long& value, size_t origin) {
     return BroadcastSelect(value, origin);

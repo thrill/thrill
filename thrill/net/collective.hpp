@@ -47,10 +47,15 @@ namespace net {
  * \param inclusive Inclusive prefix sum if true (default)
  */
 template <typename T, typename BinarySumOp>
-void Group::PrefixSumDoubling(T& value, BinarySumOp sum_op, bool inclusive) {
+void Group::PrefixSumDoubling(T& value, BinarySumOp sum_op,
+                              const T& initial, bool inclusive) {
     static constexpr bool debug = false;
 
     bool first = true;
+
+    if (my_host_rank() == 0)
+        value = sum_op(initial, value);
+
     // Use a copy, in case of exclusive, we have to forward
     // something that's not our result.
     T to_forward = value;
@@ -86,7 +91,7 @@ void Group::PrefixSumDoubling(T& value, BinarySumOp sum_op, bool inclusive) {
 
     // set worker 0's value for exclusive prefixsums
     if (!inclusive && my_host_rank() == 0)
-        value = T();
+        value = initial;
 }
 
 /*!
@@ -144,18 +149,19 @@ void Group::PrefixSumHypercube(T& value, BinarySumOp sum_op) {
 
 //! select prefixsum implementation (often due to total number of processors)
 template <typename T, typename BinarySumOp>
-void Group::PrefixSumSelect(T& value, BinarySumOp sum_op, bool inclusive) {
-    return PrefixSumDoubling(value, sum_op, inclusive);
+void Group::PrefixSumSelect(T& value, BinarySumOp sum_op,
+                            const T& initial, bool inclusive) {
+    return PrefixSumDoubling(value, sum_op, initial, inclusive);
 }
 
 template <typename T, typename BinarySumOp>
-void Group::PrefixSum(T& value, BinarySumOp sum_op) {
-    return PrefixSumSelect(value, sum_op, true);
+void Group::PrefixSum(T& value, BinarySumOp sum_op, const T& initial) {
+    return PrefixSumSelect(value, sum_op, initial, true);
 }
 
 template <typename T, typename BinarySumOp>
-void Group::ExPrefixSum(T& value, BinarySumOp sum_op) {
-    return PrefixSumSelect(value, sum_op, false);
+void Group::ExPrefixSum(T& value, BinarySumOp sum_op, const T& initial) {
+    return PrefixSumSelect(value, sum_op, initial, false);
 }
 
 /******************************************************************************/

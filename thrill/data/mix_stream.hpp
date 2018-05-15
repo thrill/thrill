@@ -51,8 +51,8 @@ public:
     using Handle = MixStream;
 
     //! Creates a new stream instance
-    MixStreamData(Multiplexer& multiplexer, const StreamId& id,
-                  size_t local_worker_id, size_t dia_id);
+    MixStreamData(Multiplexer& multiplexer, size_t send_size_limit,
+                  const StreamId& id, size_t local_worker_id, size_t dia_id);
 
     //! non-copyable: delete copy-constructor
     MixStreamData(const MixStreamData&) = delete;

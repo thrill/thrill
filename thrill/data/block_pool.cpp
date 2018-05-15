@@ -457,8 +457,8 @@ BlockPool::~BlockPool() {
     // wait for deletion of last ByteBlocks. this may actually be needed, when
     // the I/O handlers have been finished, and the corresponding references are
     // freed, but DestroyBlock() could not be called yet.
-    d_->cv_total_byte_blocks_.wait(
-        lock, [this]() { return d_->total_byte_blocks_ == 0; });
+    while (d_->total_byte_blocks_ != 0)
+        d_->cv_total_byte_blocks_.wait(lock);
 
     d_->pin_count_.AssertZero();
     die_unequal(d_->total_ram_bytes_, 0u);
@@ -698,6 +698,22 @@ PinRequestPtr BlockPool::PinBlock(const Block& block, size_t local_worker_id) {
     d_->reading_bytes_ += block_ptr->size();
 
     return read;
+}
+
+std::pair<size_t, size_t> BlockPool::MaxMergeDegreePrefetch(size_t num_files) {
+    size_t avail_bytes = hard_ram_limit() / workers_per_host_ / 2;
+    size_t avail_blocks = avail_bytes / default_block_size;
+
+    if (num_files >= avail_blocks) {
+        // more files than blocks available -> partial merge of avail_bytes
+        // Files with prefetch = 0, which is at most one block per File.
+        return std::make_pair(avail_blocks, 0u);
+    }
+    else {
+        // less files than available Blocks -> split prefetch size equally
+        // among Files.
+        return std::make_pair(num_files, avail_bytes / num_files);
+    }
 }
 
 void PinRequest::OnComplete(io::Request* req, bool success) {

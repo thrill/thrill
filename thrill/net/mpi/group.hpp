@@ -205,46 +205,46 @@ private:
     ["long", "Long"], ["unsigned long", "UnsignedLong"],
     ["long long", "LongLong"], ["unsigned long long", "UnsignedLongLong"])
   {
-    print "void PrefixSumPlus$$e[1]($$e[0]& value) final;\n";
-    print "void ExPrefixSumPlus$$e[1]($$e[0]& value) final;\n";
+    print "void PrefixSumPlus$$e[1]($$e[0]& value, const $$e[0]& initial) final;\n";
+    print "void ExPrefixSumPlus$$e[1]($$e[0]& value, const $$e[0]& initial) final;\n";
     print "void Broadcast$$e[1]($$e[0]& value, size_t origin) final;\n";
     print "void AllReducePlus$$e[1]($$e[0]& value) final;\n";
     print "void AllReduceMinimum$$e[1]($$e[0]& value) final;\n";
     print "void AllReduceMaximum$$e[1]($$e[0]& value) final;\n";
   }
 ]]]*/
-    void PrefixSumPlusInt(int& value) final;
-    void ExPrefixSumPlusInt(int& value) final;
+    void PrefixSumPlusInt(int& value, const int& initial) final;
+    void ExPrefixSumPlusInt(int& value, const int& initial) final;
     void BroadcastInt(int& value, size_t origin) final;
     void AllReducePlusInt(int& value) final;
     void AllReduceMinimumInt(int& value) final;
     void AllReduceMaximumInt(int& value) final;
-    void PrefixSumPlusUnsignedInt(unsigned int& value) final;
-    void ExPrefixSumPlusUnsignedInt(unsigned int& value) final;
+    void PrefixSumPlusUnsignedInt(unsigned int& value, const unsigned int& initial) final;
+    void ExPrefixSumPlusUnsignedInt(unsigned int& value, const unsigned int& initial) final;
     void BroadcastUnsignedInt(unsigned int& value, size_t origin) final;
     void AllReducePlusUnsignedInt(unsigned int& value) final;
     void AllReduceMinimumUnsignedInt(unsigned int& value) final;
     void AllReduceMaximumUnsignedInt(unsigned int& value) final;
-    void PrefixSumPlusLong(long& value) final;
-    void ExPrefixSumPlusLong(long& value) final;
+    void PrefixSumPlusLong(long& value, const long& initial) final;
+    void ExPrefixSumPlusLong(long& value, const long& initial) final;
     void BroadcastLong(long& value, size_t origin) final;
     void AllReducePlusLong(long& value) final;
     void AllReduceMinimumLong(long& value) final;
     void AllReduceMaximumLong(long& value) final;
-    void PrefixSumPlusUnsignedLong(unsigned long& value) final;
-    void ExPrefixSumPlusUnsignedLong(unsigned long& value) final;
+    void PrefixSumPlusUnsignedLong(unsigned long& value, const unsigned long& initial) final;
+    void ExPrefixSumPlusUnsignedLong(unsigned long& value, const unsigned long& initial) final;
     void BroadcastUnsignedLong(unsigned long& value, size_t origin) final;
     void AllReducePlusUnsignedLong(unsigned long& value) final;
     void AllReduceMinimumUnsignedLong(unsigned long& value) final;
     void AllReduceMaximumUnsignedLong(unsigned long& value) final;
-    void PrefixSumPlusLongLong(long long& value) final;
-    void ExPrefixSumPlusLongLong(long long& value) final;
+    void PrefixSumPlusLongLong(long long& value, const long long& initial) final;
+    void ExPrefixSumPlusLongLong(long long& value, const long long& initial) final;
     void BroadcastLongLong(long long& value, size_t origin) final;
     void AllReducePlusLongLong(long long& value) final;
     void AllReduceMinimumLongLong(long long& value) final;
     void AllReduceMaximumLongLong(long long& value) final;
-    void PrefixSumPlusUnsignedLongLong(unsigned long long& value) final;
-    void ExPrefixSumPlusUnsignedLongLong(unsigned long long& value) final;
+    void PrefixSumPlusUnsignedLongLong(unsigned long long& value, const unsigned long long& initial) final;
+    void ExPrefixSumPlusUnsignedLongLong(unsigned long long& value, const unsigned long long& initial) final;
     void BroadcastUnsignedLongLong(unsigned long long& value, size_t origin) final;
     void AllReducePlusUnsignedLongLong(unsigned long long& value) final;
     void AllReduceMinimumUnsignedLongLong(unsigned long long& value) final;

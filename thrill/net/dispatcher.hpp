@@ -208,7 +208,7 @@ public:
             write_size_ = buffer_.size();
 
             if (errno == EPIPE) {
-                LOG1 << "AsyncWriteBuffer() got SIGPIPE";
+                LOG1 << "AsyncWriteBuffer() got EPIPE";
                 DoCallback();
                 return false;
             }
@@ -417,7 +417,7 @@ public:
             written_size_ = block_.size();
 
             if (errno == EPIPE) {
-                LOG1 << "AsyncWriteBlock() got SIGPIPE";
+                LOG1 << "AsyncWriteBlock() got EPIPE";
                 DoCallback();
                 return false;
             }
@@ -442,6 +442,8 @@ public:
             callback_(*conn_);
             callback_ = AsyncWriteCallback();
         }
+        // release Pin
+        block_.Reset();
     }
 
     //! Returns conn_

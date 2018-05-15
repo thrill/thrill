@@ -147,6 +147,12 @@ Multiplexer::Multiplexer(mem::Manager& mem_manager, BlockPool& block_pool,
         num_parallel_async_ = std::max(size_t(1), num_parallel_async_);
     }
 
+    // calculate send queue size limit for StreamData semaphores
+    send_size_limit_ = block_pool.hard_ram_limit() / workers_per_host / 4;
+    if (send_size_limit_ < 2 * default_block_size)
+        send_size_limit_ = 2 * default_block_size;
+
+    // launch initial async reads
     for (size_t id = 0; id < group_.num_hosts(); id++) {
         if (id == group_.my_host_rank()) continue;
         AsyncReadMultiplexerHeader(id, group_.connection(id));
@@ -198,7 +204,8 @@ CatStreamDataPtr Multiplexer::IntGetOrCreateCatStreamData(
     size_t id, size_t local_worker_id, size_t dia_id) {
     CatStreamDataPtr ptr =
         d_->stream_sets_.GetOrCreate<CatStreamSet>(
-            id, *this, id, workers_per_host_, dia_id)->Peer(local_worker_id);
+            id, *this, send_size_limit_, id,
+            workers_per_host_, dia_id)->Peer(local_worker_id);
     // update dia_id: the stream may have been created before the DIANode
     // associated with it.
     if (ptr->dia_id_ == 0)
@@ -229,7 +236,8 @@ MixStreamDataPtr Multiplexer::IntGetOrCreateMixStreamData(
     size_t id, size_t local_worker_id, size_t dia_id) {
     MixStreamDataPtr ptr =
         d_->stream_sets_.GetOrCreate<MixStreamSet>(
-            id, *this, id, workers_per_host_, dia_id)->Peer(local_worker_id);
+            id, *this, send_size_limit_, id,
+            workers_per_host_, dia_id)->Peer(local_worker_id);
     // update dia_id: the stream may have been created before the DIANode
     // associated with it.
     if (ptr->dia_id_ == 0)

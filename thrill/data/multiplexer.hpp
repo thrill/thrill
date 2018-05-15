@@ -166,6 +166,9 @@ private:
     //! number of parallel recv requests
     size_t num_parallel_async_;
 
+    //! Calculated send queue size limit for StreamData semaphores
+    size_t send_size_limit_;
+
     //! number of active Cat/MixStreams
     std::atomic<size_t> active_streams_ { 0 };
 

@@ -1620,8 +1620,9 @@ public:
                const Comparator& comparator = Comparator()) const;
 
     /*!
-     * PrefixSum is a DOp, which computes the prefix sum of all elements. The sum
-     * function defines how two elements are combined to a single element.
+     * PrefixSum is a DOp, which computes the (inclusive) prefix sum of all
+     * elements. The sum function defines how two elements are combined to a
+     * single element.
      *
      * \param sum_function Sum function (any associative function).
      *
@@ -1632,6 +1633,21 @@ public:
     template <typename SumFunction = std::plus<ValueType> >
     auto PrefixSum(const SumFunction& sum_function = SumFunction(),
                    const ValueType& initial_element = ValueType()) const;
+
+    /*!
+     * ExPrefixSum is a DOp, which computes the exclusive prefix sum of all
+     * elements. The sum function defines how two elements are combined to a
+     * single element.
+     *
+     * \param sum_function Sum function (any associative function).
+     *
+     * \param initial_element Initial element of the sum function.
+     *
+     * \ingroup dia_dops
+     */
+    template <typename SumFunction = std::plus<ValueType> >
+    auto ExPrefixSum(const SumFunction& sum_function = SumFunction(),
+                     const ValueType& initial_element = ValueType()) const;
 
     /*!
      * Window is a DOp, which applies a window function to every k

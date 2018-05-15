@@ -187,7 +187,7 @@ void qsort_two_pivots_yaroslavskiy(Iterator lo, Iterator hi, Compare cmp) {
     using value_type = typename std::iterator_traits<Iterator>::value_type;
     using std::swap;
 
-    if (lo + 32 > hi)
+    if (hi - lo < 32)
         return qsort_local::InsertionSort<Compare>(lo, hi, cmp);
 
     size_t n = hi - lo;

@@ -78,8 +78,8 @@ public:
         size_t my_worker_rank_;
     };
 
-    StreamData(Multiplexer& multiplexer, const StreamId& id,
-               size_t local_worker_id, size_t dia_id);
+    StreamData(Multiplexer& multiplexer, size_t send_size_limit,
+               const StreamId& id, size_t local_worker_id, size_t dia_id);
 
     virtual ~StreamData();
 
@@ -139,6 +139,10 @@ public:
     //! Timers from first rx / tx package until rx / tx direction is closed.
     common::StatsTimerStopped tx_timespan_, rx_timespan_;
 
+    //! semaphore to stall the amount of PinnedBlocks (measured in bytes) passed
+    //! to the network layer for transmission.
+    common::Semaphore sem_queue_;
+
     ///////////////////////////////////////////////////////////////////////////
 
 protected:
@@ -190,11 +194,12 @@ public:
 
     //! Creates a StreamSet with the given number of streams (num workers per
     //! host).
-    StreamSet(Multiplexer& multiplexer, StreamId id,
-              size_t workers_per_host, size_t dia_id) {
+    StreamSet(Multiplexer& multiplexer, size_t send_size_limit,
+              StreamId id, size_t workers_per_host, size_t dia_id) {
         for (size_t i = 0; i < workers_per_host; ++i) {
             streams_.emplace_back(
-                tlx::make_counting<StreamData>(multiplexer, id, i, dia_id));
+                tlx::make_counting<StreamData>(
+                    multiplexer, send_size_limit, id, i, dia_id));
         }
         remaining_ = workers_per_host;
     }

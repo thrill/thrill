@@ -216,10 +216,10 @@ public:
             size_t merge_degree, prefetch;
 
             // merge batches of files if necessary
-            while (files_.size() > MaxMergeDegreePrefetch().first)
+            while (std::tie(merge_degree, prefetch) =
+                       context_.block_pool().MaxMergeDegreePrefetch(files_.size()),
+                   files_.size() > merge_degree)
             {
-                std::tie(merge_degree, prefetch) = MaxMergeDegreePrefetch();
-
                 sLOG1 << "Partial multi-way-merge of"
                       << merge_degree << "files with prefetch" << prefetch;
 
@@ -227,8 +227,10 @@ public:
                 std::vector<data::File::ConsumeReader> seq;
                 seq.reserve(merge_degree);
 
-                for (size_t t = 0; t < merge_degree; ++t)
-                    seq.emplace_back(files_[t].GetConsumeReader(0));
+                for (size_t t = 0; t < merge_degree; ++t) {
+                    seq.emplace_back(
+                        files_[t].GetConsumeReader(/* prefetch */ 0));
+                }
 
                 StartPrefetch(seq, prefetch);
 
@@ -254,8 +256,12 @@ public:
             std::vector<data::File::Reader> seq;
             seq.reserve(num_runs);
 
-            for (size_t t = 0; t < num_runs; ++t)
-                seq.emplace_back(files_[t].GetReader(consume));
+            for (size_t t = 0; t < num_runs; ++t) {
+                seq.emplace_back(
+                    files_[t].GetReader(consume, /* prefetch */ 0));
+            }
+
+            StartPrefetch(seq, prefetch);
 
             LOG << "start multiwaymerge for real";
             auto puller = core::make_multiway_merge_tree<ValueIn>(
@@ -366,24 +372,6 @@ private:
             << " name=mainop"
             << " time=" << timer
             << " number_files=" << files_.size();
-    }
-
-    //! calculate maximum merging degree from available memory and the number of
-    //! files. additionally calculate the prefetch size of each File.
-    std::pair<size_t, size_t> MaxMergeDegreePrefetch() {
-        size_t avail_blocks = DIABase::mem_limit_ / data::default_block_size;
-        if (files_.size() >= avail_blocks) {
-            // more files than blocks available -> partial merge of avail_blocks
-            // Files with prefetch = 0, which is one read Block per File.
-            return std::make_pair(avail_blocks, 0u);
-        }
-        else {
-            // less files than available Blocks -> split blocks equally among
-            // Files.
-            return std::make_pair(
-                files_.size(),
-                std::min<size_t>(16u, (avail_blocks / files_.size()) - 1));
-        }
     }
 };
 

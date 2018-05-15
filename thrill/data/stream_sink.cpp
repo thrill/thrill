@@ -141,8 +141,6 @@ void StreamSink::AppendPinnedBlock(PinnedBlock&& block, bool is_last_block) {
             my_worker_rank(), block_counter_ - 1, std::move(block));
     }
 
-    sem_.wait();
-
     LOG0 << "StreamSink::AppendPinnedBlock()"
          << " data=" << tlx::hexdump(block.ToString());
 
@@ -159,9 +157,12 @@ void StreamSink::AppendPinnedBlock(PinnedBlock&& block, bool is_last_block) {
     net::Buffer buffer = bb.ToBuffer();
     assert(buffer.size() == MultiplexerHeader::total_size);
 
+    size_t send_size = buffer.size() + block.size();
+    stream_->sem_queue_.wait(send_size);
+
     // StreamData statistics for network transfer
     stream_->tx_net_items_ += block.num_items();
-    stream_->tx_net_bytes_ += buffer.size() + block.size();
+    stream_->tx_net_bytes_ += send_size;
     stream_->tx_net_blocks_++;
     byte_counter_ += buffer.size();
 
@@ -169,16 +170,13 @@ void StreamSink::AppendPinnedBlock(PinnedBlock&& block, bool is_last_block) {
         *connection_, 42 + (connection_->tx_seq_.fetch_add(2) & 0xFFFF),
         // send out Buffer and Block, guaranteed to be successive
         std::move(buffer), std::move(block),
-        [this](net::Connection&) { sem_.signal(); });
+        [s = stream_, send_size](net::Connection&) {
+            s->sem_queue_.signal(send_size);
+        });
 
     if (is_last_block) {
         assert(!closed_);
         closed_ = true;
-
-        // wait for the last Blocks to be transmitted (take away semaphore
-        // tokens)
-        for (size_t i = 0; i < num_queue_; ++i)
-            sem_.wait();
 
         LOG << "StreamSink::AppendPinnedBlock()"
             << " sent 'piggy-backed close stream' id=" << id_
@@ -215,10 +213,6 @@ void StreamSink::Close() {
             my_worker_rank(), block_counter_ - 1, PinnedBlock());
     }
 
-    // wait for the last Blocks to be transmitted (take away semaphore tokens)
-    for (size_t i = 0; i < num_queue_; ++i)
-        sem_.wait();
-
     StreamMultiplexerHeader header;
     header.magic = magic_;
     header.stream_id = id_;
@@ -232,6 +226,8 @@ void StreamSink::Close() {
     net::Buffer buffer = bb.ToBuffer();
     assert(buffer.size() == MultiplexerHeader::total_size);
 
+    stream_->sem_queue_.wait(MultiplexerHeader::total_size);
+
     // StreamData statistics for network transfer
     stream_->tx_net_bytes_ += buffer.size();
     stream_->tx_net_blocks_++;
@@ -239,7 +235,10 @@ void StreamSink::Close() {
 
     stream_->multiplexer_.dispatcher_.AsyncWrite(
         *connection_, 42 + (connection_->tx_seq_.fetch_add(2) & 0xFFFF),
-        std::move(buffer));
+        std::move(buffer),
+        [s = stream_](net::Connection&) {
+            s->sem_queue_.signal(MultiplexerHeader::total_size);
+        });
 
     Finalize();
 }

@@ -122,7 +122,8 @@ private:
         void WaitCounter(size_t this_step) {
 #if THRILL_HAVE_THREAD_SANITIZER
             std::unique_lock<std::mutex> lock(mutex);
-            cv.wait(lock, [&]() { return (counter != this_step); });
+            while (counter != this_step)
+                cv.wait(lock);
 #else
             // busy wait on generation counter of predecessor
             while (counter.load(std::memory_order_relaxed) != this_step) { }
@@ -232,9 +233,8 @@ public:
      */
     template <typename T, typename BinarySumOp = std::plus<T> >
     T TLX_ATTRIBUTE_WARN_UNUSED_RESULT
-    PrefixSum(const T& value, const T& initial = T(),
-              const BinarySumOp& sum_op = BinarySumOp(),
-              bool inclusive = true) {
+    PrefixSumBase(const T& value, const BinarySumOp& sum_op = BinarySumOp(),
+                  const T& initial = T(), bool inclusive = true) {
 
         RunTimer run_timer(timer_prefixsum_);
         if (enable_stats || debug) ++count_prefixsum_;
@@ -266,11 +266,7 @@ public:
                 }
 
                 T base_sum = local_sum;
-                group_.ExPrefixSum(base_sum, sum_op);
-
-                if (host_rank_ == 0) {
-                    base_sum = initial;
-                }
+                group_.ExPrefixSum(base_sum, sum_op, initial);
 
                 if (inclusive) {
                     for (size_t i = 0; i < thread_count_; i++) {
@@ -294,6 +290,27 @@ public:
     }
 
     /*!
+     * Calculates the inclusive prefix sum over all workers, given a certain sum
+     * operation.
+     *
+     * This method blocks until the sum is caluclated. Values are applied in
+     * order, that means sum_op(sum_op(a, b), c) if a, b, c are the values of
+     * workers 0, 1, 2.
+     *
+     * \param value The local value of this worker.
+     * \param sum_op The operation to use for
+     * \param initial The initial element of the body defined by T and SumOp
+     * calculating the prefix sum. The default operation is a normal addition.
+     * \return The prefix sum for the position of this worker.
+     */
+    template <typename T, typename BinarySumOp = std::plus<T> >
+    T TLX_ATTRIBUTE_WARN_UNUSED_RESULT
+    PrefixSum(const T& value, const BinarySumOp& sum_op = BinarySumOp(),
+              const T& initial = T()) {
+        return PrefixSumBase(value, sum_op, initial, true);
+    }
+
+    /*!
      * Calculates the exclusive prefix sum over all workers, given a certain sum
      * operation.
      *
@@ -309,9 +326,9 @@ public:
      */
     template <typename T, typename BinarySumOp = std::plus<T> >
     T TLX_ATTRIBUTE_WARN_UNUSED_RESULT
-    ExPrefixSum(const T& value, const T& initial = T(),
-                const BinarySumOp& sum_op = BinarySumOp()) {
-        return PrefixSum(value, initial, sum_op, false);
+    ExPrefixSum(const T& value, const BinarySumOp& sum_op = BinarySumOp(),
+                const T& initial = T()) {
+        return PrefixSumBase(value, sum_op, initial, false);
     }
 
     /*!
@@ -331,8 +348,8 @@ public:
      */
     template <typename T, typename BinarySumOp = std::plus<T> >
     T TLX_ATTRIBUTE_WARN_UNUSED_RESULT
-    ExPrefixSumTotal(T& value, const T& initial = T(),
-                     const BinarySumOp& sum_op = BinarySumOp()) {
+    ExPrefixSumTotal(T& value, const BinarySumOp& sum_op = BinarySumOp(),
+                     const T& initial = T()) {
 
         RunTimer run_timer(timer_prefixsum_);
         if (enable_stats || debug) ++count_prefixsum_;
@@ -365,16 +382,12 @@ public:
                 }
 
                 T base_sum = local_sum;
-                group_.ExPrefixSum(base_sum, sum_op);
+                group_.ExPrefixSum(base_sum, sum_op, initial);
 
                 T total_sum;
                 if (host_rank_ + 1 == num_hosts_)
                     total_sum = sum_op(base_sum, local_sum);
                 group_.Broadcast(total_sum, num_hosts_ - 1);
-
-                if (host_rank_ == 0) {
-                    base_sum = initial;
-                }
 
                 for (size_t i = thread_count_ - 1; i > 0; --i) {
                     *(locals[i]->first) = sum_op(base_sum, *(locals[i - 1]->first));
@@ -711,31 +724,37 @@ public:
 
 #if !defined(_MSC_VER)
 
-extern template size_t FlowControlChannel::PrefixSum(
-    const size_t&, const size_t&, const std::plus<size_t>&, bool);
+extern template size_t FlowControlChannel::PrefixSumBase(
+    const size_t&, const std::plus<size_t>&, const size_t&, bool);
 
-extern template std::array<size_t, 2> FlowControlChannel::PrefixSum(
-    const std::array<size_t, 2>&, const std::array<size_t, 2>&,
-    const common::ComponentSum<std::array<size_t, 2> >&, bool);
-extern template std::array<size_t, 3> FlowControlChannel::PrefixSum(
-    const std::array<size_t, 3>&, const std::array<size_t, 3>&,
-    const common::ComponentSum<std::array<size_t, 3> >&, bool);
-extern template std::array<size_t, 4> FlowControlChannel::PrefixSum(
-    const std::array<size_t, 4>&, const std::array<size_t, 4>&,
-    const common::ComponentSum<std::array<size_t, 4> >&, bool);
+extern template std::array<size_t, 2> FlowControlChannel::PrefixSumBase(
+    const std::array<size_t, 2>&,
+    const common::ComponentSum<std::array<size_t, 2> >&,
+    const std::array<size_t, 2>&, bool);
+extern template std::array<size_t, 3> FlowControlChannel::PrefixSumBase(
+    const std::array<size_t, 3>&,
+    const common::ComponentSum<std::array<size_t, 3> >&,
+    const std::array<size_t, 3>&, bool);
+extern template std::array<size_t, 4> FlowControlChannel::PrefixSumBase(
+    const std::array<size_t, 4>&,
+    const common::ComponentSum<std::array<size_t, 4> >&,
+    const std::array<size_t, 4>&, bool);
 
 extern template size_t FlowControlChannel::ExPrefixSumTotal(
-    size_t&, const size_t&, const std::plus<size_t>&);
+    size_t&, const std::plus<size_t>&, const size_t&);
 
 extern template std::array<size_t, 2> FlowControlChannel::ExPrefixSumTotal(
-    std::array<size_t, 2>&, const std::array<size_t, 2>&,
-    const common::ComponentSum<std::array<size_t, 2> >&);
+    std::array<size_t, 2>&,
+    const common::ComponentSum<std::array<size_t, 2> >&,
+    const std::array<size_t, 2>&);
 extern template std::array<size_t, 3> FlowControlChannel::ExPrefixSumTotal(
-    std::array<size_t, 3>&, const std::array<size_t, 3>&,
-    const common::ComponentSum<std::array<size_t, 3> >&);
+    std::array<size_t, 3>&,
+    const common::ComponentSum<std::array<size_t, 3> >&,
+    const std::array<size_t, 3>&);
 extern template std::array<size_t, 4> FlowControlChannel::ExPrefixSumTotal(
-    std::array<size_t, 4>&, const std::array<size_t, 4>&,
-    const common::ComponentSum<std::array<size_t, 4> >&);
+    std::array<size_t, 4>&,
+    const common::ComponentSum<std::array<size_t, 4> >&,
+    const std::array<size_t, 4>&);
 
 extern template size_t FlowControlChannel::Broadcast(const size_t&, size_t);
 

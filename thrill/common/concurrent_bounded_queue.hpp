@@ -133,7 +133,8 @@ public:
     //! destination. If no item is in the queue, wait until there is one.
     void pop(T& destination) {
         std::unique_lock<std::mutex> lock(mutex_);
-        cv_.wait(lock, [=]() { return !queue_.empty(); });
+        while (queue_.empty())
+            cv_.wait(lock);
         destination = std::move(queue_.front());
         queue_.pop();
     }

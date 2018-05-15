@@ -63,13 +63,15 @@ public:
     //! Receive a whole data::File of ValueType, but only if our stack is empty.
     bool OnPreOpFile(const data::File& file, size_t /* parent_index */) final {
         if (!parent_stack_empty_) {
-            LOG1 << "Collapse rejected File from parent "
-                 << "due to non-empty function stack.";
+            LOGC(context_.my_rank() == 0)
+                << "Collapse rejected File from parent "
+                << "due to non-empty function stack.";
             return false;
         }
 
         // forward file
-        LOG1 << "Collapse accepted File from parent";
+        LOGC(context_.my_rank() == 0)
+            << "Collapse accepted File from parent";
         data::File file_copy = file.Copy();
         this->PushFile(file_copy, /* consume */ true);
         return true;

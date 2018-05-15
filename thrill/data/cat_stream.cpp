@@ -25,9 +25,10 @@
 namespace thrill {
 namespace data {
 
-CatStreamData::CatStreamData(Multiplexer& multiplexer, const StreamId& id,
+CatStreamData::CatStreamData(Multiplexer& multiplexer, size_t send_size_limit,
+                             const StreamId& id,
                              size_t local_worker_id, size_t dia_id)
-    : StreamData(multiplexer, id, local_worker_id, dia_id) {
+    : StreamData(multiplexer, send_size_limit, id, local_worker_id, dia_id) {
 
     remaining_closing_blocks_ = (num_hosts() - 1) * workers_per_host();
 
@@ -81,7 +82,8 @@ void CatStreamData::set_dia_id(size_t dia_id) {
 
 CatStreamData::Writers CatStreamData::GetWriters() {
     size_t hard_ram_limit = multiplexer_.block_pool_.hard_ram_limit();
-    size_t block_size_base = hard_ram_limit / 16 / multiplexer_.num_workers();
+    size_t block_size_base = hard_ram_limit / 4
+        / multiplexer_.num_workers() / multiplexer_.workers_per_host();
     size_t block_size = tlx::round_down_to_power_of_two(block_size_base);
     if (block_size == 0 || block_size > default_block_size)
         block_size = default_block_size;
@@ -94,7 +96,8 @@ CatStreamData::Writers CatStreamData::GetWriters() {
                      multiplexer_.active_streams_.load());
     }
 
-    LOG << "CatStreamData::GetWriters()"
+    LOGC(my_worker_rank() == 0 && 1)
+        << "CatStreamData::GetWriters()"
         << " hard_ram_limit=" << hard_ram_limit
         << " block_size_base=" << block_size_base
         << " block_size=" << block_size
