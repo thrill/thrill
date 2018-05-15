@@ -173,6 +173,15 @@ TEST(LocalTcpGroup, PredecessorOneItem) {
 TEST(LocalTcpGroup, HardcoreRaceConditionTest) {
     LocalGroupTest(TestHardcoreRaceConditionTest);
 }
+TEST(LocalTcpGroup, AllGather) {
+    LocalGroupTest(TestAllGather);
+}
+TEST(LocalTcpGroup, AllGatherMultiThreaded) {
+    LocalGroupTest(TestAllGatherMultiThreaded);
+}
+TEST(LocalTcpGroup, AllGatherString) {
+    LocalGroupTest(TestAllGatherString);
+}
 // [[[end]]]
 
 /******************************************************************************/

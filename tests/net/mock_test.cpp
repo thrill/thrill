@@ -136,6 +136,15 @@ TEST(MockGroup, PredecessorOneItem) {
 TEST(MockGroup, HardcoreRaceConditionTest) {
     MockTestLess(TestHardcoreRaceConditionTest);
 }
+TEST(MockGroup, AllGather) {
+    MockTest(TestAllGather);
+}
+TEST(MockGroup, AllGatherMultiThreaded) {
+    MockTest(TestAllGatherMultiThreaded);
+}
+TEST(MockGroup, AllGatherString) {
+    MockTest(TestAllGatherString);
+}
 // [[[end]]]
 
 /******************************************************************************/

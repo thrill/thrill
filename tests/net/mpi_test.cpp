@@ -126,6 +126,15 @@ TEST(MpiGroup, PredecessorOneItem) {
 TEST(MpiGroup, HardcoreRaceConditionTest) {
     MpiTest(TestHardcoreRaceConditionTest);
 }
+TEST(MpiGroup, AllGather) {
+    MpiTest(TestAllGather);
+}
+TEST(MpiGroup, AllGatherMultiThreaded) {
+    MpiTest(TestAllGatherMultiThreaded);
+}
+TEST(MpiGroup, AllGatherString) {
+    MpiTest(TestAllGatherString);
+}
 // [[[end]]]
 
 /******************************************************************************/

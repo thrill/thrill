@@ -274,7 +274,7 @@ public:
     //! SendReceive any serializable POD item T.
     template <typename T>
     typename std::enable_if<std::is_pod<T>::value, void>::type
-    SendReceive(const T& value, T* out_value) {
+    SendReceive(const T* value, T* out_value, size_t n = 1) {
         if (self_verify_ && is_loopback_) {
             // for communication verification, send/receive hash_code.
             size_t send_hash_code = typeid(T).hash_code(), recv_hash_code;
@@ -286,8 +286,9 @@ public:
                           "with different typeid!");
             }
         }
+
         // receive PODs directly into memory.
-        SyncSendRecv(&value, sizeof(value), out_value, sizeof(*out_value));
+        SyncSendRecv(value, n*sizeof(T), out_value, n*sizeof(T));
     }
 
     template <typename T>
@@ -313,7 +314,7 @@ public:
     typename std::enable_if<
         !std::is_pod<T>::value&&
         data::Serialization<BufferBuilder, T>::is_fixed_size, void>::type
-    SendReceive(const T& value, T* out_value) {
+    SendReceive(const T* value, T* out_value, size_t n = 1) {
         if (self_verify_ && is_loopback_) {
             // for communication verification, send/receive hash_code.
             size_t send_hash_code = typeid(T).hash_code(), recv_hash_code;
@@ -327,29 +328,16 @@ public:
         }
 
         // fixed_size items can be sent/recv without size header
-        static constexpr size_t fixed_size
-            = data::Serialization<BufferBuilder, T>::fixed_size;
-        if (fixed_size < 2 * 1024 * 1024) {
-            // allocate buffer on stack (no allocation)
-            using FixedBuilder = FixedBufferBuilder<fixed_size>;
-            FixedBuilder sendb;
-            data::Serialization<FixedBuilder, T>::Serialize(value, sendb);
-            assert(sendb.size() == fixed_size);
-            std::array<uint8_t, fixed_size> recvb;
-            SyncSendRecv(sendb.data(), sendb.size(),
-                         recvb.data(), recvb.size());
-            BufferReader br(recvb.data(), recvb.size());
-            *out_value = data::Serialization<BufferReader, T>::Deserialize(br);
+        BufferBuilder sendb(n*data::Serialization<BufferBuilder, T>::fixed_size);
+        for (size_t i = 0; i < n; ++i) {
+            data::Serialization<BufferBuilder, T>::Serialize(value[i], sendb);
         }
-        else {
-            // too big, use heap allocation
-            BufferBuilder sendb;
-            data::Serialization<BufferBuilder, T>::Serialize(value, sendb);
-            Buffer recvb(data::Serialization<BufferBuilder, T>::fixed_size);
-            SyncSendRecv(sendb.data(), sendb.size(),
-                         recvb.data(), recvb.size());
-            BufferReader br(recvb);
-            *out_value = data::Serialization<BufferReader, T>::Deserialize(br);
+        Buffer recvb(n*data::Serialization<BufferBuilder, T>::fixed_size);
+        SyncSendRecv(sendb.data(), sendb.size(),
+                     recvb.data(), recvb.size());
+        BufferReader br(recvb);
+        for (size_t i = 0; i < n; ++i) {
+            out_value[i] = data::Serialization<BufferReader, T>::Deserialize(br);
         }
     }
 
@@ -402,7 +390,7 @@ public:
     typename std::enable_if<
         !std::is_pod<T>::value&&
         !data::Serialization<BufferBuilder, T>::is_fixed_size, void>::type
-    SendReceive(const T& value, T* out_value) {
+    SendReceive(const T* value, T* out_value, size_t n = 1) {
         if (self_verify_ && is_loopback_) {
             // for communication verification, send/receive hash_code.
             size_t send_hash_code = typeid(T).hash_code(), recv_hash_code;
@@ -416,7 +404,9 @@ public:
         }
         // variable length items must be prefixed with size header
         BufferBuilder sendb;
-        data::Serialization<BufferBuilder, T>::Serialize(value, sendb);
+        for (size_t i = 0; i < n; ++i) {
+            data::Serialization<BufferBuilder, T>::Serialize(value[i], sendb);
+        }
         size_t send_size = sendb.size(), recv_size;
         SyncSendRecv(&send_size, sizeof(send_size),
                      &recv_size, sizeof(recv_size));
@@ -425,7 +415,9 @@ public:
         SyncSendRecv(sendb.data(), sendb.size(),
                      recvb.data(), recv_size);
         BufferReader br(recvb);
-        *out_value = data::Serialization<BufferReader, T>::Deserialize(br);
+        for (size_t i = 0; i < n; ++i) {
+            out_value[i] = data::Serialization<BufferReader, T>::Deserialize(br);
+        }
     }
 
     template <typename T>
@@ -456,6 +448,145 @@ public:
                      recvb.data(), recv_size);
         BufferReader br(recvb);
         *out_value = data::Serialization<BufferReader, T>::Deserialize(br);
+    }
+
+    //! \}
+
+    //! \name SendN Functions
+    //! \{
+
+    //! Send an array of serializable POD items T. if sending fails, a net::Exception is
+    //! thrown.
+    template <typename T>
+    typename std::enable_if<std::is_pod<T>::value, void>::type
+    SendN(const T* value, size_t n) {
+        if (self_verify_ && is_loopback_) {
+            // for communication verification, send hash_code.
+            size_t hash_code = typeid(T).hash_code();
+            SyncSend(&hash_code, sizeof(hash_code));
+        }
+        // send PODs directly from memory.
+        SyncSend(value, n*sizeof(T));
+    }
+
+    //! Send an array of serializable non-POD fixed-length items T. if sending fails, a
+    //! net::Exception is thrown.
+    template <typename T>
+    typename std::enable_if<
+        !std::is_pod<T>::value&&
+        data::Serialization<BufferBuilder, T>::is_fixed_size, void>::type
+    SendN(const T* value, size_t n) {
+        if (self_verify_ && is_loopback_) {
+            // for communication verification, send hash_code.
+            size_t hash_code = typeid(T).hash_code();
+            SyncSend(&hash_code, sizeof(hash_code));
+        }
+        // fixed_size items can be sent without size header
+        static constexpr size_t fixed_size
+            = data::Serialization<BufferBuilder, T>::fixed_size;
+        BufferBuilder bb(n*fixed_size);
+        for (size_t i = 0; i < n; ++i) {
+            data::Serialization<BufferBuilder, T>::Serialize(value[i], bb);
+        }
+        SyncSend(bb.data(), bb.size());
+    }
+
+    //! Send an array of serializable non-POD variable-length items T. if sending fails,
+    //! a net::Exception is thrown.
+    template <typename T>
+    typename std::enable_if<
+        !std::is_pod<T>::value&&
+        !data::Serialization<BufferBuilder, T>::is_fixed_size, void>::type
+    SendN(const T* value, size_t n) {
+        if (self_verify_ && is_loopback_) {
+            // for communication verification, send hash_code.
+            size_t hash_code = typeid(T).hash_code();
+            SyncSend(&hash_code, sizeof(hash_code));
+        }
+        // variable length items must be prefixed with size header
+        BufferBuilder bb;
+        for (size_t i = 0; i < n; ++i) {
+            data::Serialization<BufferBuilder, T>::Serialize(value[i], bb);
+        }
+        size_t size = bb.size();
+        SyncSend(&size, sizeof(size), MsgMore);
+        SyncSend(bb.data(), bb.size());
+    }
+
+    //! \}
+
+    //! \name ReceiveN Functions
+    //! \{
+
+    //! Receive an array of serializable POD items T.
+    template <typename T>
+    typename std::enable_if<std::is_pod<T>::value, void>::type
+    ReceiveN(T* out_value, size_t n) {
+        if (self_verify_ && is_loopback_) {
+            // for communication verification, receive hash_code.
+            size_t hash_code;
+            SyncRecv(&hash_code, sizeof(hash_code));
+            if (hash_code != typeid(T).hash_code()) {
+                throw std::runtime_error(
+                          "Connection::ReceiveN() attempted to receive item "
+                          "with different typeid!");
+            }
+        }
+        // receive PODs directly into memory.
+        SyncRecv(out_value, n*sizeof(T));
+    }
+
+    //! Receive an array of serializable non-POD fixed-length items T.
+    template <typename T>
+    typename std::enable_if<
+        !std::is_pod<T>::value&&
+        data::Serialization<BufferBuilder, T>::is_fixed_size, void>::type
+    ReceiveN(T* out_value, size_t n) {
+        if (self_verify_ && is_loopback_) {
+            // for communication verification, receive hash_code.
+            size_t hash_code;
+            SyncRecv(&hash_code, sizeof(hash_code));
+            if (hash_code != typeid(T).hash_code()) {
+                throw std::runtime_error(
+                          "Connection::ReceiveN() attempted to receive item "
+                          "with different typeid!");
+            }
+        }
+        // fixed_size items can be received without size header
+        Buffer b(n*data::Serialization<BufferBuilder, T>::fixed_size);
+        SyncRecv(b.data(), b.size());
+        BufferReader br(b);
+        for (size_t i = 0; i < n; ++i) {
+            out_value[i] = data::Serialization<BufferReader, T>::Deserialize(br);
+        }
+    }
+
+    //! Receive an array of serializable non-POD fixed-length items T.
+    template <typename T>
+    typename std::enable_if<
+        !std::is_pod<T>::value&&
+        !data::Serialization<BufferBuilder, T>::is_fixed_size, void>::type
+    ReceiveN(T* out_value, size_t n) {
+        if (self_verify_ && is_loopback_) {
+            // for communication verification, receive hash_code.
+            size_t hash_code;
+            SyncRecv(&hash_code, sizeof(hash_code));
+            if (hash_code != typeid(T).hash_code()) {
+                throw std::runtime_error(
+                          "Connection::ReceiveN() attempted to receive item "
+                          "with different typeid!");
+            }
+        }
+        // variable length items are prefixed with size header
+        size_t size;
+        SyncRecv(&size, sizeof(size));
+        // receives message
+        Buffer b(size);
+        SyncRecv(b.data(), size);
+        BufferReader br(b);
+        for (size_t i = 0; i < n; ++i) {
+            out_value[i] = data::Serialization<BufferReader, T>::Deserialize(br);
+        }
     }
 
     //! \}
