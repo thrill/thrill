@@ -25,7 +25,7 @@ struct MyStruct {
 
     bool operator < (const MyStruct& b) const { return key < b.key; }
 
-    friend std::ostream& operator << (std::ostream& os, const MyStruct& c) {
+    friend std ::ostream& operator << (std::ostream& os, const MyStruct& c) {
         return os << '(' << c.key << ',' << c.value << ')';
     }
 };
@@ -69,10 +69,10 @@ static void TestAddMyStructByHash(Context& ctx) {
 
     // process items with phase
     using Phase = core::ReducePrePhase<
-              MyStruct, size_t, MyStruct,
-              decltype(key_ex), decltype(red_fn),
-              /* VolatileKey */ false, data::File::Writer,
-              MyReduceConfig<table_impl> >;
+        MyStruct, size_t, MyStruct,
+        decltype(key_ex), decltype(red_fn),
+        /* VolatileKey */ false, data::File::Writer,
+        MyReduceConfig<table_impl> >;
 
     Phase phase(ctx, 0, num_partitions, key_ex, red_fn, emitters);
 
@@ -156,12 +156,12 @@ static void TestAddMyStructByIndex(Context& ctx) {
 
     // process items with phase
     using Phase = core::ReducePrePhase<
-              MyStruct, size_t, MyStruct,
-              decltype(key_ex), decltype(red_fn),
-              /* VolatileKey */ false,
-              data::File::Writer,
-              MyReduceConfig<table_impl>,
-              core::ReduceByIndex<size_t> >;
+        MyStruct, size_t, MyStruct,
+        decltype(key_ex), decltype(red_fn),
+        /* VolatileKey */ false,
+        data::File::Writer,
+        MyReduceConfig<table_impl>,
+        core::ReduceByIndex<size_t> >;
 
     Phase phase(ctx, 0,
                 num_partitions,

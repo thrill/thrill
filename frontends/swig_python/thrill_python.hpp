@@ -23,9 +23,9 @@
 #include <thrill/api/size.hpp>
 #include <thrill/common/string.hpp>
 
-#include <Python.h>
 #include <bytesobject.h>
 #include <marshal.h>
+#include <Python.h>
 
 #include <functional>
 #include <string>

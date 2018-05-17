@@ -266,7 +266,7 @@ public:
 
 #ifndef SWIG
     //! Outputs the context as [host id]:[local worker id] to an std::ostream
-    friend std::ostream& operator << (std::ostream& os, const Context& ctx) {
+    friend std ::ostream& operator << (std::ostream& os, const Context& ctx) {
         return os << ctx.host_rank() << ":" << ctx.local_worker_id();
     }
 #endif

@@ -431,9 +431,9 @@ class ReduceTableSelect<
 {
 public:
     using type = ReduceOldProbingHashTable<
-              TableItem, Key, Value, KeyExtractor, ReduceFunction,
-              Emitter, VolatileKey, ReduceConfig,
-              IndexFunction, KeyEqualFunction>;
+        TableItem, Key, Value, KeyExtractor, ReduceFunction,
+        Emitter, VolatileKey, ReduceConfig,
+        IndexFunction, KeyEqualFunction>;
 };
 
 } // namespace core

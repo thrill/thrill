@@ -107,7 +107,7 @@ TEST(BlockManager, Test1) {
 
 TEST(BlockManager, Test2) {
 
-    using block_type = io::TypedBlock<128* 1024, double>;
+    using block_type = io::TypedBlock<128 * 1024, double>;
     std::vector<block_type::bid_type> bids(32);
     std::vector<io::RequestPtr> requests;
     io::BlockManager* bm = io::BlockManager::GetInstance();

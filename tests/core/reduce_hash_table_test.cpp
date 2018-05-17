@@ -82,9 +82,9 @@ void TestAddMyStructModulo(Context& ctx) {
     Collector collector(13);
 
     using Table = HashTable<
-              MyStruct, size_t, MyStruct,
-              decltype(key_ex), decltype(red_fn), Collector,
-              /* VolatileKey */ false, MyReduceConfig>;
+        MyStruct, size_t, MyStruct,
+        decltype(key_ex), decltype(red_fn), Collector,
+        /* VolatileKey */ false, MyReduceConfig>;
 
     Table table(ctx, 0, key_ex, red_fn, collector,
                 /* num_partitions */ 13,

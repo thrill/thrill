@@ -159,7 +159,7 @@ public:
     }
 
     //! direct <<-operator for ostream. Can be used for printing with std::cout.
-    friend std::ostream& operator << (std::ostream& os, const StatsTimerBase& t) {
+    friend std ::ostream& operator << (std::ostream& os, const StatsTimerBase& t) {
         return os << t.SecondsDouble();
     }
 
@@ -250,7 +250,7 @@ public:
     }
 
     //! direct <<-operator for ostream. Can be used for printing with std::cout.
-    friend std::ostream& operator << (std::ostream& os, const StatsTimerBase&) {
+    friend std ::ostream& operator << (std::ostream& os, const StatsTimerBase&) {
         return os << "<invalid>";
     }
 

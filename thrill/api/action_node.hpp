@@ -84,7 +84,7 @@ class Future
 {
 public:
     using ActionResultNodePtr =
-              tlx::CountingPtr<ActionResultNode<ValueType> >;
+        tlx::CountingPtr<ActionResultNode<ValueType> >;
 
     explicit Future(const ActionResultNodePtr& node)
         : node_(node) { }

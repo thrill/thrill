@@ -172,11 +172,11 @@ void by_delete(T* value) {
 
 //! string without malloc tracking
 using by_string = std::basic_string<
-          char, std::char_traits<char>, BypassAllocator<char> >;
+    char, std::char_traits<char>, BypassAllocator<char> >;
 
 //! stringbuf without malloc tracking
 using by_stringbuf = std::basic_stringbuf<
-          char, std::char_traits<char>, BypassAllocator<char> >;
+    char, std::char_traits<char>, BypassAllocator<char> >;
 
 //! vector without malloc tracking
 template <typename T>

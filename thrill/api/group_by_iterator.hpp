@@ -148,7 +148,7 @@ public:
     using ValueIn = ValueType;
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
     using Puller = core::MultiwayMergeTree<
-              ValueIn, std::vector<data::File::Reader>::iterator, Comparator>;
+        ValueIn, std::vector<data::File::Reader>::iterator, Comparator>;
 
     GroupByMultiwayMergeIterator(Puller& reader, const KeyExtractor& key_extractor)
         : reader_(reader),

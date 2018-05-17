@@ -354,12 +354,12 @@ safe_unique_ptr<T> safe_make_unique(Args&& ... args) {
 //! alias for std::string except that its memory is allocated in the safer
 //! g_pool.
 using safe_string = std::basic_string<
-          char, std::char_traits<char>, mem::GPoolAllocator<char> >;
+    char, std::char_traits<char>, mem::GPoolAllocator<char> >;
 
 //! alias for std::ostringstream except that it uses the safer g_pool as
 //! allocator for the internal string buffer
 using safe_ostringstream = std::basic_ostringstream<
-          char, std::char_traits<char>, mem::GPoolAllocator<char> >;
+    char, std::char_traits<char>, mem::GPoolAllocator<char> >;
 
 } // namespace mem
 } // namespace thrill

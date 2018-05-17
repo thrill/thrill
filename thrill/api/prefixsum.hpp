@@ -137,7 +137,7 @@ auto DIA<ValueType, Stack>::PrefixSum(
     assert(IsValid());
 
     using PrefixSumNode = api::PrefixSumNode<
-              ValueType, SumFunction, /* Inclusive */ true>;
+        ValueType, SumFunction, /* Inclusive */ true>;
 
     static_assert(
         std::is_convertible<
@@ -171,7 +171,7 @@ auto DIA<ValueType, Stack>::ExPrefixSum(
     assert(IsValid());
 
     using PrefixSumNode = api::PrefixSumNode<
-              ValueType, SumFunction, /* Inclusive */ false>;
+        ValueType, SumFunction, /* Inclusive */ false>;
 
     static_assert(
         std::is_convertible<

@@ -43,7 +43,7 @@ class ZipWithIndexNode final : public DOpNode<ValueType>
     using Super::context_;
 
     using InputType =
-              typename common::FunctionTraits<ZipFunction>::template arg_plain<0>;
+        typename common::FunctionTraits<ZipFunction>::template arg_plain<0>;
 
 public:
     /*!
@@ -161,7 +161,7 @@ auto DIA<ValueType, Stack>::ZipWithIndex(
         " as second parameter");
 
     using ZipResult
-              = typename common::FunctionTraits<ZipFunction>::result_type;
+        = typename common::FunctionTraits<ZipFunction>::result_type;
 
     using ZipWithIndexNode = api::ZipWithIndexNode<ZipResult, ZipFunction>;
 

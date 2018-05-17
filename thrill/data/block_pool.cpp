@@ -228,16 +228,16 @@ std::ostream& operator << (std::ostream& os, const BlockPool::PinCount& p) {
 
 //! type of set of ByteBlocks currently begin written to EM.
 using WritingMap = std::unordered_map<
-          ByteBlock*, io::RequestPtr,
-          std::hash<ByteBlock*>, std::equal_to<>,
-          mem::GPoolAllocator<std::pair<ByteBlock* const, io::RequestPtr> > >;
+    ByteBlock*, io::RequestPtr,
+    std::hash<ByteBlock*>, std::equal_to<>,
+    mem::GPoolAllocator<std::pair<ByteBlock* const, io::RequestPtr> > >;
 
 //! type of set of ByteBlocks currently begin read from EM.
 using ReadingMap = std::unordered_map<
-          ByteBlock*, PinRequestPtr,
-          std::hash<ByteBlock*>, std::equal_to<>,
-          mem::GPoolAllocator<
-              std::pair<ByteBlock* const, PinRequestPtr> > >;
+    ByteBlock*, PinRequestPtr,
+    std::hash<ByteBlock*>, std::equal_to<>,
+    mem::GPoolAllocator<
+        std::pair<ByteBlock* const, PinRequestPtr> > >;
 
 class BlockPool::Data
 {

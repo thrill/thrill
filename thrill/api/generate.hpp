@@ -86,10 +86,10 @@ auto Generate(Context& ctx, size_t size,
               const GenerateFunction& generate_function) {
 
     using GenerateResult =
-              typename common::FunctionTraits<GenerateFunction>::result_type;
+        typename common::FunctionTraits<GenerateFunction>::result_type;
 
     using GenerateNode =
-              api::GenerateNode<GenerateResult, GenerateFunction>;
+        api::GenerateNode<GenerateResult, GenerateFunction>;
 
     static_assert(
         common::FunctionTraits<GenerateFunction>::arity == 1,

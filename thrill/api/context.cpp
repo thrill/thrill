@@ -1175,7 +1175,7 @@ struct OverallStats {
     //! maximum external memory allocation
     size_t io_max_allocation;
 
-    friend std::ostream& operator << (std::ostream& os, const OverallStats& c) {
+    friend std ::ostream& operator << (std::ostream& os, const OverallStats& c) {
         return os << "[OverallStats"
                   << " runtime=" << c.runtime
                   << " max_block_bytes=" << c.max_block_bytes

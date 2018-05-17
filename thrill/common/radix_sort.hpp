@@ -129,7 +129,7 @@ void radix_sort_CI(Iterator begin, Iterator end, size_t K,
 
     using CharRet = decltype(begin->at_radix(0));
     using Char = typename std::remove_cv<
-              typename std::remove_reference<CharRet>::type>::type;
+        typename std::remove_reference<CharRet>::type>::type;
 
     // allocate character cache once
     Char* char_cache = new Char[size];

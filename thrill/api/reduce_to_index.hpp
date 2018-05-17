@@ -67,8 +67,8 @@ class ReduceToIndexNode final : public DOpNode<ValueType>
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
 
     using TableItem =
-              typename std::conditional<
-                  VolatileKey, std::pair<Key, ValueType>, ValueType>::type;
+        typename std::conditional<
+            VolatileKey, std::pair<Key, ValueType>, ValueType>::type;
 
     static_assert(std::is_same<Key, size_t>::value,
                   "Key must be an unsigned integer");
@@ -282,7 +282,7 @@ auto DIA<ValueType, Stack>::ReduceToIndex(
     assert(IsValid());
 
     using DOpResult
-              = typename common::FunctionTraits<ReduceFunction>::result_type;
+        = typename common::FunctionTraits<ReduceFunction>::result_type;
 
     static_assert(
         std::is_convertible<
@@ -318,8 +318,8 @@ auto DIA<ValueType, Stack>::ReduceToIndex(
         "The key has to be an unsigned long int (aka. size_t).");
 
     using ReduceNode = ReduceToIndexNode<
-              DOpResult, KeyExtractor, ReduceFunction, ReduceConfig,
-              VolatileKeyValue, /* SkipPreReducePhase */ false>;
+        DOpResult, KeyExtractor, ReduceFunction, ReduceConfig,
+        VolatileKeyValue, /* SkipPreReducePhase */ false>;
 
     auto node = tlx::make_counting<ReduceNode>(
         *this, "ReduceToIndex", key_extractor, reduce_function,
@@ -340,7 +340,7 @@ auto DIA<ValueType, Stack>::ReduceToIndex(
     assert(IsValid());
 
     using DOpResult
-              = typename common::FunctionTraits<ReduceFunction>::result_type;
+        = typename common::FunctionTraits<ReduceFunction>::result_type;
 
     static_assert(
         std::is_convertible<
@@ -376,8 +376,8 @@ auto DIA<ValueType, Stack>::ReduceToIndex(
         "The key has to be an unsigned long int (aka. size_t).");
 
     using ReduceNode = ReduceToIndexNode<
-              DOpResult, KeyExtractor, ReduceFunction, ReduceConfig,
-              /* VolatileKey */ false, /* SkipPreReducePhase */ true>;
+        DOpResult, KeyExtractor, ReduceFunction, ReduceConfig,
+        /* VolatileKey */ false, /* SkipPreReducePhase */ true>;
 
     auto node = tlx::make_counting<ReduceNode>(
         *this, "ReduceToIndex", key_extractor, reduce_function,

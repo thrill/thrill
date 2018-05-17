@@ -170,7 +170,7 @@ public:
 //! Contains per block information for \c TypedBlock , not intended for direct use.
 template <typename Type, size_t RawSize, size_t NBids, typename MetaInfoType = void>
 class BlockWithInfo
-    : public BlockWithBids<Type, ((RawSize - sizeof(BID<RawSize>)* NBids - sizeof(MetaInfoType)) / sizeof(Type)), RawSize, NBids>
+    : public BlockWithBids<Type, ((RawSize - sizeof(BID<RawSize>) * NBids - sizeof(MetaInfoType)) / sizeof(Type)), RawSize, NBids>
 {
 public:
     //! Type of per block information element.
@@ -186,7 +186,7 @@ public:
 
 template <typename Type, size_t RawSize, size_t NBids>
 class BlockWithInfo<Type, RawSize, NBids, void>
-    : public BlockWithBids<Type, ((RawSize - sizeof(BID<RawSize>)* NBids) / sizeof(Type)), RawSize, NBids>
+    : public BlockWithBids<Type, ((RawSize - sizeof(BID<RawSize>) * NBids) / sizeof(Type)), RawSize, NBids>
 {
 public:
     using info_type = void;
@@ -248,7 +248,7 @@ class TypedBlock
           mng_local::BlockWithInfo<Type, RawSize, NRef, MetaInfoType>, RawSize>
 {
     using Base = mng_local::ExpandStruct<
-              mng_local::BlockWithInfo<Type, RawSize, NRef, MetaInfoType>, RawSize>;
+        mng_local::BlockWithInfo<Type, RawSize, NRef, MetaInfoType>, RawSize>;
 
     static constexpr bool debug = false;
 

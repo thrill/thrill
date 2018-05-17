@@ -217,11 +217,11 @@ unique_ptr<T> make_unique(Manager& manager, Args&& ... args) {
 
 //! string with Manager tracking
 using string = std::basic_string<
-          char, std::char_traits<char>, Allocator<char> >;
+    char, std::char_traits<char>, Allocator<char> >;
 
 //! stringbuf with Manager tracking
 using stringbuf = std::basic_stringbuf<
-          char, std::char_traits<char>, Allocator<char> >;
+    char, std::char_traits<char>, Allocator<char> >;
 
 //! vector with Manager tracking
 template <typename T>

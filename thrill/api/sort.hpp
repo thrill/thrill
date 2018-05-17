@@ -741,7 +741,7 @@ auto DIA<ValueType, Stack>::Sort(const CompareFunction& compare_function) const 
     assert(IsValid());
 
     using SortNode = api::SortNode<
-              ValueType, CompareFunction, DefaultSortAlgorithm>;
+        ValueType, CompareFunction, DefaultSortAlgorithm>;
 
     static_assert(
         std::is_convertible<
@@ -773,7 +773,7 @@ auto DIA<ValueType, Stack>::Sort(const CompareFunction& compare_function,
     assert(IsValid());
 
     using SortNode = api::SortNode<
-              ValueType, CompareFunction, SortAlgorithm>;
+        ValueType, CompareFunction, SortAlgorithm>;
 
     static_assert(
         std::is_convertible<

@@ -221,7 +221,7 @@ public:
     }
 
     //! make ostream-able
-    friend std::ostream& operator << (std::ostream& os, const Buffer& b) {
+    friend std ::ostream& operator << (std::ostream& os, const Buffer& b) {
         return os << "[Buffer size=" << b.size() << "]";
     }
 

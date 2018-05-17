@@ -191,12 +191,12 @@ void CEREAL_LOAD_FUNCTION_NAME(
 
 template <typename Archive, typename T>
 struct Serialization<Archive, T, typename std::enable_if<
-                         cereal::traits::is_input_serializable<T, Archive>::value&&
-                         !std::is_pod<T>::value&&
-                         !std::is_same<T, std::string>::value&&
-                         !tlx::is_std_pair<T>::value&&
-                         !tlx::is_std_array<T>::value&&
-                         !tlx::is_std_vector<T>::value&&
+                         cereal::traits::is_input_serializable<T, Archive>::value &&
+                         !std::is_pod<T>::value &&
+                         !std::is_same<T, std::string>::value &&
+                         !tlx::is_std_pair<T>::value &&
+                         !tlx::is_std_array<T>::value &&
+                         !tlx::is_std_vector<T>::value &&
                          !tlx::is_std_tuple<T>::value
                          >::type>{
     static void Serialize(const T& t, Archive& ar) {

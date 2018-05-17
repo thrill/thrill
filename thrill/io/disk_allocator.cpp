@@ -39,8 +39,8 @@ struct FirstFit : public std::binary_function<Place, int64_t, bool>{
 };
 
 using SortSeq = std::map<
-          int64_t, int64_t, std::less<int64_t>,
-          mem::GPoolAllocator<std::pair<const int64_t, int64_t> > >;
+    int64_t, int64_t, std::less<int64_t>,
+    mem::GPoolAllocator<std::pair<const int64_t, int64_t> > >;
 
 struct DiskAllocator::Data {
     //! map of free space

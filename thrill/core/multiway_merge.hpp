@@ -29,7 +29,7 @@ public:
     using Reader = typename std::iterator_traits<ReaderIterator>::value_type;
 
     using LoserTreeType = tlx::LoserTree<
-              /* stable */ false, ValueType, Comparator>;
+        /* stable */ false, ValueType, Comparator>;
 
     MultiwayMergeTree(ReaderIterator readers_begin, ReaderIterator readers_end,
                       const Comparator& comp)

@@ -104,8 +104,8 @@ public:
 
     using ReduceConfig = ReduceConfig_;
     using TableItem =
-              typename std::conditional<
-                  VolatileKey, std::pair<Key, Value>, Value>::type;
+        typename std::conditional<
+            VolatileKey, std::pair<Key, Value>, Value>::type;
     using MakeTableItem = ReduceMakeTableItem<Value, TableItem, VolatileKey>;
 
     ReduceTable(

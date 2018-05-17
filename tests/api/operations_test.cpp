@@ -67,7 +67,7 @@ public:
         return Integer(ar.template GetRaw<size_t>());
     }
 
-    friend std::ostream& operator << (std::ostream& os, const Integer& i) {
+    friend std ::ostream& operator << (std::ostream& os, const Integer& i) {
         return os << i.value_;
     }
 

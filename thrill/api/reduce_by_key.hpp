@@ -72,8 +72,8 @@ private:
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
 
     using TableItem =
-              typename std::conditional<
-                  VolatileKey, std::pair<Key, ValueType>, ValueType>::type;
+        typename std::conditional<
+            VolatileKey, std::pair<Key, ValueType>, ValueType>::type;
 
     using HashIndexFunction = core::ReduceByHash<Key, KeyHashFunction>;
 
@@ -321,7 +321,7 @@ auto DIA<ValueType, Stack>::ReduceByKey(
     assert(IsValid());
 
     using DOpResult
-              = typename common::FunctionTraits<ReduceFunction>::result_type;
+        = typename common::FunctionTraits<ReduceFunction>::result_type;
 
     static_assert(
         std::is_convertible<
@@ -351,9 +351,9 @@ auto DIA<ValueType, Stack>::ReduceByKey(
         "KeyExtractor has the wrong input type");
 
     using ReduceNode = api::ReduceNode<
-              DOpResult, KeyExtractor, ReduceFunction, ReduceConfig,
-              KeyHashFunction, KeyEqualFunction,
-              VolatileKeyValue, DuplicateDetectionValue>;
+        DOpResult, KeyExtractor, ReduceFunction, ReduceConfig,
+        KeyHashFunction, KeyEqualFunction,
+        VolatileKeyValue, DuplicateDetectionValue>;
 
     auto node = tlx::make_counting<ReduceNode>(
         *this, "ReduceByKey",
@@ -417,7 +417,7 @@ auto DIA<ValueType, Stack>::ReducePair(
     assert(IsValid());
 
     using DOpResult
-              = typename common::FunctionTraits<ReduceFunction>::result_type;
+        = typename common::FunctionTraits<ReduceFunction>::result_type;
 
     static_assert(tlx::is_std_pair<ValueType>::value,
                   "ValueType is not a pair");
@@ -450,10 +450,10 @@ auto DIA<ValueType, Stack>::ReducePair(
         };
 
     using ReduceNode = api::ReduceNode<
-              ValueType,
-              decltype(key_extractor), decltype(reduce_pair_function),
-              ReduceConfig, KeyHashFunction, KeyEqualFunction,
-              /* VolatileKey */ false, DuplicateDetectionValue>;
+        ValueType,
+        decltype(key_extractor), decltype(reduce_pair_function),
+        ReduceConfig, KeyHashFunction, KeyEqualFunction,
+        /* VolatileKey */ false, DuplicateDetectionValue>;
 
     auto node = tlx::make_counting<ReduceNode>(
         *this, "ReducePair",

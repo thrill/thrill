@@ -47,7 +47,7 @@ class GroupToIndexNode final : public DOpNode<ValueType>
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
     using ValueOut = ValueType;
     using ValueIn =
-              typename common::FunctionTraits<KeyExtractor>::template arg_plain<0>;
+        typename common::FunctionTraits<KeyExtractor>::template arg_plain<0>;
 
     class ValueComparator
     {
@@ -264,7 +264,7 @@ auto DIA<ValueType, Stack>::GroupToIndex(
     const ValueOut& neutral_element) const {
 
     using DOpResult
-              = ValueOut;
+        = ValueOut;
 
     static_assert(
         std::is_same<
@@ -274,7 +274,7 @@ auto DIA<ValueType, Stack>::GroupToIndex(
         "KeyExtractor has the wrong input type");
 
     using GroupToIndexNode
-              = GroupToIndexNode<DOpResult, KeyExtractor, GroupFunction>;
+        = GroupToIndexNode<DOpResult, KeyExtractor, GroupFunction>;
 
     auto node = tlx::make_counting<GroupToIndexNode>(
         *this, key_extractor, groupby_function, result_size, neutral_element);

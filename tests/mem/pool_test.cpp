@@ -163,7 +163,7 @@ TEST(MemPool, SetRandom) {
 TEST(MemPool, UnorderedMap) {
     mem::Pool pool(4096);
     using IntAlloc =
-              mem::PoolAllocator<std::pair<const int, std::string> >;
+        mem::PoolAllocator<std::pair<const int, std::string> >;
 
     std::unordered_map<int, std::string,
                        std::hash<int>, std::equal_to<int>,

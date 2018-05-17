@@ -53,7 +53,7 @@ private:
     using Key = typename common::FunctionTraits<KeyExtractor>::result_type;
     using ValueOut = ValueType;
     using ValueIn =
-              typename common::FunctionTraits<KeyExtractor>::template arg_plain<0>;
+        typename common::FunctionTraits<KeyExtractor>::template arg_plain<0>;
 
     struct ValueComparator {
     public:
@@ -394,8 +394,8 @@ auto DIA<ValueType, Stack>::GroupByKey(
         "KeyExtractor has the wrong input type");
 
     using GroupByNode = api::GroupByNode<
-              ValueOut, KeyExtractor, GroupFunction, HashFunction,
-              LocationDetectionValue>;
+        ValueOut, KeyExtractor, GroupFunction, HashFunction,
+        LocationDetectionValue>;
 
     auto node = tlx::make_counting<GroupByNode>(
         *this, key_extractor, groupby_function, hash_function);

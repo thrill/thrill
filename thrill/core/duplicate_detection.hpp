@@ -49,16 +49,16 @@ class DuplicateDetection
 
 private:
     using GolombBitStreamWriter =
-              core::GolombBitStreamWriter<data::CatStream::Writer>;
+        core::GolombBitStreamWriter<data::CatStream::Writer>;
 
     using GolombBitStreamReader =
-              core::GolombBitStreamReader<data::CatStream::Reader>;
+        core::GolombBitStreamReader<data::CatStream::Reader>;
 
     using GolumbDeltaWriter =
-              core::DeltaStreamWriter<GolombBitStreamWriter, size_t, /* offset */ 1>;
+        core::DeltaStreamWriter<GolombBitStreamWriter, size_t, /* offset */ 1>;
 
     using GolumbDeltaReader =
-              core::DeltaStreamReader<GolombBitStreamReader, size_t, /* offset */ 1>;
+        core::DeltaStreamReader<GolombBitStreamReader, size_t, /* offset */ 1>;
 
     /*!
      * Sends all hashes in the range

@@ -220,7 +220,7 @@ public:
     }
 
     //! make ostream-able.
-    friend std::ostream& operator << (std::ostream& os, const DIABase& d);
+    friend std ::ostream& operator << (std::ostream& os, const DIABase& d);
 
     //! Returns consume_counter_
     virtual size_t consume_counter() const { return consume_counter_; }

@@ -64,7 +64,7 @@ struct Order {
     bool   priority;
     char   comment[79];
 
-    friend std::ostream& operator << (std::ostream& os, const Order& o) {
+    friend std ::ostream& operator << (std::ostream& os, const Order& o) {
         os << '(' << o.orderpriority << "|" << o.clerk << "|" << o.comment;
         return os << ')';
     }

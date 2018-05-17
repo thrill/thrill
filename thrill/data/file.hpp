@@ -245,7 +245,7 @@ public:
     std::vector<Block> GetItemRange(size_t begin, size_t end) const;
 
     //! Output the Block objects contained in this File.
-    friend std::ostream& operator << (std::ostream& os, const File& f);
+    friend std ::ostream& operator << (std::ostream& os, const File& f);
 
     //! change dia_id after construction (needed because it may be unknown at
     //! construction)

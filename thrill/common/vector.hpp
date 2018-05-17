@@ -92,7 +92,7 @@ public:
         for (size_t i = 0; i < D; ++i) x[i] /= s;
         return *this;
     }
-    friend std::ostream& operator << (std::ostream& os, const Vector& a) {
+    friend std ::ostream& operator << (std::ostream& os, const Vector& a) {
         os << '(' << a.x[0];
         for (size_t i = 1; i != D; ++i) os << ',' << a.x[i];
         return os << ')';
@@ -195,7 +195,7 @@ public:
         for (size_t i = 0; i < x.size(); ++i) r += x[i] * b.x[i];
         return r;
     }
-    friend std::ostream& operator << (std::ostream& os, const VVector& a) {
+    friend std ::ostream& operator << (std::ostream& os, const VVector& a) {
         os << '(' << a.x[0];
         for (size_t i = 1; i != a.x.size(); ++i) os << ',' << a.x[i];
         return os << ')';

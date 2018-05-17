@@ -101,7 +101,7 @@ struct TupleSerialization {
     static constexpr size_t Index = sizeof ... (Args) - RevIndex;
     // type of k-th element
     using ThisElemType =
-              typename std::tuple_element<Index, std::tuple<Args...> >::type;
+        typename std::tuple_element<Index, std::tuple<Args...> >::type;
 
     static void             Serialize(const std::tuple<Args...>& x, Archive& ar) {
         // serialize k-th element

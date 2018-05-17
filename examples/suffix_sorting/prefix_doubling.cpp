@@ -53,7 +53,7 @@ struct IndexKMer {
         return chars < b.chars;
     }
 
-    friend std::ostream& operator << (std::ostream& os, const IndexKMer& iom) {
+    friend std ::ostream& operator << (std::ostream& os, const IndexKMer& iom) {
         return os << "[i=" << iom.index << ",c=" << iom.chars << ']';
     }
 } TLX_ATTRIBUTE_PACKED;
@@ -64,7 +64,7 @@ struct IndexRank {
     Index index;
     Index rank;
 
-    friend std::ostream& operator << (std::ostream& os, const IndexRank& ri) {
+    friend std ::ostream& operator << (std::ostream& os, const IndexRank& ri) {
         return os << "(i=" << ri.index << ",r=" << ri.rank << ')';
     }
 } TLX_ATTRIBUTE_PACKED;
@@ -89,7 +89,7 @@ struct IndexRankRank {
         return std::tie(rank1, rank2, b.index) < std::tie(b.rank1, b.rank2, index);
     }
 
-    friend std::ostream& operator << (std::ostream& os, const IndexRankRank& rri) {
+    friend std ::ostream& operator << (std::ostream& os, const IndexRankRank& rri) {
         return os << "(i=" << rri.index << ",r1=" << rri.rank1 << ",r2=" << rri.rank2 << ")";
     }
 } TLX_ATTRIBUTE_PACKED;
@@ -102,7 +102,7 @@ struct Index3Rank {
     Index rank2;
     Index rank3;
 
-    friend std::ostream& operator << (std::ostream& os, const Index3Rank& irrr) {
+    friend std ::ostream& operator << (std::ostream& os, const Index3Rank& irrr) {
         return os << "(i=" << irrr.index << ",r1=" << irrr.rank1
                   << ",r2=" << irrr.rank2 << ",r3=" << irrr.rank3 << ")";
     }
@@ -121,7 +121,7 @@ struct CharCharIndex {
         return std::tie(ch[0], ch[1]) < std::tie(b.ch[0], b.ch[1]);
     }
 
-    friend std::ostream& operator << (std::ostream& os, const CharCharIndex& cci) {
+    friend std ::ostream& operator << (std::ostream& os, const CharCharIndex& cci) {
         return os << "[ch0=" << cci.ch[0] << ",ch1=" << cci.ch[1]
                   << ",index=" << cci.index << ']';
     }
@@ -165,7 +165,7 @@ struct IndexRankStatus {
         return rank < b.rank || (rank == b.rank && index > b.index);
     }
 
-    friend std::ostream& operator << (std::ostream& os, const IndexRankStatus& irs) {
+    friend std ::ostream& operator << (std::ostream& os, const IndexRankStatus& irs) {
         return os << "(index=" << irs.index << ",rank=" << irs.rank << ",status="
                   << irs.status << ")";
     }
@@ -179,7 +179,7 @@ struct IndexRankRankStatus {
     Index  rank2;
     Status status;
 
-    friend std::ostream& operator << (std::ostream& os, const IndexRankRankStatus& irrs) {
+    friend std ::ostream& operator << (std::ostream& os, const IndexRankRankStatus& irrs) {
         return os << "(index=" << irrs.index
                   << ",rank1=" << irrs.rank1 << ",rank2=" << irrs.rank2
                   << ",status=" << irrs.status << ")";

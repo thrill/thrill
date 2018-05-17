@@ -40,7 +40,7 @@ struct Chars {
                           b.ch[4], b.ch[5], b.ch[6]);
     }
 
-    friend std::ostream& operator << (std::ostream& os, const Chars& chars) {
+    friend std ::ostream& operator << (std::ostream& os, const Chars& chars) {
         return os << '[' << chars.ch[0] << ',' << chars.ch[1]
                   << ',' << chars.ch[2] << ',' << chars.ch[3]
                   << ',' << chars.ch[4] << ',' << chars.ch[5]
@@ -68,7 +68,7 @@ struct IndexChars {
     Index               index;
     Chars<AlphabetType> chars;
 
-    friend std::ostream& operator << (std::ostream& os, const IndexChars& tc) {
+    friend std ::ostream& operator << (std::ostream& os, const IndexChars& tc) {
         return os << '[' << tc.index << '|' << tc.chars << ']';
     }
 } TLX_ATTRIBUTE_PACKED;

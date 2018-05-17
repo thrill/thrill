@@ -116,7 +116,7 @@ public:
     //! net::Exception is thrown.
     template <typename T>
     typename std::enable_if<
-        !std::is_pod<T>::value&&
+        !std::is_pod<T>::value &&
         data::Serialization<BufferBuilder, T>::is_fixed_size, void>::type
     Send(const T& value) {
         if (self_verify_ && is_loopback_) {
@@ -147,7 +147,7 @@ public:
     //! a net::Exception is thrown.
     template <typename T>
     typename std::enable_if<
-        !std::is_pod<T>::value&&
+        !std::is_pod<T>::value &&
         !data::Serialization<BufferBuilder, T>::is_fixed_size, void>::type
     Send(const T& value) {
         if (self_verify_ && is_loopback_) {
@@ -199,7 +199,7 @@ public:
     //! Receive any serializable non-POD fixed-length item T.
     template <typename T>
     typename std::enable_if<
-        !std::is_pod<T>::value&&
+        !std::is_pod<T>::value &&
         data::Serialization<BufferBuilder, T>::is_fixed_size, void>::type
     Receive(T* out_value) {
         if (self_verify_ && is_loopback_) {
@@ -234,7 +234,7 @@ public:
     //! Receive any serializable non-POD fixed-length item T.
     template <typename T>
     typename std::enable_if<
-        !std::is_pod<T>::value&&
+        !std::is_pod<T>::value &&
         !data::Serialization<BufferBuilder, T>::is_fixed_size, void>::type
     Receive(T* out_value) {
         if (self_verify_ && is_loopback_) {
@@ -312,7 +312,7 @@ public:
     //! SendReceive any serializable non-POD fixed-length item T.
     template <typename T>
     typename std::enable_if<
-        !std::is_pod<T>::value&&
+        !std::is_pod<T>::value &&
         data::Serialization<BufferBuilder, T>::is_fixed_size, void>::type
     SendReceive(const T* value, T* out_value, size_t n = 1) {
         if (self_verify_ && is_loopback_) {
@@ -343,7 +343,7 @@ public:
 
     template <typename T>
     typename std::enable_if<
-        !std::is_pod<T>::value&&
+        !std::is_pod<T>::value &&
         data::Serialization<BufferBuilder, T>::is_fixed_size, void>::type
     ReceiveSend(const T& value, T* out_value) {
         if (self_verify_ && is_loopback_) {
@@ -388,7 +388,7 @@ public:
     //! SendReceive any serializable non-POD fixed-length item T.
     template <typename T>
     typename std::enable_if<
-        !std::is_pod<T>::value&&
+        !std::is_pod<T>::value &&
         !data::Serialization<BufferBuilder, T>::is_fixed_size, void>::type
     SendReceive(const T* value, T* out_value, size_t n = 1) {
         if (self_verify_ && is_loopback_) {
@@ -422,7 +422,7 @@ public:
 
     template <typename T>
     typename std::enable_if<
-        !std::is_pod<T>::value&&
+        !std::is_pod<T>::value &&
         !data::Serialization<BufferBuilder, T>::is_fixed_size, void>::type
     ReceiveSend(const T& value, T* out_value) {
         if (self_verify_ && is_loopback_) {
@@ -620,7 +620,7 @@ public:
     //! }
 
     //! make ostreamable
-    friend std::ostream& operator << (std::ostream& os, const Connection& c) {
+    friend std ::ostream& operator << (std::ostream& os, const Connection& c) {
         return c.OutputOstream(os);
     }
 };

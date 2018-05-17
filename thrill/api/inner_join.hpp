@@ -756,11 +756,11 @@ auto InnerJoin(
         "Join Function has wrong input type in argument 1");
 
     using JoinResult
-              = typename common::FunctionTraits<JoinFunction>::result_type;
+        = typename common::FunctionTraits<JoinFunction>::result_type;
 
     using JoinNode = api::JoinNode<
-              JoinResult, FirstDIA, SecondDIA, KeyExtractor1, KeyExtractor2,
-              JoinFunction, HashFunction, LocationDetectionValue>;
+        JoinResult, FirstDIA, SecondDIA, KeyExtractor1, KeyExtractor2,
+        JoinFunction, HashFunction, LocationDetectionValue>;
 
     auto node = tlx::make_counting<JoinNode>(
         first_dia, second_dia, key_extractor1, key_extractor2, join_function,

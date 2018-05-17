@@ -72,16 +72,16 @@ private:
     static constexpr bool debug = false;
 
     using GolombBitStreamWriter =
-              core::GolombBitStreamWriter<data::CatStream::Writer>;
+        core::GolombBitStreamWriter<data::CatStream::Writer>;
 
     using GolombBitStreamReader =
-              core::GolombBitStreamReader<data::CatStream::Reader>;
+        core::GolombBitStreamReader<data::CatStream::Reader>;
 
     using GolumbDeltaWriter =
-              core::DeltaStreamWriter<GolombBitStreamWriter, size_t, /* offset */ 1>;
+        core::DeltaStreamWriter<GolombBitStreamWriter, size_t, /* offset */ 1>;
 
     using GolumbDeltaReader =
-              core::DeltaStreamReader<GolombBitStreamReader, size_t, /* offset */ 1>;
+        core::DeltaStreamReader<GolombBitStreamReader, size_t, /* offset */ 1>;
 
     using CounterType = typename HashCount::CounterType;
 
@@ -154,10 +154,10 @@ public:
     using Emitter = ToVectorEmitter<HashCount>;
 
     using Table = typename ReduceTableSelect<
-              ReduceConfig::table_impl_,
-              HashCount, typename HashCount::HashType, HashCount,
-              ExtractHash, std::plus<HashCount>, Emitter,
-              /* VolatileKey */ false, ReduceConfig>::type;
+        ReduceConfig::table_impl_,
+        HashCount, typename HashCount::HashType, HashCount,
+        ExtractHash, std::plus<HashCount>, Emitter,
+        /* VolatileKey */ false, ReduceConfig>::type;
 
     LocationDetection(Context& ctx, size_t dia_id,
                       const ReduceConfig& config = ReduceConfig())

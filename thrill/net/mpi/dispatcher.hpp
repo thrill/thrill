@@ -38,7 +38,7 @@ namespace mpi {
 
 //! Signature of async MPI request callbacks.
 using AsyncRequestCallback = tlx::delegate<
-          void(MPI_Status&), mem::GPoolAllocator<char> >;
+    void(MPI_Status&), mem::GPoolAllocator<char> >;
 
 class AsyncRequest
 {

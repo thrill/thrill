@@ -44,8 +44,8 @@ struct FunctionTraits<ReturnType (ClassType::*)(Args...) const>{
 
     //! the tuple of arguments: with remove_cv and remove_reference applied.
     using args_tuple_plain = std::tuple<
-              typename std::remove_cv<
-                  typename std::remove_reference<Args>::type>::type...>;
+        typename std::remove_cv<
+            typename std::remove_reference<Args>::type>::type...>;
 
     //! the i-th argument is equivalent to the i-th tuple element of a tuple
     //! composed of those arguments.
@@ -56,8 +56,8 @@ struct FunctionTraits<ReturnType (ClassType::*)(Args...) const>{
     //! remove_reference.
     template <size_t i>
     using arg_plain =
-              typename std::remove_cv<
-                  typename std::remove_reference<arg<i> >::type>::type;
+        typename std::remove_cv<
+            typename std::remove_reference<arg<i> >::type>::type;
 };
 
 //! specialize for pointers to mutable member function
@@ -82,8 +82,8 @@ struct FunctionTraits<ReturnType (*)(Args...)>{
 
     //! the tuple of arguments: with remove_cv and remove_reference applied.
     using args_tuple_plain = std::tuple<
-              typename std::remove_cv<
-                  typename std::remove_reference<Args>::type>::type...>;
+        typename std::remove_cv<
+            typename std::remove_reference<Args>::type>::type...>;
 
     //! the i-th argument is equivalent to the i-th tuple element of a tuple
     //! composed of those arguments.
@@ -94,8 +94,8 @@ struct FunctionTraits<ReturnType (*)(Args...)>{
     //! remove_reference.
     template <size_t i>
     using arg_plain =
-              typename std::remove_cv<
-                  typename std::remove_reference<arg<i> >::type>::type;
+        typename std::remove_cv<
+            typename std::remove_reference<arg<i> >::type>::type;
 };
 
 } // namespace common

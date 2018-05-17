@@ -255,7 +255,7 @@ public:
         return std::tie(host_rank, id) < std::tie(o.host_rank, o.id);
     }
 
-    friend std::ostream& operator << (std::ostream& os, const CDIABase& c) {
+    friend std ::ostream& operator << (std::ostream& os, const CDIABase& c) {
         return os << escape_html(c.label) << '.' << c.id;
     }
 };

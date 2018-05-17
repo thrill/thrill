@@ -72,17 +72,17 @@ struct ZipWindowTraits<ReturnType (ClassType::*)(Args...) const>{
 
     //! the tuple of value_type inside the vectors
     using value_type_tuple = std::tuple<
-              typename std::remove_cv<
-                  typename std::remove_reference<Args>::type
-                  >::type::value_type...>;
+        typename std::remove_cv<
+            typename std::remove_reference<Args>::type
+            >::type::value_type...>;
 
     //! the tuple of value_types: with remove_cv and remove_reference applied.
     using value_type_tuple_plain = std::tuple<
-              typename std::remove_cv<
-                  typename std::remove_reference<
-                      typename std::remove_cv<
-                          typename std::remove_reference<Args>::type
-                          >::type::value_type>::type>::type...>;
+        typename std::remove_cv<
+            typename std::remove_reference<
+                typename std::remove_cv<
+                    typename std::remove_reference<Args>::type
+                    >::type::value_type>::type>::type...>;
 
     //! the i-th argument is equivalent to the i-th tuple element of a tuple
     //! composed of those arguments.
@@ -93,19 +93,19 @@ struct ZipWindowTraits<ReturnType (ClassType::*)(Args...) const>{
     //! remove_reference.
     template <size_t i>
     using value_type_plain =
-              typename std::remove_cv<
-                  typename std::remove_reference<value_type<i> >::type>::type;
+        typename std::remove_cv<
+            typename std::remove_reference<value_type<i> >::type>::type;
 
     //! the tuple of std::vector<>s: with remove_cv and remove_reference applied
     using vector_tuple_plain = std::tuple<
-              typename std::remove_cv<
-                  typename std::remove_reference<Args>::type>::type...>;
+        typename std::remove_cv<
+            typename std::remove_reference<Args>::type>::type...>;
 
     //! the i-th argument is equivalent to the i-th tuple element of a tuple
     //! composed of those arguments.
     template <size_t i>
     using vector_plain = typename std::tuple_element<
-              i, vector_tuple_plain>::type;
+        i, vector_tuple_plain>::type;
 };
 
 //! specialize for pointers to mutable member function
@@ -127,17 +127,17 @@ struct ZipWindowTraits<ReturnType (*)(Args...)>{
 
     //! the tuple of value_type inside the vectors
     using value_type_tuple = std::tuple<
-              typename std::remove_cv<
-                  typename std::remove_reference<Args>::type
-                  >::type::value_type...>;
+        typename std::remove_cv<
+            typename std::remove_reference<Args>::type
+            >::type::value_type...>;
 
     //! the tuple of value_types: with remove_cv and remove_reference applied.
     using value_type_tuple_plain = std::tuple<
-              typename std::remove_cv<
-                  typename std::remove_reference<
-                      typename std::remove_cv<
-                          typename std::remove_reference<Args>::type
-                          >::type::value_type>::type>::type...>;
+        typename std::remove_cv<
+            typename std::remove_reference<
+                typename std::remove_cv<
+                    typename std::remove_reference<Args>::type
+                    >::type::value_type>::type>::type...>;
 
     //! the i-th argument is equivalent to the i-th tuple element of a tuple
     //! composed of those arguments.
@@ -148,19 +148,19 @@ struct ZipWindowTraits<ReturnType (*)(Args...)>{
     //! remove_reference.
     template <size_t i>
     using value_type_plain =
-              typename std::remove_cv<
-                  typename std::remove_reference<value_type<i> >::type>::type;
+        typename std::remove_cv<
+            typename std::remove_reference<value_type<i> >::type>::type;
 
     //! the tuple of std::vector<>s: with remove_cv and remove_reference applied
     using vector_tuple_plain = std::tuple<
-              typename std::remove_cv<
-                  typename std::remove_reference<Args>::type>::type...>;
+        typename std::remove_cv<
+            typename std::remove_reference<Args>::type>::type...>;
 
     //! the i-th argument is equivalent to the i-th tuple element of a tuple
     //! composed of those arguments.
     template <size_t i>
     using vector_plain = typename std::tuple_element<
-              i, vector_tuple_plain>::type;
+        i, vector_tuple_plain>::type;
 };
 
 /******************************************************************************/
@@ -189,9 +189,9 @@ public:
 
     template <size_t Index>
     using ZipArgN =
-              typename ZipWindowTraits<ZipFunction>::template value_type_plain<Index>;
+        typename ZipWindowTraits<ZipFunction>::template value_type_plain<Index>;
     using ZipArgsTuple =
-              typename ZipWindowTraits<ZipFunction>::value_type_tuple_plain;
+        typename ZipWindowTraits<ZipFunction>::value_type_tuple_plain;
 
 public:
     /*!
@@ -469,13 +469,13 @@ public:
 
     template <size_t Index>
     using ZipArgN =
-              typename ZipWindowTraits<ZipFunction>
-              ::template value_type_plain<Index>;
+        typename ZipWindowTraits<ZipFunction>
+        ::template value_type_plain<Index>;
 
     template <size_t Index>
     using ZipVectorN =
-              typename ZipWindowTraits<ZipFunction>
-              ::template vector_plain<Index>;
+        typename ZipWindowTraits<ZipFunction>
+        ::template vector_plain<Index>;
 
     ZipWindowReader(ZipWindowNode& zip_node,
                     std::array<Reader, kNumInputs>& readers)
@@ -543,13 +543,13 @@ public:
 
     template <size_t Index>
     using ZipArgN =
-              typename ZipWindowTraits<ZipFunction>
-              ::template value_type_plain<Index>;
+        typename ZipWindowTraits<ZipFunction>
+        ::template value_type_plain<Index>;
 
     template <size_t Index>
     using ZipVectorN =
-              typename ZipWindowTraits<ZipFunction>
-              ::template vector_plain<Index>;
+        typename ZipWindowTraits<ZipFunction>
+        ::template vector_plain<Index>;
 
     ZipWindowReader(ZipWindowNode& zip_node,
                     std::array<Reader, kNumInputs>& readers)
@@ -634,16 +634,16 @@ auto ZipWindow(const std::array<size_t, 1 + sizeof ... (DIAs)>& window_size,
         "ZipFunction has the wrong input type in DIA 0");
 
     using ZipResult
-              = typename ZipWindowTraits<ZipFunction>::result_type;
+        = typename ZipWindowTraits<ZipFunction>::result_type;
 
     using ZipArgsTuple =
-              typename ZipWindowTraits<ZipFunction>::value_type_tuple_plain;
+        typename ZipWindowTraits<ZipFunction>::value_type_tuple_plain;
 
     using ZipWindowNode = api::ZipWindowNode<
-              ZipResult, ZipFunction,
-              /* Pad */ false, /* UnequalCheck */ true,
-              /* UseStdArray */ false,
-              1 + sizeof ... (DIAs)>;
+        ZipResult, ZipFunction,
+        /* Pad */ false, /* UnequalCheck */ true,
+        /* UseStdArray */ false,
+        1 + sizeof ... (DIAs)>;
 
     auto node = tlx::make_counting<ZipWindowNode>(
         window_size, zip_function, ZipArgsTuple(), first_dia, dias...);
@@ -681,16 +681,16 @@ auto ZipWindow(struct CutTag,
         "ZipFunction has the wrong input type in DIA 0");
 
     using ZipResult
-              = typename ZipWindowTraits<ZipFunction>::result_type;
+        = typename ZipWindowTraits<ZipFunction>::result_type;
 
     using ZipArgsTuple =
-              typename ZipWindowTraits<ZipFunction>::value_type_tuple_plain;
+        typename ZipWindowTraits<ZipFunction>::value_type_tuple_plain;
 
     using ZipWindowNode = api::ZipWindowNode<
-              ZipResult, ZipFunction,
-              /* Pad */ false, /* UnequalCheck */ false,
-              /* UseStdArray */ false,
-              1 + sizeof ... (DIAs)>;
+        ZipResult, ZipFunction,
+        /* Pad */ false, /* UnequalCheck */ false,
+        /* UseStdArray */ false,
+        1 + sizeof ... (DIAs)>;
 
     auto node = tlx::make_counting<ZipWindowNode>(
         window_size, zip_function, ZipArgsTuple(), first_dia, dias...);
@@ -730,13 +730,13 @@ auto ZipWindow(
         "ZipFunction has the wrong input type in DIA 0");
 
     using ZipResult =
-              typename common::FunctionTraits<ZipFunction>::result_type;
+        typename common::FunctionTraits<ZipFunction>::result_type;
 
     using ZipWindowNode = api::ZipWindowNode<
-              ZipResult, ZipFunction,
-              /* Pad */ true, /* UnequalCheck */ false,
-              /* UseStdArray */ false,
-              1 + sizeof ... (DIAs)>;
+        ZipResult, ZipFunction,
+        /* Pad */ true, /* UnequalCheck */ false,
+        /* UseStdArray */ false,
+        1 + sizeof ... (DIAs)>;
 
     auto node = tlx::make_counting<ZipWindowNode>(
         window_size, zip_function, padding, first_dia, dias...);
@@ -765,7 +765,7 @@ auto ZipWindow(struct PadTag,
                const DIAs& ... dias) {
 
     using ZipArgsTuple =
-              typename ZipWindowTraits<ZipFunction>::value_type_tuple_plain;
+        typename ZipWindowTraits<ZipFunction>::value_type_tuple_plain;
 
     return ZipWindow(PadTag, window_size, zip_function,
                      ZipArgsTuple(), first_dia, dias...);
@@ -806,13 +806,13 @@ auto ZipWindow(
     //     "ZipFunction has the wrong input type in DIA 0");
 
     using ZipResult =
-              typename common::FunctionTraits<ZipFunction>::result_type;
+        typename common::FunctionTraits<ZipFunction>::result_type;
 
     using ZipWindowNode = api::ZipWindowNode<
-              ZipResult, ZipFunction,
-              /* Pad */ true, /* UnequalCheck */ false,
-              /* UseStdArray */ true,
-              1 + sizeof ... (DIAs)>;
+        ZipResult, ZipFunction,
+        /* Pad */ true, /* UnequalCheck */ false,
+        /* UseStdArray */ true,
+        1 + sizeof ... (DIAs)>;
 
     auto node = tlx::make_counting<ZipWindowNode>(
         window_size, zip_function, padding, first_dia, dias...);
@@ -843,7 +843,7 @@ auto ZipWindow(
     const DIAs& ... dias) {
 
     using ZipArgsTuple =
-              typename ZipWindowTraits<ZipFunction>::value_type_tuple_plain;
+        typename ZipWindowTraits<ZipFunction>::value_type_tuple_plain;
 
     return ZipWindow(ArrayTag, PadTag, window_size, zip_function,
                      ZipArgsTuple(), first_dia, dias...);

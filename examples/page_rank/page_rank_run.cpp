@@ -78,7 +78,7 @@ static void RunPageRankEdgePerLine(
 
     auto links = input.template GroupToIndex<OutgoingLinks>(
         [](const PagePageLink& p) { return p.src; },
-        [all = std::vector < PageId > ()](auto& r, const PageId&) mutable {
+        [all = std::vector<PageId> ()](auto& r, const PageId&) mutable {
             all.clear();
             while (r.HasNext()) {
                 all.push_back(r.Next().tgt);
@@ -150,7 +150,7 @@ static void RunJoinPageRankEdgePerLine(
 
     auto links = input.GroupByKey<LinkedPage>(
         [](const PagePageLink& p) { return p.src; },
-        [all = std::vector < PageId > ()](auto& r, const PageId& pid) mutable {
+        [all = std::vector<PageId> ()](auto& r, const PageId& pid) mutable {
             all.clear();
             while (r.HasNext()) {
                 all.push_back(r.Next().tgt);

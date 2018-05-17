@@ -26,7 +26,7 @@ namespace common {
 
 //! Add x + y but truncate result upwards such that it fits into original
 //! datatype
-template <typename IntegerType, unsigned bits = (8* sizeof(IntegerType))>
+template <typename IntegerType, unsigned bits = (8 * sizeof(IntegerType))>
 static inline
 IntegerType AddTruncToType(const IntegerType& a, const IntegerType& b) {
     size_t s = static_cast<size_t>(a) + static_cast<size_t>(b);
@@ -100,7 +100,7 @@ public:
     }
 
     //! ostream-able
-    friend std::ostream& operator << (std::ostream& os, const Range& r) {
+    friend std ::ostream& operator << (std::ostream& os, const Range& r) {
         return os << '[' << r.begin << ',' << r.end << ')';
     }
 };

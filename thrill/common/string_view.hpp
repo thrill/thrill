@@ -116,7 +116,7 @@ public:
     }
 
     //! make StringView ostreamable
-    friend std::ostream& operator << (std::ostream& os, const StringView& sv) {
+    friend std ::ostream& operator << (std::ostream& os, const StringView& sv) {
         return os.write(sv.data(), sv.size());
     }
 

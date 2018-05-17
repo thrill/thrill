@@ -46,16 +46,16 @@ using AsyncCallback = tlx::delegate<bool(), mem::GPoolAllocator<char> >;
 
 //! Signature of async read Buffer callbacks.
 using AsyncReadBufferCallback = tlx::delegate<
-          void(Connection& c, Buffer&& buffer), mem::GPoolAllocator<char> >;
+    void(Connection& c, Buffer && buffer), mem::GPoolAllocator<char> >;
 
 //! Signature of async read ByteBlock callbacks.
 using AsyncReadByteBlockCallback = tlx::delegate<
-          void(Connection& c, data::PinnedByteBlockPtr&& bytes),
-          mem::GPoolAllocator<char> >;
+    void(Connection& c, data::PinnedByteBlockPtr && bytes),
+    mem::GPoolAllocator<char> >;
 
 //! Signature of async write callbacks.
 using AsyncWriteCallback = tlx::delegate<
-          void(Connection&), mem::GPoolAllocator<char> >;
+    void(Connection&), mem::GPoolAllocator<char> >;
 
 /******************************************************************************/
 
@@ -751,7 +751,7 @@ protected:
 
     //! priority queue of timer callbacks
     using TimerPQ = std::priority_queue<
-              Timer, std::vector<Timer, mem::GPoolAllocator<Timer> > >;
+        Timer, std::vector<Timer, mem::GPoolAllocator<Timer> > >;
 
     //! priority queue of timer callbacks, obviously kept in timeout
     //! order. Currently not addressable.

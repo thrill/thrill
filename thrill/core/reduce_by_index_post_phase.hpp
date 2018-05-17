@@ -45,7 +45,7 @@ public:
     using ReduceConfig = ReduceConfig_;
     using MakeTableItem = ReduceMakeTableItem<Value, TableItem, VolatileKey>;
     using PhaseEmitter = ReducePostPhaseEmitter<
-              TableItem, Value, Emitter, VolatileKey>;
+        TableItem, Value, Emitter, VolatileKey>;
 
     /*!
      * A data structure which takes an arbitrary value and extracts an index

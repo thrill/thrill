@@ -117,10 +117,10 @@ public:
     using MakeTableItem = ReduceMakeTableItem<Value, TableItem, VolatileKey>;
 
     using Table = typename ReduceTableSelect<
-              ReduceConfig::table_impl_,
-              TableItem, Key, Value,
-              KeyExtractor, ReduceFunction, Emitter,
-              VolatileKey, ReduceConfig, IndexFunction, KeyEqualFunction>::type;
+        ReduceConfig::table_impl_,
+        TableItem, Key, Value,
+        KeyExtractor, ReduceFunction, Emitter,
+        VolatileKey, ReduceConfig, IndexFunction, KeyEqualFunction>::type;
 
     /*!
      * A data structure which takes an arbitrary value and extracts a key using

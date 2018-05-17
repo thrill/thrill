@@ -86,9 +86,9 @@ class ZipNode final : public DOpNode<ValueType>
 
     template <size_t Index>
     using ZipArgN =
-              typename common::FunctionTraits<ZipFunction>::template arg_plain<Index>;
+        typename common::FunctionTraits<ZipFunction>::template arg_plain<Index>;
     using ZipArgsTuple =
-              typename common::FunctionTraits<ZipFunction>::args_tuple_plain;
+        typename common::FunctionTraits<ZipFunction>::args_tuple_plain;
 
 public:
     /*!
@@ -434,15 +434,15 @@ auto Zip(const ZipFunction& zip_function,
         "ZipFunction has the wrong input type in DIA 0");
 
     using ZipResult
-              = typename common::FunctionTraits<ZipFunction>::result_type;
+        = typename common::FunctionTraits<ZipFunction>::result_type;
 
     using ZipArgsTuple =
-              typename common::FunctionTraits<ZipFunction>::args_tuple_plain;
+        typename common::FunctionTraits<ZipFunction>::args_tuple_plain;
 
     using ZipNode = api::ZipNode<
-              ZipResult, ZipFunction,
-              /* Pad */ false, /* UnequalCheck */ true, /* NoRebalance */ false,
-              1 + sizeof ... (DIAs)>;
+        ZipResult, ZipFunction,
+        /* Pad */ false, /* UnequalCheck */ true, /* NoRebalance */ false,
+        1 + sizeof ... (DIAs)>;
 
     auto node = tlx::make_counting<ZipNode>(
         zip_function, ZipArgsTuple(), first_dia, dias...);
@@ -488,15 +488,15 @@ auto Zip(struct CutTag,
         "ZipFunction has the wrong input type in DIA 0");
 
     using ZipResult
-              = typename common::FunctionTraits<ZipFunction>::result_type;
+        = typename common::FunctionTraits<ZipFunction>::result_type;
 
     using ZipArgsTuple =
-              typename common::FunctionTraits<ZipFunction>::args_tuple_plain;
+        typename common::FunctionTraits<ZipFunction>::args_tuple_plain;
 
     using ZipNode = api::ZipNode<
-              ZipResult, ZipFunction,
-              /* Pad */ false, /* UnequalCheck */ false, /* NoRebalance */ false,
-              1 + sizeof ... (DIAs)>;
+        ZipResult, ZipFunction,
+        /* Pad */ false, /* UnequalCheck */ false, /* NoRebalance */ false,
+        1 + sizeof ... (DIAs)>;
 
     auto node = tlx::make_counting<ZipNode>(
         zip_function, ZipArgsTuple(), first_dia, dias...);
@@ -542,15 +542,15 @@ auto Zip(struct PadTag,
         "ZipFunction has the wrong input type in DIA 0");
 
     using ZipResult =
-              typename common::FunctionTraits<ZipFunction>::result_type;
+        typename common::FunctionTraits<ZipFunction>::result_type;
 
     using ZipArgsTuple =
-              typename common::FunctionTraits<ZipFunction>::args_tuple_plain;
+        typename common::FunctionTraits<ZipFunction>::args_tuple_plain;
 
     using ZipNode = api::ZipNode<
-              ZipResult, ZipFunction,
-              /* Pad */ true, /* UnequalCheck */ false, /* NoRebalance */ false,
-              1 + sizeof ... (DIAs)>;
+        ZipResult, ZipFunction,
+        /* Pad */ true, /* UnequalCheck */ false, /* NoRebalance */ false,
+        1 + sizeof ... (DIAs)>;
 
     auto node = tlx::make_counting<ZipNode>(
         zip_function, ZipArgsTuple(), first_dia, dias...);
@@ -601,12 +601,12 @@ auto Zip(
         "ZipFunction has the wrong input type in DIA 0");
 
     using ZipResult =
-              typename common::FunctionTraits<ZipFunction>::result_type;
+        typename common::FunctionTraits<ZipFunction>::result_type;
 
     using ZipNode = api::ZipNode<
-              ZipResult, ZipFunction,
-              /* Pad */ true, /* UnequalCheck */ false, /* NoRebalance */ false,
-              1 + sizeof ... (DIAs)>;
+        ZipResult, ZipFunction,
+        /* Pad */ true, /* UnequalCheck */ false, /* NoRebalance */ false,
+        1 + sizeof ... (DIAs)>;
 
     auto node = tlx::make_counting<ZipNode>(
         zip_function, padding, first_dia, dias...);
@@ -654,15 +654,15 @@ auto Zip(
         "ZipFunction has the wrong input type in DIA 0");
 
     using ZipResult =
-              typename common::FunctionTraits<ZipFunction>::result_type;
+        typename common::FunctionTraits<ZipFunction>::result_type;
 
     using ZipArgsTuple =
-              typename common::FunctionTraits<ZipFunction>::args_tuple_plain;
+        typename common::FunctionTraits<ZipFunction>::args_tuple_plain;
 
     using ZipNode = api::ZipNode<
-              ZipResult, ZipFunction,
-              /* Pad */ false, /* UnequalCheck */ false, /* NoRebalance */ true,
-              1 + sizeof ... (DIAs)>;
+        ZipResult, ZipFunction,
+        /* Pad */ false, /* UnequalCheck */ false, /* NoRebalance */ true,
+        1 + sizeof ... (DIAs)>;
 
     auto node = tlx::make_counting<ZipNode>(
         zip_function, ZipArgsTuple(), first_dia, dias...);

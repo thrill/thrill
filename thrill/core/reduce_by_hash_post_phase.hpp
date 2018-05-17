@@ -48,14 +48,14 @@ class ReduceByHashPostPhase
 public:
     using ReduceConfig = ReduceConfig_;
     using PhaseEmitter = ReducePostPhaseEmitter<
-              TableItem, Value, Emitter, VolatileKey>;
+        TableItem, Value, Emitter, VolatileKey>;
 
     using Table = typename ReduceTableSelect<
-              ReduceConfig::table_impl_,
-              TableItem, Key, Value,
-              KeyExtractor, ReduceFunction, PhaseEmitter,
-              VolatileKey, ReduceConfig,
-              IndexFunction, KeyEqualFunction>::type;
+        ReduceConfig::table_impl_,
+        TableItem, Key, Value,
+        KeyExtractor, ReduceFunction, PhaseEmitter,
+        VolatileKey, ReduceConfig,
+        IndexFunction, KeyEqualFunction>::type;
 
     /*!
      * A data structure which takes an arbitrary value and extracts a key using

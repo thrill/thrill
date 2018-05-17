@@ -38,20 +38,20 @@ using AsyncCallback = tlx::delegate<bool(), mem::GPoolAllocator<char> >;
 
 //! Signature of async read callbacks.
 using AsyncReadCallback = tlx::delegate<
-          void(Connection& c, Buffer&& buffer), mem::GPoolAllocator<char> >;
+    void(Connection& c, Buffer && buffer), mem::GPoolAllocator<char> >;
 
 //! Signature of async read ByteBlock callbacks.
 using AsyncReadByteBlockCallback = tlx::delegate<
-          void(Connection& c, data::PinnedByteBlockPtr&& block),
-          mem::GPoolAllocator<char> >;
+    void(Connection& c, data::PinnedByteBlockPtr && block),
+    mem::GPoolAllocator<char> >;
 
 //! Signature of async write callbacks.
 using AsyncWriteCallback = tlx::delegate<
-          void(Connection&), mem::GPoolAllocator<char> >;
+    void(Connection&), mem::GPoolAllocator<char> >;
 
 //! Signature of generic dispatcher callback.
 using AsyncDispatcherThreadCallback = tlx::delegate<
-          void(class Dispatcher&), mem::GPoolAllocator<char> >;
+    void(class Dispatcher&), mem::GPoolAllocator<char> >;
 
 /*!
  * DispatcherThread contains a net::Dispatcher object and an associated thread

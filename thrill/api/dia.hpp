@@ -342,9 +342,9 @@ public:
         assert(IsValid());
 
         using MapArgument
-                  = typename FunctionTraits<MapFunction>::template arg_plain<0>;
+            = typename FunctionTraits<MapFunction>::template arg_plain<0>;
         using MapResult
-                  = typename FunctionTraits<MapFunction>::result_type;
+            = typename FunctionTraits<MapFunction>::result_type;
         auto conv_map_function =
             [map_function](const MapArgument& input, auto emit_func) {
                 emit_func(map_function(input));
@@ -387,7 +387,7 @@ public:
         assert(IsValid());
 
         using FilterArgument
-                  = typename FunctionTraits<FilterFunction>::template arg_plain<0>;
+            = typename FunctionTraits<FilterFunction>::template arg_plain<0>;
         auto conv_filter_function =
             [filter_function](const FilterArgument& input, auto emit_func) {
                 if (filter_function(input)) emit_func(input);

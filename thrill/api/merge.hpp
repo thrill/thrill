@@ -678,10 +678,10 @@ auto Merge(const Comparator& comparator,
     using ValueType = typename FirstDIA::ValueType;
 
     using CompareResult =
-              typename common::FunctionTraits<Comparator>::result_type;
+        typename common::FunctionTraits<Comparator>::result_type;
 
     using MergeNode = api::MergeNode<
-              ValueType, Comparator, 1 + sizeof ... (DIAs)>;
+        ValueType, Comparator, 1 + sizeof ... (DIAs)>;
 
     // Assert comparator types.
     static_assert(
