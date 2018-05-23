@@ -16,14 +16,10 @@
 
 #include <thrill/mem/allocator.hpp>
 #include <thrill/mem/pool.hpp>
+#include <tlx/logger.hpp>
+#include <tlx/logger/array.hpp>
+#include <tlx/logger/tuple.hpp>
 #include <tlx/meta/call_foreach_tuple.hpp>
-
-#include <array>
-#include <sstream>
-#include <string>
-#include <tuple>
-#include <utility>
-#include <vector>
 
 namespace thrill {
 namespace common {
@@ -98,168 +94,8 @@ execution and communication are collected for later analysis. Something else is
 needed here.
 
  */
-class Logger
-{
-private:
-    //! collector stream
-    mem::safe_ostringstream oss_;
-
-public:
-    //! mutex synchronized output to std::cout
-    static void Output(const char* str);
-    //! mutex synchronized output to std::cout
-    static void Output(const std::string& str);
-    //! mutex synchronized output to std::cout
-    static void Output(const mem::safe_string& str);
-
-    Logger();
-
-    //! output any type, including io manipulators
-    template <typename AnyType>
-    Logger& operator << (const AnyType& at) {
-        oss_ << at;
-        return *this;
-    }
-
-    //! destructor: output a newline
-    ~Logger();
-};
-
-/*!
- * A logging class which outputs spaces between elements pushed via
- * operator<<. Depending on the real parameter the output may be suppressed.
- */
-class SpacingLogger
-{
-private:
-    //! true until the first element it outputted.
-    bool first_ = true;
-
-    //! collector stream
-    mem::safe_ostringstream oss_;
-
-public:
-    SpacingLogger();
-
-    //! output any type, including io manipulators
-    template <typename AnyType>
-    SpacingLogger& operator << (const AnyType& at) {
-        if (!first_) oss_ << ' ';
-        else first_ = false;
-
-        oss_ << at;
-
-        return *this;
-    }
-
-    //! destructor: output a newline
-    ~SpacingLogger();
-};
-
-class LoggerVoidify
-{
-public:
-    void operator & (Logger&) { }
-    void operator & (SpacingLogger&) { }
-};
-
-//! Explicitly specify the condition for logging
-#define LOGC(cond)      \
-    !(cond) ? (void)0 : \
-    ::thrill::common::LoggerVoidify() & ::thrill::common::Logger()
-
-//! Default logging method: output if the local debug variable is true.
-#define LOG LOGC(debug)
-
-//! Override default output: never or always output log.
-#define LOG0 LOGC(false)
-#define LOG1 LOGC(true)
-
-//! Explicitly specify the condition for logging
-#define sLOGC(cond)     \
-    !(cond) ? (void)0 : \
-    ::thrill::common::LoggerVoidify() & ::thrill::common::SpacingLogger()
-
-//! Default logging method: output if the local debug variable is true.
-#define sLOG sLOGC(debug)
-
-//! Override default output: never or always output log.
-#define sLOG0 sLOGC(false)
-#define sLOG1 sLOGC(true)
 
 } // namespace common
-
-namespace mem {
-
-/******************************************************************************/
-// Nice LOG/sLOG Formatters for std::pair, std::tuple, std::vector, and
-// std::array types
-
-using log_stream = safe_ostringstream;
-
-template <typename A, typename B>
-log_stream& operator << (log_stream& os, const std::pair<A, B>& p) {
-    os << '(' << p.first << ',' << p.second << ')';
-    return os;
-}
-
-template <typename Tuple, size_t N>
-struct LogStreamTuplePrinter {
-    static void print(log_stream& os, const Tuple& t) {
-        LogStreamTuplePrinter<Tuple, N - 1>::print(os, t);
-        os << ',' << std::get<N - 1>(t);
-    }
-};
-
-template <typename Tuple>
-struct LogStreamTuplePrinter<Tuple, 1>{
-    static void print(log_stream& os, const Tuple& t) {
-        os << std::get<0>(t);
-    }
-};
-
-template <typename Tuple>
-struct LogStreamTuplePrinter<Tuple, 0>{
-    static void print(log_stream&, const Tuple&) { }
-};
-
-template <typename... Args>
-log_stream& operator << (log_stream& os, const std::tuple<Args...>& t) {
-    os << '(';
-    LogStreamTuplePrinter<std::tuple<Args...>, sizeof ... (Args)>::print(os, t);
-    os << ')';
-    return os;
-}
-
-//! Logging helper to print arrays as [a1,a2,a3,...]
-template <typename T, size_t N>
-log_stream& operator << (log_stream& os, const std::array<T, N>& data) {
-    os << '[';
-    for (typename std::array<T, N>::const_iterator it = data.begin();
-         it != data.end(); ++it)
-    {
-        if (it != data.begin()) os << ',';
-        os << *it;
-    }
-    os << ']';
-    return os;
-}
-
-//! Logging helper to print vectors as [a1,a2,a3,...]
-template <typename T>
-log_stream& operator << (log_stream& os, const std::vector<T>& data) {
-    os << '[';
-    for (typename std::vector<T>::const_iterator it = data.begin();
-         it != data.end(); ++it)
-    {
-        if (it != data.begin()) os << ',';
-        os << *it;
-    }
-    os << ']';
-    return os;
-}
-
-} // namespace mem
 } // namespace thrill
 
 #endif // !THRILL_COMMON_LOGGER_HEADER

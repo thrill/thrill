@@ -25,8 +25,6 @@
 namespace thrill {
 namespace common {
 
-/******************************************************************************/
-
 //! memory manager singleton for Logger
 mem::Manager g_logger_mem_manager(nullptr, "Logger");
 
@@ -42,20 +40,6 @@ static thread_local size_t s_message_counter = 0;
 void NameThisThread(const mem::by_string& name) {
     s_thread_name = name;
     s_message_counter = 0;
-}
-
-//! Outputs the name of the current thread or 'unknown [id]'
-void FormatNameForThisThread(std::ostream& os) {
-    if (!s_thread_name.empty()) {
-        os << s_thread_name << ' ';
-    }
-    else {
-        os << "unknown " << std::this_thread::get_id() << ' ';
-    }
-
-    std::ios::fmtflags flags(os.flags());
-    os << std::setfill('0') << std::setw(6) << s_message_counter++;
-    os.flags(flags);
 }
 
 #else
@@ -84,8 +68,50 @@ void NameThisThread(const mem::by_string& name) {
     s_threads[std::this_thread::get_id()] = StringCount(name, 0);
 }
 
-//! Outputs the name of the current thread or 'unknown [id]'
-void FormatNameForThisThread(std::ostream& os) {
+#endif
+
+/******************************************************************************/
+
+class ThreadLoggerPrefixHook final : public tlx::LoggerPrefixHook
+{
+public:
+    //! constructor
+    ThreadLoggerPrefixHook();
+
+    //! virtual destructor
+    ~ThreadLoggerPrefixHook();
+
+    //! method to add prefix to log lines
+    void add_log_prefix(std::ostream& os) final;
+};
+
+//! default logger singleton
+static ThreadLoggerPrefixHook s_default_logger;
+
+ThreadLoggerPrefixHook::ThreadLoggerPrefixHook() {
+    set_logger_prefix_hook(&s_default_logger);
+}
+
+ThreadLoggerPrefixHook::~ThreadLoggerPrefixHook() { }
+
+void ThreadLoggerPrefixHook::add_log_prefix(std::ostream& os) {
+    os << '[';
+#if !__APPLE__
+
+    if (!s_thread_name.empty()) {
+        os << s_thread_name << ' ';
+    }
+    else {
+        os << "unknown " << std::this_thread::get_id() << ' ';
+    }
+
+    std::ios::fmtflags flags(os.flags());
+    os << std::setfill('0') << std::setw(6) << s_message_counter++;
+    os.flags(flags);
+
+#else
+    // old std::map implementation, because APPLE does not support thread_local
+
     std::lock_guard<std::mutex> lock(s_mutex);
 
     auto it = s_threads.find(std::this_thread::get_id());
@@ -99,63 +125,9 @@ void FormatNameForThisThread(std::ostream& os) {
     else {
         os << "unknown " << std::this_thread::get_id();
     }
-}
 
 #endif
-
-//! Returns the name of the current thread or 'unknown [id]'
-std::string GetNameForThisThread() {
-    std::ostringstream oss;
-    FormatNameForThisThread(oss);
-    return oss.str();
-}
-
-/******************************************************************************/
-
-//! mutex for log output
-static std::mutex s_logger_mutex;
-
-void Logger::Output(const char* str) {
-    // lock the global mutex of logger for serialized output in
-    // multi-threaded programs.
-    std::unique_lock<std::mutex> lock(s_logger_mutex);
-    std::cout << str;
-}
-
-void Logger::Output(const std::string& str) {
-    // lock the global mutex of logger for serialized output in
-    // multi-threaded programs.
-    std::unique_lock<std::mutex> lock(s_logger_mutex);
-    std::cout << str;
-}
-
-void Logger::Output(const mem::safe_string& str) {
-    // lock the global mutex of logger for serialized output in
-    // multi-threaded programs.
-    std::unique_lock<std::mutex> lock(s_logger_mutex);
-    std::cout << str;
-}
-
-Logger::Logger() {
-    oss_ << '[';
-    FormatNameForThisThread(oss_);
-    oss_ << "] ";
-}
-
-Logger::~Logger() {
-    oss_ << '\n';
-    Output(oss_.str());
-}
-
-SpacingLogger::SpacingLogger() {
-    oss_ << '[';
-    FormatNameForThisThread(oss_);
-    oss_ << "] ";
-}
-
-SpacingLogger::~SpacingLogger() {
-    oss_ << '\n';
-    Logger::Output(oss_.str());
+    os << ']' << ' ';
 }
 
 } // namespace common
