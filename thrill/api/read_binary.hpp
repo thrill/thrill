@@ -152,10 +152,10 @@ public:
                 else {
                     // new method: map blocks into a File using io layer
 
-                    foxxll::file_ptr file(
-                        new foxxll::syscall_file(
+                    foxxll::file_ptr file =
+                        tlx::make_counting<foxxll::syscall_file>(
                             fi.path,
-                            foxxll::file::RDONLY | foxxll::file::NO_LOCK));
+                            foxxll::file::RDONLY | foxxll::file::NO_LOCK);
 
                     size_t item_off = 0;
 

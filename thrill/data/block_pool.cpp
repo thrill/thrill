@@ -773,6 +773,14 @@ void BlockPool::OnReadComplete(
     d_->reading_bytes_ -= block_size;
     cv_read_complete_.notify_all();
 
+    // first released the foxxll::request's file reference because it is
+    // possible that the PinRequest contains the last reference to this
+    // ByteBlock. In that case the ByteBlock's foxxll::file_ptr is released in
+    // the step below, when the PinRequestPtr is deleted. This triggers an
+    // error, because the current foxxll::request is still active on the
+    // foxxll::file_ptr.
+    req->release_file_reference();
+
     // remove the PinRequest from the hash map. The problem here is that the
     // PinRequestPtr may have been discarded (the Pin wasn't needed after
     // all). In that case, deletion of PinRequest will call Unpin, which creates
