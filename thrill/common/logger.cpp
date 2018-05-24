@@ -83,16 +83,21 @@ public:
 
     //! method to add prefix to log lines
     void add_log_prefix(std::ostream& os) final;
+
+private:
+    tlx::LoggerPrefixHook* prev_;
 };
 
 //! default logger singleton
 static ThreadLoggerPrefixHook s_default_logger;
 
 ThreadLoggerPrefixHook::ThreadLoggerPrefixHook() {
-    set_logger_prefix_hook(&s_default_logger);
+    prev_ = set_logger_prefix_hook(&s_default_logger);
 }
 
-ThreadLoggerPrefixHook::~ThreadLoggerPrefixHook() { }
+ThreadLoggerPrefixHook::~ThreadLoggerPrefixHook() {
+    set_logger_prefix_hook(prev_);
+}
 
 void ThreadLoggerPrefixHook::add_log_prefix(std::ostream& os) {
     os << '[';
