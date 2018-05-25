@@ -31,14 +31,14 @@ mem::Manager g_logger_mem_manager(nullptr, "Logger");
 #if !__APPLE__
 
 //! thread name
-static thread_local mem::by_string s_thread_name;
+static thread_local char s_thread_name[64] = { 0 };
 
 //! thread message counter
 static thread_local size_t s_message_counter = 0;
 
 //! Defines a name for the current thread, only if no name was set previously
-void NameThisThread(const mem::by_string& name) {
-    s_thread_name = name;
+void NameThisThread(const std::string& name) {
+    snprintf(s_thread_name, sizeof(s_thread_name), "%s", name.c_str());
     s_message_counter = 0;
 }
 
@@ -46,7 +46,7 @@ void NameThisThread(const mem::by_string& name) {
 
 // old std::map implementation, because APPLE does not support thread_local
 
-using StringCount = std::pair<mem::by_string, size_t>;
+using StringCount = std::pair<std::string, size_t>;
 
 template <typename Type>
 using LoggerAllocator = mem::FixedAllocator<Type, g_logger_mem_manager>;
@@ -63,7 +63,7 @@ static std::mutex s_mutex;
 static logger_map<std::thread::id, StringCount> s_threads;
 
 //! Defines a name for the current thread, only if no name was set previously
-void NameThisThread(const mem::by_string& name) {
+void NameThisThread(const std::string& name) {
     std::lock_guard<std::mutex> lock(s_mutex);
     s_threads[std::this_thread::get_id()] = StringCount(name, 0);
 }
@@ -103,7 +103,7 @@ void ThreadLoggerPrefixHook::add_log_prefix(std::ostream& os) {
     os << '[';
 #if !__APPLE__
 
-    if (!s_thread_name.empty()) {
+    if (*s_thread_name != 0) {
         os << s_thread_name << ' ';
     }
     else {

@@ -28,7 +28,7 @@ namespace common {
 extern mem::Manager g_logger_mem_manager;
 
 //! Defines a name for the current thread.
-void NameThisThread(const mem::by_string& name);
+void NameThisThread(const std::string& name);
 
 //! Returns the name of the current thread or 'unknown [id]'
 std::string GetNameForThisThread();

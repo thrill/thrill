@@ -150,14 +150,14 @@ RunLoopbackThreads(
     std::vector<std::thread> threads(num_hosts* workers_per_host);
 
     for (size_t host = 0; host < num_hosts; ++host) {
-        mem::by_string log_prefix = "host " + mem::to_string(host);
+        std::string log_prefix = "host " + std::to_string(host);
         for (size_t worker = 0; worker < workers_per_host; ++worker) {
             size_t id = host * workers_per_host + worker;
             threads[id] = common::CreateThread(
                 [&host_contexts, &job_startpoint, host, worker, log_prefix] {
                     Context ctx(*host_contexts[host], worker);
                     common::NameThisThread(
-                        log_prefix + " worker " + mem::to_string(worker));
+                        log_prefix + " worker " + std::to_string(worker));
 
                     ctx.Launch(job_startpoint);
                 });
@@ -389,7 +389,7 @@ void RunLocalSameThread(const std::function<void(Context&)>& job_startpoint) {
         std::move(dispatcher), std::move(host_group), workers_per_host);
 
     Context ctx(host_context, 0);
-    common::NameThisThread("worker " + mem::to_string(my_host_rank));
+    common::NameThisThread("worker " + std::to_string(my_host_rank));
 
     job_startpoint(ctx);
 }
@@ -612,7 +612,7 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
         threads[worker] = common::CreateThread(
             [&host_context, &job_startpoint, worker] {
                 Context ctx(host_context, worker);
-                common::NameThisThread("worker " + mem::to_string(worker));
+                common::NameThisThread("worker " + std::to_string(worker));
 
                 ctx.Launch(job_startpoint);
             });
@@ -703,8 +703,8 @@ int RunBackendMpi(const std::function<void(Context&)>& job_startpoint) {
         threads[worker] = common::CreateThread(
             [&host_context, &job_startpoint, worker] {
                 Context ctx(host_context, worker);
-                common::NameThisThread("host " + mem::to_string(ctx.host_rank())
-                                       + " worker " + mem::to_string(worker));
+                common::NameThisThread("host " + std::to_string(ctx.host_rank())
+                                       + " worker " + std::to_string(worker));
 
                 ctx.Launch(job_startpoint);
             });
@@ -777,8 +777,8 @@ int RunBackendIb(const std::function<void(Context&)>& job_startpoint) {
         threads[worker] = common::CreateThread(
             [&host_context, &job_startpoint, worker] {
                 Context ctx(host_context, worker);
-                common::NameThisThread("host " + mem::to_string(ctx.host_rank())
-                                       + " worker " + mem::to_string(worker));
+                common::NameThisThread("host " + std::to_string(ctx.host_rank())
+                                       + " worker " + std::to_string(worker));
 
                 ctx.Launch(job_startpoint);
             });

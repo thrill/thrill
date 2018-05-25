@@ -79,7 +79,7 @@ TEST(StreamSet, TestLoopbacks) {
 
     auto producer =
         [workers_per_host](data::CatStreamDataPtr stream, size_t my_id) {
-            common::NameThisThread("worker " + mem::to_string(my_id));
+            common::NameThisThread("worker " + std::to_string(my_id));
             // send data between workers
             auto writers = stream->GetWriters();
             for (size_t j = 0; j < workers_per_host; j++) {
@@ -90,7 +90,7 @@ TEST(StreamSet, TestLoopbacks) {
         };
     auto consumer =
         [workers_per_host](data::CatStreamDataPtr stream, size_t my_id) {
-            common::NameThisThread("worker " + mem::to_string(my_id));
+            common::NameThisThread("worker " + std::to_string(my_id));
             // check data on each worker
             auto readers = stream->GetReaders();
             for (size_t j = 0; j < workers_per_host; j++) {
@@ -172,7 +172,7 @@ struct Multiplexer : public ::testing::Test {
 // open a Stream via data::Multiplexer, and send a short message to all workers,
 // receive and check the message.
 void TalkAllToAllViaCatStream(net::Group* net) {
-    common::NameThisThread("chmp" + mem::to_string(net->my_host_rank()));
+    common::NameThisThread("chmp" + std::to_string(net->my_host_rank()));
 
     unsigned char send_buffer[123];
     for (size_t i = 0; i != sizeof(send_buffer); ++i)
@@ -517,7 +517,7 @@ TEST_F(Multiplexer, ReadCompleteMixStreamManyTimes) {
 // open a Stream via data::Multiplexer, and send a short message to all workers,
 // receive and check the message.
 void TalkAllToAllViaMixStream(net::Group* net) {
-    common::NameThisThread("chmp" + mem::to_string(net->my_host_rank()));
+    common::NameThisThread("chmp" + std::to_string(net->my_host_rank()));
 
     char send_buffer[123];
     for (size_t i = 0; i != sizeof(send_buffer); ++i)
