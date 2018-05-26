@@ -26,6 +26,7 @@
 #include <tlx/string/format_si_iec_units.hpp>
 #include <tlx/string/parse_si_iec_units.hpp>
 #include <tlx/string/split.hpp>
+#include <tlx/port/setenv.hpp>
 
 // mock net backend is always available -tb :)
 #include <thrill/net/mock/group.hpp>
@@ -314,22 +315,6 @@ HostContext::ConstructLoopback(size_t num_hosts, size_t workers_per_host) {
         mem_config, num_hosts, workers_per_host);
 }
 
-// Windows porting madness because setenv() is apparently dangerous
-#if defined(_MSC_VER)
-int wrap_setenv(const char* name, const char* value, int overwrite) {
-    if (!overwrite) {
-        size_t envsize = 0;
-        int errcode = getenv_s(&envsize, nullptr, 0, name);
-        if (errcode || envsize) return errcode;
-    }
-    return _putenv_s(name, value);
-}
-#else
-int wrap_setenv(const char* name, const char* value, int overwrite) {
-    return setenv(name, value, overwrite);
-}
-#endif
-
 void RunLocalTests(const std::function<void(Context&)>& job_startpoint) {
     // set fixed amount of RAM for testing
     RunLocalTests(4 * 1024 * 1024 * 1024llu, job_startpoint);
@@ -339,7 +324,7 @@ void RunLocalTests(
     size_t ram, const std::function<void(Context&)>& job_startpoint) {
 
     // discard json log
-    wrap_setenv("THRILL_LOG", "", /* overwrite */ 1);
+    tlx::setenv("THRILL_LOG", "", /* overwrite */ 1);
 
     // set fixed amount of RAM for testing
     MemoryConfig mem_config;
