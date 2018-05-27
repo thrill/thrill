@@ -32,7 +32,7 @@ matrix:
             - libbz2-dev
             - libssl-dev
 
-    # - env: CMAKE_CC="gcc-5" CMAKE_CXX="g++-5" BUILD_TYPE="Release" COMPILER_FLAGS=""
+    - env: CMAKE_CC="gcc-5" CMAKE_CXX="g++-5" BUILD_TYPE="Release" COMPILER_FLAGS=""
       os: linux
       addons: *gcc5
 

@@ -13,7 +13,6 @@
 #define THRILL_DATA_STREAM_SINK_HEADER
 
 #include <thrill/common/logger.hpp>
-#include <thrill/common/semaphore.hpp>
 #include <thrill/common/stats_counter.hpp>
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/data/block.hpp>

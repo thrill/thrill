@@ -92,7 +92,7 @@ CatStreamData::Writers CatStreamData::GetWriters() {
         std::unique_lock<std::mutex> lock(multiplexer_.mutex_);
         multiplexer_.active_streams_++;
         multiplexer_.max_active_streams_ =
-            std::max(multiplexer_.max_active_streams_,
+            std::max(multiplexer_.max_active_streams_.load(),
                      multiplexer_.active_streams_.load());
     }
 

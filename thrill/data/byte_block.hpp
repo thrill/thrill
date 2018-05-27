@@ -12,9 +12,10 @@
 #ifndef THRILL_DATA_BYTE_BLOCK_HEADER
 #define THRILL_DATA_BYTE_BLOCK_HEADER
 
-#include <thrill/io/bid.hpp>
-#include <thrill/io/file_base.hpp>
 #include <thrill/mem/pool.hpp>
+
+#include <foxxll/io/file.hpp>
+#include <foxxll/mng/bid.hpp>
 #include <tlx/counting_ptr.hpp>
 
 #include <string>
@@ -127,13 +128,13 @@ private:
     //! reaches zero.
     size_t total_pins_ = 0;
 
-    //! external memory block, which contains a pointer to io::FileBase, an
+    //! external memory block, which contains a pointer to foxxll::file, an
     //! offset into the file, and (unfortunately) also the size.
-    io::BID<0> em_bid_;
+    foxxll::BID<0> em_bid_;
 
     //! shared pointer to external file, if this is != nullptr then the Block
     //! was created for directly reading binary files.
-    io::FileBasePtr ext_file_;
+    foxxll::file_ptr ext_file_;
 
     // BlockPool is a friend to call ctor and to manipulate data_.
     friend class BlockPool;
@@ -157,14 +158,14 @@ private:
     ByteBlock(BlockPool* block_pool, Byte* data, size_t size);
 
     //! Constructor to initialize ByteBlock as a mapping to an external
-    //! io::FileBase area.
-    ByteBlock(BlockPool* block_pool, const io::FileBasePtr& ext_file,
+    //! foxxll::file area.
+    ByteBlock(BlockPool* block_pool, const foxxll::file_ptr& ext_file,
               int64_t offset, size_t size);
 
     friend std ::ostream& operator << (std::ostream& os, const ByteBlock& b);
 
     //! forwarded to block_pool_
-    void OnWriteComplete(io::Request* req, bool success);
+    void OnWriteComplete(foxxll::request* req, bool success);
 };
 
 using ByteBlockPtr = ByteBlock::ByteBlockPtr;

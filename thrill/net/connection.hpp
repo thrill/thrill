@@ -473,7 +473,7 @@ public:
     //! net::Exception is thrown.
     template <typename T>
     typename std::enable_if<
-        !std::is_pod<T>::value&&
+        !std::is_pod<T>::value &&
         data::Serialization<BufferBuilder, T>::is_fixed_size, void>::type
     SendN(const T* value, size_t n) {
         if (self_verify_ && is_loopback_) {
@@ -495,7 +495,7 @@ public:
     //! a net::Exception is thrown.
     template <typename T>
     typename std::enable_if<
-        !std::is_pod<T>::value&&
+        !std::is_pod<T>::value &&
         !data::Serialization<BufferBuilder, T>::is_fixed_size, void>::type
     SendN(const T* value, size_t n) {
         if (self_verify_ && is_loopback_) {
@@ -539,7 +539,7 @@ public:
     //! Receive an array of serializable non-POD fixed-length items T.
     template <typename T>
     typename std::enable_if<
-        !std::is_pod<T>::value&&
+        !std::is_pod<T>::value &&
         data::Serialization<BufferBuilder, T>::is_fixed_size, void>::type
     ReceiveN(T* out_value, size_t n) {
         if (self_verify_ && is_loopback_) {
@@ -564,7 +564,7 @@ public:
     //! Receive an array of serializable non-POD fixed-length items T.
     template <typename T>
     typename std::enable_if<
-        !std::is_pod<T>::value&&
+        !std::is_pod<T>::value &&
         !data::Serialization<BufferBuilder, T>::is_fixed_size, void>::type
     ReceiveN(T* out_value, size_t n) {
         if (self_verify_ && is_loopback_) {

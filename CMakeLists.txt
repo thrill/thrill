@@ -400,6 +400,11 @@ set(THRILL_LINK_LIBRARIES ${CMAKE_DL_LIBS} ${THRILL_LINK_LIBRARIES})
 add_subdirectory(extlib/tlx)
 set(THRILL_LINK_LIBRARIES tlx ${THRILL_LINK_LIBRARIES})
 
+# use foxxll
+
+add_subdirectory(extlib/foxxll)
+set(THRILL_LINK_LIBRARIES foxxll ${THRILL_LINK_LIBRARIES})
+
 # try to find jemalloc (optional)
 
 if(THRILL_USE_JEMALLOC)

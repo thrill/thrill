@@ -137,7 +137,7 @@ void DispatcherThread::Enqueue(Job&& job) {
 
 void DispatcherThread::Work() {
     common::NameThisThread(
-        "host " + mem::to_string(host_rank_) + " dispatcher");
+        "host " + std::to_string(host_rank_) + " dispatcher");
     // pin DispatcherThread to last core
     common::SetCpuAffinity(std::thread::hardware_concurrency() - 1);
 

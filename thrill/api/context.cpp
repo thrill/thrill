@@ -19,10 +19,11 @@
 #include <thrill/common/profile_thread.hpp>
 #include <thrill/common/string.hpp>
 #include <thrill/common/system_exception.hpp>
-#include <thrill/io/iostats.hpp>
 #include <thrill/vfs/file_io.hpp>
 
+#include <foxxll/io/iostats.hpp>
 #include <tlx/math/abs_diff.hpp>
+#include <tlx/port/setenv.hpp>
 #include <tlx/string/format_si_iec_units.hpp>
 #include <tlx/string/parse_si_iec_units.hpp>
 #include <tlx/string/split.hpp>
@@ -150,14 +151,14 @@ RunLoopbackThreads(
     std::vector<std::thread> threads(num_hosts* workers_per_host);
 
     for (size_t host = 0; host < num_hosts; ++host) {
-        mem::by_string log_prefix = "host " + mem::to_string(host);
+        std::string log_prefix = "host " + std::to_string(host);
         for (size_t worker = 0; worker < workers_per_host; ++worker) {
             size_t id = host * workers_per_host + worker;
             threads[id] = common::CreateThread(
                 [&host_contexts, &job_startpoint, host, worker, log_prefix] {
                     Context ctx(*host_contexts[host], worker);
                     common::NameThisThread(
-                        log_prefix + " worker " + mem::to_string(worker));
+                        log_prefix + " worker " + std::to_string(worker));
 
                     ctx.Launch(job_startpoint);
                 });
@@ -314,22 +315,6 @@ HostContext::ConstructLoopback(size_t num_hosts, size_t workers_per_host) {
         mem_config, num_hosts, workers_per_host);
 }
 
-// Windows porting madness because setenv() is apparently dangerous
-#if defined(_MSC_VER)
-int wrap_setenv(const char* name, const char* value, int overwrite) {
-    if (!overwrite) {
-        size_t envsize = 0;
-        int errcode = getenv_s(&envsize, nullptr, 0, name);
-        if (errcode || envsize) return errcode;
-    }
-    return _putenv_s(name, value);
-}
-#else
-int wrap_setenv(const char* name, const char* value, int overwrite) {
-    return setenv(name, value, overwrite);
-}
-#endif
-
 void RunLocalTests(const std::function<void(Context&)>& job_startpoint) {
     // set fixed amount of RAM for testing
     RunLocalTests(4 * 1024 * 1024 * 1024llu, job_startpoint);
@@ -339,7 +324,7 @@ void RunLocalTests(
     size_t ram, const std::function<void(Context&)>& job_startpoint) {
 
     // discard json log
-    wrap_setenv("THRILL_LOG", "", /* overwrite */ 1);
+    tlx::setenv("THRILL_LOG", "", /* overwrite */ 1);
 
     // set fixed amount of RAM for testing
     MemoryConfig mem_config;
@@ -389,7 +374,7 @@ void RunLocalSameThread(const std::function<void(Context&)>& job_startpoint) {
         std::move(dispatcher), std::move(host_group), workers_per_host);
 
     Context ctx(host_context, 0);
-    common::NameThisThread("worker " + mem::to_string(my_host_rank));
+    common::NameThisThread("worker " + std::to_string(my_host_rank));
 
     job_startpoint(ctx);
 }
@@ -612,7 +597,7 @@ int RunBackendTcp(const std::function<void(Context&)>& job_startpoint) {
         threads[worker] = common::CreateThread(
             [&host_context, &job_startpoint, worker] {
                 Context ctx(host_context, worker);
-                common::NameThisThread("worker " + mem::to_string(worker));
+                common::NameThisThread("worker " + std::to_string(worker));
 
                 ctx.Launch(job_startpoint);
             });
@@ -703,8 +688,8 @@ int RunBackendMpi(const std::function<void(Context&)>& job_startpoint) {
         threads[worker] = common::CreateThread(
             [&host_context, &job_startpoint, worker] {
                 Context ctx(host_context, worker);
-                common::NameThisThread("host " + mem::to_string(ctx.host_rank())
-                                       + " worker " + mem::to_string(worker));
+                common::NameThisThread("host " + std::to_string(ctx.host_rank())
+                                       + " worker " + std::to_string(worker));
 
                 ctx.Launch(job_startpoint);
             });
@@ -777,8 +762,8 @@ int RunBackendIb(const std::function<void(Context&)>& job_startpoint) {
         threads[worker] = common::CreateThread(
             [&host_context, &job_startpoint, worker] {
                 Context ctx(host_context, worker);
-                common::NameThisThread("host " + mem::to_string(ctx.host_rank())
-                                       + " worker " + mem::to_string(worker));
+                common::NameThisThread("host " + std::to_string(ctx.host_rank())
+                                       + " worker " + std::to_string(worker));
 
                 ctx.Launch(job_startpoint);
             });
@@ -1235,10 +1220,10 @@ void Context::Launch(const std::function<void(Context&)>& job_startpoint) {
     stats.net_traffic_rx = local_worker_id_ == 0 ? net_manager_.Traffic().rx : 0;
 
     if (local_host_id_ == 0 && local_worker_id_ == 0) {
-        io::StatsData io_stats(*io::Stats::GetInstance());
-        stats.io_volume = io_stats.read_volume() + io_stats.write_volume();
+        foxxll::stats_data io_stats(*foxxll::stats::get_instance());
+        stats.io_volume = io_stats.get_read_bytes() + io_stats.get_write_bytes();
         stats.io_max_allocation =
-            io::BlockManager::GetInstance()->maximum_allocation();
+            foxxll::block_manager::get_instance()->maximum_allocation();
     }
     else {
         stats.io_volume = 0;

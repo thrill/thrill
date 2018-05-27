@@ -13,12 +13,12 @@
 #ifndef THRILL_DATA_STREAM_DATA_HEADER
 #define THRILL_DATA_STREAM_DATA_HEADER
 
-#include <thrill/common/semaphore.hpp>
 #include <thrill/common/stats_counter.hpp>
 #include <thrill/common/stats_timer.hpp>
 #include <thrill/data/block_writer.hpp>
 #include <thrill/data/file.hpp>
 #include <thrill/data/multiplexer.hpp>
+#include <tlx/semaphore.hpp>
 
 #include <mutex>
 #include <vector>
@@ -141,7 +141,7 @@ public:
 
     //! semaphore to stall the amount of PinnedBlocks (measured in bytes) passed
     //! to the network layer for transmission.
-    common::Semaphore sem_queue_;
+    tlx::Semaphore sem_queue_;
 
     ///////////////////////////////////////////////////////////////////////////
 
@@ -159,10 +159,10 @@ protected:
 
     //! number of remaining expected stream closing operations. Required to know
     //! when to stop rx_lifetime
-    size_t remaining_closing_blocks_;
+    std::atomic<size_t> remaining_closing_blocks_;
 
     //! number of received stream closing Blocks.
-    common::Semaphore sem_closing_blocks_;
+    tlx::Semaphore sem_closing_blocks_;
 
     //! friends for access to multiplexer_
     friend class StreamSink;
