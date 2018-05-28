@@ -18,7 +18,7 @@
 #include <foxxll/io/file.hpp>
 #include <foxxll/io/iostats.hpp>
 #include <tlx/die.hpp>
-#include <tlx/lru_cache.hpp>
+#include <tlx/container/lru_cache.hpp>
 #include <tlx/math/is_power_of_two.hpp>
 #include <tlx/string/join_generic.hpp>
 

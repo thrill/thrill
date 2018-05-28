@@ -12,7 +12,7 @@
 #ifndef THRILL_COMMON_RING_BUFFER_HEADER
 #define THRILL_COMMON_RING_BUFFER_HEADER
 
-#include <tlx/ring_buffer.hpp>
+#include <tlx/container/ring_buffer.hpp>
 
 namespace thrill {
 namespace common {

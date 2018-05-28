@@ -12,7 +12,7 @@
 #ifndef THRILL_CORE_BUFFERED_MULTIWAY_MERGE_HEADER
 #define THRILL_CORE_BUFFERED_MULTIWAY_MERGE_HEADER
 
-#include <tlx/loser_tree.hpp>
+#include <tlx/container/loser_tree.hpp>
 
 #include <algorithm>
 #include <utility>

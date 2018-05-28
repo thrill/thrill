@@ -27,7 +27,7 @@
 
 #include <thrill/api/group_by_iterator.hpp>
 #include <thrill/common/logger.hpp>
-#include <tlx/loser_tree.hpp>
+#include <tlx/container/loser_tree.hpp>
 
 #include <algorithm>
 #include <iterator>
