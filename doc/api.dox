@@ -65,8 +65,7 @@ uses the DIABase graph to optimize the order of operations.
 \defgroup net_mpi MPI Network API
 \}
 
-\defgroup io_layer Asynchronous I/O Layer
-
+\addtogroup foxxll
 \addtogroup tlx
 
 \}

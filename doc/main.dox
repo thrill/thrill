@@ -48,8 +48,8 @@ namespace thrill {
   </tr>
   <tr>
     <td style="width: 50%">
-      <div style="text-align: center">\ref thrill::io "io: Async I/O Layer"</div>
-      asynchronous I/O, direct file access impl, and disk allocation. (mostly borrowed from STXXL)</td>
+      <div style="text-align: center">\ref foxxll "foxxll: Async I/O Layer"</div>
+      asynchronous I/O, direct file access impl, and disk allocation. (shared with STXXL)</td>
     <td style="width: 50%">
       <div style="text-align: center">\ref thrill::vfs "vfs: Virtual File System Layer"</div>
       for transparent access to POSIX, S3, and in future HDFS.</td>
