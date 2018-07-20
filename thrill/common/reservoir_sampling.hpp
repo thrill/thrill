@@ -104,12 +104,15 @@ public:
             else {
                 // use Vitter's algorithm for small count_
                 size_t x = uniform(rng_) * count_;
-                if (x < size_)
+                if (x < size_) {
                     samples_[x] = item;
+                    // need to update W_ continuously...
+                    update_W();
+                }
 
                 // when count_ reaches 4 * size_ switch to gap algorithm
                 if (count_ == 4 * size_)
-                    calc_next_gap();
+                    update_gap();
             }
         }
         else if (gap_ == 0) {
@@ -151,10 +154,18 @@ private:
     //! uniform [0.0, 1.0) distribution
     std::uniform_real_distribution<double> uniform;
 
-    //! draw gap size from geometric distribution with p = size_ / count_
-    void calc_next_gap() {
+    void update_W() {
         W_ *= std::exp(std::log(uniform(rng_)) / size_);
+    }
+
+    void update_gap() {
         gap_ = std::log(uniform(rng_)) / std::log(1 - W_);
+    }
+
+    //! update gap and W
+    void calc_next_gap() {
+        update_W();
+        update_gap();
     }
 };
 

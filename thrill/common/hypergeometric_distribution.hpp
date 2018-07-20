@@ -65,6 +65,7 @@
 
 #include <cmath>
 #include <random>
+#include <type_traits>
 
 namespace thrill {
 namespace common {
@@ -105,7 +106,7 @@ private:
      */
     fp_t loggam(fp_t x) const {
         fp_t x0, x2, xp, gl, gl0;
-        int_t k, n;
+        std::make_signed_t<int_t> k, n;
 
         static fp_t a[10] = {
             8.333333333333333e-02, -2.777777777777778e-03,
