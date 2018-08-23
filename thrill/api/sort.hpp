@@ -45,14 +45,19 @@ namespace api {
  *
  * \tparam ValueType Type of DIA elements
  *
- * \tparam Stack Function stack, which contains the chained lambdas between the
- * last and this DIANode.
- *
  * \tparam CompareFunction Type of the compare function
+ *
+ * \tparam SortAlgorithm Type of the local sort function
+ *
+ * \tparam TranmissionStreamType Type of the item transmission stream
  *
  * \ingroup api_layer
  */
-template <typename ValueType, typename CompareFunction, typename SortAlgorithm>
+template <
+    typename ValueType,
+    typename CompareFunction,
+    typename SortAlgorithm,
+    typename TranmissionStreamType = data::MixStream >
 class SortNode final : public DOpNode<ValueType>
 {
     static constexpr bool debug = false;
@@ -69,6 +74,8 @@ class SortNode final : public DOpNode<ValueType>
     using RunTimer = common::RunTimer<Timer>;
 
     using SampleIndexPair = std::pair<ValueType, size_t>;
+
+    using TranmissionStreamPtr = tlx::CountingPtr< TranmissionStreamType >;
 
     static const bool use_background_thread_ = false;
 
@@ -429,12 +436,12 @@ private:
         size_t actual_k,
         const SampleIndexPair* const sorted_splitters,
         size_t prefix_items,
-        data::MixStreamPtr& data_stream) {
+        TranmissionStreamPtr& data_stream) {
 
         data::File::ConsumeReader unsorted_reader =
             unsorted_file_.GetConsumeReader();
 
-        data::MixStream::Writers data_writers = data_stream->GetWriters();
+        auto data_writers = data_stream->GetWriters();
 
         // enlarge emitters array to next power of two to have direct access,
         // because we fill the splitter set up with sentinels == last splitter,
@@ -444,7 +451,7 @@ private:
 
         data_writers.reserve(k);
         while (data_writers.size() < k)
-            data_writers.emplace_back(data::MixStream::Writer());
+            data_writers.emplace_back(typename TranmissionStreamType::Writer());
 
         std::swap(data_writers[actual_k - 1], data_writers[k - 1]);
 
@@ -600,7 +607,7 @@ private:
                     splitters.data(),
                     splitter_count_algo);
 
-        data::MixStreamPtr data_stream = context_.GetNewMixStream(this);
+        auto data_stream = context_.template GetNewStream<TranmissionStreamType>(this->id());
 
         std::thread thread;
         if (use_background_thread_) {
@@ -650,9 +657,9 @@ private:
             << "sample_size" << samples_.size();
     }
 
-    void ReceiveItems(data::MixStreamPtr& data_stream) {
+    void ReceiveItems(TranmissionStreamPtr& data_stream) {
 
-        auto reader = data_stream->GetMixReader(/* consume */ true);
+        auto reader = data_stream->GetReader(/* consume */ true);
 
         LOG0 << "Writing files";
 
@@ -774,6 +781,83 @@ auto DIA<ValueType, Stack>::Sort(const CompareFunction& compare_function,
 
     using SortNode = api::SortNode<
         ValueType, CompareFunction, SortAlgorithm>;
+
+    static_assert(
+        std::is_convertible<
+            ValueType,
+            typename FunctionTraits<CompareFunction>::template arg<0> >::value,
+        "CompareFunction has the wrong input type");
+
+    static_assert(
+        std::is_convertible<
+            ValueType,
+            typename FunctionTraits<CompareFunction>::template arg<1> >::value,
+        "CompareFunction has the wrong input type");
+
+    static_assert(
+        std::is_convertible<
+            typename FunctionTraits<CompareFunction>::result_type,
+            bool>::value,
+        "CompareFunction has the wrong output type (should be bool)");
+
+    auto node = tlx::make_counting<SortNode>(
+        *this, compare_function, sort_algorithm);
+
+    return DIA<ValueType>(node);
+}
+
+class DefaultStableSortAlgorithm
+{
+public:
+    template <typename Iterator, typename CompareFunction>
+    void operator () (Iterator begin, Iterator end, CompareFunction cmp) const {
+        return std::stable_sort(begin, end, cmp);
+    }
+};
+
+template <typename ValueType, typename Stack>
+template <typename CompareFunction>
+auto DIA<ValueType, Stack>::SortStable(
+    const CompareFunction& compare_function) const {
+
+    assert(IsValid());
+
+    using SortNode = api::SortNode<
+        ValueType, CompareFunction, DefaultStableSortAlgorithm, data::CatStream>;
+
+    static_assert(
+        std::is_convertible<
+            ValueType,
+            typename FunctionTraits<CompareFunction>::template arg<0> >::value,
+        "CompareFunction has the wrong input type");
+
+    static_assert(
+        std::is_convertible<
+            ValueType,
+            typename FunctionTraits<CompareFunction>::template arg<1> >::value,
+        "CompareFunction has the wrong input type");
+
+    static_assert(
+        std::is_convertible<
+            typename FunctionTraits<CompareFunction>::result_type,
+            bool>::value,
+        "CompareFunction has the wrong output type (should be bool)");
+
+    auto node = tlx::make_counting<SortNode>(*this, compare_function);
+
+    return DIA<ValueType>(node);
+}
+
+template <typename ValueType, typename Stack>
+template <typename CompareFunction, typename SortAlgorithm>
+auto DIA<ValueType, Stack>::SortStable(
+    const CompareFunction& compare_function,
+    const SortAlgorithm& sort_algorithm) const {
+
+    assert(IsValid());
+
+    using SortNode = api::SortNode<
+        ValueType, CompareFunction, SortAlgorithm, data::CatStream>;
 
     static_assert(
         std::is_convertible<

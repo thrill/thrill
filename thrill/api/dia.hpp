@@ -1602,6 +1602,41 @@ public:
               const SortFunction& sort_algorithm) const;
 
     /*!
+     * SortStable is a DOp, which sorts a given DIA stably according to the
+     *  given compare_function.
+     *
+     * \tparam CompareFunction Type of the compare_function.
+     *  Should be (ValueType,ValueType)->bool
+     *
+     * \param compare_function Function, which compares two elements. Returns
+     * true, if first element is smaller than second. False otherwise.
+     *
+     * \ingroup dia_dops
+     */
+    template <typename CompareFunction = std::less<ValueType> >
+    auto SortStable(const CompareFunction& compare_function = CompareFunction()) const;
+
+    /*!
+     * SortStable is a DOp, which sorts a given DIA stably according to the
+     *  given compare_function.
+     *
+     * \tparam CompareFunction Type of the compare_function.
+     *  Should be (ValueType,ValueType)->bool
+     *
+     * \param compare_function Function, which compares two elements. Returns
+     * true, if first element is smaller than second. False otherwise.
+     *
+     * \param sort_algorithm Algorithm class used to stably sort items. Merging
+     * is always done using a tournament tree with compare_function. In order
+     * for the sorting to be stable, this must be a stable sorting algorithm.
+     *
+     * \ingroup dia_dops
+     */
+    template <typename CompareFunction, typename SortFunction>
+    auto SortStable(const CompareFunction& compare_function,
+              const SortFunction& sort_algorithm) const;
+
+    /*!
      * Merge is a DOp, which merges two sorted DIAs to a single sorted DIA.
      * Both input DIAs must be used sorted conforming to the given comparator.
      * The type of the output DIA will be the type of this DIA.
