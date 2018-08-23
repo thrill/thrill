@@ -245,7 +245,6 @@ public:
 
                 StartPrefetch(seq, prefetch);
 
-                //FIXME unhardcode "stable"
                 auto puller = MakeMultiwayMergeTree(
                     seq.begin(), seq.end(), compare_function_);
 
@@ -280,7 +279,6 @@ public:
 
             StartPrefetch(seq, prefetch);
 
-            // FIXME unhardcode "stable"
             auto puller = MakeMultiwayMergeTree(
                 seq.begin(), seq.end(), compare_function_);
 
