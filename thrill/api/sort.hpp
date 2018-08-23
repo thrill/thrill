@@ -33,6 +33,7 @@
 #include <functional>
 #include <numeric>
 #include <random>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -57,7 +58,7 @@ template <
     typename ValueType,
     typename CompareFunction,
     typename SortAlgorithm,
-    typename TranmissionStreamType = data::MixStream >
+    bool Stable = false >
 class SortNode final : public DOpNode<ValueType>
 {
     static constexpr bool debug = false;
@@ -75,7 +76,38 @@ class SortNode final : public DOpNode<ValueType>
 
     using SampleIndexPair = std::pair<ValueType, size_t>;
 
+    //! Stream type for item transmission depends on Stable flag
+    using TranmissionStreamType = typename std::conditional<Stable,
+        data::CatStream, data::MixStream>::type;
     using TranmissionStreamPtr = tlx::CountingPtr< TranmissionStreamType >;
+
+    //! Multiway merge tree creation depends on Stable flag
+    struct MakeDefaultMultiwayMergeTree {
+        template <typename ReaderIterator,
+                  typename Comparator = std::less<ValueType> >
+        auto operator()(
+            ReaderIterator seqs_begin, ReaderIterator seqs_end,
+            const Comparator& comp = Comparator()) {
+
+            return core::make_multiway_merge_tree<ValueType>(
+                seqs_begin, seqs_end, comp);
+        }
+    };
+
+    struct MakeStableMultiwayMergeTree {
+        template <typename ReaderIterator,
+                  typename Comparator = std::less<ValueType> >
+        auto operator()(
+            ReaderIterator seqs_begin, ReaderIterator seqs_end,
+            const Comparator& comp = Comparator()) {
+
+            return core::make_stable_multiway_merge_tree<ValueType>(
+                seqs_begin, seqs_end, comp);
+        }
+    };
+
+    using MakeMultiwayMergeTreeDelegate = typename std::conditional<Stable,
+        MakeStableMultiwayMergeTree, MakeDefaultMultiwayMergeTree>::type;
 
     static const bool use_background_thread_ = false;
 
@@ -191,6 +223,7 @@ public:
             this->PushFile(files_[0], consume);
         }
         else {
+            MakeMultiwayMergeTreeDelegate MakeMultiwayMergeTree;
             size_t merge_degree, prefetch;
 
             // merge batches of files if necessary
@@ -212,7 +245,8 @@ public:
 
                 StartPrefetch(seq, prefetch);
 
-                auto puller = core::make_multiway_merge_tree<ValueType>(
+                //FIXME unhardcode "stable"
+                auto puller = MakeMultiwayMergeTree(
                     seq.begin(), seq.end(), compare_function_);
 
                 // create new File for merged items
@@ -246,7 +280,8 @@ public:
 
             StartPrefetch(seq, prefetch);
 
-            auto puller = core::make_multiway_merge_tree<ValueType>(
+            // FIXME unhardcode "stable"
+            auto puller = MakeMultiwayMergeTree(
                 seq.begin(), seq.end(), compare_function_);
 
             while (puller.HasNext()) {
@@ -822,8 +857,8 @@ auto DIA<ValueType, Stack>::SortStable(
 
     assert(IsValid());
 
-    using SortNode = api::SortNode<
-        ValueType, CompareFunction, DefaultStableSortAlgorithm, data::CatStream>;
+    using SortStableNode = api::SortNode<
+        ValueType, CompareFunction, DefaultStableSortAlgorithm, /*Stable*/true>;
 
     static_assert(
         std::is_convertible<
@@ -843,7 +878,7 @@ auto DIA<ValueType, Stack>::SortStable(
             bool>::value,
         "CompareFunction has the wrong output type (should be bool)");
 
-    auto node = tlx::make_counting<SortNode>(*this, compare_function);
+    auto node = tlx::make_counting<SortStableNode>(*this, compare_function);
 
     return DIA<ValueType>(node);
 }
@@ -856,8 +891,8 @@ auto DIA<ValueType, Stack>::SortStable(
 
     assert(IsValid());
 
-    using SortNode = api::SortNode<
-        ValueType, CompareFunction, SortAlgorithm, data::CatStream>;
+    using SortStableNode = api::SortNode<
+        ValueType, CompareFunction, SortAlgorithm, /*Stable*/true>;
 
     static_assert(
         std::is_convertible<
@@ -877,7 +912,7 @@ auto DIA<ValueType, Stack>::SortStable(
             bool>::value,
         "CompareFunction has the wrong output type (should be bool)");
 
-    auto node = tlx::make_counting<SortNode>(
+    auto node = tlx::make_counting<SortStableNode>(
         *this, compare_function, sort_algorithm);
 
     return DIA<ValueType>(node);

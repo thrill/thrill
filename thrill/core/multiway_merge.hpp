@@ -22,14 +22,18 @@
 namespace thrill {
 namespace core {
 
-template <typename ValueType, typename ReaderIterator, typename Comparator>
+template <
+    typename ValueType,
+    typename ReaderIterator,
+    typename Comparator,
+    bool Stable = false>
 class MultiwayMergeTree
 {
 public:
     using Reader = typename std::iterator_traits<ReaderIterator>::value_type;
 
     using LoserTreeType = tlx::LoserTree<
-        /* stable */ false, ValueType, Comparator>;
+        /* stable */ Stable, ValueType, Comparator>;
 
     MultiwayMergeTree(ReaderIterator readers_begin, ReaderIterator readers_end,
                       const Comparator& comp)
@@ -131,7 +135,33 @@ auto make_multiway_merge_tree(
     const Comparator& comp = Comparator()) {
 
     assert(seqs_end - seqs_begin >= 1);
-    return MultiwayMergeTree<ValueType, ReaderIterator, Comparator>(
+    return MultiwayMergeTree<ValueType, ReaderIterator, Comparator, false>(
+        seqs_begin, seqs_end, comp);
+}
+
+/*!
+ * Sequential multi-way merging switch for a file writer as output
+ *
+ * The decision if based on the branching factor and runtime settings.
+ *
+ * The merging is stable, ie, if the two next elements are equal according to
+ * the comparator, that of the file with the lower index is taken.
+ *
+ * \param seqs_begin Begin iterator of iterator pair input sequence.
+ * \param seqs_end End iterator of iterator pair input sequence.
+ * \param comp Comparator.
+ * \tparam Stable Stable merging incurs a performance penalty.
+ * \tparam Sentinels The sequences have a sentinel element.
+ * \return End iterator of output sequence.
+ */
+template <typename ValueType, typename ReaderIterator,
+          typename Comparator = std::less<ValueType> >
+auto make_stable_multiway_merge_tree(
+    ReaderIterator seqs_begin, ReaderIterator seqs_end,
+    const Comparator& comp = Comparator()) {
+
+    assert(seqs_end - seqs_begin >= 1);
+    return MultiwayMergeTree<ValueType, ReaderIterator, Comparator, true>(
         seqs_begin, seqs_end, comp);
 }
 
