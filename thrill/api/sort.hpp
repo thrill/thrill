@@ -50,7 +50,7 @@ namespace api {
  *
  * \tparam SortAlgorithm Type of the local sort function
  *
- * \tparam TranmissionStreamType Type of the item transmission stream
+ * \tparam Stable Whether or not to use stable sorting mechanisms
  *
  * \ingroup api_layer
  */
