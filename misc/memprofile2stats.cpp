@@ -39,7 +39,7 @@ bool operator < (const EntrySize& a, const EntrySize& b) {
 }
 
 struct EntryHasher {
-    size_t operator () (const Entry& e) const {
+    size_t operator () (const Entry& e) const noexcept {
         return std::hash<void*>()(e.ptr)
                ^ std::hash<size_t>()(e.depth) ^ std::hash<size_t>()(e.size);
     }
