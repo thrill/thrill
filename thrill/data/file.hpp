@@ -53,7 +53,7 @@ class ConsumeFileBlockSource;
  * block contained any item offset in log_2(Blocks) time, though seeking within
  * the Block goes sequentially.
  */
-class File : public virtual BlockSink, public tlx::ReferenceCounter
+class File : public BlockSink, public tlx::ReferenceCounter
 {
 public:
     using Writer = BlockWriter<FileBlockSink>;

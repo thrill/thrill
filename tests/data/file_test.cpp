@@ -451,6 +451,7 @@ TEST_F(File, SeekReadSlicesOfFiles) {
     check_range(1000, 1000, true);
 }
 
+#if 0
 //! A derivative of File which only contains a limited amount of Blocks
 #if defined(_MSC_VER)
 #pragma warning(push)
@@ -474,7 +475,6 @@ public:
 #pragma warning(pop)
 #endif
 
-#if 0
 TEST_F(File, BoundedFilePutIntegerUntilFull) {
 
     // construct Partition with very small blocks for testing
