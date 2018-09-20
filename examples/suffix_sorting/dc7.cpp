@@ -422,7 +422,7 @@ DC7Recursive(const InputDIA& input_dia, size_t input_size, size_t K) {
         // map (t_i) -> (i,t_i,t_{i+1},...,t_{i+6}) where i = 0,1,3 mod 7
         .template FlatWindow<IndexChars>(
             7,
-            [input_size](size_t index, const RingBuffer<Char>& r, auto emit) {
+            [](size_t index, const RingBuffer<Char>& r, auto emit) {
                 if (IsDiffCover7(index))
                     emit(IndexChars {
                              Index(index), {
