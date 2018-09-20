@@ -61,7 +61,7 @@ private:
         if (size == insize) {   // degenerate
             std::copy(begin, end, out_begin);
         }
-        else if (insize > 64) { // recursive step
+        else if (insize > 1024) { // recursive step
             size_t left_size = insize / 2;
             size_t left = hyp_(left_size, insize - left_size, size);
             sLOG << "Splitting input of size" << insize << "into two, left"
