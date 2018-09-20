@@ -17,6 +17,7 @@
 
 #include <cassert>
 #include <cmath>
+#include <random>
 #include <vector>
 
 namespace thrill {
@@ -298,7 +299,7 @@ private:
     const double desired_imbalance_;
 
     //! draw gap size from geometric distribution with p = size_ / count_
-    size_t calc_next_gap() {
+    size_t calc_next_gap() const {
         if (0) {
             // this is slower than the simpler approximation below
             return std::geometric_distribution<size_t>(
