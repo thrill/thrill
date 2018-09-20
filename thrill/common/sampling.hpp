@@ -4,7 +4,7 @@
  * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2016 Sebastian Lamm <seba.lamm@gmail.com>
- * Copyright (C) 2017 Lorenz Hübschle-Schneider <lorenz@4z2.de>
+ * Copyright (C) 2017-2018 Lorenz Hübschle-Schneider <lorenz@4z2.de>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
@@ -29,13 +29,13 @@ namespace common {
 //! Sampling without replacement, implementing Algorithm R from Sanders, Lamm,
 //! Hübschle-Schneider, Schrade, Dachsbacher, ACM TOMS 2017: Efficient Random
 //! Sampling - Parallel, Vectorized, Cache-Efficient, and Online
-template <typename RNG = std::mt19937>
+template <typename RNG = std::mt19937_64>
 class Sampling
 {
 public:
     static constexpr bool debug = false;
 
-    Sampling(RNG& rng) : rng_(rng), hyp_(rng()) { }
+    explicit Sampling(RNG& rng) : rng_(rng), hyp_(rng()) { }
 
     template <typename Iterator,
               typename Type = typename std::iterator_traits<Iterator>::value_type>
