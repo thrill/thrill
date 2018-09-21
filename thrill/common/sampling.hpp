@@ -105,8 +105,8 @@ private:
 
         std::uniform_int_distribution<size_t> dist(0, insize - 1);
         const size_t dummy = -1;
-        const size_t population_lg = tlx::integer_log2_floor(insize);
-        const size_t table_lg = 3 + tlx::integer_log2_floor(size);
+        const size_t population_lg = tlx::integer_log2_ceil(insize);
+        const size_t table_lg = 3 + tlx::integer_log2_ceil(size);
         const size_t table_size = 1ULL << table_lg;
         const size_t address_mask = (table_lg >= population_lg) ? 0 :
                                     population_lg - table_lg;
@@ -128,6 +128,7 @@ private:
                 // Take sample
                 variate = dist(rng_); // N * randblock[array_index++];
                 index = variate >> address_mask;
+                assert(index < table_size);
                 size_t hash_elem = hash_table[index];
 
                 // Table lookup
