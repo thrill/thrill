@@ -284,13 +284,13 @@ struct IVPair {
 };
 
 // compare by value
-bool operator <(const IVPair& a, const IVPair& b) {
+bool operator < (const IVPair& a, const IVPair& b) {
     return a.value < b.value;
 }
 
 TEST(SortStable, SortKnownIndexedIntegers) {
 
-    static constexpr size_t test_size   = 6000000u;
+    static constexpr size_t test_size = 6000000u;
     static constexpr size_t value_range = 1000000u; // each value 6 times
 
     auto start_func =
@@ -301,7 +301,8 @@ TEST(SortStable, SortKnownIndexedIntegers) {
                 [](const size_t& index) -> auto {
                     return IVPair {
                         value_range - 1 - (index % value_range),
-                        index };
+                        index
+                    };
                 });
 
             auto sorted = pairs.SortStable();
@@ -311,11 +312,11 @@ TEST(SortStable, SortKnownIndexedIntegers) {
             ASSERT_EQ(test_size, out_vec.size());
             for (size_t i = 1; i < out_vec.size(); i++) {
                 // check value order (sorting)
-                ASSERT_LE(out_vec[i-1].value, out_vec[i].value);
+                ASSERT_LE(out_vec[i - 1].value, out_vec[i].value);
 
-                if(out_vec[i-1].value == out_vec[i].value) {
+                if (out_vec[i - 1].value == out_vec[i].value) {
                     // check index order (stability)
-                    ASSERT_LT(out_vec[i-1].index, out_vec[i].index);
+                    ASSERT_LT(out_vec[i - 1].index, out_vec[i].index);
                 }
             }
         };
@@ -351,11 +352,11 @@ TEST(SortStable, SortRandomIndexedIntegers) {
             ASSERT_EQ(1000000u, out_vec.size());
             for (size_t i = 1; i < out_vec.size(); i++) {
                 // check value order (sorting)
-                ASSERT_LE(out_vec[i-1].value, out_vec[i].value);
+                ASSERT_LE(out_vec[i - 1].value, out_vec[i].value);
 
-                if(out_vec[i-1].value == out_vec[i].value) {
+                if (out_vec[i - 1].value == out_vec[i].value) {
                     // check index order (stability)
-                    ASSERT_LT(out_vec[i-1].index, out_vec[i].index);
+                    ASSERT_LT(out_vec[i - 1].index, out_vec[i].index);
                 }
             }
         };
@@ -390,11 +391,11 @@ TEST(SortStable, SortRandomIndexedIntegersCustomCompareFunction) {
             ASSERT_EQ(10000u, out_vec.size());
             for (size_t i = 1; i < out_vec.size(); i++) {
                 // check value order (sorting)
-                ASSERT_GE(out_vec[i-1].value, out_vec[i].value);
+                ASSERT_GE(out_vec[i - 1].value, out_vec[i].value);
 
-                if(out_vec[i-1].value == out_vec[i].value) {
+                if (out_vec[i - 1].value == out_vec[i].value) {
                     // check index order (stability)
-                    ASSERT_LT(out_vec[i-1].index, out_vec[i].index);
+                    ASSERT_LT(out_vec[i - 1].index, out_vec[i].index);
                 }
             }
         };

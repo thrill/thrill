@@ -58,7 +58,7 @@ template <
     typename ValueType,
     typename CompareFunction,
     typename SortAlgorithm,
-    bool Stable = false >
+    bool Stable = false>
 class SortNode final : public DOpNode<ValueType>
 {
     static constexpr bool debug = false;
@@ -77,15 +77,16 @@ class SortNode final : public DOpNode<ValueType>
     using SampleIndexPair = std::pair<ValueType, size_t>;
 
     //! Stream type for item transmission depends on Stable flag
-    using TranmissionStreamType = typename std::conditional<Stable,
+    using TranmissionStreamType = typename std::conditional<
+        Stable,
         data::CatStream, data::MixStream>::type;
-    using TranmissionStreamPtr = tlx::CountingPtr< TranmissionStreamType >;
+    using TranmissionStreamPtr = tlx::CountingPtr<TranmissionStreamType>;
 
     //! Multiway merge tree creation depends on Stable flag
     struct MakeDefaultMultiwayMergeTree {
         template <typename ReaderIterator,
                   typename Comparator = std::less<ValueType> >
-        auto operator()(
+        auto operator () (
             ReaderIterator seqs_begin, ReaderIterator seqs_end,
             const Comparator& comp = Comparator()) {
 
@@ -97,7 +98,7 @@ class SortNode final : public DOpNode<ValueType>
     struct MakeStableMultiwayMergeTree {
         template <typename ReaderIterator,
                   typename Comparator = std::less<ValueType> >
-        auto operator()(
+        auto operator () (
             ReaderIterator seqs_begin, ReaderIterator seqs_end,
             const Comparator& comp = Comparator()) {
 
@@ -106,7 +107,8 @@ class SortNode final : public DOpNode<ValueType>
         }
     };
 
-    using MakeMultiwayMergeTreeDelegate = typename std::conditional<Stable,
+    using MakeMultiwayMergeTreeDelegate = typename std::conditional<
+        Stable,
         MakeStableMultiwayMergeTree, MakeDefaultMultiwayMergeTree>::type;
 
     static const bool use_background_thread_ = false;
@@ -856,7 +858,7 @@ auto DIA<ValueType, Stack>::SortStable(
     assert(IsValid());
 
     using SortStableNode = api::SortNode<
-        ValueType, CompareFunction, DefaultStableSortAlgorithm, /*Stable*/true>;
+        ValueType, CompareFunction, DefaultStableSortAlgorithm, /*Stable*/ true>;
 
     static_assert(
         std::is_convertible<
@@ -890,7 +892,7 @@ auto DIA<ValueType, Stack>::SortStable(
     assert(IsValid());
 
     using SortStableNode = api::SortNode<
-        ValueType, CompareFunction, SortAlgorithm, /*Stable*/true>;
+        ValueType, CompareFunction, SortAlgorithm, /* Stable */ true>;
 
     static_assert(
         std::is_convertible<

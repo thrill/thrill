@@ -1597,9 +1597,9 @@ public:
      *
      * \ingroup dia_dops
      */
-    template <typename CompareFunction, typename SortFunction>
+    template <typename CompareFunction, typename SortAlgorithm>
     auto Sort(const CompareFunction& compare_function,
-              const SortFunction& sort_algorithm) const;
+              const SortAlgorithm& sort_algorithm) const;
 
     /*!
      * SortStable is a DOp, which sorts a given DIA stably according to the
@@ -1632,9 +1632,9 @@ public:
      *
      * \ingroup dia_dops
      */
-    template <typename CompareFunction, typename SortFunction>
+    template <typename CompareFunction, typename SortAlgorithm>
     auto SortStable(const CompareFunction& compare_function,
-              const SortFunction& sort_algorithm) const;
+                    const SortAlgorithm& sort_algorithm) const;
 
     /*!
      * Merge is a DOp, which merges two sorted DIAs to a single sorted DIA.

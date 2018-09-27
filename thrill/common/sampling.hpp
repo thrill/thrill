@@ -55,10 +55,10 @@ private:
     template <typename Iterator, typename OutputIterator>
     void do_sample(Iterator begin, Iterator end, size_t size,
                    OutputIterator out_begin) {
-        if (size == 0) return;  // degenerate
+        if (size == 0) return;    // degenerate
 
         const size_t insize = end - begin;
-        if (size == insize) {   // degenerate
+        if (size == insize) {     // degenerate
             std::copy(begin, end, out_begin);
         }
         else if (insize > 1024) { // recursive step
