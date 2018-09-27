@@ -276,3 +276,130 @@ TEST(Sort, SortZeroIntegers) {
 }
 
 /******************************************************************************/
+
+// struct for stable sorting tests
+struct IVPair {
+    size_t value; // sort "key"
+    size_t index; // used to verify stability of sort
+};
+
+// compare by value
+bool operator <(const IVPair& a, const IVPair& b) {
+    return a.value < b.value;
+}
+
+TEST(SortStable, SortKnownIndexedIntegers) {
+
+    static constexpr size_t test_size   = 6000000u;
+    static constexpr size_t value_range = 1000000u; // each value 6 times
+
+    auto start_func =
+        [](Context& ctx) {
+
+            auto pairs = Generate(
+                ctx, test_size,
+                [](const size_t& index) -> auto {
+                    return IVPair {
+                        value_range - 1 - (index % value_range),
+                        index };
+                });
+
+            auto sorted = pairs.SortStable();
+
+            std::vector<IVPair> out_vec = sorted.AllGather();
+
+            ASSERT_EQ(test_size, out_vec.size());
+            for (size_t i = 1; i < out_vec.size(); i++) {
+                // check value order (sorting)
+                ASSERT_LE(out_vec[i-1].value, out_vec[i].value);
+
+                if(out_vec[i-1].value == out_vec[i].value) {
+                    // check index order (stability)
+                    ASSERT_LT(out_vec[i-1].index, out_vec[i].index);
+                }
+            }
+        };
+
+    // set fixed amount of RAM for testing
+    api::MemoryConfig mem_config;
+    mem_config.setup(128 * 1024 * 1024llu);
+
+    api::RunLocalMock(mem_config, 2, 1, start_func);
+}
+
+TEST(SortStable, SortRandomIndexedIntegers) {
+
+    auto start_func =
+        [](Context& ctx) {
+
+            std::default_random_engine generator(std::random_device { } ());
+
+            // we want a high probability that many values are equal --
+            // this hardens the test for stability
+            std::uniform_int_distribution<size_t> distribution(0, 10);
+
+            auto pairs = Generate(
+                ctx, 1000000,
+                [&distribution, &generator](const size_t& index) -> auto {
+                    return IVPair{ distribution(generator), index };
+                });
+
+            auto sorted = pairs.SortStable();
+
+            std::vector<IVPair> out_vec = sorted.AllGather();
+
+            ASSERT_EQ(1000000u, out_vec.size());
+            for (size_t i = 1; i < out_vec.size(); i++) {
+                // check value order (sorting)
+                ASSERT_LE(out_vec[i-1].value, out_vec[i].value);
+
+                if(out_vec[i-1].value == out_vec[i].value) {
+                    // check index order (stability)
+                    ASSERT_LT(out_vec[i-1].index, out_vec[i].index);
+                }
+            }
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+TEST(SortStable, SortRandomIndexedIntegersCustomCompareFunction) {
+
+    auto start_func =
+        [](Context& ctx) {
+
+            std::default_random_engine generator(std::random_device { } ());
+            // we want a high probability that many values are equal --
+            // this hardens the test for stability
+            std::uniform_int_distribution<size_t> distribution(1, 10);
+
+            auto pairs = Generate(
+                ctx, 10000,
+                [&distribution, &generator](const size_t& index) -> auto {
+                    return IVPair{ distribution(generator), index };
+                });
+
+            auto compare_fn = [](const IVPair& a, const IVPair& b) {
+                                  return a.value > b.value;
+                              };
+
+            auto sorted = pairs.SortStable(compare_fn);
+
+            std::vector<IVPair> out_vec = sorted.AllGather();
+
+            ASSERT_EQ(10000u, out_vec.size());
+            for (size_t i = 1; i < out_vec.size(); i++) {
+                // check value order (sorting)
+                ASSERT_GE(out_vec[i-1].value, out_vec[i].value);
+
+                if(out_vec[i-1].value == out_vec[i].value) {
+                    // check index order (stability)
+                    ASSERT_LT(out_vec[i-1].index, out_vec[i].index);
+                }
+            }
+        };
+
+    api::RunLocalTests(start_func);
+}
+
+/******************************************************************************/
