@@ -45,7 +45,7 @@ double CalcMiBs(size_t bytes, const common::StatsTimer& timer) {
 }
 
 // matrix of measured latencies or bandwidths
-using AggDouble = common::Aggregate<double>;
+using AggDouble = tlx::Aggregate<double>;
 using AggMatrix = common::Matrix<AggDouble>;
 
 //! print avg/stddev matrix
@@ -54,7 +54,7 @@ void PrintMatrix(const AggMatrix& m) {
         std::ostringstream os;
         for (size_t j = 0; j < m.columns(); ++j) {
             os << common::str_sprintf(
-                "%8.1f/%8.3f", m(i, j).Avg(), m(i, j).StDev());
+                "%8.1f/%8.3f", m(i, j).avg(), m(i, j).stdev());
         }
         LOG1 << os.str();
     }
@@ -128,7 +128,7 @@ public:
               << "iteration" << iteration
               << "latency" << avg;
 
-        latency_(ctx.host_rank(), peer).Add(avg);
+        latency_(ctx.host_rank(), peer).add(avg);
     }
 
     void Receiver(api::Context& ctx, size_t peer) {
@@ -298,7 +298,7 @@ public:
               << "time"
               << (static_cast<double>(inner_timer.Microseconds()) * 1e-6);
 
-        bandwidth_(ctx.host_rank(), peer_id).Add(bw);
+        bandwidth_(ctx.host_rank(), peer_id).add(bw);
     }
 
     void Receiver(api::Context& ctx, size_t peer_id) {
