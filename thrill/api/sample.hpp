@@ -4,6 +4,7 @@
  * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2016 Timo Bingmann <tb@panthema.net>
+ * Copyright (C) 2017-2018 Lorenz Hübschle-Schneider <lorenz@4z2.de>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
@@ -137,7 +138,7 @@ public:
             sLOG << "Drawing" << local_samples_ << "samples locally from"
                  << samples_.size() << "pre-samples";
             std::vector<ValueType> subsample;
-            common::Sampling<> subsampler(rng_);
+            common::Sampling<decltype(rng_)> subsampler(rng_);
             subsampler(samples_.begin(), samples_.end(),
                        local_samples_, subsample);
             samples_.swap(subsample);
@@ -233,7 +234,7 @@ private:
     //! Hypergeometric distribution to calculate local sample sizes
     common::hypergeometric hyp_;
     //! Random generator for reservoir sampler
-    std::mt19937 rng_ { std::random_device { } () };
+    std::mt19937_64 rng_ { std::random_device { } () };
     //! Reservoir sampler for pre-op
     common::ReservoirSamplingFast<ValueType, decltype(rng_)> sampler_;
     //! Timers for local work and communication

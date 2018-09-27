@@ -4,7 +4,7 @@
  * Part of Project Thrill - http://project-thrill.org
  *
  * Copyright (C) 2016 Sebastian Lamm <seba.lamm@gmail.com>
- * Copyright (C) 2017 Lorenz Hübschle-Schneider <lorenz@4z2.de>
+ * Copyright (C) 2017-2018 Lorenz Hübschle-Schneider <lorenz@4z2.de>
  *
  * All rights reserved. Published under the BSD-2 license in the LICENSE file.
  ******************************************************************************/
@@ -29,13 +29,13 @@ namespace common {
 //! Sampling without replacement, implementing Algorithm R from Sanders, Lamm,
 //! Hübschle-Schneider, Schrade, Dachsbacher, ACM TOMS 2017: Efficient Random
 //! Sampling - Parallel, Vectorized, Cache-Efficient, and Online
-template <typename RNG = std::mt19937>
+template <typename RNG = std::mt19937_64>
 class Sampling
 {
 public:
     static constexpr bool debug = false;
 
-    Sampling(RNG& rng) : rng_(rng), hyp_(rng()) { }
+    explicit Sampling(RNG& rng) : rng_(rng), hyp_(rng()) { }
 
     template <typename Iterator,
               typename Type = typename std::iterator_traits<Iterator>::value_type>
@@ -61,7 +61,7 @@ private:
         if (size == insize) {   // degenerate
             std::copy(begin, end, out_begin);
         }
-        else if (insize > 64) { // recursive step
+        else if (insize > 1024) { // recursive step
             size_t left_size = insize / 2;
             size_t left = hyp_(left_size, insize - left_size, size);
             sLOG << "Splitting input of size" << insize << "into two, left"
@@ -105,8 +105,8 @@ private:
 
         std::uniform_int_distribution<size_t> dist(0, insize - 1);
         const size_t dummy = -1;
-        const size_t population_lg = tlx::integer_log2_floor(insize);
-        const size_t table_lg = 3 + tlx::integer_log2_floor(size);
+        const size_t population_lg = tlx::integer_log2_ceil(insize);
+        const size_t table_lg = 3 + tlx::integer_log2_ceil(size);
         const size_t table_size = 1ULL << table_lg;
         const size_t address_mask = (table_lg >= population_lg) ? 0 :
                                     population_lg - table_lg;
@@ -128,6 +128,7 @@ private:
                 // Take sample
                 variate = dist(rng_); // N * randblock[array_index++];
                 index = variate >> address_mask;
+                assert(index < table_size);
                 size_t hash_elem = hash_table[index];
 
                 // Table lookup

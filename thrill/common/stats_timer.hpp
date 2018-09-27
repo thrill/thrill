@@ -152,6 +152,12 @@ public:
         return static_cast<double>(Microseconds()) / 1e6;
     }
 
+    //! return currently accumulated time in seconds as double with microseconds
+    //! precision
+    double MillisecondsDouble() const {
+        return static_cast<double>(Microseconds()) / 1e3;
+    }
+
     //! accumulate elapsed time from another timer
     StatsTimerBase& operator += (const StatsTimerBase& tm) {
         accumulated_ += tm.accumulated_;
@@ -243,6 +249,8 @@ public:
     double SecondsDouble() const {
         return 0;
     }
+
+    double MillisecondsDouble() const { return 0; }
 
     //! accumulate elapsed time from another timer
     StatsTimerBase& operator += (const StatsTimerBase&) {

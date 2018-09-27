@@ -60,7 +60,7 @@ public:
     //! size of matrix raw data (rows * columns)
     size_t size() const { return data_.size(); }
 
-    //! return reference to element at cell
+    //! return const reference to element at cell
     const Type& at(size_t row, size_t column) const {
         assert(row < rows_);
         assert(column < columns_);
@@ -74,7 +74,7 @@ public:
         return data_[columns_ * row + column];
     }
 
-    //! return reference to element at cell
+    //! return const reference to element at cell
     const Type& operator () (size_t row, size_t column) const {
         return at(row, column);
     }
@@ -92,14 +92,14 @@ public:
         return *this;
     }
 
-    //! add two matrix to this one
+    //! add matrix to this one, returning result as a new matrix
     Matrix operator + (const Matrix& b) const {
         assert(rows() == b.rows() && columns() == b.columns());
         Matrix n = *this;
         return (n += b);
     }
 
-    //! multiple matrix with a scalar
+    //! multiply matrix with a scalar
     Matrix& operator *= (const Type& s) {
         std::for_each(data_.begin(), data_.end(), [&s](Type& t) { t *= s; });
         return *this;

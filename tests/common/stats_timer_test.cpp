@@ -41,14 +41,4 @@ TEST(StatsTimer, Test1) {
     ASSERT_EQ(timer2.Seconds(), 0);
 }
 
-namespace thrill {
-namespace common {
-
-// forced instantiations
-template class StatsTimerBase<true>;
-template class StatsTimerBase<false>;
-
-} // namespace common
-} // namespace thrill
-
 /******************************************************************************/
