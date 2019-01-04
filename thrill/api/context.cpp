@@ -326,9 +326,10 @@ void RunLocalTests(
     // discard json log
     tlx::setenv("THRILL_LOG", "", /* overwrite */ 1);
 
-    // set fixed amount of RAM for testing
+    // set fixed amount of RAM for testing, disable /proc profiler
     MemoryConfig mem_config;
     mem_config.verbose_ = false;
+    mem_config.enable_proc_profiler_ = false;
     mem_config.setup(ram);
 
     static constexpr size_t num_hosts_list[] = { 1, 2, 5, 8 };
@@ -1050,7 +1051,8 @@ HostContext::HostContext(
     // write command line parameters to json log
     common::LogCmdlineParams(logger_);
 
-    StartLinuxProcStatsProfiler(*profiler_, logger_);
+    if (mem_config_.enable_proc_profiler_)
+        StartLinuxProcStatsProfiler(*profiler_, logger_);
 
     // run memory profiler only on local host 0 (especially for test runs)
     if (local_host_id == 0)

@@ -102,6 +102,7 @@ before_script:
   - cmake --version
   - gzip --version || true
   - xz --version || true
+  - ulimit -a || true
 
   # enable -Werror on thrill/thrill master branch
   - if [ "$TRAVIS_BRANCH" == "master" ]; then

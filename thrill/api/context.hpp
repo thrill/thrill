@@ -77,6 +77,9 @@ public:
 
     //! StageBuilder verbosity flag
     bool verbose_ = true;
+
+    //! enable Linux /proc stats profiler (default: on)
+    bool enable_proc_profiler_ = true;
 };
 
 /*!
