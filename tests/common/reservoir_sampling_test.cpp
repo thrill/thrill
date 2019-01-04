@@ -50,18 +50,18 @@ TEST(ReservoirSampling, Simple) {
     double target =
         static_cast<double>(rs_size * rounds) / static_cast<double>(range);
 
-    common::Aggregate<double> aggr;
+    tlx::Aggregate<double> aggr;
 
     for (size_t i = 0; i < histogram.size(); ++i) {
-        aggr.Add((histogram[i] - target) / target);
+        aggr.add((histogram[i] - target) / target);
     }
 
     sLOG1 << "target" << target
-          << "mean" << aggr.Mean() << "stdev" << aggr.StDev()
-          << "min" << aggr.Min() << "max" << aggr.Max();
+          << "mean" << aggr.mean() << "stdev" << aggr.stdev()
+          << "min" << aggr.min() << "max" << aggr.max();
 
-    ASSERT_LT(aggr.Mean(), 0.1);
-    ASSERT_LT(aggr.StDev(), 1.0);
+    ASSERT_LT(aggr.mean(), 0.1);
+    ASSERT_LT(aggr.stdev(), 1.0);
 
     // std::ofstream of("data.txt");
     // for (size_t i = 0; i < histogram.size(); ++i) {
