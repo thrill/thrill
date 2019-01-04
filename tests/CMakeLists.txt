@@ -166,10 +166,18 @@ thrill_build_test(examples/select_test)
 thrill_build_test(examples/triangle_count_test)
 thrill_build_test(examples/word_count_test)
 
-### Copy input files into tests binary directory: CMAKE_BINARY_DIR/tests/
+### copy input files into tests binary directory: CMAKE_BINARY_DIR/tests/
 
 file(COPY "inputs/" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/inputs/")
 file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/outputs/")
 file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/outputs/binary/")
+
+### limit tests on travis
+
+if(THRILL_ON_TRAVIS AND APPLE)
+  # read_write_test uses too many open files on Travis/MacOS
+  set_tests_properties(api_read_write_test PROPERTIES
+    ENVIRONMENT THRILL_MAX_MOCK_WORKERS=20)
+endif()
 
 ################################################################################

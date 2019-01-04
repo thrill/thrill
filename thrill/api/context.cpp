@@ -335,8 +335,33 @@ void RunLocalTests(
     static constexpr size_t num_hosts_list[] = { 1, 2, 5, 8 };
     static constexpr size_t num_workers_list[] = { 1, 3 };
 
+    size_t max_mock_workers = 1000000;
+
+    const char* env_max_mock_workers = getenv("THRILL_MAX_MOCK_WORKERS");
+    if (env_max_mock_workers && *env_max_mock_workers) {
+        // parse envvar only if it exists.
+        char* endptr;
+        max_mock_workers = std::strtoul(env_max_mock_workers, &endptr, 10);
+
+        if (!endptr || *endptr != 0 || max_mock_workers == 0) {
+            std::cerr << "Thrill: environment variable"
+                      << " THRILL_MAX_MOCK_WORKERS=" << env_max_mock_workers
+                      << " is not a valid maximum number of mock hosts."
+                      << std::endl;
+            return;
+        }
+    }
+
     for (const size_t& num_hosts : num_hosts_list) {
         for (const size_t& workers_per_host : num_workers_list) {
+            if (num_hosts * workers_per_host > max_mock_workers) {
+                std::cerr << "Thrill: skipping test with "
+                          << num_hosts * workers_per_host
+                          << " workers > max workers " << max_mock_workers
+                          << std::endl;
+                continue;
+            }
+
             RunLocalMock(mem_config, num_hosts, workers_per_host,
                          job_startpoint);
         }
