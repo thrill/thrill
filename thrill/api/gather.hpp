@@ -52,7 +52,7 @@ public:
         parent.node()->AddChild(this, lop_chain);
     }
 
-    void StartPreOp(size_t /* id */) final {
+    void StartPreOp(size_t /* parent_index */) final {
         emitters_ = stream_->GetWriters();
 
         // close all but the target
@@ -62,7 +62,7 @@ public:
         }
     }
 
-    void StopPreOp(size_t /* id */) final {
+    void StopPreOp(size_t /* parent_index */) final {
         emitters_[target_id_].Close();
     }
 

@@ -108,7 +108,7 @@ public:
 
     std::vector<size_t> TargetIds() const {
         std::vector<size_t> ids;
-        Targets([&ids](DIABase* child) { ids.emplace_back(child->id()); });
+        Targets([&ids](DIABase* child) { ids.emplace_back(child->dia_id()); });
         return ids;
     }
 
@@ -272,7 +272,7 @@ public:
     //! order for std::set in FindStages() - this must be deterministic such
     //! that DIAs on different workers are executed in the same order.
     bool operator < (const Stage& s) const {
-        return node_->id() < s.node_->id();
+        return node_->dia_id() < s.node_->dia_id();
     }
 
     //! shared pointer to node
@@ -447,7 +447,7 @@ void DIABase::RunScope() {
 
 //! make ostream-able.
 std::ostream& operator << (std::ostream& os, const DIABase& d) {
-    return os << d.label() << '.' << d.id();
+    return os << d.label() << '.' << d.dia_id();
 }
 
 } // namespace api

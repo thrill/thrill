@@ -62,7 +62,7 @@ public:
         return true;
     }
 
-    void StopPreOp(size_t /* id */) final {
+    void StopPreOp(size_t /* parent_index */) final {
         // Push local elements to children
         writer_.Close();
     }

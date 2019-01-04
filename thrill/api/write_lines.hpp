@@ -73,7 +73,7 @@ public:
         return max_buffer_size_;
     }
 
-    void StartPreOp(size_t /* id */) final {
+    void StartPreOp(size_t /* parent_index */) final {
         write_buffer_.Reserve(max_buffer_size_);
     }
 
@@ -120,7 +120,7 @@ public:
     }
 
     //! Closes the output file, write last buffer
-    void StopPreOp(size_t /* id */) final {
+    void StopPreOp(size_t /* parent_index */) final {
         sLOG << "closing file";
         stats_total_writes_++;
         stats_total_bytes_ += current_buffer_size_;

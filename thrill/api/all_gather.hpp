@@ -56,7 +56,7 @@ public:
             delete out_vector_;
     }
 
-    void StartPreOp(size_t /* id */) final {
+    void StartPreOp(size_t /* parent_index */) final {
         emitters_ = stream_->GetWriters();
     }
 
@@ -79,7 +79,7 @@ public:
         return true;
     }
 
-    void StopPreOp(size_t /* id */) final {
+    void StopPreOp(size_t /* parent_index */) final {
         // data has been pushed during pre-op -> close emitters
         emitters_.Close();
     }

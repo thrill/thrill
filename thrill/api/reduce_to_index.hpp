@@ -111,11 +111,11 @@ public:
                     mix_stream_->GetWriters() : cat_stream_->GetWriters()),
           result_size_(result_size),
           pre_phase_(
-              context_, Super::id(), context_.num_workers(),
+              context_, Super::dia_id(), context_.num_workers(),
               key_extractor, reduce_function, emitters_,
               config, core::ReduceByIndex<Key>(0, result_size)),
           post_phase_(
-              context_, Super::id(),
+              context_, Super::dia_id(),
               key_extractor, reduce_function, Emitter(this),
               config, neutral_element)
     {
@@ -141,7 +141,7 @@ public:
         return DIAMemUse::Max();
     }
 
-    void StartPreOp(size_t /* id */) final {
+    void StartPreOp(size_t /* parent_index */) final {
         if (!use_post_thread_) {
             // use pre_phase without extra thread
             if (!SkipPreReducePhase)
@@ -169,7 +169,7 @@ public:
         }
     }
 
-    void StopPreOp(size_t /* id */) final {
+    void StopPreOp(size_t /* parent_index */) final {
         LOG << *this << " running StopPreOp";
         // Flush hash table before the postOp
         if (!SkipPreReducePhase)
@@ -210,7 +210,7 @@ public:
         {
             auto reader = mix_stream_->GetMixReader(/* consume */ true);
             sLOG << "reading data from" << mix_stream_->id()
-                 << "to push into post table which flushes to" << this->id();
+                 << "to push into post table which flushes to" << this->dia_id();
             while (reader.HasNext()) {
                 post_phase_.Insert(reader.template Next<TableItem>());
             }
@@ -219,7 +219,7 @@ public:
         {
             auto reader = cat_stream_->GetCatReader(/* consume */ true);
             sLOG << "reading data from" << cat_stream_->id()
-                 << "to push into post table which flushes to" << this->id();
+                 << "to push into post table which flushes to" << this->dia_id();
             while (reader.HasNext()) {
                 post_phase_.Insert(reader.template Next<TableItem>());
             }

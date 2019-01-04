@@ -317,7 +317,7 @@ private:
     data::File pre_file2_ { context_.GetFile(this) };
     data::File::Writer pre_writer2_;
 
-    core::LocationDetection<HashCount> location_detection_ { context_, Super::id() };
+    core::LocationDetection<HashCount> location_detection_ { context_, Super::dia_id() };
     bool location_detection_initialized_ = false;
 
     void PreOp1(const InputTypeFirst& input) {
@@ -455,8 +455,8 @@ private:
         return DIAMemUse::Max();
     }
 
-    void StartPreOp(size_t id) final {
-        LOG << *this << " running StartPreOp parent_idx=" << id;
+    void StartPreOp(size_t parent_index) final {
+        LOG << *this << " running StartPreOp parent_index=" << parent_index;
         if (!location_detection_initialized_ && UseLocationDetection) {
             location_detection_.Initialize(DIABase::mem_limit_ / 2);
             location_detection_initialized_ = true;
@@ -464,21 +464,21 @@ private:
 
         auto ids = this->parent_ids();
 
-        if (id == 0) {
+        if (parent_index == 0) {
             pre_writer1_ = pre_file1_.GetWriter();
         }
-        if (id == 1) {
+        if (parent_index == 1) {
             pre_writer2_ = pre_file2_.GetWriter();
         }
     }
 
-    void StopPreOp(size_t id) final {
-        LOG << *this << " running StopPreOp parent_idx=" << id;
+    void StopPreOp(size_t parent_index) final {
+        LOG << *this << " running StopPreOp parent_index=" << parent_index;
 
-        if (id == 0) {
+        if (parent_index == 0) {
             pre_writer1_.Close();
         }
-        if (id == 1) {
+        if (parent_index == 1) {
             pre_writer2_.Close();
         }
     }

@@ -103,7 +103,7 @@ public:
         emitters_[recipient].Put(v);
     }
 
-    void StopPreOp(size_t /* id */) final {
+    void StopPreOp(size_t /* parent_index */) final {
         // data has been pushed during pre-op -> close emitters
         emitters_.Close();
     }

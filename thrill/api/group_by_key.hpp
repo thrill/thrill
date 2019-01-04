@@ -124,7 +124,7 @@ public:
           key_extractor_(key_extractor),
           groupby_function_(groupby_function),
           hash_function_(hash_function),
-          location_detection_(parent.ctx(), Super::id()),
+          location_detection_(parent.ctx(), Super::dia_id()),
           pre_file_(context_.GetFile(this))
     {
         // Hook PreOp
@@ -137,7 +137,7 @@ public:
         parent.node()->AddChild(this, lop_chain);
     }
 
-    void StartPreOp(size_t /* id */) final {
+    void StartPreOp(size_t /* parent_index */) final {
         emitters_ = stream_->GetWriters();
         pre_writer_ = pre_file_.GetWriter();
         if (UseLocationDetection)
@@ -157,7 +157,7 @@ public:
         }
     }
 
-    void StopPreOp(size_t /* id */) final {
+    void StopPreOp(size_t /* parent_index */) final {
         pre_writer_.Close();
     }
 

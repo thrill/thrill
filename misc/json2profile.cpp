@@ -231,7 +231,7 @@ public:
 
 std::vector<CLinuxProcStats> c_LinuxProcStats;
 
-// {"ts":1461082911913689,"host_rank":0,"worker_rank":18,"id":452,"label":"Zip","class":"DIABase","event":"create","type":"DOp","parents":[447,449,451]}
+// {"ts":1461082911913689,"host_rank":0,"worker_rank":18,"dia_id":452,"label":"Zip","class":"DIABase","event":"create","type":"DOp","parents":[447,449,451]}
 
 class CDIABase : public CEvent
 {
@@ -245,7 +245,7 @@ public:
 
     explicit CDIABase(const rapidjson::Document& d)
         : CEvent(d),
-          id(GetUint32(d, "id")),
+          id(GetUint32(d, "dia_id")),
           label(GetString(d, "label")),
           event(GetString(d, "event")),
           type(GetString(d, "type"))
@@ -483,7 +483,7 @@ public:
 
 std::vector<CFile> c_File;
 
-// {"ts":1461144110172911,"host_rank":0,"worker_rank":27,"id":472,"label":"Sort","class":"StageBuilder","event":"pushdata-start","targets":[478,479]}
+// {"ts":1461144110172911,"host_rank":0,"worker_rank":27,"dia_id":472,"label":"Sort","class":"StageBuilder","event":"pushdata-start","targets":[478,479]}
 
 class CStageBuilder : public CEvent
 {
@@ -497,7 +497,7 @@ public:
     explicit CStageBuilder(const rapidjson::Document& d)
         : CEvent(d),
           worker_rank(GetUint32(d, "worker_rank")),
-          id(GetUint32(d, "id")),
+          id(GetUint32(d, "dia_id")),
           label(GetString(d, "label")),
           event(GetString(d, "event")) {
         // extract targets array

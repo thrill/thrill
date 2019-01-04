@@ -225,8 +225,8 @@ public:
 
     void Execute() final { abort(); }
 
-    void StartPreOp(size_t id) final {
-        LOG0 << "UnionNode::StartPreOp id=" << id;
+    void StartPreOp(size_t parent_index) final {
+        LOG0 << "UnionNode::StartPreOp parent_index=" << parent_index;
         for (UnionChild& child : children_) {
             if (child.status == ChildStatus::NEW) {
                 // start push to NEW child
@@ -246,12 +246,12 @@ public:
         }
     }
 
-    void StopPreOp(size_t id) final {
-        LOG0 << "UnionNode::StopPreOp id=" << id;
+    void StopPreOp(size_t parent_index) final {
+        LOG0 << "UnionNode::StopPreOp parent_index=" << parent_index;
         for (UnionChild& child : children_) {
             if (child.status == ChildStatus::PUSHING) {
-                assert(!child.pushed_inputs[id]);
-                child.pushed_inputs[id] = 1;
+                assert(!child.pushed_inputs[parent_index]);
+                child.pushed_inputs[parent_index] = 1;
             }
             if (child.AllInputsDone()) {
                 LOG << "UnionNode::StopPreOp triggered"

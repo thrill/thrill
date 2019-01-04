@@ -135,7 +135,7 @@ public:
         parent.node()->AddChild(this, lop_chain);
     }
 
-    void StartPreOp(size_t /* id */) final {
+    void StartPreOp(size_t /* parent_index */) final {
         timer_preop_.Start();
         unsorted_writer_ = unsorted_file_.GetWriter();
     }
@@ -173,7 +173,7 @@ public:
         return true;
     }
 
-    void StopPreOp(size_t /* id */) final {
+    void StopPreOp(size_t /* parent_index */) final {
         unsorted_writer_.Close();
 
         LOG0 << "wanted_sample_size()=" << wanted_sample_size()
@@ -642,7 +642,7 @@ private:
                     splitters.data(),
                     splitter_count_algo);
 
-        auto data_stream = context_.template GetNewStream<TranmissionStreamType>(this->id());
+        auto data_stream = context_.template GetNewStream<TranmissionStreamType>(this->dia_id());
 
         std::thread thread;
         if (use_background_thread_) {

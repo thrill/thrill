@@ -191,8 +191,10 @@ public:
      *
      * \param label static string label of DIA.
      */
-    DIA(const DIANodePtr& node, const Stack& stack, size_t id, const char* label)
-        : node_(node), stack_(stack), id_(id), label_(label) { }
+    DIA(const DIANodePtr& node, const Stack& stack,
+        size_t dia_id, const char* label)
+        : node_(node), stack_(stack),
+          dia_id_(dia_id), label_(label) { }
 
     /*!
      * Constructor of a new DIA supporting move semantics of nodes.
@@ -207,8 +209,10 @@ public:
      *
      * \param label static string label of DIA.
      */
-    DIA(DIANodePtr&& node, const Stack& stack, size_t id, const char* label)
-        : node_(std::move(node)), stack_(stack), id_(id), label_(label) { }
+    DIA(DIANodePtr&& node, const Stack& stack,
+        size_t dia_id, const char* label)
+        : node_(std::move(node)), stack_(stack),
+          dia_id_(dia_id), label_(label) { }
 
     /*!
      * Constructor of a new DIA with a real backing DIABase.
@@ -218,7 +222,7 @@ public:
       */
     explicit DIA(DIANodePtr&& node)
         : DIA(std::move(node), tlx::FunctionStack<ValueType>(),
-              node->id(), node->label()) { }
+              node->dia_id(), node->label()) { }
 
     /*!
      * Copy-Constructor of a DIA with empty function chain from a DIA with
@@ -278,7 +282,7 @@ public:
     }
 
     //! Returns id_
-    size_t id() const { return id_; }
+    size_t id() const { return dia_id_; }
 
     //! Returns label_
     const char * label() const { return label_; }
@@ -357,12 +361,12 @@ public:
         size_t new_id = context().next_dia_id();
 
         node_->context().logger_
-            << "id" << new_id
+            << "dia_id" << new_id
             << "label" << "Map"
             << "class" << "DIA"
             << "event" << "create"
             << "type" << "LOp"
-            << "parents" << (common::Array<size_t>{ id_ });
+            << "parents" << (common::Array<size_t>{ dia_id_ });
 
         auto new_stack = stack_.push(conv_map_function);
         return DIA<MapResult, decltype(new_stack)>(
@@ -400,12 +404,12 @@ public:
         size_t new_id = context().next_dia_id();
 
         node_->context().logger_
-            << "id" << new_id
+            << "dia_id" << new_id
             << "label" << "Filter"
             << "class" << "DIA"
             << "event" << "create"
             << "type" << "LOp"
-            << "parents" << (common::Array<size_t>{ id_ });
+            << "parents" << (common::Array<size_t>{ dia_id_ });
 
         auto new_stack = stack_.push(conv_filter_function);
         return DIA<ValueType, decltype(new_stack)>(
@@ -440,12 +444,12 @@ public:
         size_t new_id = context().next_dia_id();
 
         node_->context().logger_
-            << "id" << new_id
+            << "dia_id" << new_id
             << "label" << "FlatMap"
             << "class" << "DIA"
             << "event" << "create"
             << "type" << "LOp"
-            << "parents" << (common::Array<size_t>{ id_ });
+            << "parents" << (common::Array<size_t>{ dia_id_ });
 
         auto new_stack = stack_.push(flatmap_function);
         return DIA<ResultType, decltype(new_stack)>(
@@ -1837,7 +1841,7 @@ private:
     Stack stack_;
 
     //! DIA serial id for logging, matches DIANode::id_ for DOps.
-    size_t id_ = 0;
+    size_t dia_id_ = 0;
 
     //! static DIA (LOp or DOp) node label string, may match DIANode::label_.
     const char* label_ = nullptr;

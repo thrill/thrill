@@ -1132,7 +1132,7 @@ Context::Context(HostContext& host_context, size_t local_worker_id)
 }
 
 data::File Context::GetFile(DIABase* dia) {
-    return GetFile(dia != nullptr ? dia->id() : 0);
+    return GetFile(dia != nullptr ? dia->dia_id() : 0);
 }
 
 data::FilePtr Context::GetFilePtr(size_t dia_id) {
@@ -1141,7 +1141,7 @@ data::FilePtr Context::GetFilePtr(size_t dia_id) {
 }
 
 data::FilePtr Context::GetFilePtr(DIABase* dia) {
-    return GetFilePtr(dia != nullptr ? dia->id() : 0);
+    return GetFilePtr(dia != nullptr ? dia->dia_id() : 0);
 }
 
 data::CatStreamPtr Context::GetNewCatStream(size_t dia_id) {
@@ -1149,7 +1149,7 @@ data::CatStreamPtr Context::GetNewCatStream(size_t dia_id) {
 }
 
 data::CatStreamPtr Context::GetNewCatStream(DIABase* dia) {
-    return GetNewCatStream(dia != nullptr ? dia->id() : 0);
+    return GetNewCatStream(dia != nullptr ? dia->dia_id() : 0);
 }
 
 data::MixStreamPtr Context::GetNewMixStream(size_t dia_id) {
@@ -1157,7 +1157,7 @@ data::MixStreamPtr Context::GetNewMixStream(size_t dia_id) {
 }
 
 data::MixStreamPtr Context::GetNewMixStream(DIABase* dia) {
-    return GetNewMixStream(dia != nullptr ? dia->id() : 0);
+    return GetNewMixStream(dia != nullptr ? dia->dia_id() : 0);
 }
 
 template <>

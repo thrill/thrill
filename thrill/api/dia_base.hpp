@@ -96,7 +96,7 @@ public:
     DIABase(Context& ctx, const char* label,
             const std::initializer_list<size_t>& parent_ids,
             const std::initializer_list<DIABasePtr>& parents)
-        : context_(ctx), id_(ctx.next_dia_id()),
+        : context_(ctx), dia_id_(ctx.next_dia_id()),
           label_(label), parents_(parents) {
         logger_ << "class" << "DIABase"
                 << "event" << "create"
@@ -111,7 +111,7 @@ public:
     DIABase(Context& ctx, const char* label,
             std::vector<size_t>&& parent_ids,
             std::vector<DIABasePtr>&& parents)
-        : context_(ctx), id_(ctx.next_dia_id()),
+        : context_(ctx), dia_id_(ctx.next_dia_id()),
           label_(std::move(label)), parents_(std::move(parents)) {
         logger_ << "class" << "DIABase"
                 << "event" << "create"
@@ -209,9 +209,9 @@ public:
         return context_;
     }
 
-    //! return unique id() of DIANode subclass as stored by StatsNode
-    const size_t& id() const {
-        return id_;
+    //! return unique id of DIANode subclass as stored by StatsNode
+    const size_t& dia_id() const {
+        return dia_id_;
     }
 
     //! return label() of DIANode subclass as stored by StatsNode
@@ -257,7 +257,7 @@ public:
     //! Returns the parents of this DIABase.
     std::vector<size_t> parent_ids() const {
         std::vector<size_t> ids;
-        for (const DIABasePtr& p : parents_) ids.push_back(p->id());
+        for (const DIABasePtr& p : parents_) ids.push_back(p->dia_id());
         return ids;
     }
 
@@ -293,7 +293,7 @@ protected:
     Context& context_;
 
     //! DIA serial id
-    const size_t id_;
+    const size_t dia_id_;
 
     //! DOp node static label.
     const char* const label_;
@@ -327,7 +327,7 @@ public:
     // JsonLogger for this DIANode
 
     common::JsonLogger logger_ {
-        &context_.logger_, "id", id(), "label", label()
+        &context_.logger_, "dia_id", dia_id(), "label", label()
     };
 };
 

@@ -94,7 +94,7 @@ public:
     }
 
     //! Closes the output file
-    void StopPreOp(size_t /* id */) final {
+    void StopPreOp(size_t /* parent_index */) final {
         sLOG << "closing file" << out_pathbase_;
         writer_.reset();
 

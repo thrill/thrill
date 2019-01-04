@@ -113,12 +113,12 @@ public:
           emitters_(use_mix_stream_ ?
                     mix_stream_->GetWriters() : cat_stream_->GetWriters()),
           pre_phase_(
-              context_, Super::id(), parent.ctx().num_workers(),
+              context_, Super::dia_id(), parent.ctx().num_workers(),
               key_extractor, reduce_function, emitters_, config,
               HashIndexFunction(key_hash_function), key_equal_function,
               key_hash_function),
           post_phase_(
-              context_, Super::id(), key_extractor, reduce_function,
+              context_, Super::dia_id(), key_extractor, reduce_function,
               Emitter(this), config,
               HashIndexFunction(key_hash_function), key_equal_function)
     {
@@ -140,7 +140,7 @@ public:
         return DIAMemUse::Max();
     }
 
-    void StartPreOp(size_t /* id */) final {
+    void StartPreOp(size_t /* parent_index */) final {
         LOG << *this << " running StartPreOp";
         if (!use_post_thread_) {
             // use pre_phase without extra thread
@@ -155,7 +155,7 @@ public:
         }
     }
 
-    void StopPreOp(size_t /* id */) final {
+    void StopPreOp(size_t /* parent_index */) final {
         LOG << *this << " running StopPreOp";
         // Flush hash table before the postOp
         pre_phase_.FlushAll();
@@ -195,7 +195,7 @@ public:
         {
             auto reader = mix_stream_->GetMixReader(/* consume */ true);
             sLOG << "reading data from" << mix_stream_->id()
-                 << "to push into post phase which flushes to" << this->id();
+                 << "to push into post phase which flushes to" << this->dia_id();
             while (reader.HasNext()) {
                 post_phase_.Insert(reader.template Next<TableItem>());
             }
@@ -204,7 +204,7 @@ public:
         {
             auto reader = cat_stream_->GetCatReader(/* consume */ true);
             sLOG << "reading data from" << cat_stream_->id()
-                 << "to push into post phase which flushes to" << this->id();
+                 << "to push into post phase which flushes to" << this->dia_id();
             while (reader.HasNext()) {
                 post_phase_.Insert(reader.template Next<TableItem>());
             }

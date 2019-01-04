@@ -61,7 +61,7 @@ public:
         local_lines_++;
     }
 
-    void StopPreOp(size_t /* id */) final {
+    void StopPreOp(size_t /* parent_index */) final {
         writer_.Close();
     }
 

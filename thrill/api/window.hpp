@@ -65,7 +65,7 @@ public:
         return window_size_ * sizeof(Input);
     }
 
-    void StartPreOp(size_t /* id */) final {
+    void StartPreOp(size_t /* parent_index */) final {
         window_.allocate(window_size_);
     }
 
@@ -99,7 +99,7 @@ public:
         writer_.Put(input);
     }
 
-    void StopPreOp(size_t /* id */) final {
+    void StopPreOp(size_t /* parent_index */) final {
         writer_.Close();
     }
 

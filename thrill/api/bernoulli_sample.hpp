@@ -93,12 +93,12 @@ auto DIA<ValueType, Stack>::BernoulliSample(const double p) const {
     size_t new_id = context().next_dia_id();
 
     node_->context().logger_
-        << "id" << new_id
+        << "dia_id" << new_id
         << "label" << "BernoulliSample"
         << "class" << "DIA"
         << "event" << "create"
         << "type" << "LOp"
-        << "parents" << (common::Array<size_t>{ id_ });
+        << "parents" << (common::Array<size_t>{ dia_id_ });
 
     auto new_stack = stack_.push(BernoulliSampleNode<ValueType>(p));
     return DIA<ValueType, decltype(new_stack)>(
