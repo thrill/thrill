@@ -48,8 +48,7 @@ public:
         : ActionNode(parent.ctx(), "WriteBinary",
                      { parent.id() }, { parent.node() }),
           out_pathbase_(path_out),
-          max_file_size_(max_file_size)
-    {
+          max_file_size_(max_file_size) {
         sLOG << "Creating write node.";
 
         block_size_ = std::min(data::default_block_size,

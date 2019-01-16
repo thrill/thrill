@@ -51,9 +51,9 @@ private:
     //! simple pointer iterators
     using const_iterator = const Byte *;
     //! simple pointer references
-    using reference = Byte &;
+    using reference = Byte&;
     //! simple pointer references
-    using const_reference = const Byte &;
+    using const_reference = const Byte&;
 
     //! Allocated buffer pointer.
     Byte* data_ = nullptr;

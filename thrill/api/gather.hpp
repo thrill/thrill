@@ -38,8 +38,7 @@ public:
         : Super(parent.ctx(), label,
                 { parent.id() }, { parent.node() }),
           target_id_(target_id),
-          out_vector_(out_vector)
-    {
+          out_vector_(out_vector) {
         assert(target_id_ < context_.num_workers());
 
         auto pre_op_fn = [this](const ValueType& input) {

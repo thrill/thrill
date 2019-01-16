@@ -484,7 +484,7 @@ public:
         // fixed_size items can be sent without size header
         static constexpr size_t fixed_size
             = data::Serialization<BufferBuilder, T>::fixed_size;
-        BufferBuilder bb(n* fixed_size);
+        BufferBuilder bb(n * fixed_size);
         for (size_t i = 0; i < n; ++i) {
             data::Serialization<BufferBuilder, T>::Serialize(value[i], bb);
         }
@@ -620,7 +620,7 @@ public:
     //! }
 
     //! make ostreamable
-    friend std ::ostream& operator << (std::ostream& os, const Connection& c) {
+    friend std::ostream& operator << (std::ostream& os, const Connection& c) {
         return c.OutputOstream(os);
     }
 };

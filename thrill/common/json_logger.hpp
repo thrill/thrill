@@ -342,7 +342,7 @@ JsonLine& Put(JsonLine& line, std::string const& str) {
 
 template <typename Type, std::size_t N>
 static inline
-JsonLine& Put(JsonLine& line, const Type(&arr)[N]) {
+JsonLine& Put(JsonLine& line, const Type (& arr)[N]) {
     line.os_ << '[';
     for (size_t i = 0; i < N; ++i) {
         if (i != 0) line.os_ << ',';

@@ -100,7 +100,7 @@ public:
     }
 
     //! ostream-able
-    friend std ::ostream& operator << (std::ostream& os, const Range& r) {
+    friend std::ostream& operator << (std::ostream& os, const Range& r) {
         return os << '[' << r.begin << ',' << r.end << ')';
     }
 };

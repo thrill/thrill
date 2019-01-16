@@ -100,11 +100,11 @@ template <typename T>
 struct HashDataSwitch {
     static const char * ptr(const T& x)
     { return reinterpret_cast<const char*>(&x); }
-    static size_t     size(const T&) { return sizeof(T); }
+    static size_t size(const T&) { return sizeof(T); }
 };
 
 template <>
-struct HashDataSwitch<std::string>{
+struct HashDataSwitch<std::string> {
     static const char * ptr(const std::string& s) { return s.c_str(); }
     static size_t size(const std::string& s) { return s.length(); }
 };

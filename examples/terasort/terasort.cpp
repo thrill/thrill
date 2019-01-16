@@ -35,7 +35,7 @@ struct Record {
     bool operator < (const Record& b) const {
         return std::lexicographical_compare(key, key + 10, b.key, b.key + 10);
     }
-    friend std ::ostream& operator << (std::ostream& os, const Record& c) {
+    friend std::ostream& operator << (std::ostream& os, const Record& c) {
         return os << tlx::hexdump(c.key, 10);
     }
 } TLX_ATTRIBUTE_PACKED;
@@ -51,7 +51,7 @@ struct RecordSigned {
     bool operator < (const RecordSigned& b) const {
         return std::lexicographical_compare(key, key + 10, b.key, b.key + 10);
     }
-    friend std ::ostream& operator << (std::ostream& os, const RecordSigned& c) {
+    friend std::ostream& operator << (std::ostream& os, const RecordSigned& c) {
         return os << tlx::hexdump(c.key, 10);
     }
 } TLX_ATTRIBUTE_PACKED;

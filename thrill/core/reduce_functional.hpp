@@ -122,8 +122,8 @@ public:
         size_t global_index = (k - range_.begin) * num_buckets / range_.size();
 
         return Result {
-                   global_index / num_buckets_per_partition,
-                   global_index, num_buckets_per_partition
+            global_index / num_buckets_per_partition,
+            global_index, num_buckets_per_partition
         };
     }
 

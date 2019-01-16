@@ -50,9 +50,9 @@ public:
     //! simple pointer iterators
     using const_iterator = const value_type *;
     //! simple pointer references
-    using reference = value_type &;
+    using reference = value_type&;
     //! simple pointer references
-    using const_reference = const value_type &;
+    using const_reference = const value_type&;
 
 private:
     //! protected constructor used to acquire ownership of a buffer
@@ -221,7 +221,7 @@ public:
     }
 
     //! make ostream-able
-    friend std ::ostream& operator << (std::ostream& os, const Buffer& b) {
+    friend std::ostream& operator << (std::ostream& os, const Buffer& b) {
         return os << "[Buffer size=" << b.size() << "]";
     }
 

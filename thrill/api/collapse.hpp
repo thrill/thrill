@@ -38,8 +38,7 @@ public:
     template <typename ParentDIA>
     explicit CollapseNode(const ParentDIA& parent)
         : Super(parent.ctx(), "Collapse", { parent.id() }, { parent.node() }),
-          parent_stack_empty_(ParentDIA::stack_empty)
-    {
+          parent_stack_empty_(ParentDIA::stack_empty) {
         auto propagate_fn = [this](const ValueType& input) {
                                 this->PushItem(input);
                             };
@@ -149,7 +148,7 @@ struct CollapseSwitch {
 
 //! Template switch to NOT generate a CollapseNode if there is an empty Stack.
 template <typename ValueType>
-struct CollapseSwitch<ValueType, tlx::FunctionStack<ValueType> >{
+struct CollapseSwitch<ValueType, tlx::FunctionStack<ValueType> > {
     static DIA<ValueType> MakeCollapse(
         const DIA<ValueType, tlx::FunctionStack<ValueType> >& dia) {
         return dia;

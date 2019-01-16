@@ -42,8 +42,7 @@ public:
           sum_function_(sum_function),
           local_sum_(),
           initial_element_(initial_element),
-          parent_stack_empty_(ParentDIA::stack_empty)
-    {
+          parent_stack_empty_(ParentDIA::stack_empty) {
         // Hook PreOp(s)
         auto pre_op_fn = [this](const ValueType& input) {
                              PreOp(input);

@@ -162,7 +162,7 @@ private:
     ByteBlock(BlockPool* block_pool, const foxxll::file_ptr& ext_file,
               int64_t offset, size_t size);
 
-    friend std ::ostream& operator << (std::ostream& os, const ByteBlock& b);
+    friend std::ostream& operator << (std::ostream& os, const ByteBlock& b);
 
     //! forwarded to block_pool_
     void OnWriteComplete(foxxll::request* req, bool success);

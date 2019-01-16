@@ -236,7 +236,7 @@ public:
     }
 
     //! make a UIntPair outputtable via iostreams, using unsigned long long.
-    friend std ::ostream& operator << (std::ostream& os, const UIntPair& a) {
+    friend std::ostream& operator << (std::ostream& os, const UIntPair& a) {
         return os << a.ull();
     }
 

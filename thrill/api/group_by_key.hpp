@@ -125,8 +125,7 @@ public:
           groupby_function_(groupby_function),
           hash_function_(hash_function),
           location_detection_(parent.ctx(), Super::dia_id()),
-          pre_file_(context_.GetFile(this))
-    {
+          pre_file_(context_.GetFile(this)) {
         // Hook PreOp
         auto pre_op_fn = [=](const ValueIn& input) {
                              PreOp(input);

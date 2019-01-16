@@ -49,7 +49,7 @@ struct IndexRank {
     Index index;
     Index rank;
 
-    friend std ::ostream& operator << (std::ostream& os, const IndexRank& ri) {
+    friend std::ostream& operator << (std::ostream& os, const IndexRank& ri) {
         return os << '(' << ri.index << '|' << ri.rank << ')';
     }
 } TLX_ATTRIBUTE_PACKED;
@@ -77,7 +77,7 @@ struct IndexQuadRank {
                 && index > b.index);
     }
 
-    friend std ::ostream& operator << (std::ostream& os, const IndexQuadRank& ri) {
+    friend std::ostream& operator << (std::ostream& os, const IndexQuadRank& ri) {
         return os << '(' << ri.index << '|' << ri.rank[0] << '|' << ri.rank[1]
                   << '|' << ri.rank[2] << '|' << ri.rank[3] << ')';
     }
@@ -98,7 +98,7 @@ struct QuadCharIndex {
                < std::tie(b.ch[0], b.ch[1], b.ch[2], b.ch[3]);
     }
 
-    friend std ::ostream& operator << (std::ostream& os, const QuadCharIndex& chars) {
+    friend std::ostream& operator << (std::ostream& os, const QuadCharIndex& chars) {
         return os << '[' << chars.index << ": " << chars.ch[0] << ',' << chars.ch[1]
                   << ',' << chars.ch[2] << ',' << chars.ch[3] << ']';
     }
@@ -130,7 +130,7 @@ struct IndexRankStatus {
         return rank < b.rank || (rank == b.rank && index > b.index);
     }
 
-    friend std ::ostream& operator << (std::ostream& os, const IndexRankStatus& irs) {
+    friend std::ostream& operator << (std::ostream& os, const IndexRankStatus& irs) {
         return os << "(i: " << irs.index << "| r: " << irs.rank << "| s: "
                   << static_cast<uint8_t>(irs.status) << ")";
     }
@@ -143,7 +143,7 @@ struct IndexQuadRankStatus {
     Index  rank[4];
     Status status;
 
-    friend std ::ostream& operator << (std::ostream& os, const IndexQuadRankStatus& iqrs) {
+    friend std::ostream& operator << (std::ostream& os, const IndexQuadRankStatus& iqrs) {
         return os << "(i: " << iqrs.index << "| r1: " << iqrs.rank[0] << "| r2: "
                   << iqrs.rank[1] << "| r3: " << iqrs.rank[2] << "| r4: "
                   << iqrs.rank[3] << "| s: " << static_cast<uint8_t>(iqrs.status) << ")";
@@ -158,7 +158,7 @@ struct Index3Rank {
     Index rank2;
     Index rank3;
 
-    friend std ::ostream& operator << (std::ostream& os, const Index3Rank& irrr) {
+    friend std::ostream& operator << (std::ostream& os, const Index3Rank& irrr) {
         return os << "( i: " << irrr.index << "| r1: " << irrr.rank1
                   << "| r2: " << irrr.rank2 << "| r3: " << irrr.rank3 << ")";
     }

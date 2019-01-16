@@ -33,7 +33,7 @@ class BinaryHeap
 public:
     using Container = std::vector<Type>;
     using value_type = Type;
-    using const_reference = const Type &;
+    using const_reference = const Type&;
     using size_type = size_t;
     using difference_type = typename Container::difference_type;
 

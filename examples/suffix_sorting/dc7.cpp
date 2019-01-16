@@ -62,7 +62,7 @@ struct Chars {
                           b.ch[4], b.ch[5], b.ch[6]);
     }
 
-    friend std ::ostream& operator << (std::ostream& os, const Chars& chars) {
+    friend std::ostream& operator << (std::ostream& os, const Chars& chars) {
         return os << '[' << chars.ch[0] << ',' << chars.ch[1]
                   << ',' << chars.ch[2] << ',' << chars.ch[3]
                   << ',' << chars.ch[4] << ',' << chars.ch[5]
@@ -71,15 +71,15 @@ struct Chars {
 
     static Chars Lowest() {
         return Chars {
-                   {
-                       std::numeric_limits<AlphabetType>::lowest(),
-                       std::numeric_limits<AlphabetType>::lowest(),
-                       std::numeric_limits<AlphabetType>::lowest(),
-                       std::numeric_limits<AlphabetType>::lowest(),
-                       std::numeric_limits<AlphabetType>::lowest(),
-                       std::numeric_limits<AlphabetType>::lowest(),
-                       std::numeric_limits<AlphabetType>::lowest()
-                   }
+            {
+                std::numeric_limits<AlphabetType>::lowest(),
+                std::numeric_limits<AlphabetType>::lowest(),
+                std::numeric_limits<AlphabetType>::lowest(),
+                std::numeric_limits<AlphabetType>::lowest(),
+                std::numeric_limits<AlphabetType>::lowest(),
+                std::numeric_limits<AlphabetType>::lowest(),
+                std::numeric_limits<AlphabetType>::lowest()
+            }
         };
     }
 } TLX_ATTRIBUTE_PACKED;
@@ -92,7 +92,7 @@ struct IndexChars {
 
     const AlphabetType& at_radix(size_t depth) const { return chars.ch[depth]; }
 
-    friend std ::ostream& operator << (std::ostream& os, const IndexChars& tc) {
+    friend std::ostream& operator << (std::ostream& os, const IndexChars& tc) {
         return os << '[' << tc.index << '|' << tc.chars << ']';
     }
 } TLX_ATTRIBUTE_PACKED;
@@ -103,7 +103,7 @@ struct IndexRank {
     Index index;
     Index rank;
 
-    friend std ::ostream& operator << (std::ostream& os, const IndexRank& tr) {
+    friend std::ostream& operator << (std::ostream& os, const IndexRank& tr) {
         return os << '(' << tr.index << '|' << tr.rank << ')';
     }
 } TLX_ATTRIBUTE_PACKED;
@@ -115,8 +115,8 @@ struct StringFragmentMod0 {
     Index        r0, r1, r3;
     AlphabetType t[3];
 
-    friend std ::ostream& operator << (std::ostream& os,
-                                       const StringFragmentMod0& sf) {
+    friend std::ostream& operator << (std::ostream& os,
+                                      const StringFragmentMod0& sf) {
         return os << "i=" << sf.index
                   << " t0=" << sf.t[0] << " t1=" << sf.t[1] << " t2=" << sf.t[2]
                   << " r0=" << sf.r0 << " r1=" << sf.r1 << " r3=" << sf.r3;
@@ -130,8 +130,8 @@ struct StringFragmentMod1 {
     Index        r0, r2, r6;
     AlphabetType t[6];
 
-    friend std ::ostream& operator << (std::ostream& os,
-                                       const StringFragmentMod1& sf) {
+    friend std::ostream& operator << (std::ostream& os,
+                                      const StringFragmentMod1& sf) {
         return os << "i=" << sf.index
                   << " t0=" << sf.t[0] << " t1=" << sf.t[1] << " t2=" << sf.t[2]
                   << " t3=" << sf.t[3] << " t4=" << sf.t[4] << " t5=" << sf.t[5]
@@ -146,8 +146,8 @@ struct StringFragmentMod2 {
     Index        r1, r5, r6;
     AlphabetType t[6];
 
-    friend std ::ostream& operator << (std::ostream& os,
-                                       const StringFragmentMod2& sf) {
+    friend std::ostream& operator << (std::ostream& os,
+                                      const StringFragmentMod2& sf) {
         return os << "i=" << sf.index
                   << " t0=" << sf.t[0] << " t1=" << sf.t[1] << " t2=" << sf.t[2]
                   << " t3=" << sf.t[3] << " t4=" << sf.t[4] << " t5=" << sf.t[5]
@@ -162,8 +162,8 @@ struct StringFragmentMod3 {
     Index        r0, r4, r5;
     AlphabetType t[5];
 
-    friend std ::ostream& operator << (std::ostream& os,
-                                       const StringFragmentMod3& sf) {
+    friend std::ostream& operator << (std::ostream& os,
+                                      const StringFragmentMod3& sf) {
         return os << "i=" << sf.index
                   << " t0=" << sf.t[0] << " t1=" << sf.t[1] << " t2=" << sf.t[2]
                   << " t3=" << sf.t[3] << " t4=" << sf.t[4]
@@ -178,8 +178,8 @@ struct StringFragmentMod4 {
     Index        r3, r4, r6;
     AlphabetType t[6];
 
-    friend std ::ostream& operator << (std::ostream& os,
-                                       const StringFragmentMod4& sf) {
+    friend std::ostream& operator << (std::ostream& os,
+                                      const StringFragmentMod4& sf) {
         return os << "i=" << sf.index
                   << " t0=" << sf.t[0] << " t1=" << sf.t[1] << " t2=" << sf.t[2]
                   << " t3=" << sf.t[3] << " t4=" << sf.t[4] << " t5=" << sf.t[5]
@@ -194,8 +194,8 @@ struct StringFragmentMod5 {
     Index        r2, r3, r5;
     AlphabetType t[5];
 
-    friend std ::ostream& operator << (std::ostream& os,
-                                       const StringFragmentMod5& sf) {
+    friend std::ostream& operator << (std::ostream& os,
+                                      const StringFragmentMod5& sf) {
         return os << "i=" << sf.index
                   << " t0=" << sf.t[0] << " t1=" << sf.t[1] << " t2=" << sf.t[2]
                   << " t3=" << sf.t[3] << " t4=" << sf.t[4]
@@ -210,8 +210,8 @@ struct StringFragmentMod6 {
     Index        r1, r2, r4;
     AlphabetType t[4];
 
-    friend std ::ostream& operator << (std::ostream& os,
-                                       const StringFragmentMod6& sf) {
+    friend std::ostream& operator << (std::ostream& os,
+                                      const StringFragmentMod6& sf) {
         return os << "i=" << sf.index
                   << " t0=" << sf.t[0] << " t1=" << sf.t[1] << " t2=" << sf.t[2]
                   << " t3=" << sf.t[3]
@@ -271,8 +271,8 @@ struct StringFragment {
     explicit StringFragment(
         const StringFragmentMod6<Index, AlphabetType>& _mod6) : mod6(_mod6) { }
 
-    friend std ::ostream& operator << (std::ostream& os,
-                                       const StringFragment& tc) {
+    friend std::ostream& operator << (std::ostream& os,
+                                      const StringFragment& tc) {
         os << '[' << std::to_string(tc.index) << '|';
         if (tc.index % 7 == 0)
             return os << "0|" << tc.mod0 << ']';
@@ -292,7 +292,7 @@ struct StringFragment {
     }
 
     AlphabetType at_radix(size_t depth) const { return common.text[depth]; }
-    Index        sort_rank() const { return common.ranks[0]; }
+    Index sort_rank() const { return common.ranks[0]; }
 } TLX_ATTRIBUTE_PACKED;
 
 static constexpr size_t fragment_comparator_params[7][7][3] =
@@ -353,8 +353,8 @@ struct CharsRanks013 {
     Index       rank1;
     Index       rank3;
 
-    friend std ::ostream& operator << (std::ostream& os,
-                                       const CharsRanks013& c) {
+    friend std::ostream& operator << (std::ostream& os,
+                                      const CharsRanks013& c) {
         return os << "(ch=" << c.chars
                   << " r0=" << c.rank0 << " r1=" << c.rank1
                   << " r3=" << c.rank3 << ")";

@@ -65,7 +65,7 @@ void MixBlockQueue::Close(size_t src) {
 MixBlockQueue::SrcBlockPair MixBlockQueue::Pop() {
     if (read_open_ == 0)
         return SrcBlockPair {
-                   size_t(-1), Block()
+            size_t(-1), Block()
         };
     SrcBlockPair b;
     mix_queue_.pop(b);

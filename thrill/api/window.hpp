@@ -50,8 +50,7 @@ public:
           parent_stack_empty_(ParentDIA::stack_empty),
           window_size_(window_size),
           window_function_(window_function),
-          partial_window_function_(partial_window_function)
-    {
+          partial_window_function_(partial_window_function) {
         // Hook PreOp(s)
         auto pre_op_fn = [this](const Input& input) {
                              PreOp(input);

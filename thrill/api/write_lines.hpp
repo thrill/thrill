@@ -51,8 +51,7 @@ public:
           stream_(vfs::OpenWriteStream(
                       vfs::FillFilePattern(
                           out_pathbase_, context_.my_rank(), 0))),
-          target_file_size_(target_file_size)
-    {
+          target_file_size_(target_file_size) {
         sLOG << "Creating write node.";
 
         auto pre_op_fn = [this](const std::string& input) {

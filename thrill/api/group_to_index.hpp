@@ -81,8 +81,7 @@ public:
           key_range_(
               common::CalculateLocalRange(
                   result_size_, context_.num_workers(), context_.my_rank())),
-          neutral_element_(neutral_element)
-    {
+          neutral_element_(neutral_element) {
         // Hook PreOp
         auto pre_op_fn = [this](const ValueIn& input) {
                              PreOp(input);

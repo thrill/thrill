@@ -39,23 +39,23 @@ namespace net {
 //! \{
 
 //! Signature of timer callbacks.
-using TimerCallback = tlx::delegate<bool(), mem::GPoolAllocator<char> >;
+using TimerCallback = tlx::delegate<bool (), mem::GPoolAllocator<char> >;
 
 //! Signature of async connection readability/writability callbacks.
-using AsyncCallback = tlx::delegate<bool(), mem::GPoolAllocator<char> >;
+using AsyncCallback = tlx::delegate<bool (), mem::GPoolAllocator<char> >;
 
 //! Signature of async read Buffer callbacks.
 using AsyncReadBufferCallback = tlx::delegate<
-    void(Connection& c, Buffer && buffer), mem::GPoolAllocator<char> >;
+    void (Connection& c, Buffer&& buffer), mem::GPoolAllocator<char> >;
 
 //! Signature of async read ByteBlock callbacks.
 using AsyncReadByteBlockCallback = tlx::delegate<
-    void(Connection& c, data::PinnedByteBlockPtr && bytes),
+    void (Connection& c, data::PinnedByteBlockPtr&& bytes),
     mem::GPoolAllocator<char> >;
 
 //! Signature of async write callbacks.
 using AsyncWriteCallback = tlx::delegate<
-    void(Connection&), mem::GPoolAllocator<char> >;
+    void (Connection&), mem::GPoolAllocator<char> >;
 
 /******************************************************************************/
 

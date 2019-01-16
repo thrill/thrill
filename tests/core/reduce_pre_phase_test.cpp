@@ -25,7 +25,7 @@ struct MyStruct {
 
     bool operator < (const MyStruct& b) const { return key < b.key; }
 
-    friend std ::ostream& operator << (std::ostream& os, const MyStruct& c) {
+    friend std::ostream& operator << (std::ostream& os, const MyStruct& c) {
         return os << '(' << c.key << ',' << c.value << ')';
     }
 };
@@ -52,7 +52,7 @@ static void TestAddMyStructByHash(Context& ctx) {
 
     auto red_fn = [](const MyStruct& in1, const MyStruct& in2) {
                       return MyStruct {
-                                 in1.key, in1.value + in2.value
+                          in1.key, in1.value + in2.value
                       };
                   };
 
@@ -139,7 +139,7 @@ static void TestAddMyStructByIndex(Context& ctx) {
 
     auto red_fn = [](const MyStruct& in1, const MyStruct& in2) {
                       return MyStruct {
-                                 in1.key, in1.value + in2.value
+                          in1.key, in1.value + in2.value
                       };
                   };
 

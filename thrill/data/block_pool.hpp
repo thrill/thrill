@@ -215,7 +215,7 @@ private:
     void OnReadComplete(PinRequest* read, foxxll::request* req, bool success);
 
     //! make ostream-able
-    friend std ::ostream& operator << (std::ostream& os, const PinCount& p);
+    friend std::ostream& operator << (std::ostream& os, const PinCount& p);
 
     //! for calling OnWriteComplete
     friend class ByteBlock;

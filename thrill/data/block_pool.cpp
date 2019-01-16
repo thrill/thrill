@@ -393,7 +393,7 @@ BlockPool::BlockPool(size_t soft_ram_limit, size_t hard_ram_limit,
     }
 
     d_->io_stats_first_ = d_->io_stats_prev_ =
-                              foxxll::stats_data(*foxxll::stats::get_instance());
+        foxxll::stats_data(*foxxll::stats::get_instance());
 
     logger_ << "class" << "BlockPool"
             << "event" << "create"
@@ -673,7 +673,7 @@ PinRequestPtr BlockPool::PinBlock(const Block& block, size_t local_worker_id) {
     // allocate block memory.
     lock.unlock();
     Byte* data = read->byte_block()->data_ =
-                     d_->aligned_alloc_.allocate(block_ptr->size());
+        d_->aligned_alloc_.allocate(block_ptr->size());
     lock.lock();
 
     if (!block_ptr->ext_file_) {

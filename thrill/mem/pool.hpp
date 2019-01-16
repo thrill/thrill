@@ -197,8 +197,8 @@ public:
     using value_type = Type;
     using pointer = Type *;
     using const_pointer = const Type *;
-    using reference = Type &;
-    using const_reference = const Type &;
+    using reference = Type&;
+    using const_reference = const Type&;
     using size_type = std::size_t;
     using difference_type = std::ptrdiff_t;
 
@@ -269,8 +269,8 @@ public:
     using value_type = Type;
     using pointer = Type *;
     using const_pointer = const Type *;
-    using reference = Type &;
-    using const_reference = const Type &;
+    using reference = Type&;
+    using const_reference = const Type&;
     using size_type = std::size_t;
     using difference_type = std::ptrdiff_t;
 

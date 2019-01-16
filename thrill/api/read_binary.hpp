@@ -298,7 +298,7 @@ private:
 
             data::PinnedByteBlockPtr bytes
                 = context_.block_pool().AllocateByteBlock(
-                block_size, context_.local_worker_id());
+                      block_size, context_.local_worker_id());
 
             size_t rb = is_compressed_
                         ? block_size : std::min(block_size, remain_size_);

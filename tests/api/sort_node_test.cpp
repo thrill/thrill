@@ -115,7 +115,7 @@ TEST(Sort, SortRandomIntegersCustomCompareFunction) {
 struct IntIntStruct {
     int a, b;
 
-    friend std ::ostream& operator << (std::ostream& os, const IntIntStruct& c) {
+    friend std::ostream& operator << (std::ostream& os, const IntIntStruct& c) {
         return os << '(' << c.a << ',' << c.b << ')';
     }
 };

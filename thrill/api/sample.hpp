@@ -60,8 +60,7 @@ public:
           local_size_(0), sample_size_(sample_size), local_samples_(0),
           hyp_(42 /* dummy seed */),
           sampler_(sample_size, samples_, rng_),
-          parent_stack_empty_(ParentDIA::stack_empty)
-    {
+          parent_stack_empty_(ParentDIA::stack_empty) {
         auto presample_fn = [this](const ValueType& input) {
                                 sampler_.add(input);
                             };

@@ -55,14 +55,14 @@ const struct ArrayTag ArrayTag;
 // taken from: http://stackoverflow.com/questions/7943525/
 // is-it-possible-to-figure-out-the-parameter-type-and-return-type-of-a-lambda
 template <typename T>
-struct ZipWindowTraits : public ZipWindowTraits<decltype(& T::operator ())>{ };
+struct ZipWindowTraits : public ZipWindowTraits<decltype(&T::operator ())> { };
 // For generic types, directly use the result of the signature of its 'operator()'
 
 #endif
 
 //! specialize for pointers to const member function
 template <typename ClassType, typename ReturnType, typename... Args>
-struct ZipWindowTraits<ReturnType (ClassType::*)(Args...) const>{
+struct ZipWindowTraits<ReturnType (ClassType::*)(Args...) const> {
 
     //! arity is the number of arguments.
     static constexpr size_t arity = sizeof ... (Args);
@@ -111,13 +111,13 @@ struct ZipWindowTraits<ReturnType (ClassType::*)(Args...) const>{
 //! specialize for pointers to mutable member function
 template <typename ClassType, typename ReturnType, typename... Args>
 struct ZipWindowTraits<ReturnType (ClassType::*)(Args...)>
-    : public ZipWindowTraits<ReturnType (ClassType::*)(Args...) const>{
+    : public ZipWindowTraits<ReturnType (ClassType::*)(Args...) const> {
     using is_const = std::false_type;
 };
 
 //! specialize for function pointers
 template <typename ReturnType, typename... Args>
-struct ZipWindowTraits<ReturnType (*)(Args...)>{
+struct ZipWindowTraits<ReturnType (*)(Args...)> {
 
     //! arity is the number of arguments.
     static constexpr size_t arity = sizeof ... (Args);
@@ -211,8 +211,7 @@ public:
           parent_stack_empty_(
               std::array<bool, kNumInputs>{
                   { ParentDIA0::stack_empty, (ParentDIAs::stack_empty)... }
-              })
-    {
+              }) {
         // allocate files.
         files_.reserve(kNumInputs);
         for (size_t i = 0; i < kNumInputs; ++i)

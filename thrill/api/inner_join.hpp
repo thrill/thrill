@@ -91,9 +91,9 @@ private:
         HashCount operator + (const HashCount& b) const {
             assert(hash == b.hash);
             return HashCount {
-                       hash,
-                       common::AddTruncToType(count, b.count),
-                       static_cast<DIAIdxType>(dia_mask | b.dia_mask)
+                hash,
+                common::AddTruncToType(count, b.count),
+                static_cast<DIAIdxType>(dia_mask | b.dia_mask)
             };
         }
 
@@ -143,8 +143,7 @@ public:
           key_extractor1_(key_extractor1),
           key_extractor2_(key_extractor2),
           join_function_(join_function),
-          hash_function_(hash_function)
-    {
+          hash_function_(hash_function) {
         auto pre_op_fn1 = [this](const InputTypeFirst& input) {
                               PreOp1(input);
                           };

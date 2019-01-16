@@ -37,7 +37,7 @@ template <typename ValueType>
 class DIANode : public DIABase
 {
 public:
-    using Callback = tlx::delegate<void(const ValueType&)>;
+    using Callback = tlx::delegate<void (const ValueType&)>;
 
     struct Child {
         //! reference to child node

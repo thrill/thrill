@@ -40,7 +40,7 @@ struct Traffic {
     //! constructor
     Traffic(size_t tx, size_t rx) : tx(tx), rx(rx) { }
     //! formatting: print total
-    friend std ::ostream& operator << (std::ostream& os, const Traffic& t);
+    friend std::ostream& operator << (std::ostream& os, const Traffic& t);
 };
 
 /*!

@@ -42,8 +42,7 @@ public:
         : ActionNode(parent.ctx(), "WriteLinesOne",
                      { parent.id() }, { parent.node() }),
           path_out_(path_out),
-          file_(path_out_, std::ios::binary)
-    {
+          file_(path_out_, std::ios::binary) {
         sLOG << "Creating write node.";
 
         auto pre_op_fn = [this](const ValueType& input) {

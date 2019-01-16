@@ -124,7 +124,7 @@ TEST(StreamSet, TestLoopbacks) {
 
 struct Multiplexer : public ::testing::Test {
 
-    using WorkerThread = std::function<void(data::Multiplexer&)>;
+    using WorkerThread = std::function<void (data::Multiplexer&)>;
 
     static void FunctionSelect(
         net::Group* group, WorkerThread f1, WorkerThread f2, WorkerThread f3) {

@@ -87,7 +87,7 @@ private:
 
 template <size_t Index, typename... Types>
 struct TupleGenerator {
-    static bool   HasNext(const std::tuple<Generator<Types>...>& t) {
+    static bool HasNext(const std::tuple<Generator<Types>...>& t) {
         return std::get<Index - 1>(t).HasNext() &&
                TupleGenerator<Index - 1, Types...>::HasNext(t);
     }
@@ -98,7 +98,7 @@ struct TupleGenerator {
 };
 
 template <typename... Types>
-struct TupleGenerator<0, Types...>{
+struct TupleGenerator<0, Types...> {
     static bool HasNext(const std::tuple<Generator<Types>...>&) {
         return true;
     }

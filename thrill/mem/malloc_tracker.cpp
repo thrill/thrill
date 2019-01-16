@@ -305,12 +305,12 @@ struct OhlcBar {
     ssize_t high = 0, low = 0, close = 0;
 
     ATTRIBUTE_NO_SANITIZE
-    void    init(ssize_t current) {
+    void init(ssize_t current) {
         high = low = close = current;
     }
 
     ATTRIBUTE_NO_SANITIZE
-    void    aggregate(ssize_t current) {
+    void aggregate(ssize_t current) {
         if (high < current) high = current;
         if (low > current) low = current;
         close = current;

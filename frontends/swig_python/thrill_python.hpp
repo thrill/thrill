@@ -124,7 +124,7 @@ namespace data {
  * Thrill serialization interface for PyObjects: call the PyMarshal C API.
  */
 template <typename Archive>
-struct Serialization<Archive, PyObjectRef>{
+struct Serialization<Archive, PyObjectRef> {
     static void Serialize(const PyObjectRef& obj, Archive& ar) {
         SWIG_PYTHON_THREAD_BEGIN_BLOCK;
         PyObject* mar =
@@ -204,7 +204,7 @@ public:
 namespace std {
 template <>
 struct hash<thrill::PyObjectRef>
-    : public std::unary_function<thrill::PyObjectRef, size_t>{
+    : public std::unary_function<thrill::PyObjectRef, size_t> {
     size_t operator () (const thrill::PyObjectRef& ob) const {
         auto h = PyObject_Hash(ob.get());
         if (h == -1) {

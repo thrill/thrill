@@ -39,8 +39,7 @@ public:
         : Super(parent.ctx(), "AllGather",
                 { parent.id() }, { parent.node() }),
           parent_stack_empty_(ParentDIA::stack_empty),
-          out_vector_(out_vector), ownership_(ownership)
-    {
+          out_vector_(out_vector), ownership_(ownership) {
         auto pre_op_function = [this](const ValueType& input) {
                                    PreOp(input);
                                };

@@ -53,7 +53,7 @@ public:
     using Reader = DynBlockReader;
     using ConsumeReader = BlockReader<ConsumeBlockQueueSource>;
 
-    using CloseCallback = tlx::delegate<void(BlockQueue&)>;
+    using CloseCallback = tlx::delegate<void (BlockQueue&)>;
 
     //! Constructor from BlockPool
     BlockQueue(BlockPool& block_pool, size_t local_worker_id,

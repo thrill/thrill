@@ -98,8 +98,7 @@ public:
           parent_stack_empty_(
               std::array<bool, kNumInputs>{
                   { ParentDIA0::stack_empty, (ParentDIAs::stack_empty)... }
-              })
-    {
+              }) {
         // allocate files.
         for (size_t i = 0; i < kNumInputs; ++i)
             files_[i] = context_.GetFilePtr(this);

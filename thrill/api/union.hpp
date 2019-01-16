@@ -76,7 +76,7 @@ public:
         std::vector<size_t> pushed_inputs;
 
         //! check if all inputs were pushed to the child
-        bool                AllInputsDone() const {
+        bool AllInputsDone() const {
             for (const size_t& i : pushed_inputs)
                 if (!i) return false;
             return true;
@@ -91,8 +91,7 @@ public:
         : Super(parent0.ctx(), "Union",
                 { parent0.id(), parents.id() ... },
                 { parent0.node(), parents.node() ... }),
-          num_inputs_(1 + sizeof ... (ParentDIAs))
-    {
+          num_inputs_(1 + sizeof ... (ParentDIAs)) {
         tlx::call_foreach_with_index(
             RegisterParent(this), parent0, parents...);
     }

@@ -106,8 +106,7 @@ public:
           parent_stack_empty_(
               std::array<bool, kNumInputs>{
                   { ParentDIA0::stack_empty, (ParentDIAs::stack_empty)... }
-              })
-    {
+              }) {
         // allocate files.
         files_.reserve(kNumInputs);
         for (size_t i = 0; i < kNumInputs; ++i)

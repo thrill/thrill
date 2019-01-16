@@ -120,8 +120,7 @@ public:
           post_phase_(
               context_, Super::dia_id(), key_extractor, reduce_function,
               Emitter(this), config,
-              HashIndexFunction(key_hash_function), key_equal_function)
-    {
+              HashIndexFunction(key_hash_function), key_equal_function) {
         // Hook PreOp: Locally hash elements of the current DIA onto buckets and
         // reduce each bucket to a single value, afterwards send data to another
         // worker given by the shuffle algorithm.

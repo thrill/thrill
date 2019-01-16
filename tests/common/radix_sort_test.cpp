@@ -19,7 +19,7 @@
 using namespace thrill;
 
 struct MyString {
-    uint8_t        chars[16];
+    uint8_t chars[16];
 
     bool operator < (const MyString& b) const {
         return std::lexicographical_compare(

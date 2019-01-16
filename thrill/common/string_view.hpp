@@ -116,7 +116,7 @@ public:
     }
 
     //! make StringView ostreamable
-    friend std ::ostream& operator << (std::ostream& os, const StringView& sv) {
+    friend std::ostream& operator << (std::ostream& os, const StringView& sv) {
         return os.write(sv.data(), sv.size());
     }
 
@@ -192,7 +192,7 @@ void SplitView(
 
 namespace std {
 template <>
-struct hash<thrill::common::StringView>{
+struct hash<thrill::common::StringView> {
     size_t operator () (const thrill::common::StringView& sv) const {
         // simple string hash taken from: http://www.cse.yorku.ca/~oz/hash.html
         size_t hash = 5381;

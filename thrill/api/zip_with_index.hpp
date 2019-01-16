@@ -55,8 +55,7 @@ public:
         : Super(parent.ctx(), "ZipWithIndex",
                 { parent.id() }, { parent.node() }),
           zip_function_(zip_function),
-          parent_stack_empty_(ParentDIA::stack_empty)
-    {
+          parent_stack_empty_(ParentDIA::stack_empty) {
         // Hook PreOp(s)
         auto pre_op_fn = [this](const InputType& input) {
                              writer_.Put(input);

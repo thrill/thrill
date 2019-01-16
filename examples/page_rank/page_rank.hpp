@@ -46,7 +46,7 @@ using Rank = double;
 struct PagePageLink {
     PageId src, tgt;
 
-    friend std ::ostream& operator << (std::ostream& os, const PagePageLink& a) {
+    friend std::ostream& operator << (std::ostream& os, const PagePageLink& a) {
         return os << '(' << a.src << '>' << a.tgt << ')';
     }
 } TLX_ATTRIBUTE_PACKED;
@@ -56,7 +56,7 @@ struct PageRankPair {
     PageId page;
     Rank   rank;
 
-    friend std ::ostream& operator << (std::ostream& os, const PageRankPair& a) {
+    friend std::ostream& operator << (std::ostream& os, const PageRankPair& a) {
         return os << '(' << a.page << '|' << a.rank << ')';
     }
 } TLX_ATTRIBUTE_PACKED;

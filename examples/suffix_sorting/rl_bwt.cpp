@@ -40,7 +40,7 @@ struct IndexChar {
     IndexType index;
     CharType  c;
 
-    friend std ::ostream& operator << (
+    friend std::ostream& operator << (
         std::ostream& os, const IndexChar& ri) {
         return os << '(' << ri.index << '|' << ri.c << ')';
     }

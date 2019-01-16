@@ -48,7 +48,7 @@ namespace common {
 #if defined(__GLIBCXX__)
 template <typename T>
 struct is_trivially_copyable
-    : std::integral_constant<bool, __has_trivial_copy(T)>{ };  // NOLINT
+    : std::integral_constant<bool, __has_trivial_copy(T)> { };  // NOLINT
 #else // GLIBCXX work-around
 template <typename T>
 using is_trivially_copyable = std::is_trivially_copyable<T>;

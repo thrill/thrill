@@ -139,8 +139,8 @@ public:
     std::string ToStringHostPort() const;
 
     //! Make the socket address ostream-able: outputs address:port
-    friend std ::ostream& operator << (std::ostream& os,
-                                       const SocketAddress& sa);
+    friend std::ostream& operator << (std::ostream& os,
+                                      const SocketAddress& sa);
 
     //! Return the currently set port address in host byte-order.
     uint16_t GetPort() const {

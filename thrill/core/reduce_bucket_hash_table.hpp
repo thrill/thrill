@@ -121,7 +121,7 @@ public:
         TableItem  items[block_size_]; // NOLINT
 
         //! helper to destroy all allocated items
-        void       destroy_items() {
+        void destroy_items() {
             for (TableItem* i = items; i != items + size; ++i) {
                 i->~TableItem();
             }

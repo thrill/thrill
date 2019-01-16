@@ -98,7 +98,7 @@ std::vector<uint32_t> decodeSparseList(const std::vector<uint8_t>& sparseList);
 namespace data {
 
 template <typename Archive, size_t p>
-struct Serialization<Archive, core::HyperLogLogRegisters<p> >{
+struct Serialization<Archive, core::HyperLogLogRegisters<p> > {
 
     static void Serialize(const core::HyperLogLogRegisters<p>& x, Archive& ar);
     static core::HyperLogLogRegisters<p> Deserialize(Archive& ar);

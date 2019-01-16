@@ -41,8 +41,7 @@ public:
         : Super(parent.ctx(), label, { parent.id() }, { parent.node() }),
           reduce_function_(reduce_function),
           sum_(initial_value),
-          first_(parent.ctx().my_rank() != 0)
-    {
+          first_(parent.ctx().my_rank() != 0) {
         // Hook PreOp(s)
         auto pre_op_fn = [this](const ValueType& input) {
                              PreOp(input);

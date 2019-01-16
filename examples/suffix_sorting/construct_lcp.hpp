@@ -37,7 +37,7 @@ struct IndexRank {
     Index index;
     Index rank;
 
-    friend std ::ostream& operator << (std::ostream& os, const IndexRank& ir) {
+    friend std::ostream& operator << (std::ostream& os, const IndexRank& ir) {
         return os << '(' << ir.index << '|' << ir.rank << ')';
     }
 } TLX_ATTRIBUTE_PACKED;
@@ -47,7 +47,7 @@ struct IndexChar {
     Index index;
     Char  ch;
 
-    friend std ::ostream& operator << (std::ostream& os, const IndexChar& ic) {
+    friend std::ostream& operator << (std::ostream& os, const IndexChar& ic) {
         return os << '(' << ic.index << '|' << ic.ch << ')';
     }
 } TLX_ATTRIBUTE_PACKED;
@@ -57,7 +57,7 @@ struct IndexFlag {
     Index index;
     bool  flag;
 
-    friend std ::ostream& operator << (std::ostream& os, const IndexFlag& idx_flag) {
+    friend std::ostream& operator << (std::ostream& os, const IndexFlag& idx_flag) {
         return os << '(' << idx_flag.index << '|' << (idx_flag.flag ? 't' : 'f') << ')';
     }
 } TLX_ATTRIBUTE_PACKED;
@@ -68,7 +68,7 @@ struct IndexRankFlag {
     Index rank;
     bool  flag;
 
-    friend std ::ostream& operator << (std::ostream& os, const IndexRankFlag& irf) {
+    friend std::ostream& operator << (std::ostream& os, const IndexRankFlag& irf) {
         return os << '(' << irf.index << '|' << irf.rank << '|' << (irf.flag ? 't' : 'f') << ')';
     }
 } TLX_ATTRIBUTE_PACKED;

@@ -41,8 +41,7 @@ public:
     template <typename ParentDIA>
     explicit CacheNode(const ParentDIA& parent)
         : Super(parent.ctx(), "Cache", { parent.id() }, { parent.node() }),
-          parent_stack_empty_(ParentDIA::stack_empty)
-    {
+          parent_stack_empty_(ParentDIA::stack_empty) {
         auto save_fn = [this](const ValueType& input) {
                            writer_.Put(input);
                        };

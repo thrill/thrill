@@ -65,18 +65,18 @@ struct FileInfo {
     uint64_t    size_ex_psum;
 
     //! inclusive prefix sum of file sizes.
-    uint64_t    size_inc_psum() const { return size_ex_psum + size; }
+    uint64_t size_inc_psum() const { return size_ex_psum + size; }
     //! if the file is compressed
-    bool        IsCompressed() const { return vfs::IsCompressed(path); }
+    bool IsCompressed() const { return vfs::IsCompressed(path); }
     //! if the file is at remote uri
-    bool        IsRemoteUri() const { return vfs::IsRemoteUri(path); }
+    bool IsRemoteUri() const { return vfs::IsRemoteUri(path); }
 
     //! compare FileInfo by path
     bool operator < (const FileInfo& b) const { return path < b.path; }
 };
 
 //! List of file info and additional overall info.
-struct FileList : public std::vector<FileInfo>{
+struct FileList : public std::vector<FileInfo> {
     //! total size of files
     uint64_t total_size;
 

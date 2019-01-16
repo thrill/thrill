@@ -25,7 +25,7 @@ using namespace thrill; // NOLINT
 namespace std {
 
 template <>
-struct hash<Edge>{
+struct hash<Edge> {
     size_t operator () (const Edge& v) const {
 
         size_t seed = 0;
