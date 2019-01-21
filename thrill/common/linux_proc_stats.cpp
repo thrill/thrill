@@ -15,6 +15,7 @@
 
 #include <thrill/common/json_logger.hpp>
 #include <thrill/common/logger.hpp>
+#include <thrill/common/porting.hpp>
 #include <thrill/common/profile_task.hpp>
 #include <thrill/common/profile_thread.hpp>
 #include <thrill/common/string.hpp>
@@ -640,8 +641,8 @@ void LinuxProcStats::read_sys_block_devices() {
     DIR* dirp = opendir("/sys/block");
     if (!dirp) return;
 
-    struct dirent de_prev, * de;
-    while (readdir_r(dirp, &de_prev, &de) == 0 && de != nullptr) {
+    struct dirent* de;
+    while ((de = common::ts_readdir(dirp)) != nullptr) {
         if (de->d_name[0] == '.') continue;
         // push into diskstats vector
         diskstats_prev_.emplace_back();

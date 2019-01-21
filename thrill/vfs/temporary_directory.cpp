@@ -12,6 +12,7 @@
 #include <thrill/vfs/temporary_directory.hpp>
 
 #include <thrill/common/logger.hpp>
+#include <thrill/common/porting.hpp>
 #include <thrill/common/system_exception.hpp>
 
 #if !defined(_MSC_VER)
@@ -119,8 +120,8 @@ void TemporaryDirectory::wipe_directory(
                   "Could open temporary directory " + tmp_dir);
     }
 
-    struct dirent* de, entry;
-    while (readdir_r(d, &entry, &de) == 0 && de != nullptr) {
+    struct dirent* de;
+    while ((de = common::ts_readdir(d)) != nullptr) {
         // skip ".", "..", and also hidden files (don't create them).
         if (de->d_name[0] == '.') continue;
 

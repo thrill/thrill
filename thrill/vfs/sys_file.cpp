@@ -12,6 +12,7 @@
 #include <thrill/vfs/sys_file.hpp>
 
 #include <thrill/common/porting.hpp>
+#include <thrill/common/porting.hpp>
 #include <thrill/common/string.hpp>
 #include <thrill/common/system_exception.hpp>
 #include <thrill/vfs/simple_glob.hpp>
@@ -104,12 +105,12 @@ static void SysGlobWalkRecursive(const std::string& path, FileList& filelist) {
     if (dir == nullptr)
         throw common::ErrnoException("Could not read directory " + path);
 
-    struct dirent* de, de_entry;
+    struct dirent* de;
     struct stat st;
 
     std::vector<std::string> list;
 
-    while (readdir_r(dir, &de_entry, &de) == 0 && de != nullptr) {
+    while ((de = common::ts_readdir(dir)) != nullptr) {
         // skip ".", "..", and also hidden files (don't create them).
         if (de->d_name[0] == '.') continue;
 

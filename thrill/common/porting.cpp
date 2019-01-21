@@ -21,6 +21,7 @@
 #include <fcntl.h>
 
 #include <fstream>
+#include <mutex>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -147,6 +148,12 @@ std::string GetHostname() {
 #else
     return "<unknown host>";
 #endif
+}
+
+struct dirent * ts_readdir(DIR* dirp) {
+    static std::mutex s_mutex;
+    std::unique_lock<std::mutex> lock(s_mutex);
+    return ::readdir(dirp);
 }
 
 } // namespace common

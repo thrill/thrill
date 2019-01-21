@@ -24,6 +24,8 @@ using ssize_t = SSIZE_T;
 #include <system_error>
 #include <thread>
 
+#include <dirent.h>
+
 namespace thrill {
 namespace common {
 
@@ -62,6 +64,9 @@ void SetCpuAffinity(size_t cpu_id);
 
 //! get hostname
 std::string GetHostname();
+
+//! mutex-locked readdir() call
+struct dirent * ts_readdir(DIR* dirp);
 
 } // namespace common
 } // namespace thrill
