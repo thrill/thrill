@@ -79,8 +79,8 @@ option(THRILL_TRY_COMPILE_HEADERS
 option(THRILL_ON_TRAVIS
   "Flag for continuous integration building. Disables some unsupported platform features." OFF)
 
-# THRILL_USE_S3 tristate switch
-set(THRILL_USE_S3 AUTO CACHE
+# THRILL_USE_S3 tristate switch, default: OFF
+set(THRILL_USE_S3 OFF CACHE
   STRING "Build libs3 as library. Enabled by default if all dependencies are found.")
 set_property(CACHE THRILL_USE_S3 PROPERTY STRINGS AUTO ON OFF)
 
