@@ -12,24 +12,6 @@
 #ifndef THRILL_COMMON_CONCURRENT_BOUNDED_QUEUE_HEADER
 #define THRILL_COMMON_CONCURRENT_BOUNDED_QUEUE_HEADER
 
-#if THRILL_HAVE_INTELTBB
-
-#if __clang__ && !defined(_LIBCPP_VERSION)
-// tbb feature detection is broken for clang + libstdc++
-#define _LIBCPP_VERSION 4000
-#define FAKE_LIBCPP_VERSION
-#endif
-
-#include <tbb/concurrent_queue.h>
-
-#if defined(FAKE_LIBCPP_VERSION)
-// undo libc++ version faking
-#undef _LIBCPP_VERSION
-#undef FAKE_LIBCPP_VERSION
-#endif
-
-#endif // THRILL_HAVE_INTELTBB
-
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -41,18 +23,13 @@ namespace common {
 
 /*!
  * This is a queue, similar to std::queue and tbb::concurrent_bounded_queue,
- * except that it uses mutexes for synchronization. This implementation is only
- * here to be used if the Intel TBB is not available.
- *
- * Not all methods of tbb::concurrent_bounded_queue<> are available here, please
- * add them if you need them. However, NEVER add any other methods that you
- * might need.
- *
- * StyleGuide is violated, because signatures MUST match those in the TBB
- * version.
+ * except that it uses mutexes for synchronization.
+*
+ * StyleGuide is violated, because signatures are expected to match those of
+ * std::queue.
  */
 template <typename T>
-class OurConcurrentBoundedQueue
+class ConcurrentBoundedQueue
 {
 public:
     using value_type = T;
@@ -73,10 +50,10 @@ private:
 
 public:
     //! default constructor
-    OurConcurrentBoundedQueue() = default;
+    ConcurrentBoundedQueue() = default;
 
     //! move-constructor
-    OurConcurrentBoundedQueue(OurConcurrentBoundedQueue&& other) {
+    ConcurrentBoundedQueue(ConcurrentBoundedQueue&& other) {
         std::unique_lock<std::mutex> lock(other.mutex_);
         queue_ = std::move(other.queue_);
     }
@@ -161,18 +138,6 @@ public:
         return queue_.size();
     }
 };
-
-#if THRILL_HAVE_INTELTBB
-
-template <typename T>
-using ConcurrentBoundedQueue = tbb::concurrent_bounded_queue<T>;
-
-#else   // !THRILL_HAVE_INTELTBB
-
-template <typename T>
-using ConcurrentBoundedQueue = OurConcurrentBoundedQueue<T>;
-
-#endif // !THRILL_HAVE_INTELTBB
 
 } // namespace common
 } // namespace thrill

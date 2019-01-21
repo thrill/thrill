@@ -30,22 +30,24 @@ namespace mock {
 /******************************************************************************/
 // mock::Connection
 
-struct Connection::Data {
+class Connection::Data
+{
+public:
     //! Mutex to lock access to inbound message queue
-    std::mutex              mutex_;
+    std::mutex mutex_;
 
     //! Condition variable to wake up threads synchronously blocking on
     //! messages.
     std::condition_variable cv_;
 
     //! Set of watching dispatchers.
-    std::set<Dispatcher*>   watcher_;
+    std::set<Dispatcher*> watcher_;
 
     //! type of message queue
     using DataQueue = std::deque<net::Buffer>;
 
     //! inbound message queue the virtual network peer
-    DataQueue               inbound_;
+    DataQueue inbound_;
 };
 
 void Connection::Initialize(Group* group, size_t peer) {
@@ -196,26 +198,28 @@ void Group::Send(size_t tgt, net::Buffer&& msg) {
 
 /******************************************************************************/
 
-struct Dispatcher::Data {
+class Dispatcher::Data
+{
+public:
     //! Mutex to lock access to watch lists
     std::mutex mutex_;
 
     //! Notification queue for Dispatch
-    common::OurConcurrentBoundedQueue<Connection*>
-               notify_;
+    common::ConcurrentBoundedQueue<Connection*> notify_;
 
     using Map = std::map<Connection*, Watch>;
 
     //! map from Connection to its watch list
-    Map        map_;
+    Map map_;
 };
 
-struct Dispatcher::Watch {
+class Dispatcher::Watch
+{
+public:
     //! boolean check whether Watch is registered at Connection
-    bool     active = false;
+    bool active = false;
     //! queue of callbacks for fd.
-    std::deque<Callback, mem::GPoolAllocator<Callback> >
-             read_cb, write_cb;
+    std::deque<Callback, mem::GPoolAllocator<Callback> > read_cb, write_cb;
     //! only one exception callback for the fd.
     Callback except_cb;
 };

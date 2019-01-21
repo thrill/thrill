@@ -12,24 +12,6 @@
 #ifndef THRILL_COMMON_CONCURRENT_QUEUE_HEADER
 #define THRILL_COMMON_CONCURRENT_QUEUE_HEADER
 
-#if THRILL_HAVE_INTELTBB
-
-#if __clang__ && !defined(_LIBCPP_VERSION)
-// tbb feature detection is broken for clang + libstdc++
-#define _LIBCPP_VERSION 4000
-#define FAKE_LIBCPP_VERSION
-#endif
-
-#include <tbb/concurrent_queue.h>
-
-#if defined(FAKE_LIBCPP_VERSION)
-// undo libc++ version faking
-#undef _LIBCPP_VERSION
-#undef FAKE_LIBCPP_VERSION
-#endif
-
-#endif // THRILL_HAVE_INTELTBB
-
 #include <atomic>
 #include <deque>
 #include <mutex>
@@ -39,17 +21,13 @@ namespace common {
 
 /*!
  * This is a queue, similar to std::queue and tbb::concurrent_queue, except that
- * it uses mutexes for synchronization. This implementation is only here to be
- * used if the Intel TBB is not available.
+ * it uses mutexes for synchronization.
  *
- * Not all methods of tbb:concurrent_queue<> are available here, please add them
- * if you need them. However, NEVER add any other methods that you might need.
- *
- * StyleGuide is violated, because signatures MUST match those in the TBB
- * version.
+ * StyleGuide is violated, because signatures are expected to match those of
+ * std::queue.
  */
 template <typename T, typename Allocator>
-class OurConcurrentQueue
+class ConcurrentQueue
 {
 public:
     using value_type = T;
@@ -67,7 +45,7 @@ private:
 
 public:
     //! Constructor
-    explicit OurConcurrentQueue(const Allocator& alloc = Allocator())
+    explicit ConcurrentQueue(const Allocator& alloc = Allocator())
         : queue_(alloc) { }
 
     //! Pushes a copy of source onto back of the queue.
@@ -115,18 +93,6 @@ public:
         queue_.clear();
     }
 };
-
-#if THRILL_HAVE_INTELTBB
-
-template <typename T, typename Allocator>
-using ConcurrentQueue = tbb::concurrent_queue<T, Allocator>;
-
-#else   // !THRILL_HAVE_INTELTBB
-
-template <typename T, typename Allocator>
-using ConcurrentQueue = OurConcurrentQueue<T, Allocator>;
-
-#endif // !THRILL_HAVE_INTELTBB
 
 } // namespace common
 } // namespace thrill

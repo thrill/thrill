@@ -99,7 +99,7 @@ private:
     friend class Dispatcher;
 
     //! pimpl data struct with complex components
-    struct Data;
+    class Data;
 
     //! pimpl data struct with complex components
     std::unique_ptr<Data> d_;
@@ -198,13 +198,13 @@ public:
 
 private:
     //! pimpl data struct with complex components
-    struct Data;
+    class Data;
 
     //! pimpl data struct with complex components
     std::unique_ptr<Data> d_;
 
     //! callback vectors per watched connection
-    struct Watch;
+    class Watch;
 
     //! lookup method
     Watch& GetWatch(Connection* c);
