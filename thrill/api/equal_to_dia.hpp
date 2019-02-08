@@ -16,6 +16,8 @@
 #include <thrill/api/source_node.hpp>
 #include <thrill/common/logger.hpp>
 
+#include <tlx/vector_free.hpp>
+
 #include <vector>
 
 namespace thrill {
@@ -52,7 +54,7 @@ public:
     }
 
     void Dispose() final {
-        std::vector<ValueType>().swap(in_vector_);
+        tlx::vector_free(in_vector_);
     }
 
 private:

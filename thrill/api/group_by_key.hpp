@@ -24,6 +24,8 @@
 #include <thrill/core/reduce_functional.hpp>
 #include <thrill/data/file.hpp>
 
+#include <tlx/vector_free.hpp>
+
 #include <algorithm>
 #include <deque>
 #include <functional>
@@ -361,7 +363,7 @@ private:
             incoming.emplace_back(reader.template Next<ValueIn>());
         }
         FlushVectorToFile(incoming);
-        std::vector<ValueIn>().swap(incoming);
+        tlx::vector_free(incoming);
         LOG << "finished receiving elems";
         stream_.reset();
 

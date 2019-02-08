@@ -22,6 +22,8 @@
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
 
+#include <tlx/vector_free.hpp>
+
 #include <algorithm>
 #include <functional>
 #include <type_traits>
@@ -246,7 +248,7 @@ private:
             incoming.emplace_back(reader.template Next<ValueIn>());
         }
         FlushVectorToFile(incoming);
-        std::vector<ValueIn>().swap(incoming);
+        tlx::vector_free(incoming);
 
         stream_.reset();
     }

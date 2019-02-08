@@ -16,6 +16,8 @@
 #include <thrill/api/context.hpp>
 #include <thrill/core/reduce_functional.hpp>
 
+#include <tlx/vector_free.hpp>
+
 #include <algorithm>
 #include <functional>
 #include <limits>
@@ -148,8 +150,8 @@ public:
 
     //! Deallocate memory
     void Dispose() {
-        std::vector<data::File>().swap(partition_files_);
-        std::vector<size_t>().swap(items_per_partition_);
+        tlx::vector_free(partition_files_);
+        tlx::vector_free(items_per_partition_);
     }
 
     //! Initialize table for SkipPreReducePhase

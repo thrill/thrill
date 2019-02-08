@@ -111,11 +111,12 @@ auto PageRank(const DIA<OutgoingLinks, InStack>& links,
 
         auto contribs = outs_rank.template FlatMap<PageRankPair>(
             [](const OutgoingLinksRank& p, auto emit) {
-                if (p.first.size() > 0) {
-                    Rank rank_contrib = p.second / static_cast<double>(p.first.size());
-                    for (const PageId& tgt : p.first)
-                        emit(PageRankPair { tgt, rank_contrib });
-                }
+                if (p.first.size() == 0)
+                    return;
+
+                Rank rank_contrib = p.second / static_cast<double>(p.first.size());
+                for (const PageId& tgt : p.first)
+                    emit(PageRankPair { tgt, rank_contrib });
             });
 
         // reduce all rank contributions by adding all rank contributions and

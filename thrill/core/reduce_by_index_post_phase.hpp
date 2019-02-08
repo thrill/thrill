@@ -22,6 +22,8 @@
 #include <thrill/core/reduce_probing_hash_table.hpp>
 #include <thrill/data/file.hpp>
 
+#include <tlx/vector_free.hpp>
+
 #include <algorithm>
 #include <cassert>
 #include <cmath>
@@ -248,11 +250,11 @@ public:
     }
 
     void Dispose() {
-        std::vector<TableItem>().swap(items_);
+        tlx::vector_free(items_);
 
-        std::vector<common::Range>().swap(subranges_);
-        std::vector<data::FilePtr>().swap(subrange_files_);
-        std::vector<data::File::Writer>().swap(subrange_writers_);
+        tlx::vector_free(subranges_);
+        tlx::vector_free(subrange_files_);
+        tlx::vector_free(subrange_writers_);
     }
 
 private:
@@ -270,7 +272,7 @@ private:
         }
         neutral_element_index_occupied_ = false;
         // free array
-        std::vector<TableItem>().swap(items_);
+        tlx::vector_free(items_);
     }
 
     Key key(const TableItem& t) {

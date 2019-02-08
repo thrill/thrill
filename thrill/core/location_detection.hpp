@@ -29,6 +29,7 @@
 #include <thrill/data/cat_stream.hpp>
 
 #include <tlx/math/integer_log2.hpp>
+#include <tlx/vector_free.hpp>
 
 #include <algorithm>
 #include <functional>
@@ -225,7 +226,7 @@ public:
                              context_.num_workers(),
                              max_hash);
 
-        std::vector<HashCount>().swap(hash_occ_);
+        tlx::vector_free(hash_occ_);
 
         // get inbound Golomb/delta-encoded hash stream
 
@@ -357,7 +358,7 @@ public:
 
     void Dispose() {
         table_.Dispose();
-        std::vector<HashCount>().swap(hash_occ_);
+        tlx::vector_free(hash_occ_);
     }
 
     //! Target vector for vector emitter

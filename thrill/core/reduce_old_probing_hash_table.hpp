@@ -16,6 +16,8 @@
 #include <thrill/core/reduce_functional.hpp>
 #include <thrill/core/reduce_table.hpp>
 
+#include <tlx/vector_free.hpp>
+
 #include <functional>
 #include <limits>
 #include <utility>
@@ -249,7 +251,7 @@ public:
 
     //! Deallocate memory
     void Dispose() {
-        std::vector<TableItem>().swap(items_);
+        tlx::vector_free(items_);
         Super::Dispose();
     }
 

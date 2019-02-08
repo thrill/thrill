@@ -25,7 +25,9 @@
 #include <thrill/core/multiway_merge.hpp>
 #include <thrill/data/file.hpp>
 #include <thrill/net/group.hpp>
+
 #include <tlx/math/integer_log2.hpp>
+#include <tlx/vector_free.hpp>
 
 #include <algorithm>
 #include <cstdlib>
@@ -600,7 +602,7 @@ private:
                 SampleIndexPair(sample.first, prefix_items + sample.second));
         }
         sample_writers[0].Close();
-        std::vector<SampleIndexPair>().swap(samples_);
+        tlx::vector_free(samples_);
 
         // Get the ceiling of log(num_total_workers), as SSSS needs 2^n buckets.
         size_t ceil_log = tlx::integer_log2_ceil(num_total_workers);
@@ -662,7 +664,7 @@ private:
             prefix_items,
             data_stream);
 
-        std::vector<ValueType>().swap(splitter_tree);
+        tlx::vector_free(splitter_tree);
 
         if (use_background_thread_)
             thread.join();

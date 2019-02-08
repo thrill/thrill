@@ -16,6 +16,8 @@
 #include <thrill/core/reduce_functional.hpp>
 #include <thrill/core/reduce_table.hpp>
 
+#include <tlx/vector_free.hpp>
+
 #include <algorithm>
 #include <functional>
 #include <limits>
@@ -345,7 +347,7 @@ public:
         }
 
         // destroy vector and block pool
-        std::vector<BucketBlock*>().swap(buckets_);
+        tlx::vector_free(buckets_);
         block_pool_.Destroy();
 
         Super::Dispose();

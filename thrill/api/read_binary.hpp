@@ -25,6 +25,7 @@
 
 #include <foxxll/io/syscall_file.hpp>
 #include <tlx/string/join.hpp>
+#include <tlx/vector_free.hpp>
 
 #include <algorithm>
 #include <limits>
@@ -254,7 +255,7 @@ public:
     }
 
     void Dispose() final {
-        std::vector<FileInfo>().swap(my_files_);
+        tlx::vector_free(my_files_);
         ext_file_.Clear();
     }
 

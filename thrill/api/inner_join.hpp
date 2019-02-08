@@ -405,7 +405,7 @@ private:
                 writer.Put(puller.Top());
                 //! vec is very large when this happens
                 //! swap with empty vector to free the memory
-                std::vector<ItemType>().swap(vec);
+                tlx::vector_free(vec);
 
                 return AddEqualKeysToFile(puller, key_extractor, writer, key);
             }

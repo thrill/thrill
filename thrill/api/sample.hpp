@@ -21,6 +21,7 @@
 #include <thrill/common/sampling.hpp>
 
 #include <tlx/math.hpp>
+#include <tlx/vector_free.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -151,7 +152,7 @@ public:
             this->PushItem(v);
         }
         if (consume)
-            std::vector<ValueType>().swap(samples_);
+            tlx::vector_free(samples_);
 
         sLOG << "SampleNode::PushData finished; total local time excl PushData:"
              << local_timer_.Microseconds() / 1000.0
@@ -162,7 +163,7 @@ public:
     }
 
     void Dispose() final {
-        std::vector<ValueType>().swap(samples_);
+        tlx::vector_free(samples_);
     }
 
 private:
