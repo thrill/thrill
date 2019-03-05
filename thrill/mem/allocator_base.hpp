@@ -16,6 +16,7 @@
 #include <thrill/mem/malloc_tracker.hpp>
 #include <thrill/mem/manager.hpp>
 #include <tlx/allocator_base.hpp>
+#include <tlx/string/ssprintf_generic.hpp>
 
 #include <atomic>
 #include <cassert>
@@ -188,32 +189,32 @@ using by_deque = std::deque<T, BypassAllocator<T> >;
 
 //! convert to string
 static inline by_string to_string(int val) {
-    return common::str_snprintf<by_string>(4 * sizeof(int), "%d", val);
+    return tlx::ssnprintf_generic<by_string>(4 * sizeof(int), "%d", val);
 }
 
 //! convert to string
 static inline by_string to_string(unsigned val) {
-    return common::str_snprintf<by_string>(4 * sizeof(int), "%u", val);
+    return tlx::ssnprintf_generic<by_string>(4 * sizeof(int), "%u", val);
 }
 
 //! convert to string
 static inline by_string to_string(long val) {
-    return common::str_snprintf<by_string>(4 * sizeof(long), "%ld", val);
+    return tlx::ssnprintf_generic<by_string>(4 * sizeof(long), "%ld", val);
 }
 
 //! convert to string
 static inline by_string to_string(unsigned long val) {
-    return common::str_snprintf<by_string>(4 * sizeof(long), "%lu", val);
+    return tlx::ssnprintf_generic<by_string>(4 * sizeof(long), "%lu", val);
 }
 
 //! convert to string
 static inline by_string to_string(long long val) {
-    return common::str_snprintf<by_string>(4 * sizeof(long long), "%lld", val);
+    return tlx::ssnprintf_generic<by_string>(4 * sizeof(long long), "%lld", val);
 }
 
 //! convert to string
 static inline by_string to_string(unsigned long long val) {
-    return common::str_snprintf<by_string>(4 * sizeof(long long), "%llu", val);
+    return tlx::ssnprintf_generic<by_string>(4 * sizeof(long long), "%llu", val);
 }
 
 } // namespace mem

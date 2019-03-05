@@ -55,7 +55,7 @@ void PrintMatrix(const AggMatrix& m) {
     for (size_t i = 0; i < m.rows(); ++i) {
         std::ostringstream os;
         for (size_t j = 0; j < m.columns(); ++j) {
-            os << common::str_sprintf(
+            os << tlx::ssprintf(
                 "%8.1f/%8.3f", m(i, j).avg(), m(i, j).stdev());
         }
         LOG1 << os.str();

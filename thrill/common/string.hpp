@@ -29,64 +29,6 @@
 namespace thrill {
 namespace common {
 
-/*!
- * Helper for using sprintf to format into std::string and also to_string
- * converters.
- *
- * \param max_size maximum length of output string, longer ones are truncated.
- * \param fmt printf format and additional parameters
- */
-template <typename String = std::string>
-String str_snprintf(size_t max_size, const char* fmt, ...)
-TLX_ATTRIBUTE_FORMAT_PRINTF(2, 3);
-
-template <typename String>
-String str_snprintf(size_t max_size, const char* fmt, ...) {
-    // allocate buffer on stack
-    char* s = static_cast<char*>(alloca(max_size));
-
-    va_list args;
-    va_start(args, fmt);
-
-    const int len = std::vsnprintf(s, max_size, fmt, args);
-
-    va_end(args);
-
-    return String(s, s + len);
-}
-
-/*!
- * Helper for using sprintf to format into std::string and also to_string
- * converters.
- *
- * \param fmt printf format and additional parameters
- */
-template <typename String = std::string>
-String str_sprintf(const char* fmt, ...)
-TLX_ATTRIBUTE_FORMAT_PRINTF(1, 2);
-
-template <typename String>
-String str_sprintf(const char* fmt, ...) {
-    // allocate buffer on stack
-    char* s = static_cast<char*>(alloca(256));
-
-    va_list args;
-    va_start(args, fmt);
-
-    int len = std::vsnprintf(s, 256, fmt, args); // NOLINT
-
-    if (len >= 256) {
-        // try again.
-        s = static_cast<char*>(alloca(len + 1));
-
-        len = std::vsnprintf(s, len + 1, fmt, args);
-    }
-
-    va_end(args);
-
-    return String(s, s + len);
-}
-
 //! Use ostream to output any type as string. You generally DO NOT want to use
 //! this, instead create a larger ostringstream.
 template <typename Type>

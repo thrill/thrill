@@ -20,6 +20,7 @@
 
 #include <tlx/die.hpp>
 #include <tlx/string/ends_with.hpp>
+#include <tlx/string/ssprintf.hpp>
 #include <tlx/string/starts_with.hpp>
 
 #include <algorithm>
@@ -99,9 +100,9 @@ std::string FillFilePattern(const std::string& pathbase,
 
         sLOG << "at_length" << at_length;
         out_path.replace(at_begin + 1, at_length,
-                         common::str_snprintf<>(at_length + 2, "%0*zu",
-                                                static_cast<int>(at_length),
-                                                worker));
+                         tlx::ssnprintf(at_length + 2, "%0*zu",
+                                        static_cast<int>(at_length),
+                                        worker));
     }
     {
         // replace hash signs
@@ -114,9 +115,9 @@ std::string FillFilePattern(const std::string& pathbase,
 
         sLOG << "hash_length" << hash_length;
         out_path.replace(hash_begin + 1, hash_length,
-                         common::str_snprintf<>(hash_length + 2, "%0*zu",
-                                                static_cast<int>(hash_length),
-                                                file_part));
+                         tlx::ssnprintf(hash_length + 2, "%0*zu",
+                                        static_cast<int>(hash_length),
+                                        file_part));
     }
     out_path += extension;
     return out_path;
