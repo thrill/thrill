@@ -97,7 +97,7 @@ static void RunPageRankEdgePerLine(
         ranks.ZipWithIndex(
             // generate index numbers: 0...num_pages-1
             [](const Rank& r, const PageId& p) {
-                return common::str_sprintf("%zu: %g", p, r);
+                return tlx::ssprintf("%zu: %g", p, r);
             })
         .WriteLines(output_path);
     }
@@ -167,7 +167,7 @@ static void RunJoinPageRankEdgePerLine(
 
     if (output_path.size()) {
         ranks.Map([](const RankedPage& rp) {
-                      return common::str_sprintf("%zu: %g", rp.first, rp.second);
+                      return tlx::ssprintf("%zu: %g", rp.first, rp.second);
                   }).WriteLines(output_path);
     }
     else {
@@ -281,7 +281,7 @@ static void RunPageRankJoinGenerated(
 
     if (output_path.size()) {
         ranks.Map([](const RankedPage& rp) {
-                      return common::str_sprintf("%zu: %g", rp.first, rp.second);
+                      return tlx::ssprintf("%zu: %g", rp.first, rp.second);
                   }).WriteLines(output_path);
     }
     else {

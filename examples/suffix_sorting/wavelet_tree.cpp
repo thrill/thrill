@@ -62,7 +62,7 @@ auto ConstructWaveletTree(const InputDIA& input_dia) {
             [maskbit](const uint64_t& a) {
                 return (a & maskbit) != 0;
             })
-        .WriteBinary(common::str_sprintf("wt-%04u-", unsigned(level)));
+        .WriteBinary(tlx::ssprintf("wt-%04u-", unsigned(level)));
 
         wt = wt.Sort(
             [mask](const uint64_t& a, const uint64_t& b) {

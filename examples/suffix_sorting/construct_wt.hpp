@@ -68,7 +68,7 @@ auto ConstructWaveletTree(
                 return x;
             })
         .WriteBinary(
-            output_path + common::str_sprintf("-lvl%02u-", unsigned(level)));
+            output_path + tlx::ssprintf("-lvl%02u-", unsigned(level)));
 
         wt = wt.Sort(
             [mask](const uint8_t& a, const uint8_t& b) {
