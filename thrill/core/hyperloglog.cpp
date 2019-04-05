@@ -1604,6 +1604,7 @@ class SparseListIterator
 public:
     explicit SparseListIterator(ForwardIt it) : iterator(it) { }
     uint8_t GetByte() { return *iterator++; }
+    uint8_t PeekByte(size_t i) const { return iterator[i]; }
     SparseListIterator<ForwardIt>& operator ++ () {
         lastVal = lastVal + this->GetVarint32();
         return *this;
@@ -1613,16 +1614,13 @@ public:
         ++*this;
         return prev;
     }
-    uint32_t operator * () {
-        ForwardIt prevIt = iterator;
-        uint32_t val = this->GetVarint32();
-        iterator = prevIt;
-        return lastVal + val;
+    uint32_t operator * () const {
+        return lastVal + this->PeekVarint32();
     }
-    bool operator == (const SparseListIterator<ForwardIt>& other) {
+    bool operator == (const SparseListIterator<ForwardIt>& other) const {
         return iterator == other.iterator;
     }
-    bool operator != (const SparseListIterator<ForwardIt>& other) {
+    bool operator != (const SparseListIterator<ForwardIt>& other) const {
         return !(*this == other);
     }
 };
@@ -1749,8 +1747,9 @@ void HyperLogLogRegisters<p>::mergeSparse() {
     assert(std::is_sorted(sparseList.begin(), sparseList.end()));
     std::sort(deltaSet_.begin(), deltaSet_.end());
     std::vector<HyperLogLogSparseRegister> resultVec;
-    std::merge(sparseList.begin(), sparseList.end(), deltaSet_.begin(),
-               deltaSet_.end(), std::back_inserter(resultVec));
+    std::merge(sparseList.begin(), sparseList.end(),
+               deltaSet_.begin(), deltaSet_.end(),
+               std::back_inserter(resultVec));
     deltaSet_.clear();
     deltaSet_.shrink_to_fit();
     std::vector<HyperLogLogSparseRegister> vec = hyperloglog::mergeSameIndices<25>(resultVec);

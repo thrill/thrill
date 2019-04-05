@@ -67,13 +67,14 @@ public:
 
     //! Executes the size operation.
     void Execute() final {
+        if (parents_.size() == 1) {
+            // check if parent is CacheNode -> read number of items directly
+            CacheNode<ValueType>* parent_cache =
+                dynamic_cast<CacheNode<ValueType>*>(parents_[0].get());
 
-        // check if parent is CacheNode -> read number of items directly
-        CacheNode<ValueType>* parent_cache =
-            dynamic_cast<CacheNode<ValueType>*>(parents_[0].get());
-
-        if (parent_stack_empty_ && parent_cache != nullptr)
-            local_size_ = parent_cache->NumItems();
+            if (parent_stack_empty_ && parent_cache != nullptr)
+                local_size_ = parent_cache->NumItems();
+        }
 
         // get the number of elements that are stored on this worker
         LOG << "MainOp processing, sum: " << local_size_;

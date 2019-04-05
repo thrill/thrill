@@ -191,6 +191,26 @@ public:
         return v;
     }
 
+    //! Fetch a varint with up to 32-bit from the reader at the cursor.
+    uint32_t PeekVarint32() const {
+        const Reader& r = *static_cast<const Reader*>(this);
+
+        uint32_t u, v = r.PeekByte(0);
+        if (!(v & 0x80)) return v;
+        v &= 0x7F;
+        u = r.PeekByte(1), v |= (u & 0x7F) << 7;
+        if (!(u & 0x80)) return v;
+        u = r.PeekByte(2), v |= (u & 0x7F) << 14;
+        if (!(u & 0x80)) return v;
+        u = r.PeekByte(3), v |= (u & 0x7F) << 21;
+        if (!(u & 0x80)) return v;
+        u = r.PeekByte(4);
+        if (u & 0xF0)
+            throw std::overflow_error("Overflow during varint decoding.");
+        v |= (u & 0x7F) << 28;
+        return v;
+    }
+
     //! Fetch a 64-bit varint from the reader at the cursor.
     uint64_t GetVarint() {
         Reader& r = *static_cast<Reader*>(this);

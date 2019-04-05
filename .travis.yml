@@ -48,8 +48,8 @@ matrix:
             - libbz2-dev
             - libssl-dev
 
-    # gcc 7.x, Debug with -O1
-    - env: CMAKE_CC="gcc-7" CMAKE_CXX="g++-7" BUILD_TYPE="Debug" COMPILER_FLAGS="-O1"
+    # gcc 7.x, Debug with -O1 and -D_GLIBCXX_DEBUG
+    - env: CMAKE_CC="gcc-7" CMAKE_CXX="g++-7" BUILD_TYPE="Debug" COMPILER_FLAGS="-O1 -D_GLIBCXX_DEBUG"
       os: linux
       addons: &gcc7
         apt:

@@ -78,13 +78,18 @@ public:
     template <typename Functor>
     size_t erase(Functor&& f) {
         size_t result = 0;
-        for (typename std::vector<Type>::iterator it = c_.begin();
-             it < c_.end(); ++it)
-        {
-            if (!std::forward<Functor>(f)(*it)) continue;
-            std::swap(*it, c_.back());
-            sift_down(c_.begin(), c_.end(), cmp_, c_.size() - 1, it);
-            c_.pop_back();
+        size_t i = 0;
+        while (i != c_.size()) {
+            if (!std::forward<Functor>(f)(c_[i])) {
+                ++i;
+            }
+            else {
+                std::swap(c_[i], c_.back());
+                sift_down(c_.begin(), c_.end(), cmp_, c_.size() - 1,
+                          c_.begin() + i);
+                c_.pop_back();
+                // recheck i
+            }
         }
         return result;
     }
