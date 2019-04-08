@@ -101,10 +101,10 @@ private:
     friend class StreamSink;
 
     //! called from Multiplexer when there is a new Block for this Stream.
-    void OnStreamBlock(size_t from, uint32_t seq, PinnedBlock&& b);
+    void OnStreamBlock(size_t from, uint32_t seq, Block&& b);
 
     //! called to process PinnedBlock in sequence
-    void OnStreamBlockOrdered(size_t from, PinnedBlock&& b);
+    void OnStreamBlockOrdered(size_t from, Block&& b);
 };
 
 // we have two types of MixStream smart pointers: one for internal use in the

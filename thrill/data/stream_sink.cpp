@@ -96,11 +96,67 @@ size_t StreamSink::peer_worker_rank() const {
 }
 
 void StreamSink::AppendBlock(const Block& block, bool is_last_block) {
+    if (block.size() == 0) return;
+
+    if (block_queue_) {
+        LOG << "StreamSink::AppendBlock()"
+            << " block=" << block
+            << " is_last_block=" << is_last_block
+            << " id_= " << id_
+            << " host_rank_=" << host_rank_
+            << " local_worker_id_=" << local_worker_id_
+            << " peer_rank_=" << peer_rank_
+            << " peer_local_worker_=" << peer_local_worker_
+            << " item_counter_=" << item_counter_
+            << " byte_counter_=" << byte_counter_
+            << " block_counter_=" << block_counter_;
+
+        // StreamSink statistics
+        item_counter_ += block.num_items();
+        byte_counter_ += block.size();
+        block_counter_++;
+
+        // StreamData statistics for internal transfer
+        stream_->tx_int_items_ += block.num_items();
+        stream_->tx_int_bytes_ += block.size();
+        stream_->tx_int_blocks_++;
+
+        return block_queue_->AppendBlock(block, is_last_block);
+    }
+    if (target_mix_stream_) {
+        LOG << "StreamSink::AppendBlock()"
+            << " block=" << block
+            << " is_last_block=" << is_last_block
+            << " id_= " << id_
+            << " host_rank_=" << host_rank_
+            << " local_worker_id_=" << local_worker_id_
+            << " peer_rank_=" << peer_rank_
+            << " peer_local_worker_=" << peer_local_worker_
+            << " item_counter_=" << item_counter_
+            << " byte_counter_=" << byte_counter_
+            << " block_counter_=" << block_counter_;
+
+        // StreamSink statistics
+        item_counter_ += block.num_items();
+        byte_counter_ += block.size();
+        block_counter_++;
+
+        // StreamData statistics for internal transfer
+        stream_->tx_int_items_ += block.num_items();
+        stream_->tx_int_bytes_ += block.size();
+        stream_->tx_int_blocks_++;
+
+        return target_mix_stream_->OnStreamBlock(
+            my_worker_rank(), block_counter_ - 1, Block(block));
+    }
+
+    // otherwise: pin for network transfer
     return AppendPinnedBlock(block.PinWait(local_worker_id()), is_last_block);
 }
 
 void StreamSink::AppendBlock(Block&& block, bool is_last_block) {
-    return AppendPinnedBlock(block.PinWait(local_worker_id()), is_last_block);
+    die("FIXME: this should never be used?");
+    return AppendBlock(block, is_last_block);
 }
 
 void StreamSink::AppendPinnedBlock(PinnedBlock&& block, bool is_last_block) {
@@ -138,7 +194,8 @@ void StreamSink::AppendPinnedBlock(PinnedBlock&& block, bool is_last_block) {
         stream_->tx_int_blocks_++;
 
         return target_mix_stream_->OnStreamBlock(
-            my_worker_rank(), block_counter_ - 1, std::move(block));
+            my_worker_rank(), block_counter_ - 1,
+            std::move(block).MoveToBlock());
     }
 
     LOG0 << "StreamSink::AppendPinnedBlock()"
@@ -210,7 +267,7 @@ void StreamSink::Close() {
         // StreamData statistics for internal transfer
         stream_->tx_int_blocks_++;
         return target_mix_stream_->OnStreamBlock(
-            my_worker_rank(), block_counter_ - 1, PinnedBlock());
+            my_worker_rank(), block_counter_ - 1, Block());
     }
 
     StreamMultiplexerHeader header;

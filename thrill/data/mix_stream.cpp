@@ -151,13 +151,13 @@ bool MixStreamData::closed() const {
 
 struct MixStreamData::SeqReordering {
     //! current top sequence number
-    uint32_t                        seq_ = 0;
+    uint32_t                  seq_ = 0;
 
     //! queue of waiting Blocks, ordered by sequence number
-    std::map<uint32_t, PinnedBlock> waiting_;
+    std::map<uint32_t, Block> waiting_;
 };
 
-void MixStreamData::OnStreamBlock(size_t from, uint32_t seq, PinnedBlock&& b) {
+void MixStreamData::OnStreamBlock(size_t from, uint32_t seq, Block&& b) {
     assert(from < num_workers());
     rx_timespan_.StartEventually();
 
@@ -174,8 +174,7 @@ void MixStreamData::OnStreamBlock(size_t from, uint32_t seq, PinnedBlock&& b) {
         // sequence mismatch: put into queue
         die_unless(seq >= seq_[from].seq_);
 
-        seq_[from].waiting_.insert(
-            std::make_pair(seq, std::move(b)));
+        seq_[from].waiting_.insert(std::make_pair(seq, std::move(b)));
 
         return;
     }
@@ -198,10 +197,10 @@ void MixStreamData::OnStreamBlock(size_t from, uint32_t seq, PinnedBlock&& b) {
     }
 }
 
-void MixStreamData::OnStreamBlockOrdered(size_t from, PinnedBlock&& b) {
+void MixStreamData::OnStreamBlockOrdered(size_t from, Block&& b) {
     // sequence number matches
     if (b.IsValid()) {
-        queue_.AppendBlock(from, std::move(b).MoveToBlock());
+        queue_.AppendBlock(from, std::move(b));
     }
     else {
         sLOG << "MixStreamData::OnCloseStream"

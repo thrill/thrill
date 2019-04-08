@@ -128,9 +128,9 @@ private:
 
     //! called from Multiplexer when there is a new Block on a
     //! Stream.
-    void OnStreamBlock(size_t from, uint32_t seq, PinnedBlock&& b);
+    void OnStreamBlock(size_t from, uint32_t seq, Block&& b);
 
-    void OnStreamBlockOrdered(size_t from, PinnedBlock&& b);
+    void OnStreamBlockOrdered(size_t from, Block&& b);
 
     //! Returns the loopback queue for the worker of this stream.
     BlockQueue * loopback_queue(size_t from_worker_id);

@@ -226,13 +226,13 @@ bool CatStreamData::closed() const {
 
 struct CatStreamData::SeqReordering {
     //! current top sequence number
-    uint32_t                        seq_ = 0;
+    uint32_t                  seq_ = 0;
 
     //! queue of waiting Blocks, ordered by sequence number
-    std::map<uint32_t, PinnedBlock> waiting_;
+    std::map<uint32_t, Block> waiting_;
 };
 
-void CatStreamData::OnStreamBlock(size_t from, uint32_t seq, PinnedBlock&& b) {
+void CatStreamData::OnStreamBlock(size_t from, uint32_t seq, Block&& b) {
     assert(from < queues_.size());
     rx_timespan_.StartEventually();
 
@@ -247,7 +247,7 @@ void CatStreamData::OnStreamBlock(size_t from, uint32_t seq, PinnedBlock&& b) {
 
     if (debug_data) {
         sLOG << "stream" << id_ << "receive from" << from << ":"
-             << tlx::hexdump(b.ToString());
+             << tlx::hexdump(b.PinWait(local_worker_id_).ToString());
     }
 
     if (TLX_UNLIKELY(seq != seq_[from].seq_)) {
@@ -278,9 +278,9 @@ void CatStreamData::OnStreamBlock(size_t from, uint32_t seq, PinnedBlock&& b) {
     }
 }
 
-void CatStreamData::OnStreamBlockOrdered(size_t from, PinnedBlock&& b) {
+void CatStreamData::OnStreamBlockOrdered(size_t from, Block&& b) {
     if (b.IsValid()) {
-        queues_[from].AppendPinnedBlock(std::move(b), /* is_last_block */ false);
+        queues_[from].AppendBlock(std::move(b), /* is_last_block */ false);
     }
     else {
         sLOG << "CatStreamData::OnCloseStream"

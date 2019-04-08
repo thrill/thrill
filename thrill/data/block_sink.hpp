@@ -59,7 +59,7 @@ public:
 
     //! Release an unused ByteBlock with n bytes backing memory.
     virtual void ReleaseByteBlock(ByteBlockPtr& block) {
-        block = nullptr;
+        block.reset();
     }
 
     //! Returns BlockPool.logger_
@@ -125,7 +125,7 @@ public:
     void ReleaseByteBlock(ByteBlockPtr& block) final {
         if (block)
             available_ += block->size();
-        block = nullptr;
+        block.reset();
     }
 
     size_t max_size() const { return max_size_; }

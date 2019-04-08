@@ -333,7 +333,7 @@ void Multiplexer::OnMultiplexerHeader(
                  << "from worker" << header.sender_worker;
 
             stream->OnStreamBlock(
-                header.sender_worker, header.seq, PinnedBlock());
+                header.sender_worker, header.seq, Block());
         }
         else {
             sLOG << "stream header from" << s << "on CatStream" << id
@@ -350,8 +350,8 @@ void Multiplexer::OnMultiplexerHeader(
 
             dispatcher_.AsyncRead(
                 s, seq + 1, header.size, std::move(bytes),
-                [this, peer, header, stream]
-                    (Connection& s, PinnedByteBlockPtr&& bytes) {
+                [this, peer, header, stream](
+                    Connection& s, PinnedByteBlockPtr&& bytes) {
                     OnCatStreamBlock(peer, s, header, stream, std::move(bytes));
                 });
         }
@@ -366,8 +366,7 @@ void Multiplexer::OnMultiplexerHeader(
             sLOG << "end of stream on" << s << "in MixStream" << id
                  << "from worker" << header.sender_worker;
 
-            stream->OnStreamBlock(header.sender_worker, header.seq,
-                                  PinnedBlock());
+            stream->OnStreamBlock(header.sender_worker, header.seq, Block());
         }
         else {
             sLOG << "stream header from" << s << "on MixStream" << id
@@ -383,8 +382,8 @@ void Multiplexer::OnMultiplexerHeader(
 
             dispatcher_.AsyncRead(
                 s, seq + 1, header.size, std::move(bytes),
-                [this, peer, header, stream]
-                    (Connection& s, PinnedByteBlockPtr&& bytes) mutable {
+                [this, peer, header, stream](
+                    Connection& s, PinnedByteBlockPtr&& bytes) mutable {
                     OnMixStreamBlock(peer, s, header, stream, std::move(bytes));
                 });
         }
@@ -410,13 +409,12 @@ void Multiplexer::OnCatStreamBlock(
 
     stream->OnStreamBlock(
         header.sender_worker, header.seq,
-        PinnedBlock(std::move(bytes), /* begin */ 0, header.size,
-                    header.first_item, header.num_items,
-                    header.typecode_verify));
+        Block(std::move(bytes).ReleasePin(), /* begin */ 0, header.size,
+              header.first_item, header.num_items,
+              header.typecode_verify));
 
     if (header.is_last_block)
-        stream->OnStreamBlock(header.sender_worker, header.seq + 1,
-                              PinnedBlock());
+        stream->OnStreamBlock(header.sender_worker, header.seq + 1, Block());
 
     AsyncReadMultiplexerHeader(peer, s);
 }
@@ -435,13 +433,12 @@ void Multiplexer::OnMixStreamBlock(
 
     stream->OnStreamBlock(
         header.sender_worker, header.seq,
-        PinnedBlock(std::move(bytes), /* begin */ 0, header.size,
-                    header.first_item, header.num_items,
-                    header.typecode_verify));
+        Block(std::move(bytes).ReleasePin(), /* begin */ 0, header.size,
+              header.first_item, header.num_items,
+              header.typecode_verify));
 
     if (header.is_last_block)
-        stream->OnStreamBlock(header.sender_worker, header.seq + 1,
-                              PinnedBlock());
+        stream->OnStreamBlock(header.sender_worker, header.seq + 1, Block());
 
     AsyncReadMultiplexerHeader(peer, s);
 }

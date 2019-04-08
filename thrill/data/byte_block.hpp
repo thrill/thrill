@@ -168,7 +168,30 @@ private:
     void OnWriteComplete(foxxll::request* req, bool success);
 };
 
-using ByteBlockPtr = ByteBlock::ByteBlockPtr;
+class PinnedByteBlockPtr;
+
+/*!
+ * A non-pinned counting pointer to a ByteBlock
+ */
+class ByteBlockPtr : public ByteBlock::ByteBlockPtr
+{
+    using Super = ByteBlock::ByteBlockPtr;
+
+public:
+    //! default ctor: returns an empty ByteBlockPtr
+    ByteBlockPtr() = default;
+
+protected:
+    //! (protected) ctor from PinnedByteBlockPtr
+    ByteBlockPtr(const PinnedByteBlockPtr& p);
+    //! (protected) ctor from PinnedByteBlockPtr
+    ByteBlockPtr(PinnedByteBlockPtr&& p);
+    //! (protected) ctor from plain pointer
+    ByteBlockPtr(ByteBlock* ptr) : Super(ptr) { }
+
+    friend class PinnedByteBlockPtr;
+    friend class BlockPool;
+};
 
 /*!
  * A pinned / pin-counted pointer to a ByteBlock. By holding a pin, it is a
@@ -231,6 +254,12 @@ public:
     //! local worker id of holder of pin
     size_t local_worker_id() const { return local_worker_id_; }
 
+    //! relinquish pin
+    ByteBlockPtr ReleasePin() && {
+        if (valid()) get()->DecPinCount(local_worker_id_);
+        return std::move(*this);
+    }
+
 private:
     //! protected ctor for calling from Acquire().
     PinnedByteBlockPtr(ByteBlock* ptr, size_t local_worker_id) noexcept
@@ -248,6 +277,12 @@ private:
     //! for access to protected constructor to AllocateByteBlock().
     friend class BlockPool;
 };
+
+inline
+ByteBlockPtr::ByteBlockPtr(const PinnedByteBlockPtr& p) : Super(p) { }
+
+inline
+ByteBlockPtr::ByteBlockPtr(PinnedByteBlockPtr&& p) : Super(std::move(p)) { }
 
 //! \}
 
