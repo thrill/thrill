@@ -38,19 +38,11 @@ public:
         : Super(parent.ctx(), "Size", { parent.id() }, { parent.node() }),
           parent_stack_empty_(ParentDIA::stack_empty) {
 
-        if (parent_stack_empty_ &&
-            dynamic_cast<CacheNode<ValueType>*>(parent.node().get()) != nullptr) {
-            // Add as child, but do not receive items via PreOp Hook.
-            LOG << "SizeNode: skipping callback, accessing CacheNode directly";
-            parent.node()->AddChild(this);
-        }
-        else {
-            // Hook PreOp(s)
-            auto pre_op_fn = [this](const ValueType&) { ++local_size_; };
+        // Hook PreOp(s)
+        auto pre_op_fn = [this](const ValueType&) { ++local_size_; };
 
-            auto lop_chain = parent.stack().push(pre_op_fn).fold();
-            parent.node()->AddChild(this, lop_chain);
-        }
+        auto lop_chain = parent.stack().push(pre_op_fn).fold();
+        parent.node()->AddChild(this, lop_chain);
     }
 
     //! Receive a whole data::File of ValueType, but only if our stack is empty.
@@ -62,20 +54,14 @@ public:
             return false;
         }
         local_size_ = file.num_items();
+        LOGC(common::g_debug_push_file)
+            << "CacheNode." << this->dia_id() << "::OnPreOpFile()"
+            << " accepted file with " << local_size_ << " items";
         return true;
     }
 
     //! Executes the size operation.
     void Execute() final {
-        if (parents_.size() == 1) {
-            // check if parent is CacheNode -> read number of items directly
-            CacheNode<ValueType>* parent_cache =
-                dynamic_cast<CacheNode<ValueType>*>(parents_[0].get());
-
-            if (parent_stack_empty_ && parent_cache != nullptr)
-                local_size_ = parent_cache->NumItems();
-        }
-
         // get the number of elements that are stored on this worker
         LOG << "MainOp processing, sum: " << local_size_;
 
