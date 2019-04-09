@@ -13,7 +13,7 @@ set -ex
 
 git submodule update --init --recursive
 
-CMAKE_OPTS="-DTHRILL_BUILD_EXAMPLES=ON -DTHRILL_BUILD_TESTS=ON"
+CMAKE_OPTS="-DCMAKE_BUILD_TYPE=Release -DTHRILL_BUILD_EXAMPLES=ON -DTHRILL_BUILD_TESTS=ON"
 
 # try to find a modern C++ compiler
 set +x
