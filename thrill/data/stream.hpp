@@ -76,9 +76,20 @@ public:
     template <typename ItemType>
     void Scatter(File& source, const std::vector<size_t>& offsets,
                  bool consume = false) {
-        // tx_timespan_.StartEventually();
+        if (consume)
+            return ScatterConsume<ItemType>(source, offsets);
+        else
+            return ScatterKeep<ItemType>(source, offsets);
+    }
 
-        File::Reader reader = source.GetReader(consume);
+    /*!
+     * Consuming Version of Scatter() see documentation there.
+     */
+    template <typename ItemType>
+    void ScatterConsume(File& source, const std::vector<size_t>& offsets) {
+
+        File::ConsumeReader reader =
+            source.GetConsumeReader(/* prefetch_size */ 0);
         size_t current = 0;
 
         {
@@ -122,8 +133,58 @@ public:
 #endif
             writers[worker].Close();
         }
+    }
 
-        // tx_timespan_.Stop();
+    /*!
+     * Keep Version of Scatter() see documentation there.
+     */
+    template <typename ItemType>
+    void ScatterKeep(File& source, const std::vector<size_t>& offsets) {
+
+        File::KeepReader reader = source.GetKeepReader(/* prefetch_size */ 0);
+        size_t current = 0;
+
+        {
+            // discard first items in Reader
+            size_t limit = offsets[0];
+#if 0
+            for ( ; current < limit; ++current) {
+                assert(reader.HasNext());
+                // discard one item (with deserialization)
+                reader.template Next<ItemType>();
+            }
+#else
+            if (current != limit) {
+                reader.template GetItemBatch<ItemType>(limit - current);
+                current = limit;
+            }
+#endif
+        }
+
+        Writers writers = GetWriters();
+
+        size_t num_workers = writers.size();
+        assert(offsets.size() == num_workers + 1);
+
+        for (size_t worker = 0; worker < num_workers; ++worker) {
+            // write [current,limit) to this worker
+            size_t limit = offsets[worker + 1];
+            assert(current <= limit);
+#if 0
+            for ( ; current < limit; ++current) {
+                assert(reader.HasNext());
+                // move over one item (with deserialization and serialization)
+                writers[worker](reader.template Next<ItemType>());
+            }
+#else
+            if (current != limit) {
+                writers[worker].AppendBlocks(
+                    reader.template GetItemBatch<ItemType>(limit - current));
+                current = limit;
+            }
+#endif
+            writers[worker].Close();
+        }
     }
 
     /**************************************************************************/

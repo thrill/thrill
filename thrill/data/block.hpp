@@ -280,7 +280,7 @@ public:
         return Block(*this);
     }
 
-    //! extract Block has an unpinned move
+    //! extract Block has an unpinning move
     Block MoveToBlock() && {
         byte_block_->DecPinCount(local_worker_id_);
         return Block(std::move(*this));

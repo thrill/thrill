@@ -285,8 +285,8 @@ private:
 
         // scatter elements to other workers, if necessary
         using ZipArg = ZipArgN<Index>;
-        streams_[Index]->template Scatter<ZipArg>(
-            files_[Index], offsets, /* consume */ true);
+        streams_[Index]->template ScatterConsume<ZipArg>(
+            files_[Index], offsets);
     }
 
     //! Receive elements from other workers.

@@ -92,8 +92,7 @@ public:
         offsets[num_workers] = file_.num_items();
         LOG << "offsets = " << offsets;
 
-        stream_->template Scatter<ValueType>(
-            file_, offsets, /* consume */ true);
+        stream_->template ScatterConsume<ValueType>(file_, offsets);
     }
 
     void PushData(bool consume) final {

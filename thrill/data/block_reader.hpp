@@ -155,55 +155,52 @@ public:
         {
             // *** if the current block still contains items, push it partially
 
-            if (n >= num_items_) {
-                // construct first Block using current_ pointer
-                out.emplace_back(
-                    byte_block(),
-                    // valid range: excludes preceding items.
-                    current_ - byte_block()->begin(),
-                    end_ - byte_block()->begin(),
-                    // first item is at begin_ (we may have dropped some)
-                    current_ - byte_block()->begin(),
-                    // remaining items in this block
-                    num_items_,
-                    // typecode verify flag
-                    typecode_verify_);
+            // construct first Block using current_ pointer
+            out.emplace_back(
+                byte_block(),
+                // valid range: excludes preceding items.
+                current_ - byte_block()->begin(),
+                end_ - byte_block()->begin(),
+                // first item is at begin_ (we may have dropped some)
+                current_ - byte_block()->begin(),
+                // remaining items in this block
+                num_items_,
+                // typecode verify flag
+                typecode_verify_);
 
-                sLOG << "partial first:" << out.back();
+            sLOG << "partial first:" << out.back();
 
-                n -= num_items_;
+            n -= num_items_;
 
-                // get next block. if not possible -> may be okay since last
-                // item might just terminate the current block.
-                if (!NextBlock()) {
-                    assert(n == 0);
-                    sLOG << "exit1 after batch.";
-                    return out;
-                }
+            // get next block. if not possible -> may be okay since last
+            // item might just terminate the current block.
+            block_.Reset();
+            Block next_block = source_.NextBlockUnpinned();
+            if (!next_block.IsValid()) {
+                assert(n == 0);
+                sLOG << "exit1 after batch.";
+                return out;
             }
 
-            // *** then append complete blocks without deserializing them
+            // *** then append complete blocks without deserializing or pinning
 
-            while (n >= num_items_) {
-                out.emplace_back(
-                    byte_block(),
-                    // full range is valid.
-                    current_ - byte_block()->begin(),
-                    end_ - byte_block()->begin(),
-                    block_.first_item_absolute(), num_items_,
-                    // typecode verify flag
-                    typecode_verify_);
+            while (n >= next_block.num_items()) {
+                n -= next_block.num_items();
 
+                out.emplace_back(std::move(next_block));
                 sLOG << "middle:" << out.back();
 
-                n -= num_items_;
-
-                if (!NextBlock()) {
+                next_block = source_.NextBlockUnpinned();
+                if (!next_block.IsValid()) {
                     assert(n == 0);
                     sLOG << "exit2 after batch.";
                     return out;
                 }
             }
+
+            // *** no more complete blocks, so load the current one
+
+            LoadBlock(source_.AcquirePin(next_block));
 
             // move current_ to the first valid item of the block we got (at
             // least one NextBlock() has been called). But when constructing the
@@ -388,6 +385,15 @@ private:
         num_items_ = block_.num_items();
         typecode_verify_ = block_.typecode_verify();
         return true;
+    }
+
+    //! Load Block into Reader
+    void LoadBlock(PinnedBlock&& block) {
+        block_ = std::move(block);
+        current_ = block_.data_begin();
+        end_ = block_.data_end();
+        num_items_ = block_.num_items();
+        typecode_verify_ = block_.typecode_verify();
     }
 };
 

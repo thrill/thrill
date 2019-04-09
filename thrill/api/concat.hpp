@@ -272,8 +272,8 @@ public:
 
             LOG << "offsets[" << in << "] = " << offsets;
 
-            streams_[in]->template Scatter<ValueType>(
-                files_[in], offsets, /* consume */ true);
+            streams_[in]->template ScatterConsume<ValueType>(
+                files_[in], offsets);
         }
     }
 

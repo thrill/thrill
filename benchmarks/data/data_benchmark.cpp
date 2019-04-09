@@ -876,7 +876,8 @@ public:
                     offsets.push_back(0);
                     for (unsigned int w = 0; w < ctx.num_workers(); w++) {
                         if (ctx.my_rank() == 0) {
-                            offsets.push_back(file.num_items() / ctx.num_workers() * (w + 1));
+                            offsets.push_back(
+                                file.num_items() / ctx.num_workers() * (w + 1));
                             std::cout << offsets.back() << std::endl;
                         }
                         else

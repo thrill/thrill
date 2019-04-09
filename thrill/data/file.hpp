@@ -355,16 +355,24 @@ public:
         size_t prefetch_size = File::default_prefetch_size_,
         size_t first_block = 0, size_t first_item = keep_first_item);
 
+    //! Perform prefetch
+    void Prefetch(size_t prefetch_size);
+
     //! Advance to next block of file, delivers current_ and end_ for
     //! BlockReader
     PinnedBlock NextBlock();
 
-    //! Perform prefetch
-    void Prefetch(size_t prefetch_size);
+    //! Get next block unpinned, used by GetItemBatch to read Blocks without
+    //! pinning them
+    Block NextBlockUnpinned();
+
+    //! Acquire Pin for Block returned from NextBlockUnpinned
+    PinnedBlock AcquirePin(const Block& block);
 
 protected:
-    //! Determine current unpinned Block to deliver via NextBlock()
-    Block NextUnpinnedBlock();
+    //! Determine current unpinned Block to deliver via NextBlock() or
+    //! NextBlockUnpinned().
+    Block MakeNextBlock();
 
 private:
     //! sentinel value for not changing the first_item item
@@ -425,6 +433,13 @@ public:
 
     //! Get the next block of file.
     PinnedBlock NextBlock();
+
+    //! Get next block unpinned, used by GetItemBatch to read Blocks without
+    //! pinning them
+    Block NextBlockUnpinned();
+
+    //! Acquire Pin for Block returned from NextBlockUnpinned
+    PinnedBlock AcquirePin(const Block& block);
 
     //! Consume unread blocks and reset File to zero items.
     ~ConsumeFileBlockSource();
