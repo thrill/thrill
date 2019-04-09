@@ -183,8 +183,6 @@ void TalkAllToAllViaCatStream(net::Group* net) {
     size_t num_workers_per_host = 2;
     size_t total_workers = num_hosts * num_workers_per_host;
 
-    data::default_block_size = test_block_size;
-
     mem::Manager mem_manager(nullptr, "Benchmark");
     data::BlockPool block_pool(num_workers_per_host);
     net::DispatcherThread disp(net->ConstructDispatcher(), 0);
@@ -294,6 +292,7 @@ void TalkAllToAllViaCatStream(net::Group* net) {
 }
 
 TEST_F(Multiplexer, TalkAllToAllViaCatStreamForManyNetSizes) {
+    data::default_block_size = test_block_size;
     // test for all network mesh sizes 1, 2, 5, 9:
     net::RunLoopbackGroupTest(1, TalkAllToAllViaCatStream);
     net::RunLoopbackGroupTest(2, TalkAllToAllViaCatStream);
@@ -530,8 +529,6 @@ void TalkAllToAllViaMixStream(net::Group* net) {
     size_t num_workers_per_host = 2;
     size_t total_workers = num_hosts * num_workers_per_host;
 
-    data::default_block_size = test_block_size;
-
     mem::Manager mem_manager(nullptr, "Benchmark");
     data::BlockPool block_pool(num_workers_per_host);
     net::DispatcherThread disp(net->ConstructDispatcher(), 0);
@@ -630,6 +627,7 @@ void TalkAllToAllViaMixStream(net::Group* net) {
 }
 
 TEST_F(Multiplexer, TalkAllToAllViaMixStreamForManyNetSizes) {
+    data::default_block_size = test_block_size;
     // test for all network mesh sizes 1, 2, 5, 9:
     net::RunLoopbackGroupTest(1, TalkAllToAllViaMixStream);
     net::RunLoopbackGroupTest(2, TalkAllToAllViaMixStream);

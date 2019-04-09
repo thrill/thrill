@@ -362,6 +362,10 @@ void RunLocalTests(
                 continue;
             }
 
+            LOG0 << "Thrill: running local test with "
+                 << num_hosts << " hosts and " << workers_per_host
+                 << " workers per host";
+
             RunLocalMock(mem_config, num_hosts, workers_per_host,
                          job_startpoint);
         }
