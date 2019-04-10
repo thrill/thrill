@@ -59,7 +59,7 @@ MixStreamData::Writers MixStreamData::GetWriters() {
                      multiplexer_.active_streams_.load());
     }
 
-    LOGC(my_worker_rank() == 0 && 1)
+    LOGC(my_worker_rank() == 0 && 0)
         << "MixStreamData::GetWriters()"
         << " hard_ram_limit=" << hard_ram_limit
         << " block_size_base=" << block_size_base
