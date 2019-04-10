@@ -701,11 +701,13 @@ private:
 
         // M/2 such that the other half is used to prepare the next bulk
         size_t capacity = DIABase::mem_limit_ / sizeof(ValueType) / 2;
+        size_t capacity_half = capacity / 2;
         std::vector<ValueType> vec;
         vec.reserve(capacity);
 
         while (reader.HasNext()) {
-            if (!mem::memory_exceeded && vec.size() < capacity) {
+            if (vec.size() < capacity_half ||
+                (vec.size() < capacity && !mem::memory_exceeded)) {
                 vec.push_back(reader.template Next<ValueType>());
             }
             else {
@@ -726,6 +728,8 @@ private:
 
         LOG << "SortAndWriteToFile() " << vec.size()
             << " items into file #" << files_.size();
+
+        die_unless(vec.size() > 0);
 
         size_t vec_size = vec.size();
         local_out_size_ += vec.size();
