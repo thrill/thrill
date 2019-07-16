@@ -60,6 +60,8 @@ using AsyncWriteCallback = tlx::delegate<
 /******************************************************************************/
 
 static constexpr bool debug_async = false;
+static constexpr bool debug_async_send = false;
+static constexpr bool debug_async_recv = false;
 
 class AsyncReadBuffer
 {
@@ -73,6 +75,7 @@ public:
         LOGC(debug_async)
             << "AsyncReadBuffer()"
             << " buffer_.size()=" << buffer_.size();
+        conn_->rx_active_++;
     }
 
     //! non-copyable: delete copy-constructor
@@ -88,10 +91,17 @@ public:
         LOGC(debug_async)
             << "~AsyncReadBuffer()"
             << " buffer_.size()=" << buffer_.size();
+        if (!IsDone())
+            conn_->rx_active_--;
     }
 
     //! Should be called when the socket is readable
     bool operator () () {
+        LOGC(debug_async_recv)
+            << "AsyncReadBuffer() recv"
+            << " offset=" << read_size_
+            << " size=" << buffer_.size() - read_size_;
+
         ssize_t r = conn_->RecvOne(
             buffer_.data() + read_size_, buffer_.size() - read_size_);
 
@@ -115,6 +125,7 @@ public:
 
         if (read_size_ == buffer_.size()) {
             DoCallback();
+            conn_->rx_active_--;
             return false;
         }
         else {
@@ -179,6 +190,7 @@ public:
         LOGC(debug_async)
             << "AsyncWriteBuffer()"
             << " buffer_.size()=" << buffer_.size();
+        conn_->tx_active_++;
     }
 
     //! non-copyable: delete copy-constructor
@@ -194,10 +206,17 @@ public:
         LOGC(debug_async)
             << "~AsyncWriteBuffer()"
             << " buffer_.size()=" << buffer_.size();
+        if (!IsDone())
+            conn_->tx_active_--;
     }
 
     //! Should be called when the socket is writable
     bool operator () () {
+        LOGC(debug_async_recv)
+            << "AsyncWriteBuffer() send"
+            << " offset=" << write_size_
+            << " size=" << buffer_.size() - write_size_;
+
         ssize_t r = conn_->SendOne(
             buffer_.data() + write_size_, buffer_.size() - write_size_);
 
@@ -219,6 +238,7 @@ public:
 
         if (write_size_ == buffer_.size()) {
             DoCallback();
+            conn_->tx_active_--;
             return false;
         }
         else {
@@ -275,6 +295,7 @@ public:
             << "AsyncReadByteBlock()"
             << " block_=" << block_
             << " size_=" << size_;
+        conn_->rx_active_++;
     }
 
     //! non-copyable: delete copy-constructor
@@ -291,10 +312,17 @@ public:
             << "~AsyncReadByteBlock()"
             << " block_=" << block_
             << " size_=" << size_;
+        if (!IsDone())
+            conn_->rx_active_--;
     }
 
     //! Should be called when the socket is readable
     bool operator () () {
+        LOGC(debug_async_recv)
+            << "AsyncReadByteBlock() recv"
+            << " offset=" << pos_
+            << " size=" << size_ - pos_;
+
         ssize_t r = conn_->RecvOne(
             block_->data() + pos_, size_ - pos_);
 
@@ -317,6 +345,7 @@ public:
 
         if (pos_ == size_) {
             DoCallback();
+            conn_->rx_active_--;
             return false;
         }
         else {
@@ -387,6 +416,7 @@ public:
             << "AsyncWriteBlock()"
             << " block_.size()=" << block_.size()
             << " block_=" << block_;
+        conn_->tx_active_++;
     }
 
     //! non-copyable: delete copy-constructor
@@ -402,10 +432,17 @@ public:
         LOGC(debug_async)
             << "~AsyncWriteBlock()"
             << " block_=" << block_;
+        if (!IsDone())
+            conn_->tx_active_--;
     }
 
     //! Should be called when the socket is writable
     bool operator () () {
+        LOGC(debug_async_send)
+            << "AsyncWriteBlock() send"
+            << " offset=" << written_size_
+            << " size=" << block_.size() - written_size_;
+
         ssize_t r = conn_->SendOne(
             block_.data_begin() + written_size_,
             block_.size() - written_size_);
@@ -428,6 +465,7 @@ public:
 
         if (written_size_ == block_.size()) {
             DoCallback();
+            conn_->tx_active_--;
             return false;
         }
         else {

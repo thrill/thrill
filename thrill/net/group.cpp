@@ -93,12 +93,14 @@ void Manager::RunTask(const std::chrono::steady_clock::time_point& tp) {
 
     size_t total_tx = 0, total_rx = 0;
     size_t prev_total_tx = 0, prev_total_rx = 0;
+    size_t total_tx_active = 0, total_rx_active = 0;
 
     for (size_t g = 0; g < kGroupCount; ++g) {
         Group& group = *groups_[g];
 
         size_t group_tx = 0, group_rx = 0;
         size_t prev_group_tx = 0, prev_group_rx = 0;
+        size_t group_tx_active = 0, group_rx_active = 0;
         std::vector<size_t> tx_per_host(group.num_hosts());
         std::vector<size_t> rx_per_host(group.num_hosts());
 
@@ -115,10 +117,12 @@ void Manager::RunTask(const std::chrono::steady_clock::time_point& tp) {
             group_tx += tx;
             prev_group_tx += prev_tx;
             group.connection(h).prev_tx_bytes_ = tx;
+            group_tx_active += conn.tx_active_;
 
             group_rx += rx;
             prev_group_rx += prev_rx;
             group.connection(h).prev_rx_bytes_ = rx;
+            group_rx_active += conn.rx_active_;
 
             tx_per_host[h] = tx;
             rx_per_host[h] = rx;
@@ -138,6 +142,8 @@ void Manager::RunTask(const std::chrono::steady_clock::time_point& tp) {
         total_rx += group_rx;
         prev_total_tx += prev_group_tx;
         prev_total_rx += prev_group_rx;
+        total_tx_active += group_tx_active;
+        total_rx_active += group_rx_active;
 
         tp_last_ = tp;
     }
@@ -149,7 +155,9 @@ void Manager::RunTask(const std::chrono::steady_clock::time_point& tp) {
         << "tx_speed"
         << static_cast<double>(total_tx - prev_total_tx) / elapsed
         << "rx_speed"
-        << static_cast<double>(total_rx - prev_total_rx) / elapsed;
+        << static_cast<double>(total_rx - prev_total_rx) / elapsed
+        << "tx_active" << total_tx_active
+        << "rx_active" << total_rx_active;
 }
 
 /******************************************************************************/

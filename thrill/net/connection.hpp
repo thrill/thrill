@@ -617,6 +617,12 @@ public:
     //! previous read of received bytes
     size_t prev_rx_bytes_ = 0;
 
+    //! active send requests
+    std::atomic<size_t> tx_active_ { 0 };
+
+    //! active recv requests
+    std::atomic<size_t> rx_active_ = { 0 };
+
     //! }
 
     //! make ostreamable
