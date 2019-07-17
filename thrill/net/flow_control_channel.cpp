@@ -53,7 +53,7 @@ void FlowControlChannel::Barrier() {
 
     LOG << "FCC::Barrier() ENTER count=" << count_barrier_;
 
-    barrier_.Await(
+    barrier_.wait(
         [&]() {
             RunTimer net_timer(timer_communication_);
 
@@ -72,7 +72,7 @@ void FlowControlChannel::Barrier() {
 }
 
 void FlowControlChannel::LocalBarrier() {
-    barrier_.Await();
+    barrier_.wait();
 }
 
 /******************************************************************************/

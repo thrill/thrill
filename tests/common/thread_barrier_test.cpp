@@ -50,7 +50,7 @@ static void TestWaitFor(int count, int slowThread = -1) {
 
                 flags[i] = true;
 
-                barrier.Await();
+                barrier.wait();
 
                 for (int j = 0; j < count; j++) {
                     ASSERT_EQ(flags[j], true);

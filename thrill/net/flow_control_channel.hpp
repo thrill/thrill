@@ -156,10 +156,6 @@ private:
     //! \name Pointer Casting
     //! \{
 
-    size_t GetNextStep() {
-        return (barrier_.step() + 1) % 2;
-    }
-
     template <typename T>
     void SetLocalShared(size_t step, const T* value) {
         // We are only allowed to set our own memory location.
@@ -242,11 +238,11 @@ public:
 
         T local_value = value;
 
-        size_t step = GetNextStep();
+        size_t step = barrier_.next_step();
 
         SetLocalShared(step, &local_value);
 
-        barrier_.Await(
+        barrier_.wait(
             [&]() {
                 RunTimer net_timer(timer_communication_);
 
@@ -358,10 +354,10 @@ public:
         using Result = std::pair<T*, T>;
 
         Result result { &value, initial };
-        size_t step = GetNextStep();
+        size_t step = barrier_.next_step();
         SetLocalShared(step, &result);
 
-        barrier_.Await(
+        barrier_.wait(
             [&]() {
                 RunTimer net_timer(timer_communication_);
 
@@ -429,7 +425,7 @@ public:
 
         T local = value;
 
-        size_t step = GetNextStep();
+        size_t step = barrier_.next_step();
         SetLocalShared(step, &local);
 
         // Select primary thread of each node to handle I/O (assumes all hosts
@@ -441,7 +437,7 @@ public:
             group_.Broadcast(local, origin / thread_count_);
         }
 
-        barrier_.Await(
+        barrier_.wait(
             [&]() {
                 LOG << "FCC::Broadcast() COMMUNICATE BEGIN"
                     << " count=" << count_broadcast_;
@@ -483,10 +479,10 @@ public:
         SharedVectorT sp;
         std::pair<T, SharedVectorT> local(value, sp);
 
-        size_t step = GetNextStep();
+        size_t step = barrier_.next_step();
         SetLocalShared(step, &local);
 
-        barrier_.Await(
+        barrier_.wait(
             [&]() {
                 RunTimer net_timer(timer_communication_);
 
@@ -550,10 +546,10 @@ public:
 
         T local = value;
 
-        size_t step = GetNextStep();
+        size_t step = barrier_.next_step();
         SetLocalShared(step, &local);
 
-        barrier_.Await(
+        barrier_.wait(
             [&]() {
                 RunTimer net_timer(timer_communication_);
 
@@ -604,10 +600,10 @@ public:
 
         T local = value;
 
-        size_t step = GetNextStep();
+        size_t step = barrier_.next_step();
         SetLocalShared(step, &local);
 
-        barrier_.Await(
+        barrier_.wait(
             [&]() {
                 RunTimer net_timer(timer_communication_);
 
@@ -657,7 +653,7 @@ public:
         LOG << "FCC::Predecessor() ENTER count=" << count_predecessor_;
 
         std::vector<T> result;
-        size_t step = GetNextStep();
+        size_t step = barrier_.next_step();
 
         // this vector must live beyond the ThreadBarrier.
         std::vector<T> send_values;
@@ -764,12 +760,12 @@ public:
         }
 
         // await until all threads have retrieved their value.
-        barrier_.Await([this]() {
-                           LOG << "FCC::Predecessor() COMMUNICATE"
-                               << " count=" << count_predecessor_;
+        barrier_.wait([this]() {
+                          LOG << "FCC::Predecessor() COMMUNICATE"
+                              << " count=" << count_predecessor_;
 
-                           generation_++;
-                       });
+                          generation_++;
+                      });
 
         LOG << "FCC::Predecessor() EXIT count=" << count_predecessor_;
 
