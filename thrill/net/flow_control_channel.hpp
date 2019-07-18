@@ -156,6 +156,10 @@ private:
     //! \name Pointer Casting
     //! \{
 
+    size_t GetNextStep() {
+        return (barrier_.step() + 1) % 2;
+    }
+
     template <typename T>
     void SetLocalShared(size_t step, const T* value) {
         // We are only allowed to set our own memory location.
@@ -238,7 +242,7 @@ public:
 
         T local_value = value;
 
-        size_t step = barrier_.next_step();
+        size_t step = GetNextStep();
 
         SetLocalShared(step, &local_value);
 
@@ -354,7 +358,7 @@ public:
         using Result = std::pair<T*, T>;
 
         Result result { &value, initial };
-        size_t step = barrier_.next_step();
+        size_t step = GetNextStep();
         SetLocalShared(step, &result);
 
         barrier_.wait(
@@ -425,7 +429,7 @@ public:
 
         T local = value;
 
-        size_t step = barrier_.next_step();
+        size_t step = GetNextStep();
         SetLocalShared(step, &local);
 
         // Select primary thread of each node to handle I/O (assumes all hosts
@@ -479,7 +483,7 @@ public:
         SharedVectorT sp;
         std::pair<T, SharedVectorT> local(value, sp);
 
-        size_t step = barrier_.next_step();
+        size_t step = GetNextStep();
         SetLocalShared(step, &local);
 
         barrier_.wait(
@@ -546,7 +550,7 @@ public:
 
         T local = value;
 
-        size_t step = barrier_.next_step();
+        size_t step = GetNextStep();
         SetLocalShared(step, &local);
 
         barrier_.wait(
@@ -600,7 +604,7 @@ public:
 
         T local = value;
 
-        size_t step = barrier_.next_step();
+        size_t step = GetNextStep();
         SetLocalShared(step, &local);
 
         barrier_.wait(
@@ -653,7 +657,7 @@ public:
         LOG << "FCC::Predecessor() ENTER count=" << count_predecessor_;
 
         std::vector<T> result;
-        size_t step = barrier_.next_step();
+        size_t step = GetNextStep();
 
         // this vector must live beyond the ThreadBarrier.
         std::vector<T> send_values;

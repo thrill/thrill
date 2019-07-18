@@ -34,26 +34,6 @@ struct Identity {
     }
 };
 
-//! The noop functor, which takes any arguments and does nothing. This is a good
-//! default argument for lambda function parameters.
-template <typename ReturnType>
-struct NoOperation {
-    ReturnType return_value_;
-
-    explicit NoOperation(ReturnType return_value = ReturnType())
-        : return_value_(return_value) { }
-
-    ReturnType operator () (...) const noexcept {
-        return return_value_;
-    }
-};
-
-//! Specialized noop functor which returns a void.
-template <>
-struct NoOperation<void> {
-    void operator () (...) const noexcept { }
-};
-
 //! template for constexpr min, because std::min is not good enough.
 template <typename T>
 constexpr static inline const T& min(const T& a, const T& b) {

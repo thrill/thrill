@@ -17,6 +17,7 @@
 
 #include <thrill/common/functional.hpp>
 #include <thrill/common/logger.hpp>
+#include <tlx/meta/no_operation.hpp>
 
 #include <algorithm>
 #include <functional>
@@ -32,7 +33,7 @@ template <
     size_t MaxDepth, typename Iterator, typename Char,
     typename Comparator =
         std::less<typename std::iterator_traits<Iterator>::value_type>,
-    typename SubSorter = NoOperation<void> >
+    typename SubSorter = tlx::NoOperation<void> >
 static inline
 void radix_sort_CI(Iterator begin, Iterator end, size_t K,
                    const Comparator& cmp,
@@ -113,7 +114,7 @@ template <
     size_t MaxDepth, typename Iterator,
     typename Comparator =
         std::less<typename std::iterator_traits<Iterator>::value_type>,
-    typename SubSorter = NoOperation<void> >
+    typename SubSorter = tlx::NoOperation<void> >
 static inline
 void radix_sort_CI(Iterator begin, Iterator end, size_t K,
                    const Comparator& cmp = Comparator(),
