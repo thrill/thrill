@@ -128,6 +128,14 @@ public:
     //! Return whether an actual BlockSink is attached.
     bool IsValid() const { return sink_.IsValid(); }
 
+    //! Return true if any data is buffered
+    bool HasBufferData() const {
+        return bytes_ && (current_ != bytes_->begin() || nitems_ != 0);
+    }
+
+    //! Returns sink_
+    BlockSink& sink() { return sink_; }
+
     //! Returns block_size_
     size_t block_size() const { return block_size_; }
 
