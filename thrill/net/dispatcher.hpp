@@ -91,8 +91,6 @@ public:
         LOGC(debug_async)
             << "~AsyncReadBuffer()"
             << " buffer_.size()=" << buffer_.size();
-        if (!IsDone())
-            conn_->rx_active_--;
     }
 
     //! Should be called when the socket is readable
@@ -206,8 +204,6 @@ public:
         LOGC(debug_async)
             << "~AsyncWriteBuffer()"
             << " buffer_.size()=" << buffer_.size();
-        if (!IsDone())
-            conn_->tx_active_--;
     }
 
     //! Should be called when the socket is writable
@@ -312,8 +308,6 @@ public:
             << "~AsyncReadByteBlock()"
             << " block_=" << block_
             << " size_=" << size_;
-        if (!IsDone())
-            conn_->rx_active_--;
     }
 
     //! Should be called when the socket is readable
@@ -432,8 +426,6 @@ public:
         LOGC(debug_async)
             << "~AsyncWriteBlock()"
             << " block_=" << block_;
-        if (!IsDone())
-            conn_->tx_active_--;
     }
 
     //! Should be called when the socket is writable
