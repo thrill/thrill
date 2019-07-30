@@ -51,7 +51,7 @@ public:
     //! important and must be deterministic
     size_t AllocateId(size_t local_worker_id) {
         assert(local_worker_id < next_id_.size());
-        return next_id_[local_worker_id]++;
+        return ++next_id_[local_worker_id];
     }
 
     //! Get object with given id, if it does not exist, create it.
@@ -208,7 +208,7 @@ CatStreamDataPtr Multiplexer::IntGetOrCreateCatStreamData(
             workers_per_host_, dia_id)->Peer(local_worker_id);
     // update dia_id: the stream may have been created before the DIANode
     // associated with it.
-    if (ptr->dia_id_ == 0)
+    if (ptr && ptr->dia_id_ == 0)
         ptr->set_dia_id(dia_id);
     return ptr;
 }
@@ -240,7 +240,7 @@ MixStreamDataPtr Multiplexer::IntGetOrCreateMixStreamData(
             workers_per_host_, dia_id)->Peer(local_worker_id);
     // update dia_id: the stream may have been created before the DIANode
     // associated with it.
-    if (ptr->dia_id_ == 0)
+    if (ptr && ptr->dia_id_ == 0)
         ptr->set_dia_id(dia_id);
     return ptr;
 }
