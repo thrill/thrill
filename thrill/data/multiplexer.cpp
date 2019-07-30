@@ -324,18 +324,45 @@ void Multiplexer::OnMultiplexerHeader(
 
     if (header.magic == MagicByte::CatStreamBlock)
     {
-        CatStreamDataPtr stream = GetOrCreateCatStreamData(
-            id, local_worker, /* dia_id (unknown at this time) */ 0);
-        stream->rx_net_bytes_ += buffer.size();
+        if (header.IsAllWorkers()) {
+            sLOG << "end of all stream on" << s << "CatStream" << id
+                 << " my_host_rank=" << my_host_rank()
+                 << " peer_host_rank=" << header.sender_worker / workers_per_host();
 
-        if (header.IsEnd()) {
+            for (size_t w = 0; w < workers_per_host(); ++w) {
+                CatStreamDataPtr stream = GetOrCreateCatStreamData(
+                    id, w, /* dia_id (unknown at this time) */ 0);
+                if (!stream)
+                    continue;
+
+                for (size_t sender_worker = 0;
+                     sender_worker < workers_per_host(); ++sender_worker) {
+                    if (!stream->is_queue_closed(
+                            header.sender_worker + sender_worker)) {
+                        stream->OnStreamBlock(
+                            header.sender_worker + sender_worker, header.seq,
+                            Block());
+                    }
+                }
+            }
+        }
+        else if (header.IsEnd()) {
             sLOG << "end of stream on" << s << "in CatStream" << id
-                 << "from worker" << header.sender_worker;
+                 << "from worker" << header.sender_worker
+                 << "seq" << header.seq;
+
+            CatStreamDataPtr stream = GetOrCreateCatStreamData(
+                id, local_worker, /* dia_id (unknown at this time) */ 0);
+            stream->rx_net_bytes_ += buffer.size();
 
             stream->OnStreamBlock(
                 header.sender_worker, header.seq, Block());
         }
         else {
+            CatStreamDataPtr stream = GetOrCreateCatStreamData(
+                id, local_worker, /* dia_id (unknown at this time) */ 0);
+            stream->rx_net_bytes_ += buffer.size();
+
             sLOG << "stream header from" << s << "on CatStream" << id
                  << "from worker" << header.sender_worker
                  << "for local_worker" << local_worker
@@ -358,17 +385,43 @@ void Multiplexer::OnMultiplexerHeader(
     }
     else if (header.magic == MagicByte::MixStreamBlock)
     {
-        MixStreamDataPtr stream = GetOrCreateMixStreamData(
-            id, local_worker, /* dia_id (unknown at this time) */ 0);
-        stream->rx_net_bytes_ += buffer.size();
+        if (header.IsAllWorkers()) {
+            sLOG << "end of all stream on" << s << "MixStream" << id
+                 << " my_host_rank=" << my_host_rank()
+                 << " peer_host_rank=" << header.sender_worker / workers_per_host();
 
-        if (header.IsEnd()) {
+            for (size_t w = 0; w < workers_per_host(); ++w) {
+                MixStreamDataPtr stream = GetOrCreateMixStreamData(
+                    id, w, /* dia_id (unknown at this time) */ 0);
+                if (!stream)
+                    continue;
+
+                for (size_t sender_worker = 0;
+                     sender_worker < workers_per_host(); ++sender_worker) {
+                    if (!stream->is_queue_closed(
+                            header.sender_worker + sender_worker)) {
+                        stream->OnStreamBlock(
+                            header.sender_worker + sender_worker, header.seq,
+                            Block());
+                    }
+                }
+            }
+        }
+        else if (header.IsEnd()) {
             sLOG << "end of stream on" << s << "in MixStream" << id
                  << "from worker" << header.sender_worker;
+
+            MixStreamDataPtr stream = GetOrCreateMixStreamData(
+                id, local_worker, /* dia_id (unknown at this time) */ 0);
+            stream->rx_net_bytes_ += buffer.size();
 
             stream->OnStreamBlock(header.sender_worker, header.seq, Block());
         }
         else {
+            MixStreamDataPtr stream = GetOrCreateMixStreamData(
+                id, local_worker, /* dia_id (unknown at this time) */ 0);
+            stream->rx_net_bytes_ += buffer.size();
+
             sLOG << "stream header from" << s << "on MixStream" << id
                  << "from worker" << header.sender_worker
                  << "for local_worker" << local_worker

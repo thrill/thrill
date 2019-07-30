@@ -36,6 +36,7 @@ enum class MagicByte : uint8_t {
 };
 
 class StreamSink;
+class StreamSetBase;
 
 /*!
  * Base class for common structures for ConcatStream and MixedStream. This is
@@ -45,6 +46,8 @@ class StreamSink;
 class StreamData : public tlx::ReferenceCounter
 {
 public:
+    static constexpr bool debug = false;
+
     using Writer = BlockWriter<StreamSink>;
 
     /*!
@@ -78,13 +81,17 @@ public:
         size_t my_worker_rank_;
     };
 
-    StreamData(Multiplexer& multiplexer, size_t send_size_limit,
+    StreamData(StreamSetBase* stream_set_base,
+               Multiplexer& multiplexer, size_t send_size_limit,
                const StreamId& id, size_t local_worker_id, size_t dia_id);
 
     virtual ~StreamData();
 
     //! Return stream id
     const StreamId& id() const { return id_; }
+
+    //! return stream type string
+    virtual const char * stream_type() = 0;
 
     //! Returns my_host_rank
     size_t my_host_rank() const { return multiplexer_.my_host_rank(); }
@@ -100,7 +107,7 @@ public:
         return my_host_rank() * workers_per_host() + local_worker_id_;
     }
 
-    void OnAllClosed(const char* stream_type);
+    /*------------------------------------------------------------------------*/
 
     //! shuts the stream down.
     virtual void Close() = 0;
@@ -111,6 +118,14 @@ public:
     //! once, otherwise the block sequence is incorrectly interleaved!
     virtual Writers GetWriters() = 0;
 
+    //! method called from StreamSink when it is closed, used to aggregate Close
+    //! messages to remote hosts
+    void OnWriterClosed(size_t peer_worker_rank, bool sent);
+
+    //! method called when all StreamSink writers have finished
+    void OnAllWritersClosed();
+
+    /*------------------------------------------------------------------------*/
     ///////// expose these members - getters would be too java-ish /////////////
 
     //! StatsCounter for incoming data transfer.  Does not include loopback data
@@ -149,9 +164,13 @@ protected:
     //! our own stream id.
     StreamId id_;
 
+    //! pointer to StreamSetBase containing this StreamData
+    StreamSetBase* stream_set_base_;
+
+    //! local worker id
     size_t local_worker_id_;
 
-    //! Associated DIANode id.
+    //! associated DIANode id.
     size_t dia_id_;
 
     //! reference to multiplexer
@@ -163,6 +182,12 @@ protected:
 
     //! number of received stream closing Blocks.
     tlx::Semaphore sem_closing_blocks_;
+
+    //! number of writers closed via StreamSink.
+    size_t writers_closed_ = 0;
+
+    //! bool if all writers were closed
+    bool all_writers_closed_ = false;
 
     //! friends for access to multiplexer_
     friend class StreamSink;
@@ -176,10 +201,16 @@ using StreamDataPtr = tlx::CountingPtr<StreamData>;
 class StreamSetBase : public tlx::ReferenceCounter
 {
 public:
+    static constexpr bool debug = false;
+
     virtual ~StreamSetBase() { }
 
     //! Close all streams in the set.
     virtual void Close() = 0;
+
+    //! method called from StreamSink when it is closed, used to aggregate Close
+    //! messages to remote hosts
+    virtual void OnWriterClosed(size_t peer_worker_rank, bool sent) = 0;
 };
 
 /*!
@@ -195,44 +226,47 @@ public:
     //! Creates a StreamSet with the given number of streams (num workers per
     //! host).
     StreamSet(Multiplexer& multiplexer, size_t send_size_limit,
-              StreamId id, size_t workers_per_host, size_t dia_id) {
-        for (size_t i = 0; i < workers_per_host; ++i) {
-            streams_.emplace_back(
-                tlx::make_counting<StreamData>(
-                    multiplexer, send_size_limit, id, i, dia_id));
-        }
-        remaining_ = workers_per_host;
-    }
+              StreamId id, size_t workers_per_host, size_t dia_id);
 
     //! Returns the stream that will be consumed by the worker with the given
     //! local id
-    StreamDataPtr Peer(size_t local_worker_id) {
-        assert(local_worker_id < streams_.size());
-        return streams_[local_worker_id];
-    }
+    StreamDataPtr Peer(size_t local_worker_id);
 
     //! Release local_worker_id, returns true when all individual streams are
     //! done.
-    bool Release(size_t local_worker_id) {
-        assert(local_worker_id < streams_.size());
-        if (streams_[local_worker_id]) {
-            assert(remaining_ > 0);
-            streams_[local_worker_id].reset();
-            --remaining_;
-        }
-        return (remaining_ == 0);
-    }
+    bool Release(size_t local_worker_id);
 
-    void Close() final {
-        for (StreamDataPtr& c : streams_)
-            c->Close();
-    }
+    //! Close all StreamData objects
+    void Close() final;
+
+    //! method called from StreamSink when it is closed, used to aggregate Close
+    //! messages to remote hosts
+    void OnWriterClosed(size_t peer_worker_rank, bool sent);
+
+    //! Returns my_host_rank
+    size_t my_host_rank() const { return multiplexer_.my_host_rank(); }
+    //! Number of hosts in system
+    size_t num_hosts() const { return multiplexer_.num_hosts(); }
+    //! Returns workers_per_host
+    size_t workers_per_host() const { return multiplexer_.workers_per_host(); }
+
+    inline MagicByte magic_byte() const;
 
 private:
+    //! reference to multiplexer
+    Multiplexer& multiplexer_;
+    //! stream id
+    StreamId id_;
     //! 'owns' all streams belonging to one stream id for all local workers.
     std::vector<StreamDataPtr> streams_;
     //! countdown to destruction
     size_t remaining_;
+    //! number of writers closed per host, message is set when all are closed
+    std::vector<size_t> writers_closed_per_host_;
+    //! number of writers closed per host, message is set when all are closed
+    std::vector<size_t> writers_closed_per_host_sent_;
+    //! mutex for working on the data structure
+    std::mutex mutex_;
 };
 
 //! \}

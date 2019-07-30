@@ -215,7 +215,7 @@ void StreamSink::AppendPinnedBlock(PinnedBlock&& block, bool is_last_block) {
     assert(buffer.size() == MultiplexerHeader::total_size);
 
     size_t send_size = buffer.size() + block.size();
-    stream_->sem_queue_.wait(send_size);
+    // stream_->sem_queue_.wait(send_size);
 
     // StreamData statistics for network transfer
     stream_->tx_net_items_ += block.num_items();
@@ -242,6 +242,8 @@ void StreamSink::AppendPinnedBlock(PinnedBlock&& block, bool is_last_block) {
             << " to=" << peer_worker_rank()
             << " (host=" << peer_rank_ << ")";
 
+        stream_->OnWriterClosed(peer_worker_rank(), /* sent */ true);
+
         Finalize();
     }
 }
@@ -261,15 +263,18 @@ void StreamSink::Close() {
     if (block_queue_) {
         // StreamData statistics for internal transfer
         stream_->tx_int_blocks_++;
+        stream_->OnWriterClosed(peer_worker_rank(), /* sent */ true);
         return block_queue_->Close();
     }
     if (target_mix_stream_) {
         // StreamData statistics for internal transfer
         stream_->tx_int_blocks_++;
+        stream_->OnWriterClosed(peer_worker_rank(), /* sent */ true);
         return target_mix_stream_->OnStreamBlock(
             my_worker_rank(), block_counter_ - 1, Block());
     }
 
+#if 0
     StreamMultiplexerHeader header;
     header.magic = magic_;
     header.stream_id = id_;
@@ -296,6 +301,9 @@ void StreamSink::Close() {
         [s = stream_](net::Connection&) {
             s->sem_queue_.signal(MultiplexerHeader::total_size);
         });
+#endif
+
+    stream_->OnWriterClosed(peer_worker_rank(), /* sent */ false);
 
     Finalize();
 }

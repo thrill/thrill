@@ -112,6 +112,9 @@ public:
     //! check if reader side has returned a closing sentinel block
     bool read_closed() const { return read_open_ == 0; }
 
+    //! check if inbound queue is closed
+    bool is_queue_closed(size_t src);
+
 private:
     BlockPool& block_pool_;
 

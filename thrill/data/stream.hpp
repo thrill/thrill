@@ -88,6 +88,17 @@ public:
     template <typename ItemType>
     void ScatterConsume(File& source, const std::vector<size_t>& offsets) {
 
+        Writers writers = GetWriters();
+
+        size_t num_workers = writers.size();
+        assert(offsets.size() == num_workers + 1);
+
+        size_t my_rank = data().my_worker_rank();
+
+        // send blocks from my_rank to last worker, store the other Blocks
+
+        std::vector<std::vector<Block> > block_store;
+
         File::ConsumeReader reader =
             source.GetConsumeReader(/* prefetch_size */ 0);
         size_t current = 0;
@@ -95,43 +106,39 @@ public:
         {
             // discard first items in Reader
             size_t limit = offsets[0];
-#if 0
-            for ( ; current < limit; ++current) {
-                assert(reader.HasNext());
-                // discard one item (with deserialization)
-                reader.template Next<ItemType>();
-            }
-#else
             if (current != limit) {
                 reader.template GetItemBatch<ItemType>(limit - current);
                 current = limit;
             }
-#endif
         }
-
-        Writers writers = GetWriters();
-
-        size_t num_workers = writers.size();
-        assert(offsets.size() == num_workers + 1);
 
         for (size_t worker = 0; worker < num_workers; ++worker) {
             // write [current,limit) to this worker
             size_t limit = offsets[worker + 1];
             assert(current <= limit);
-#if 0
-            for ( ; current < limit; ++current) {
-                assert(reader.HasNext());
-                // move over one item (with deserialization and serialization)
-                writers[worker](reader.template Next<ItemType>());
+            if (worker < my_rank) {
+                if (current != limit) {
+                    block_store.emplace_back(
+                        reader.template GetItemBatch<ItemType>(limit - current));
+                }
+                else {
+                    block_store.emplace_back(std::vector<Block>());
+                }
             }
-#else
-            if (current != limit) {
-                writers[worker].AppendBlocks(
-                    reader.template GetItemBatch<ItemType>(limit - current));
-                current = limit;
+            else {
+                if (current != limit) {
+                    writers[worker].AppendBlocks(
+                        reader.template GetItemBatch<ItemType>(limit - current));
+                }
             }
-#endif
-            writers[worker].Close();
+            current = limit;
+        }
+
+        assert(block_store.size() == my_rank);
+
+        for (size_t worker = 0; worker < my_rank; ++worker) {
+            if (!block_store[worker].empty())
+                writers[worker].AppendBlocks(std::move(block_store[worker]));
         }
     }
 
