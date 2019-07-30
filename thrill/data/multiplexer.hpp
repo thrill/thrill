@@ -110,6 +110,12 @@ public:
     //! Get the JsonLogger from the BlockPool
     common::JsonLogger& logger();
 
+    //! get network dispatcher
+    net::DispatcherThread& dispatcher() { return dispatcher_; }
+
+    //! get network group connection
+    net::Group& group() { return group_; }
+
     //! \name CatStreamData
     //! \{
 
@@ -151,7 +157,7 @@ private:
     //! never leaves the data components!
     net::DispatcherThread& dispatcher_;
 
-    // Holds NetConnections for outgoing Streams
+    //! Holds NetConnections for outgoing Streams
     net::Group& group_;
 
     //! Number of workers per host
