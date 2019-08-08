@@ -410,7 +410,7 @@ if(THRILL_USE_JEMALLOC)
   find_package(JeMalloc)
 
   if(NOT JEMALLOC_FOUND)
-    message(STATUS "jemalloc library found. No problem, it is optional,")
+    message(STATUS "jemalloc library not found. No problem, it is optional,")
     message(STATUS "but consider installing it for systems with limited memory.")
   else()
     list(APPEND THRILL_DEFINITIONS "THRILL_HAVE_JEMALLOC=1")
