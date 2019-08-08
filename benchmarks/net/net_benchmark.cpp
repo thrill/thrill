@@ -182,6 +182,7 @@ void PingPongLatency::Test(api::Context& ctx) {
         common::StatsTimerStopped timer;
 
         timer.Start();
+        counter_ = 0;
         for (size_t iteration = 0; iteration < iterations_; iteration++) {
             // perform 1-factor ping pongs (without barriers)
             for (size_t round = 0; round < group.OneFactorSize(); ++round) {
