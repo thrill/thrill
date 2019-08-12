@@ -325,7 +325,7 @@ private:
  * \param first_dia first DIA
  * \param dias DIAs, which are concatd with the first DIA.
  *
- * \ingroup dia_dops
+ * \ingroup dia_dops_free
  */
 template <typename FirstDIA, typename... DIAs>
 auto Concat(const FirstDIA& first_dia, const DIAs& ... dias) {
@@ -348,7 +348,7 @@ auto Concat(const FirstDIA& first_dia, const DIAs& ... dias) {
  *
  * \param dias DIAs, which is concatenated.
  *
- * \ingroup dia_dops
+ * \ingroup dia_dops_free
  */
 template <typename ValueType>
 auto Concat(const std::initializer_list<DIA<ValueType> >& dias) {
@@ -370,7 +370,7 @@ auto Concat(const std::initializer_list<DIA<ValueType> >& dias) {
  *
  * \param dias DIAs, which is concatenated.
  *
- * \ingroup dia_dops
+ * \ingroup dia_dops_free
  */
 template <typename ValueType>
 auto Concat(const std::vector<DIA<ValueType> >& dias) {

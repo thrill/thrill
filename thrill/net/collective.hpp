@@ -45,6 +45,7 @@ namespace net {
  *
  * \param value The value to be summed up
  * \param sum_op A custom summation operator
+ * \param initial Initial value of prefix sum
  * \param inclusive Inclusive prefix sum if true (default)
  */
 template <typename T, typename BinarySumOp>

@@ -444,6 +444,8 @@ private:
  * ReadLines is a DOp, which reads a file from the file system and
  * creates an ordered DIA according to a given read function.
  *
+ * \image html dia_ops/ReadLines.svg
+ *
  * \param ctx Reference to the context object
  * \param filepath Path of the file in the file system
  *
@@ -459,6 +461,26 @@ DIA<std::string> ReadLines(Context& ctx, const std::string& filepath) {
  * ReadLines is a DOp, which reads a file from the file system and
  * creates an ordered DIA according to a given read function.
  *
+ * \image html dia_ops/ReadLines.svg
+ *
+ * \param ctx Reference to the context object
+ * \param filepath Path of the file in the file system
+ *
+ * \ingroup dia_sources
+ */
+DIA<std::string> ReadLines(struct LocalStorageTag, Context& ctx,
+                           const std::string& filepath) {
+    return DIA<std::string>(
+        tlx::make_counting<ReadLinesNode>(
+            ctx, filepath, /* local_storage */ true));
+}
+
+/*!
+ * ReadLines is a DOp, which reads a file from the file system and
+ * creates an ordered DIA according to a given read function.
+ *
+ * \image html dia_ops/ReadLines.svg
+ *
  * \param ctx Reference to the context object
  * \param filepaths Path of the file in the file system
  *
@@ -471,13 +493,17 @@ DIA<std::string> ReadLines(
             ctx, filepaths, /* local_storage */ false));
 }
 
-DIA<std::string> ReadLines(struct LocalStorageTag, Context& ctx,
-                           const std::string& filepath) {
-    return DIA<std::string>(
-        tlx::make_counting<ReadLinesNode>(
-            ctx, filepath, /* local_storage */ true));
-}
-
+/*!
+ * ReadLines is a DOp, which reads a file from the file system and
+ * creates an ordered DIA according to a given read function.
+ *
+ * \image html dia_ops/ReadLines.svg
+ *
+ * \param ctx Reference to the context object
+ * \param filepaths Path of the file in the file system
+ *
+ * \ingroup dia_sources
+ */
 DIA<std::string> ReadLines(struct LocalStorageTag, Context& ctx,
                            const std::vector<std::string>& filepaths) {
     return DIA<std::string>(

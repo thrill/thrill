@@ -187,7 +187,7 @@ public:
      * \param stack Function stack consisting of functions between last DIANode
      * and this DIA.
      *
-     * \param id Serial id of DIA, which includes LOps
+     * \param dia_id Serial id of DIA, which includes LOps
      *
      * \param label static string label of DIA.
      */
@@ -205,7 +205,7 @@ public:
      * \param stack Function stack consisting of functions between last DIANode
      * and this DIA.
      *
-     * \param id Serial id of DIA, which includes LOps
+     * \param dia_id Serial id of DIA, which includes LOps
      *
      * \param label static string label of DIA.
      */
@@ -378,6 +378,8 @@ public:
      * \textrm{bool} \f$ to determine whether it is copied into the output DIA
      * or excluded.
      *
+     * \image html dia_ops/Filter.svg
+     *
      * The function chain of the returned DIA is this DIA's stack_ chained with
      * filter_function.
      *
@@ -421,6 +423,8 @@ public:
      * \to \textrm{array}(B) \f$ to zero or more items of different type, which
      * are concatenated in the resulting DIA. The return type of
      * `flatmap_function` must be specified as template parameter.
+     *
+     * \image html dia_ops/FlatMap.svg
      *
      * FlatMap is a LOp, which maps this DIA according to the flatmap_function
      * given by the user. The flatmap_function maps each element to elements of
@@ -501,6 +505,8 @@ public:
      * Returns the whole DIA in an std::vector on each worker. This is only for
      * testing purposes and should not be used on large datasets.
      *
+     * \image html dia_ops/AllGather.svg
+     *
      * \ingroup dia_actions
      */
     std::vector<ValueType> AllGather() const;
@@ -510,6 +516,8 @@ public:
      * std::vector on each worker. This is only for testing purposes and should
      * not be used on large datasets.
      *
+     * \image html dia_ops/AllGather.svg
+     *
      * \ingroup dia_actions
      */
     void AllGather(std::vector<ValueType>* out_vector) const;
@@ -517,6 +525,8 @@ public:
     /*!
      * Returns the whole DIA in an std::vector on each worker. This is only for
      * testing purposes and should not be used on large datasets.
+     *
+     * \image html dia_ops/AllGather.svg
      *
      * \ingroup dia_actions
      */
@@ -566,6 +576,8 @@ public:
      * AllReduce is an Action, which computes the reduction sum of all elements
      * globally and delivers the same value on all workers.
      *
+     * \image html dia_ops/AllReduce.svg
+     *
      * \param reduce_function Reduce function.
      *
      * \param initial_value Initial value of the reduction.
@@ -579,6 +591,8 @@ public:
     /*!
      * AllReduce is an ActionFuture, which computes the reduction sum of
      * all elements globally and delivers the same value on all workers.
+     *
+     * \image html dia_ops/AllReduce.svg
      *
      * \param reduce_function Reduce function.
      *
@@ -594,6 +608,8 @@ public:
     /*!
      * Sum is an Action, which computes the sum of all elements globally.
      *
+     * \image html dia_ops/Sum.svg
+     *
      * \param sum_function Sum function.
      *
      * \param initial_value Initial value of the sum.
@@ -607,6 +623,8 @@ public:
     /*!
      * Sum is an ActionFuture, which computes the sum of all elements
      * globally.
+     *
+     * \image html dia_ops/Sum.svg
      *
      * \param sum_function Sum function.
      *
@@ -622,6 +640,8 @@ public:
     /*!
      * Min is an Action, which computes the minimum of all elements globally.
      *
+     * \image html dia_ops/Sum.svg
+     *
      * \param initial_value Initial value of the min.
      *
      * \ingroup dia_actions
@@ -631,6 +651,8 @@ public:
     /*!
      * Min is an ActionFuture, which computes the minimum of all elements
      * globally.
+     *
+     * \image html dia_ops/Sum.svg
      *
      * \param initial_value Initial value of the min.
      *
@@ -642,6 +664,8 @@ public:
     /*!
      * Max is an Action, which computes the maximum of all elements globally.
      *
+     * \image html dia_ops/Sum.svg
+     *
      * \param initial_value Initial value of the max.
      *
      * \ingroup dia_actions
@@ -651,6 +675,8 @@ public:
     /*!
      * Max is an ActionFuture, which computes the maximum of all elements
      * globally.
+     *
+     * \image html dia_ops/Sum.svg
      *
      * \param initial_value Initial value of the max.
      *
@@ -694,6 +720,8 @@ public:
      * files. Strings are written using fstream with a newline after each
      * entry. Each worker creates its individual file.
      *
+     * \image html dia_ops/WriteLines.svg
+     *
      * \param filepath Destination of the output file. This filepath must
      * contain two special substrings: "$$$$$" is replaced by the worker id and
      * "#####" will be replaced by the file chunk id. The last occurrences of
@@ -711,6 +739,8 @@ public:
      * WriteLines is an ActionFuture, which writes std::strings to multiple
      * output files. Strings are written using fstream with a newline after each
      * entry. Each worker creates its individual file.
+     *
+     * \image html dia_ops/WriteLines.svg
      *
      * \param filepath Destination of the output file. This filepath must
      * contain two special substrings: "$$$$$" is replaced by the worker id and
@@ -731,6 +761,8 @@ public:
      * worker. The input DIA can be recreated with ReadBinary and equal
      * filepath.
      *
+     * \image html dia_ops/WriteBinary.svg
+     *
      * \param filepath Destination of the output file. This filepath must
      * contain two special substrings: "$$$$$" is replaced by the worker id and
      * "#####" will be replaced by the file chunk id. The last occurrences of
@@ -749,6 +781,8 @@ public:
      * worker. The input DIA can be recreated with ReadBinary and equal
      * filepath.
      *
+     * \image html dia_ops/WriteBinary.svg
+     *
      * \param filepath Destination of the output file. This filepath must
      * contain two special substrings: "$$$$$" is replaced by the worker id and
      * "#####" will be replaced by the file chunk id. The last occurrences of
@@ -765,14 +799,23 @@ public:
 
     //! \}
 
-    //! \name Distributed Operations (DOps)
-    //! \{
+    /*!
+     * \name Distributed Operations (DOps)
+     *
+     * \details This list of DOps are methods of the <b>main DIA class</b> and
+     * called as <tt>A.Method(params)</tt>. Methods combining two or more DIAs
+     * are available as \ref dia_dops_free "free functions".
+     *
+     * \{
+     */
 
     /*!
      * ReduceByKey is a DOp, which groups elements of the DIA with the
      * key_extractor and reduces each key-bucket to a single element using the
      * associative reduce_function. The reduce_function defines how two elements
      * can be reduced to a single element of equal type.
+     *
+     * \image html dia_ops/ReduceByKey.svg
      *
      * The key of the reduced element has to be equal to the keys of the input
      * elements. Since ReduceBy is a DOp, it creates a new DIANode. The DIA
@@ -807,6 +850,8 @@ public:
      * key_extractor and reduces each key-bucket to a single element using the
      * associative reduce_function. The reduce_function defines how two elements
      * can be reduced to a single element of equal type.
+     *
+     * \image html dia_ops/ReduceByKey.svg
      *
      * The key of the reduced element has to be equal to the keys of the input
      * elements. Since ReduceBy is a DOp, it creates a new DIANode. The DIA
@@ -844,6 +889,8 @@ public:
      * key_extractor and reduces each key-bucket to a single element using the
      * associative reduce_function. The reduce_function defines how two elements
      * can be reduced to a single element of equal type.
+     *
+     * \image html dia_ops/ReduceByKey.svg
      *
      * The key of the reduced element has to be equal to the keys of the input
      * elements. Since ReduceBy is a DOp, it creates a new DIANode. The DIA
@@ -885,6 +932,8 @@ public:
      * key_extractor and reduces each key-bucket to a single element using the
      * associative reduce_function. The reduce_function defines how two elements
      * can be reduced to a single element of equal type.
+     *
+     * \image html dia_ops/ReduceByKey.svg
      *
      * In contrast to ReduceBy, the reduce_function is allowed to change the key
      * (Example: Integers with modulo function as key_extractor). Creates
@@ -936,6 +985,8 @@ public:
      * associative reduce_function. The reduce_function defines how two elements
      * can be reduced to a single element of equal type.
      *
+     * \image html dia_ops/ReduceByKey.svg
+     *
      * In contrast to ReduceBy, the reduce_function is allowed to change the key
      * (Example: Integers with modulo function as key_extractor). Creates
      * overhead as both key and value have to be sent in shuffle step. Since
@@ -985,6 +1036,8 @@ public:
      * key_extractor and reduces each key-bucket to a single element using the
      * associative reduce_function. The reduce_function defines how two elements
      * can be reduced to a single element of equal type.
+     *
+     * \image html dia_ops/ReduceByKey.svg
      *
      * In contrast to ReduceBy, the reduce_function is allowed to change the key
      * (Example: Integers with modulo function as key_extractor). Creates
@@ -1169,6 +1222,8 @@ public:
      * to ReduceBy, ReduceToIndex returns a DIA in a defined order, which has
      * the reduced element with key i in position i.
      *
+     * \image html dia_ops/ReduceToIndex.svg
+     *
      * The reduce_function defines how two elements can be reduced to a single
      * element of equal type. The key of the reduced element has to be equal to
      * the keys of the input elements. Since ReduceToIndex is a DOp, it creates
@@ -1215,6 +1270,8 @@ public:
      * the reduced element with key i in position i.  The reduce_function
      * defines how two elements can be reduced to a single element of equal
      * type.
+     *
+     * \image html dia_ops/ReduceToIndex.svg
      *
      * ReduceToIndex is the equivalent to ReduceByKey, as the
      * reduce_function is allowed to change the key.  Since ReduceToIndex
@@ -1264,6 +1321,8 @@ public:
      * defines how two elements can be reduced to a single element of equal
      * type.
      *
+     * \image html dia_ops/ReduceToIndex.svg
+     *
      * ReduceToIndex is the equivalent to ReduceByKey, as the
      * reduce_function is allowed to change the key.  Since ReduceToIndex
      * is a DOp, it creates a new DIANode. The DIA returned by ReduceToIndex
@@ -1312,6 +1371,8 @@ public:
      * reason, the communication overhead is also higher. If possible, usage of
      * Reduce is therefore recommended.
      *
+     * \image html dia_ops/GroupByKey.svg
+     *
      * As GroupBy is a DOp, it creates a new DIANode. The DIA returned by
      * Reduce links to this newly created DIANode. The stack_ of the returned
      * DIA consists of the PostOp of Reduce, as a reduced element can
@@ -1346,6 +1407,8 @@ public:
      * all elements with the same key have been grouped. However because of this
      * reason, the communication overhead is also higher. If possible, usage of
      * Reduce is therefore recommended.
+     *
+     * \image html dia_ops/GroupByKey.svg
      *
      * As GroupBy is a DOp, it creates a new DIANode. The DIA returned by
      * Reduce links to this newly created DIANode. The stack_ of the returned
@@ -1384,6 +1447,8 @@ public:
      * all elements with the same key have been grouped. However because of this
      * reason, the communication overhead is also higher. If possible, usage of
      * Reduce is therefore recommended.
+     *
+     * \image html dia_ops/GroupByKey.svg
      *
      * As GroupBy is a DOp, it creates a new DIANode. The DIA returned by
      * Reduce links to this newly created DIANode. The stack_ of the returned
@@ -1427,6 +1492,8 @@ public:
      * reason, the communication overhead is also higher. If possible, usage of
      * Reduce is therefore recommended.
      *
+     * \image html dia_ops/GroupToIndex.svg
+     *
      * In contrast to GroupBy, GroupToIndex returns a DIA in a defined order,
      * which has the reduced element with key i in position i.
      * As GroupBy is a DOp, it creates a new DIANode. The DIA returned by
@@ -1468,6 +1535,8 @@ public:
      * i-th element of the output DIA. The type of the output DIA can be
      * inferred from the zip_function.
      *
+     * \image html dia_ops/Zip.svg
+     *
      * The two input DIAs are required to be of equal size, otherwise use the
      * CutTag variant.
      *
@@ -1491,6 +1560,8 @@ public:
      * to the i-th elements of both input DIAs to form the i-th element of the
      * output DIA. The type of the output DIA can be inferred from the
      * zip_function.
+     *
+     * \image html dia_ops/Zip.svg
      *
      * If the two input DIAs are of unequal size, the result is the shorter of
      * both. Otherwise use PadTag().
@@ -1516,6 +1587,8 @@ public:
      * output DIA. The type of the output DIA can be inferred from the
      * zip_function.
      *
+     * \image html dia_ops/Zip.svg
+     *
      * The output DIA's length is the *maximum* of all input DIAs, shorter DIAs
      * are padded with default-constructed items.
      *
@@ -1539,6 +1612,8 @@ public:
      * to the i-th elements of both input DIAs to form the i-th element of the
      * output DIA. The type of the output DIA can be inferred from the
      * zip_function.
+     *
+     * \image html dia_ops/Zip.svg
      *
      * In this variant, the DIA partitions on all PEs must have matching
      * length. No rebalancing is performed, and the program will die if any
@@ -1574,7 +1649,10 @@ public:
     auto ZipWithIndex(const ZipFunction& zip_function) const;
 
     /*!
-     * Sort is a DOp, which sorts a given DIA according to the given compare_function.
+     * Sort is a DOp, which sorts a given DIA according to the given
+     * compare_function.
+     *
+     * \image html dia_ops/Sort.svg
      *
      * \tparam CompareFunction Type of the compare_function.
      *  Should be (ValueType,ValueType)->bool
@@ -1588,7 +1666,10 @@ public:
     auto Sort(const CompareFunction& compare_function = CompareFunction()) const;
 
     /*!
-     * Sort is a DOp, which sorts a given DIA according to the given compare_function.
+     * Sort is a DOp, which sorts a given DIA according to the given
+     * compare_function.
+     *
+     * \image html dia_ops/Sort.svg
      *
      * \tparam CompareFunction Type of the compare_function.
      *  Should be (ValueType,ValueType)->bool
@@ -1607,7 +1688,9 @@ public:
 
     /*!
      * SortStable is a DOp, which sorts a given DIA stably according to the
-     *  given compare_function.
+     * given compare_function.
+     *
+     * \image html dia_ops/Sort.svg
      *
      * \tparam CompareFunction Type of the compare_function.
      *  Should be (ValueType,ValueType)->bool
@@ -1622,7 +1705,9 @@ public:
 
     /*!
      * SortStable is a DOp, which sorts a given DIA stably according to the
-     *  given compare_function.
+     * given compare_function.
+     *
+     * \image html dia_ops/Sort.svg
      *
      * \tparam CompareFunction Type of the compare_function.
      *  Should be (ValueType,ValueType)->bool
@@ -1645,6 +1730,8 @@ public:
      * Both input DIAs must be used sorted conforming to the given comparator.
      * The type of the output DIA will be the type of this DIA.
      *
+     * \image html dia_ops/Merge.svg
+     *
      * The merge operation balances all input data, so that each worker will
      * have an equal number of elements when the merge completes.
      *
@@ -1663,6 +1750,8 @@ public:
      * elements. The sum function defines how two elements are combined to a
      * single element.
      *
+     * \image html dia_ops/PrefixSum.svg
+     *
      * \param sum_function Sum function (any associative function).
      *
      * \param initial_element Initial element of the sum function.
@@ -1677,6 +1766,8 @@ public:
      * ExPrefixSum is a DOp, which computes the exclusive prefix sum of all
      * elements. The sum function defines how two elements are combined to a
      * single element.
+     *
+     * \image html dia_ops/ExPrefixSum.svg
      *
      * \param sum_function Sum function (any associative function).
      *
@@ -1693,6 +1784,8 @@ public:
      * consecutive items in a DIA. The window function is also given the index
      * of the first item, and can output zero or more items via an Emitter.
      *
+     * \image html dia_ops/Window.svg
+     *
      * \param window_size the size of the delivered window. Signature: TODO(tb).
      *
      * \param window_function Window function applied to each k item.
@@ -1707,6 +1800,8 @@ public:
      * Window is a DOp, which applies a window function to every k
      * consecutive items in a DIA. The window function is also given the index
      * of the first item, and can output zero or more items via an Emitter.
+     *
+     * \image html dia_ops/Window.svg
      *
      * \param window_size the size of the delivered window. Signature: TODO(tb).
      *
@@ -1727,6 +1822,8 @@ public:
      * consecutive items in a DIA. The window function is also given the index
      * of the first item, and can output zero or more items via an Emitter.
      *
+     * \image html dia_ops/Window.svg
+     *
      * \param window_size the size of the delivered window.
      *
      * \param window_function Window function applied to each k item.
@@ -1741,6 +1838,8 @@ public:
      * FlatWindow is a DOp, which applies a window function to every k
      * consecutive items in a DIA. The window function is also given the index
      * of the first item, and can output zero or more items via an Emitter.
+     *
+     * \image html dia_ops/Window.svg
      *
      * \param window_size the size of the delivered window. Signature: TODO(tb).
      *
@@ -1757,6 +1856,8 @@ public:
      * FlatWindow is a DOp, which applies a window function to every k
      * consecutive items in a DIA. The window function is also given the index
      * of the first item, and can output zero or more items via an Emitter.
+     *
+     * \image html dia_ops/Window.svg
      *
      * \param window_size the size of the delivered window. Signature: TODO(tb).
      *
@@ -1777,6 +1878,8 @@ public:
      * FlatWindow is a DOp, which applies a window function to every k
      * consecutive items in a DIA. The window function is also given the index
      * of the first item, and can output zero or more items via an Emitter.
+     *
+     * \image html dia_ops/Window.svg
      *
      * \param window_size the size of the delivered window. Signature: TODO(tb).
      *

@@ -26,24 +26,25 @@ relation means that a parent has to be executed before the child can be executed
 be executed, which performs the actual operation and all uncalculated parent operations. The engine
 uses the DIABase graph to optimize the order of operations.
 
-# List of Actions
-
-## Generate (ctx, generator_function, size)
-
-\copybrief api::Generate
-\copydoc api::Generate
-
-## Distribute(ctx, vector)
-
-\copybrief api::Distribute
-\copydoc api::Distribute
+The \ref dia_api "list of available DIA operations" is available in generated doxygen pages.
 
 \defgroup dia_api DIA API Operations
+
+\details The set of DIA operations is grouped into four types:
+
+- Source operations create DIAs from outside data, they have no parent DIAs and thus initiate the data-flow graph.
+- Local operations require no communication and are composed with the previous operations.
+- Distributed operations are the main class and contain many parameterized transformations which have one or more DIAs as inputs and result in one DIA as output.
+- Actions are terminal nodes in the data-flow graph which trigger computation of a result and deliver this back to the user program.
+
 \{
 
 \defgroup dia_sources Source Nodes
 \defgroup dia_lops Local Operations (LOps)
 \defgroup dia_dops Distributed Operations (DOps)
+\{
+\defgroup dia_dops_free Free Operation Functions
+\}
 \defgroup dia_actions Actions
 
 \}

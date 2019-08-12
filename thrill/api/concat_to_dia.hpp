@@ -65,6 +65,8 @@ private:
  * CONCATENATES them into a DIA. Use Distribute to actually distribute data from
  * a single worker, ConcatToDIA is a wrapper if the data is already distributed.
  *
+ * \image html dia_ops/ConcatToDIA.svg
+ *
  * \param ctx Reference to the Context object
  *
  * \param in_vector Vector to concatenate into a DIA, the contents is COPIED
@@ -85,6 +87,8 @@ auto ConcatToDIA(Context& ctx,
  * ConcatToDIA is a Source-DOp, which takes a vector of data on all workers, and
  * CONCATENATES them into a DIA. Use Distribute to actually distribute data from
  * a single worker, ConcatToDIA is a wrapper if the data is already distributed.
+ *
+ * \image html dia_ops/ConcatToDIA.svg
  *
  * \param ctx Reference to the Context object
  *

@@ -344,6 +344,8 @@ private:
  * ReadBinary is a DOp, which reads a file written by WriteBinary from the file
  * system and creates a DIA.
  *
+ * \image html dia_ops/ReadBinary.svg
+ *
  * \param ctx Reference to the context object
  * \param filepath Path of the file in the file system
  * \param size_limit Optional limit to the total file size (e.g. for testing
@@ -362,6 +364,19 @@ DIA<ValueType> ReadBinary(
     return DIA<ValueType>(node);
 }
 
+/*!
+ * ReadBinary is a DOp, which reads a file written by WriteBinary from the file
+ * system and creates a DIA.
+ *
+ * \image html dia_ops/ReadBinary.svg
+ *
+ * \param ctx Reference to the context object
+ * \param filepath Path of the file in the file system
+ * \param size_limit Optional limit to the total file size (e.g. for testing
+ * algorithms on prefixes)
+ *
+ * \ingroup dia_sources
+ */
 template <typename ValueType>
 DIA<ValueType> ReadBinary(
     struct LocalStorageTag, Context& ctx,
@@ -377,6 +392,8 @@ DIA<ValueType> ReadBinary(
 /*!
  * ReadBinary is a DOp, which reads a file written by WriteBinary from the file
  * system and creates a DIA.
+ *
+ * \image html dia_ops/ReadBinary.svg
  *
  * \param ctx Reference to the context object
  * \param filepath Path of the file in the file system
@@ -396,6 +413,19 @@ DIA<ValueType> ReadBinary(
     return DIA<ValueType>(node);
 }
 
+/*!
+ * ReadBinary is a DOp, which reads a file written by WriteBinary from the file
+ * system and creates a DIA.
+ *
+ * \image html dia_ops/ReadBinary.svg
+ *
+ * \param ctx Reference to the context object
+ * \param filepath Path of the file in the file system
+ * \param size_limit Optional limit to the total file size (e.g. for testing
+ * algorithms on prefixes)
+ *
+ * \ingroup dia_sources
+ */
 template <typename ValueType>
 DIA<ValueType> ReadBinary(
     struct LocalStorageTag, Context& ctx, const std::string& filepath,

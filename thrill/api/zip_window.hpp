@@ -614,7 +614,7 @@ private:
  * The two input DIAs are required to be of equal window multiples, otherwise
  * use the CutTag variant.
  *
- * \ingroup dia_dops
+ * \ingroup dia_dops_free
  */
 template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
           typename... DIAs>
@@ -660,7 +660,7 @@ auto ZipWindow(const std::array<size_t, 1 + sizeof ... (DIAs)>& window_size,
  * If the two input DIAs are of unequal size, the result is the shorter of
  * both. Otherwise use the PadTag variant.
  *
- * \ingroup dia_dops
+ * \ingroup dia_dops_free
  */
 template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
           typename... DIAs>
@@ -707,7 +707,7 @@ auto ZipWindow(struct CutTag,
  * The output DIA's length is the *maximum* of all input DIAs, shorter DIAs are
  * padded with items given by the padding parameter.
  *
- * \ingroup dia_dops
+ * \ingroup dia_dops_free
  */
 template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
           typename... DIAs>
@@ -753,7 +753,7 @@ auto ZipWindow(
  * The output DIA's length is the *maximum* of all input DIAs, shorter DIAs are
  * padded with default-constructed items.
  *
- * \ingroup dia_dops
+ * \ingroup dia_dops_free
  */
 template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
           typename... DIAs>
@@ -782,7 +782,7 @@ auto ZipWindow(struct PadTag,
  * The output DIA's length is the *maximum* of all input DIAs, shorter DIAs are
  * padded with items given by the padding parameter.
  *
- * \ingroup dia_dops
+ * \ingroup dia_dops_free
  */
 template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
           typename... DIAs>
@@ -829,7 +829,7 @@ auto ZipWindow(
  * The output DIA's length is the *maximum* of all input DIAs, shorter DIAs are
  * padded with default constructed items.
  *
- * \ingroup dia_dops
+ * \ingroup dia_dops_free
  */
 template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
           typename... DIAs>
@@ -849,8 +849,6 @@ auto ZipWindow(
 }
 
 /******************************************************************************/
-
-//! \}
 
 } // namespace api
 

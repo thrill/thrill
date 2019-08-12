@@ -53,8 +53,6 @@ namespace api {
  * \param key_extractor2 Key extractor for second DIA
  *
  * \param join_function Join function applied to all equal key pairs
- *
- * \ingroup dia_dops
  */
 template <typename ValueType, typename FirstDIA, typename SecondDIA,
           typename KeyExtractor1, typename KeyExtractor2,
@@ -698,7 +696,7 @@ private:
  *
  * \param hash_function If necessary a hash funtion for Key
  *
- * \ingroup dia_dops
+ * \ingroup dia_dops_free
  */
 template <
     bool LocationDetectionValue,
@@ -795,7 +793,7 @@ auto InnerJoin(
  *
  * \param hash_function If necessary a hash funtion for Key
  *
- * \ingroup dia_dops
+ * \ingroup dia_dops_free
  */
 template <
     typename FirstDIA,
@@ -816,8 +814,6 @@ auto InnerJoin(
         first_dia, second_dia, key_extractor1, key_extractor2,
         join_function, hash_function);
 }
-
-//! \}
 
 } // namespace api
 

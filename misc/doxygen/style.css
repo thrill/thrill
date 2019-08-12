@@ -5,6 +5,11 @@ body, table, div, p, dl {
    font: 14px/20px serif;
 }
 
+/* scale images */
+div.image object {
+    width: 35ex;
+}
+
 /* remove useless background image */
 div.header {
    background-image: none;

@@ -396,11 +396,15 @@ private:
     };
 };
 
+/******************************************************************************/
+
 /*!
  * Zips two DIAs of equal size in style of functional programming by applying
  * zip_function to the i-th elements of both input DIAs to form the i-th element
  * of the output DIA. The type of the output DIA can be inferred from the
  * zip_function.
+ *
+ * \image html dia_ops/Zip.svg
  *
  * The two input DIAs are required to be of equal size, otherwise use the
  * CutTag variant.
@@ -415,7 +419,7 @@ private:
  *
  * \param dias DIAs, which is zipped together with the original DIA.
  *
- * \ingroup dia_dops
+ * \ingroup dia_dops_free
  */
 template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
           typename... DIAs>
@@ -455,6 +459,8 @@ auto Zip(const ZipFunction& zip_function,
  * i-th element of the output DIA. The type of the output DIA can be inferred
  * from the zip_function.
  *
+ * \image html dia_ops/Zip.svg
+ *
  * If the two input DIAs are of unequal size, the result is the shorter of
  * both. Otherwise use the PadTag variant.
  *
@@ -468,7 +474,7 @@ auto Zip(const ZipFunction& zip_function,
  *
  * \param dias DIAs, which is zipped together with the original DIA.
  *
- * \ingroup dia_dops
+ * \ingroup dia_dops_free
  */
 template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
           typename... DIAs>
@@ -509,6 +515,8 @@ auto Zip(struct CutTag,
  * of the output DIA. The type of the output DIA can be inferred from the
  * zip_function.
  *
+ * \image html dia_ops/Zip.svg
+ *
  * The output DIA's length is the *maximum* of all input DIAs, shorter DIAs are
  * padded with default-constructed items.
  *
@@ -522,7 +530,7 @@ auto Zip(struct CutTag,
  *
  * \param dias DIAs, which is zipped together with the first DIA.
  *
- * \ingroup dia_dops
+ * \ingroup dia_dops_free
  */
 template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
           typename... DIAs>
@@ -563,6 +571,8 @@ auto Zip(struct PadTag,
  * of the output DIA. The type of the output DIA can be inferred from the
  * zip_function.
  *
+ * \image html dia_ops/Zip.svg
+ *
  * The output DIA's length is the *maximum* of all input DIAs, shorter DIAs are
  * padded with items given by the padding parameter.
  *
@@ -579,7 +589,7 @@ auto Zip(struct PadTag,
  *
  * \param dias DIAs, which is zipped together with the original DIA.
  *
- * \ingroup dia_dops
+ * \ingroup dia_dops_free
  */
 template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
           typename... DIAs>
@@ -619,6 +629,8 @@ auto Zip(
  * of the output DIA. The type of the output DIA can be inferred from the
  * zip_function.
  *
+ * \image html dia_ops/Zip.svg
+ *
  * In this variant, the DIA partitions on all PEs must have matching length. No
  * rebalancing is performed, and the program will die if any partition
  * mismatches. This enables Zip to proceed without any communication.
@@ -633,7 +645,7 @@ auto Zip(
  *
  * \param dias DIAs, which is zipped together with the original DIA.
  *
- * \ingroup dia_dops
+ * \ingroup dia_dops_free
  */
 template <typename ZipFunction, typename FirstDIAType, typename FirstDIAStack,
           typename... DIAs>
@@ -699,8 +711,6 @@ auto DIA<ValueType, Stack>::Zip(
     const ZipFunction& zip_function) const {
     return api::Zip(NoRebalanceTag, zip_function, *this, second_dia);
 }
-
-//! \}
 
 } // namespace api
 

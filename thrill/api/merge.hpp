@@ -656,6 +656,8 @@ private:
  * DIA.  All input DIAs must be sorted conforming to the given comparator.  The
  * type of the output DIA will be the type of this DIA.
  *
+ * \image html dia_ops/Merge.svg
+ *
  * The merge operation balances all input data, so that each worker will have an
  * equal number of elements when the merge completes.
  *
@@ -666,7 +668,7 @@ private:
  * \param first_dia first DIA
  * \param dias DIAs, which is merged with this DIA.
  *
- * \ingroup dia_dops
+ * \ingroup dia_dops_free
  */
 template <typename Comparator, typename FirstDIA, typename... DIAs>
 auto Merge(const Comparator& comparator,

@@ -68,6 +68,8 @@ private:
  * data from a single worker, EqualToDIA is a wrapper if the data is already
  * distributed.
  *
+ * \image html dia_ops/EqualToDIA.svg
+ *
  * \param ctx Reference to the Context object
  *
  * \param in_vector Vector to convert to a DIA, the contents is COPIED into the
@@ -89,6 +91,8 @@ auto EqualToDIA(Context& ctx,
  * workers, and returns the data in a DIA. Use Distribute to actually distribute
  * data from a single worker, EqualToDIA is a wrapper if the data is already
  * distributed.
+ *
+ * \image html dia_ops/EqualToDIA.svg
  *
  * \param ctx Reference to the Context object
  *

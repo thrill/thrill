@@ -72,6 +72,8 @@ private:
  * generator function. The generator function called for each index in the range
  * of `[0,size)` and must output exactly one item.
  *
+ * \image html dia_ops/Generate.svg
+ *
  * \param ctx Reference to the Context object
  *
  * \param size Size of the output DIA
@@ -111,6 +113,8 @@ auto Generate(Context& ctx, size_t size,
 /*!
  * Generate is a Source-DOp, which creates a DIA of given size containing the
  * size_t indexes `[0,size)`.
+ *
+ * \image html dia_ops/Generate.svg
  *
  * \param ctx Reference to the Context object
  *
