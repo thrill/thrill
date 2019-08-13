@@ -17,7 +17,7 @@
 #define THRILL_EXAMPLES_WORD_COUNT_WORD_COUNT_HEADER
 
 #include <thrill/api/reduce_by_key.hpp>
-#include <thrill/common/string_view.hpp>
+#include <tlx/string/split_view.hpp>
 
 #include <string>
 #include <utility>
@@ -37,10 +37,10 @@ auto WordCount(const DIA<std::string, InputStack>& input) {
     auto word_pairs = input.template FlatMap<WordCountPair>(
         [](const std::string& line, auto emit) -> void {
             /* map lambda: emit each word */
-            common::SplitView(
-                line, ' ', [&](const common::StringView& sv) {
+            tlx::split_view(
+                ' ', line, [&](const tlx::string_view& sv) {
                     if (sv.size() == 0) return;
-                    emit(WordCountPair(sv.ToString(), 1));
+                    emit(WordCountPair(sv.to_string(), 1));
                 });
         });
 
@@ -80,10 +80,10 @@ auto HashWordCountExample(const DIA<std::string, InputStack>& input) {
         .template FlatMap<std::string>(
             [](const std::string& line, auto emit) {
                 /* map lambda: emit each word */
-                common::SplitView(
-                    line, ' ', [&](const common::StringView& sv) {
+                tlx::split_view(
+                    ' ', line, [&](const tlx::string_view& sv) {
                         if (sv.size() == 0) return;
-                        emit(sv.ToString());
+                        emit(sv.to_string());
                     });
             })
         .Map([&](const std::string& word) {

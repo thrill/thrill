@@ -19,9 +19,9 @@
 #include <thrill/common/profile_task.hpp>
 #include <thrill/common/profile_thread.hpp>
 #include <thrill/common/string.hpp>
-#include <thrill/common/string_view.hpp>
 
 #include <tlx/die.hpp>
+#include <tlx/string/split_view.hpp>
 #include <tlx/string/starts_with.hpp>
 #include <tlx/string/trim.hpp>
 
@@ -795,7 +795,7 @@ void LinuxProcStats::read_meminfo(JsonLine& out) {
         std::string::size_type colonpos = line.find(':');
         if (colonpos == std::string::npos) continue;
 
-        common::StringView key(line.begin(), line.begin() + colonpos);
+        tlx::string_view key(line.begin(), line.begin() + colonpos);
 
         size_t size;
 

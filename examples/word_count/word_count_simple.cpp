@@ -11,14 +11,11 @@
 #include <thrill/api/read_lines.hpp>
 #include <thrill/api/reduce_by_key.hpp>
 #include <thrill/api/write_lines.hpp>
-#include <thrill/common/string_view.hpp>
+#include <tlx/string/split_view.hpp>
 
 #include <iostream>
 #include <string>
 #include <utility>
-
-using thrill::common::StringView;
-using thrill::common::SplitView;
 
 void WordCount(thrill::Context& ctx,
                std::string input, std::string output) {
@@ -28,9 +25,9 @@ void WordCount(thrill::Context& ctx,
         .template FlatMap<Pair>(
             // flatmap lambda: split and emit each word
             [](const std::string& line, auto emit) {
-                SplitView(line, ' ', [&](StringView sv) {
-                              emit(Pair(sv.ToString(), 1));
-                          });
+                tlx::split_view(' ', line, [&](tlx::string_view sv) {
+                                    emit(Pair(sv.to_string(), 1));
+                                });
             });
     word_pairs.ReduceByKey(
         // key extractor: the word string

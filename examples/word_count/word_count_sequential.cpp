@@ -11,7 +11,7 @@
  ******************************************************************************/
 
 #include <thrill/common/stats_timer.hpp>
-#include <thrill/common/string_view.hpp>
+#include <tlx/string/split_view.hpp>
 
 #include <fstream>
 #include <iostream>
@@ -41,10 +41,10 @@ int main(int argc, char* argv[]) {
         std::string line;
         while (std::getline(in, line, '\n'))
         {
-            common::SplitView(
-                line, ' ', [&](const common::StringView& sv) {
+            tlx::split_view(
+                ' ', line, [&](const tlx::string_view& sv) {
                     if (sv.size() == 0) return;
-                    ++count_map[sv.ToString()];
+                    ++count_map[sv.to_string()];
                 });
         }
     }

@@ -15,7 +15,7 @@
 #include <thrill/api/all_gather.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/read_lines.hpp>
-#include <thrill/common/string.hpp>
+#include <tlx/string/split_view.hpp>
 
 #include <gtest/gtest.h>
 
@@ -94,10 +94,10 @@ TEST(WordCount, RandomTextWriterTest) {
         for (size_t i = 0; i < size; ++i) {
             std::minstd_rand rng(static_cast<unsigned>(i));
             std::string text = RandomTextWriterGenerate(10, rng);
-            common::SplitView(
-                text, ' ', [&](const common::StringView& sv) {
+            tlx::split_view(
+                ' ', text, [&](const tlx::string_view& sv) {
                     if (sv.size() == 0) return;
-                    count_map[sv.ToString()] += 1;
+                    count_map[sv.to_string()] += 1;
                 });
         }
         correct.assign(count_map.begin(), count_map.end());
