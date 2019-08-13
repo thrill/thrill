@@ -723,10 +723,10 @@ public:
      * \image html dia_ops/WriteLines.svg
      *
      * \param filepath Destination of the output file. This filepath must
-     * contain two special substrings: "$$$$$" is replaced by the worker id and
-     * "#####" will be replaced by the file chunk id. The last occurrences of
-     * "$" and "#" are replaced, otherwise "$$$$" and/or "##########" are
-     * automatically appended.
+     * contain two special substrings: `"$$$$$"` is replaced by the worker id
+     * and `"#####"` will be replaced by the file chunk id. The last occurrences
+     * of `"$"` and `"#"` are replaced, otherwise `"$$$$"` and/or `"##########"`
+     * are automatically appended.
      *
      * \param target_file_size target size of each individual file.
      *
@@ -743,10 +743,10 @@ public:
      * \image html dia_ops/WriteLines.svg
      *
      * \param filepath Destination of the output file. This filepath must
-     * contain two special substrings: "$$$$$" is replaced by the worker id and
-     * "#####" will be replaced by the file chunk id. The last occurrences of
-     * "$" and "#" are replaced, otherwise "$$$$" and/or "##########" are
-     * automatically appended.
+     * contain two special substrings: `"$$$$$"` is replaced by the worker id
+     * and `"#####"` will be replaced by the file chunk id. The last occurrences
+     * of `"$"` and `"#"` are replaced, otherwise `"$$$$"` and/or `"##########"`
+     * are automatically appended.
      *
      * \param target_file_size target size of each individual file.
      *
@@ -764,10 +764,10 @@ public:
      * \image html dia_ops/WriteBinary.svg
      *
      * \param filepath Destination of the output file. This filepath must
-     * contain two special substrings: "$$$$$" is replaced by the worker id and
-     * "#####" will be replaced by the file chunk id. The last occurrences of
-     * "$" and "#" are replaced, otherwise "$$$$" and/or "##########" are
-     * automatically appended.
+     * contain two special substrings: `"$$$$$"` is replaced by the worker id
+     * and `"#####"` will be replaced by the file chunk id. The last occurrences
+     * of `"$"` and `"#"` are replaced, otherwise `"$$$$"` and/or `"##########"`
+     * are automatically appended.
      *
      * \param max_file_size size limit of individual file.
      *
@@ -784,10 +784,10 @@ public:
      * \image html dia_ops/WriteBinary.svg
      *
      * \param filepath Destination of the output file. This filepath must
-     * contain two special substrings: "$$$$$" is replaced by the worker id and
-     * "#####" will be replaced by the file chunk id. The last occurrences of
-     * "$" and "#" are replaced, otherwise "$$$$" and/or "##########" are
-     * automatically appended.
+     * contain two special substrings: `"$$$$$"` is replaced by the worker id
+     * and `"#####"` will be replaced by the file chunk id. The last occurrences
+     * of `"$"` and `"#"` are replaced, otherwise `"$$$$"` and/or `"##########"`
+     * are automatically appended.
      *
      * \param max_file_size size limit of individual file.
      *
