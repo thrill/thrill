@@ -19,7 +19,7 @@
 #include <thrill/api/dia.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/max.hpp>
-#include <thrill/api/prefixsum.hpp>
+#include <thrill/api/prefix_sum.hpp>
 #include <thrill/api/print.hpp>
 #include <thrill/api/sort.hpp>
 #include <thrill/api/window.hpp>

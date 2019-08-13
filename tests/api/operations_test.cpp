@@ -17,11 +17,12 @@
 #include <thrill/api/concat_to_dia.hpp>
 #include <thrill/api/distribute.hpp>
 #include <thrill/api/equal_to_dia.hpp>
+#include <thrill/api/ex_prefix_sum.hpp>
 #include <thrill/api/gather.hpp>
 #include <thrill/api/generate.hpp>
 #include <thrill/api/max.hpp>
 #include <thrill/api/min.hpp>
-#include <thrill/api/prefixsum.hpp>
+#include <thrill/api/prefix_sum.hpp>
 #include <thrill/api/print.hpp>
 #include <thrill/api/read_lines.hpp>
 #include <thrill/api/rebalance.hpp>

@@ -15,7 +15,7 @@
 #include <thrill/api/collapse.hpp>
 #include <thrill/api/dia.hpp>
 #include <thrill/api/generate.hpp>
-#include <thrill/api/prefixsum.hpp>
+#include <thrill/api/prefix_sum.hpp>
 #include <thrill/api/print.hpp>
 #include <thrill/api/reduce_to_index.hpp>
 #include <thrill/api/size.hpp>
