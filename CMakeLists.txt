@@ -37,9 +37,11 @@ endif()
 # make it prominent in the GUI.
 option(BUILD_SHARED_LIBS "Build shared libraries (DLLs)." OFF)
 
+option(THRILL_BUILD_TESTS "Build thrill's tests and benchmarks." OFF)
+
 option(THRILL_BUILD_EXAMPLES "Build thrill's examples." OFF)
 
-option(THRILL_BUILD_TESTS "Build thrill's tests and benchmarks." OFF)
+option(THRILL_BUILD_EXAMPLES_MORE "Build more of thrill's examples." OFF)
 
 # THRILL_USE_ZLIB tristate switch
 set(THRILL_USE_ZLIB AUTO CACHE
