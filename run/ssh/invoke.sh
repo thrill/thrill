@@ -121,12 +121,14 @@ fi
 
 rank=0
 
-# check THRILL_HOSTLIST for hosts without port numbers: add 10000+rank
+portbase=$(( RANDOM % 20000 + 30000 ))
+
+# check THRILL_HOSTLIST for hosts without port numbers: add 30000+random+rank
 hostlist=()
 for hostport in $THRILL_HOSTLIST; do
   port=$(echo $hostport | awk 'BEGIN { FS=":" } { printf "%s", $2 }')
   if [ -z "$port" ]; then
-      hostport="$hostport:$((10000+rank))"
+      hostport="$hostport:$((portbase+rank))"
   fi
   hostlist+=($hostport)
   rank=$((rank+1))
