@@ -22,6 +22,7 @@
 #include <thrill/vfs/file_io.hpp>
 
 #include <foxxll/io/iostats.hpp>
+#include <foxxll/mng/config.hpp>
 #include <tlx/math/abs_diff.hpp>
 #include <tlx/port/setenv.hpp>
 #include <tlx/string/format_si_iec_units.hpp>
@@ -890,13 +891,70 @@ int RunCheckUnlinkBinary() {
     return 0;
 }
 
+/*----------------------------------------------------------------------------*/
+// Customized FOXXLL Disk Config
+
+//! config class to override foxxll's default config
+class FoxxllConfig : public foxxll::config
+{
+public:
+    //! override load_default_config()
+    void load_default_config() override;
+
+    //! Returns default path of disk.
+    std::string default_disk_path() override;
+
+    //! returns the name of the default config file prefix
+    std::string default_config_file_name() override;
+};
+
+void FoxxllConfig::load_default_config() {
+    TLX_LOG1 << "foxxll: Using default disk configuration.";
+    foxxll::disk_config entry1(
+        default_disk_path(), 1000 * 1024 * 1024, default_disk_io_impl());
+    entry1.unlink_on_open = true;
+    entry1.autogrow = true;
+    add_disk(entry1);
+}
+
+std::string FoxxllConfig::default_disk_path() {
+#if !FOXXLL_WINDOWS
+    int pid = getpid();
+    return "/var/tmp/thrill." + common::to_str(pid) + ".tmp";
+#else
+    DWORD pid = GetCurrentProcessId();
+    char* tmpstr = new char[255];
+    if (GetTempPathA(255, tmpstr) == 0)
+        FOXXLL_THROW_WIN_LASTERROR(resource_error, "GetTempPathA()");
+    std::string result = tmpstr;
+    result += "thrill." + common::to_str(pid) + ".tmp";
+    delete[] tmpstr;
+    return result;
+#endif
+}
+
+std::string FoxxllConfig::default_config_file_name() {
+    return ".thrill";
+}
+
+void RunSetupFoxxll() {
+    // install derived config instance in foxxll's singleton
+    foxxll::config::create_instance<FoxxllConfig>();
+}
+
+/*----------------------------------------------------------------------------*/
+
 int Run(const std::function<void(Context&)>& job_startpoint) {
+
+    common::NameThisThread("main");
 
     if (RunCheckDieWithParent() < 0)
         return -1;
 
     if (RunCheckUnlinkBinary() < 0)
         return -1;
+
+    RunSetupFoxxll();
 
     // parse environment: THRILL_NET
     const char* env_net = getenv("THRILL_NET");
