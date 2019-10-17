@@ -62,6 +62,10 @@ void MixBlockQueue::Close(size_t src) {
     mix_queue_.emplace(SrcBlockPair { src, Block() });
 }
 
+bool MixBlockQueue::is_queue_closed(size_t src) {
+    return write_closed_[src];
+}
+
 MixBlockQueue::SrcBlockPair MixBlockQueue::Pop() {
     if (read_open_ == 0)
         return SrcBlockPair {

@@ -87,6 +87,11 @@ public:
     //! sequence number in Stream
     uint32_t seq = 0;
 
+    //! virtual worker which receives all-close messages
+    static const uint32_t all_workers = uint32_t(-1);
+    //! final sequence number
+    static const uint32_t final_seq = uint32_t(-1);
+
     StreamMultiplexerHeader() = default;
 
     explicit StreamMultiplexerHeader(
@@ -107,6 +112,11 @@ public:
     //! Indicates if this is the end-of-line block header
     bool IsEnd() const {
         return size == 0;
+    }
+
+    //! Indicates if this message is for all local workers
+    bool IsAllWorkers() const {
+        return receiver_local_worker == all_workers;
     }
 
     //! Calculate the sender host_rank from sender_worker and workers_per_host.

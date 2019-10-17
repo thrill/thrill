@@ -25,10 +25,12 @@
 namespace thrill {
 namespace data {
 
-CatStreamData::CatStreamData(Multiplexer& multiplexer, size_t send_size_limit,
+CatStreamData::CatStreamData(StreamSetBase* stream_set_base,
+                             Multiplexer& multiplexer, size_t send_size_limit,
                              const StreamId& id,
                              size_t local_worker_id, size_t dia_id)
-    : StreamData(multiplexer, send_size_limit, id, local_worker_id, dia_id) {
+    : StreamData(stream_set_base, multiplexer,
+                 send_size_limit, id, local_worker_id, dia_id) {
 
     remaining_closing_blocks_ = (num_hosts() - 1) * workers_per_host();
 
@@ -78,6 +80,10 @@ void CatStreamData::set_dia_id(size_t dia_id) {
     for (size_t i = 0; i < queues_.size(); ++i) {
         queues_[i].set_dia_id(dia_id);
     }
+}
+
+const char* CatStreamData::stream_type() {
+    return "CatStream";
 }
 
 CatStreamData::Writers CatStreamData::GetWriters() {
@@ -201,9 +207,7 @@ void CatStreamData::Close() {
     for (size_t i = 0; i < queues_.size() - workers_per_host(); ++i)
         sem_closing_blocks_.wait();
 
-    tx_lifetime_.StopEventually();
-    tx_timespan_.StopEventually();
-    OnAllClosed("CatStreamData");
+    die_unless(all_writers_closed_);
 
     {
         std::unique_lock<std::mutex> lock(multiplexer_.mutex_);
@@ -224,6 +228,10 @@ bool CatStreamData::closed() const {
     return closed;
 }
 
+bool CatStreamData::is_queue_closed(size_t from) {
+    return queues_[from].write_closed();
+}
+
 struct CatStreamData::SeqReordering {
     //! current top sequence number
     uint32_t                  seq_ = 0;
@@ -236,10 +244,6 @@ void CatStreamData::OnStreamBlock(size_t from, uint32_t seq, Block&& b) {
     assert(from < queues_.size());
     rx_timespan_.StartEventually();
 
-    rx_net_items_ += b.num_items();
-    rx_net_bytes_ += b.size();
-    rx_net_blocks_++;
-
     LOG << "OnCatStreamBlock"
         << " from=" << from
         << " seq=" << seq
@@ -250,7 +254,8 @@ void CatStreamData::OnStreamBlock(size_t from, uint32_t seq, Block&& b) {
              << tlx::hexdump(b.PinWait(local_worker_id_).ToString());
     }
 
-    if (TLX_UNLIKELY(seq != seq_[from].seq_)) {
+    if (TLX_UNLIKELY(seq != seq_[from].seq_ &&
+                     seq != StreamMultiplexerHeader::final_seq)) {
         // sequence mismatch: put into queue
         die_unless(seq >= seq_[from].seq_);
 
@@ -264,7 +269,8 @@ void CatStreamData::OnStreamBlock(size_t from, uint32_t seq, Block&& b) {
 
     // try to process additional queued blocks
     while (!seq_[from].waiting_.empty() &&
-           seq_[from].waiting_.begin()->first == seq_[from].seq_)
+           (seq_[from].waiting_.begin()->first == seq_[from].seq_ ||
+            seq_[from].waiting_.begin()->first == StreamMultiplexerHeader::final_seq))
     {
         sLOG << "CatStreamData::OnStreamBlock"
              << "processing delayed block with seq"
@@ -280,6 +286,10 @@ void CatStreamData::OnStreamBlock(size_t from, uint32_t seq, Block&& b) {
 
 void CatStreamData::OnStreamBlockOrdered(size_t from, Block&& b) {
     if (b.IsValid()) {
+        rx_net_items_ += b.num_items();
+        rx_net_bytes_ += b.size();
+        rx_net_blocks_++;
+
         queues_[from].AppendBlock(std::move(b), /* is_last_block */ false);
     }
     else {

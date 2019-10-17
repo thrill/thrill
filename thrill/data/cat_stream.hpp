@@ -69,7 +69,8 @@ public:
     using Handle = CatStream;
 
     //! Creates a new stream instance
-    CatStreamData(Multiplexer& multiplexer, size_t send_size_limit,
+    CatStreamData(StreamSetBase* stream_set_base,
+                  Multiplexer& multiplexer, size_t send_size_limit,
                   const StreamId& id, size_t local_worker_id, size_t dia_id);
 
     //! non-copyable: delete copy-constructor
@@ -80,6 +81,9 @@ public:
     CatStreamData(CatStreamData&&) = default;
 
     ~CatStreamData() final;
+
+    //! return stream type string
+    const char * stream_type() final;
 
     //! change dia_id after construction (needed because it may be unknown at
     //! construction)
@@ -111,6 +115,9 @@ public:
     //! Indicates if the stream is closed - meaning all remaining streams have
     //! been closed. This does *not* include the loopback stream
     bool closed() const final;
+
+    //! check if inbound queue is closed
+    bool is_queue_closed(size_t from);
 
 private:
     bool is_closed_ = false;

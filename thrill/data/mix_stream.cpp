@@ -24,10 +24,12 @@
 namespace thrill {
 namespace data {
 
-MixStreamData::MixStreamData(Multiplexer& multiplexer, size_t send_size_limit,
+MixStreamData::MixStreamData(StreamSetBase* stream_set_base,
+                             Multiplexer& multiplexer, size_t send_size_limit,
                              const StreamId& id,
                              size_t local_worker_id, size_t dia_id)
-    : StreamData(multiplexer, send_size_limit, id, local_worker_id, dia_id),
+    : StreamData(stream_set_base, multiplexer,
+                 send_size_limit, id, local_worker_id, dia_id),
       seq_(num_workers()),
       queue_(multiplexer_.block_pool_, num_workers(),
              local_worker_id, dia_id) {
@@ -41,6 +43,10 @@ MixStreamData::~MixStreamData() {
 void MixStreamData::set_dia_id(size_t dia_id) {
     dia_id_ = dia_id;
     queue_.set_dia_id(dia_id);
+}
+
+const char* MixStreamData::stream_type() {
+    return "MixStream";
 }
 
 MixStreamData::Writers MixStreamData::GetWriters() {
@@ -127,9 +133,7 @@ void MixStreamData::Close() {
         sem_closing_blocks_.wait();
     }
 
-    tx_lifetime_.StopEventually();
-    tx_timespan_.StopEventually();
-    OnAllClosed("MixStreamData");
+    die_unless(all_writers_closed_);
 
     {
         std::unique_lock<std::mutex> lock(multiplexer_.mutex_);
@@ -149,6 +153,10 @@ bool MixStreamData::closed() const {
     return closed;
 }
 
+bool MixStreamData::is_queue_closed(size_t from) {
+    return queue_.is_queue_closed(from);
+}
+
 struct MixStreamData::SeqReordering {
     //! current top sequence number
     uint32_t                  seq_ = 0;
@@ -161,16 +169,13 @@ void MixStreamData::OnStreamBlock(size_t from, uint32_t seq, Block&& b) {
     assert(from < num_workers());
     rx_timespan_.StartEventually();
 
-    rx_net_items_ += b.num_items();
-    rx_net_bytes_ += b.size();
-    rx_net_blocks_++;
-
     sLOG << "MixStreamData::OnStreamBlock" << b
          << "stream" << id_
          << "from" << from
          << "for worker" << my_worker_rank();
 
-    if (TLX_UNLIKELY(seq != seq_[from].seq_)) {
+    if (TLX_UNLIKELY(seq != seq_[from].seq_ &&
+                     seq != StreamMultiplexerHeader::final_seq)) {
         // sequence mismatch: put into queue
         die_unless(seq >= seq_[from].seq_);
 
@@ -183,7 +188,8 @@ void MixStreamData::OnStreamBlock(size_t from, uint32_t seq, Block&& b) {
 
     // try to process additional queued blocks
     while (!seq_[from].waiting_.empty() &&
-           seq_[from].waiting_.begin()->first == seq_[from].seq_)
+           (seq_[from].waiting_.begin()->first == seq_[from].seq_ ||
+            seq_[from].waiting_.begin()->first == StreamMultiplexerHeader::final_seq))
     {
         sLOG << "MixStreamData::OnStreamBlock"
              << "processing delayed block with seq"
@@ -200,6 +206,10 @@ void MixStreamData::OnStreamBlock(size_t from, uint32_t seq, Block&& b) {
 void MixStreamData::OnStreamBlockOrdered(size_t from, Block&& b) {
     // sequence number matches
     if (b.IsValid()) {
+        rx_net_items_ += b.num_items();
+        rx_net_bytes_ += b.size();
+        rx_net_blocks_++;
+
         queue_.AppendBlock(from, std::move(b));
     }
     else {
