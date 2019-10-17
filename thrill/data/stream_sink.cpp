@@ -274,35 +274,6 @@ void StreamSink::Close() {
             my_worker_rank(), block_counter_ - 1, Block());
     }
 
-#if 0
-    StreamMultiplexerHeader header;
-    header.magic = magic_;
-    header.stream_id = id_;
-    header.sender_worker = (host_rank_ * workers_per_host()) + local_worker_id_;
-    header.receiver_local_worker = peer_local_worker_;
-    header.seq = block_counter_ - 1;
-
-    net::BufferBuilder bb;
-    header.Serialize(bb);
-
-    net::Buffer buffer = bb.ToBuffer();
-    assert(buffer.size() == MultiplexerHeader::total_size);
-
-    stream_->sem_queue_.wait(MultiplexerHeader::total_size);
-
-    // StreamData statistics for network transfer
-    stream_->tx_net_bytes_ += buffer.size();
-    stream_->tx_net_blocks_++;
-    byte_counter_ += buffer.size();
-
-    stream_->multiplexer_.dispatcher_.AsyncWrite(
-        *connection_, 42 + (connection_->tx_seq_.fetch_add(2) & 0xFFFF),
-        std::move(buffer),
-        [s = stream_](net::Connection&) {
-            s->sem_queue_.signal(MultiplexerHeader::total_size);
-        });
-#endif
-
     stream_->OnWriterClosed(peer_worker_rank(), /* sent */ false);
 
     Finalize();

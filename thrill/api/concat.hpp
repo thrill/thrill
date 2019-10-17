@@ -223,8 +223,6 @@ public:
 
         sLOG << "local_ranks" << local_ranks;
 
-        this->logger_ << "class" << "StageBuilder" << "event" << "scatter";
-
         streams_.reserve(num_inputs_);
         for (size_t i = 0; i < num_inputs_; ++i)
             streams_.emplace_back(context_.GetNewCatStream(this));
