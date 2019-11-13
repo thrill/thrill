@@ -19,13 +19,33 @@ namespace thrill {
 namespace api {
 
 template <typename ValueType, typename Stack>
+ValueType DIA<ValueType, Stack>::Min() const {
+    assert(IsValid());
+
+    using MinNode = api::AllReduceNode<ValueType, common::minimum<ValueType> >;
+    auto node = tlx::make_counting<MinNode>(*this, "Min");
+    node->RunScope();
+    return node->result();
+}
+
+template <typename ValueType, typename Stack>
 ValueType DIA<ValueType, Stack>::Min(const ValueType& initial_value) const {
     assert(IsValid());
 
     using MinNode = api::AllReduceNode<ValueType, common::minimum<ValueType> >;
-    auto node = tlx::make_counting<MinNode>(*this, "Min", initial_value);
+    auto node = tlx::make_counting<MinNode>(
+        *this, "Min", initial_value, /* with_initial_value */ true);
     node->RunScope();
     return node->result();
+}
+
+template <typename ValueType, typename Stack>
+Future<ValueType> DIA<ValueType, Stack>::MinFuture() const {
+    assert(IsValid());
+
+    using MinNode = api::AllReduceNode<ValueType, common::minimum<ValueType> >;
+    auto node = tlx::make_counting<MinNode>(*this, "Min");
+    return Future<ValueType>(node);
 }
 
 template <typename ValueType, typename Stack>
@@ -34,7 +54,8 @@ Future<ValueType> DIA<ValueType, Stack>::MinFuture(
     assert(IsValid());
 
     using MinNode = api::AllReduceNode<ValueType, common::minimum<ValueType> >;
-    auto node = tlx::make_counting<MinNode>(*this, "Min", initial_value);
+    auto node = tlx::make_counting<MinNode>(
+        *this, "Min", initial_value, /* with_initial_value */ true);
     return Future<ValueType>(node);
 }
 

@@ -19,13 +19,33 @@ namespace thrill {
 namespace api {
 
 template <typename ValueType, typename Stack>
+ValueType DIA<ValueType, Stack>::Max() const {
+    assert(IsValid());
+
+    using MaxNode = api::AllReduceNode<ValueType, common::maximum<ValueType> >;
+    auto node = tlx::make_counting<MaxNode>(*this, "Max");
+    node->RunScope();
+    return node->result();
+}
+
+template <typename ValueType, typename Stack>
 ValueType DIA<ValueType, Stack>::Max(const ValueType& initial_value) const {
     assert(IsValid());
 
     using MaxNode = api::AllReduceNode<ValueType, common::maximum<ValueType> >;
-    auto node = tlx::make_counting<MaxNode>(*this, "Max", initial_value);
+    auto node = tlx::make_counting<MaxNode>(
+        *this, "Max", initial_value, /* with_initial_value */ true);
     node->RunScope();
     return node->result();
+}
+
+template <typename ValueType, typename Stack>
+Future<ValueType> DIA<ValueType, Stack>::MaxFuture() const {
+    assert(IsValid());
+
+    using MaxNode = api::AllReduceNode<ValueType, common::maximum<ValueType> >;
+    auto node = tlx::make_counting<MaxNode>(*this, "Max");
+    return Future<ValueType>(node);
 }
 
 template <typename ValueType, typename Stack>
@@ -34,7 +54,8 @@ Future<ValueType> DIA<ValueType, Stack>::MaxFuture(
     assert(IsValid());
 
     using MaxNode = api::AllReduceNode<ValueType, common::maximum<ValueType> >;
-    auto node = tlx::make_counting<MaxNode>(*this, "Max", initial_value);
+    auto node = tlx::make_counting<MaxNode>(
+        *this, "Max", initial_value, /* with_initial_value */ true);
     return Future<ValueType>(node);
 }
 

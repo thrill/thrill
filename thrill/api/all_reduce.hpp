@@ -36,12 +36,14 @@ public:
     template <typename ParentDIA>
     AllReduceNode(const ParentDIA& parent,
                   const char* label,
-                  const ValueType& initial_value,
+                  const ValueType& initial_value = ValueType(),
+                  bool with_initial_value = false,
                   const ReduceFunction& reduce_function = ReduceFunction())
         : Super(parent.ctx(), label, { parent.id() }, { parent.node() }),
           reduce_function_(reduce_function),
           sum_(initial_value),
-          first_(parent.ctx().my_rank() != 0) {
+          // add to initial value if defined and we are first worker
+          first_(!(with_initial_value && parent.ctx().my_rank() == 0)) {
         // Hook PreOp(s)
         auto pre_op_fn = [this](const ValueType& input) {
                              PreOp(input);
@@ -85,6 +87,41 @@ private:
 template <typename ValueType, typename Stack>
 template <typename ReduceFunction>
 ValueType DIA<ValueType, Stack>::AllReduce(
+    const ReduceFunction& sum_function) const {
+    assert(IsValid());
+
+    using AllReduceNode = api::AllReduceNode<ValueType, ReduceFunction>;
+
+    static_assert(
+        std::is_convertible<
+            ValueType,
+            typename FunctionTraits<ReduceFunction>::template arg<0> >::value,
+        "ReduceFunction has the wrong input type");
+
+    static_assert(
+        std::is_convertible<
+            ValueType,
+            typename FunctionTraits<ReduceFunction>::template arg<1> >::value,
+        "ReduceFunction has the wrong input type");
+
+    static_assert(
+        std::is_convertible<
+            typename FunctionTraits<ReduceFunction>::result_type,
+            ValueType>::value,
+        "ReduceFunction has the wrong input type");
+
+    auto node = tlx::make_counting<AllReduceNode>(
+        *this, "AllReduce", ValueType(), /* with_initial_value */ false,
+        sum_function);
+
+    node->RunScope();
+
+    return node->result();
+}
+
+template <typename ValueType, typename Stack>
+template <typename ReduceFunction>
+ValueType DIA<ValueType, Stack>::AllReduce(
     const ReduceFunction& sum_function, const ValueType& initial_value) const {
     assert(IsValid());
 
@@ -109,11 +146,45 @@ ValueType DIA<ValueType, Stack>::AllReduce(
         "ReduceFunction has the wrong input type");
 
     auto node = tlx::make_counting<AllReduceNode>(
-        *this, "AllReduce", initial_value, sum_function);
+        *this, "AllReduce", initial_value, /* with_initial_value */ true,
+        sum_function);
 
     node->RunScope();
 
     return node->result();
+}
+
+template <typename ValueType, typename Stack>
+template <typename ReduceFunction>
+Future<ValueType> DIA<ValueType, Stack>::AllReduceFuture(
+    const ReduceFunction& sum_function) const {
+    assert(IsValid());
+
+    using AllReduceNode = api::AllReduceNode<ValueType, ReduceFunction>;
+
+    static_assert(
+        std::is_convertible<
+            ValueType,
+            typename FunctionTraits<ReduceFunction>::template arg<0> >::value,
+        "ReduceFunction has the wrong input type");
+
+    static_assert(
+        std::is_convertible<
+            ValueType,
+            typename FunctionTraits<ReduceFunction>::template arg<1> >::value,
+        "ReduceFunction has the wrong input type");
+
+    static_assert(
+        std::is_convertible<
+            typename FunctionTraits<ReduceFunction>::result_type,
+            ValueType>::value,
+        "ReduceFunction has the wrong input type");
+
+    auto node = tlx::make_counting<AllReduceNode>(
+        *this, "AllReduce", ValueType(), /* with_initial_value */ false,
+        sum_function);
+
+    return Future<ValueType>(node);
 }
 
 template <typename ValueType, typename Stack>
@@ -143,7 +214,8 @@ Future<ValueType> DIA<ValueType, Stack>::AllReduceFuture(
         "ReduceFunction has the wrong input type");
 
     auto node = tlx::make_counting<AllReduceNode>(
-        *this, "AllReduce", initial_value, sum_function);
+        *this, "AllReduce", initial_value, /* with_initial_value */ true,
+        sum_function);
 
     return Future<ValueType>(node);
 }

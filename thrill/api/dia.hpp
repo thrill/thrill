@@ -585,8 +585,39 @@ public:
      * \ingroup dia_actions
      */
     template <typename ReduceFunction>
+    ValueType AllReduce(const ReduceFunction& reduce_function) const;
+
+    /*!
+     * AllReduce is an Action, which computes the reduction sum of all elements
+     * globally and delivers the same value on all workers.
+     *
+     * \image html dia_ops/AllReduce.svg
+     *
+     * \param reduce_function Reduce function.
+     *
+     * \param initial_value Initial value of the reduction.
+     *
+     * \ingroup dia_actions
+     */
+    template <typename ReduceFunction>
     ValueType AllReduce(const ReduceFunction& reduce_function,
-                        const ValueType& initial_value = ValueType()) const;
+                        const ValueType& initial_value) const;
+
+    /*!
+     * AllReduce is an ActionFuture, which computes the reduction sum of
+     * all elements globally and delivers the same value on all workers.
+     *
+     * \image html dia_ops/AllReduce.svg
+     *
+     * \param reduce_function Reduce function.
+     *
+     * \param initial_value Initial value of the reduction.
+     *
+     * \ingroup dia_actions
+     */
+    template <typename ReduceFunction>
+    Future<ValueType> AllReduceFuture(
+        const ReduceFunction& reduce_function) const;
 
     /*!
      * AllReduce is an ActionFuture, which computes the reduction sum of
@@ -603,7 +634,7 @@ public:
     template <typename ReduceFunction>
     Future<ValueType> AllReduceFuture(
         const ReduceFunction& reduce_function,
-        const ValueType& initial_value = ValueType()) const;
+        const ValueType& initial_value) const;
 
     /*!
      * Sum is an Action, which computes the sum of all elements globally.
@@ -617,8 +648,22 @@ public:
      * \ingroup dia_actions
      */
     template <typename SumFunction = std::plus<ValueType> >
-    ValueType Sum(const SumFunction& sum_function = SumFunction(),
-                  const ValueType& initial_value = ValueType()) const;
+    ValueType Sum(const SumFunction& sum_function = SumFunction()) const;
+
+    /*!
+     * Sum is an Action, which computes the sum of all elements globally.
+     *
+     * \image html dia_ops/Sum.svg
+     *
+     * \param sum_function Sum function.
+     *
+     * \param initial_value Initial value of the sum.
+     *
+     * \ingroup dia_actions
+     */
+    template <typename SumFunction = std::plus<ValueType> >
+    ValueType Sum(const SumFunction& sum_function,
+                  const ValueType& initial_value) const;
 
     /*!
      * Sum is an ActionFuture, which computes the sum of all elements
@@ -642,11 +687,30 @@ public:
      *
      * \image html dia_ops/Sum.svg
      *
+     * \ingroup dia_actions
+     */
+    ValueType Min() const;
+
+    /*!
+     * Min is an Action, which computes the minimum of all elements globally.
+     *
+     * \image html dia_ops/Sum.svg
+     *
      * \param initial_value Initial value of the min.
      *
      * \ingroup dia_actions
      */
-    ValueType Min(const ValueType& initial_value = ValueType()) const;
+    ValueType Min(const ValueType& initial_value) const;
+
+    /*!
+     * Min is an ActionFuture, which computes the minimum of all elements
+     * globally.
+     *
+     * \image html dia_ops/Sum.svg
+     *
+     * \ingroup dia_actions
+     */
+    Future<ValueType> MinFuture() const;
 
     /*!
      * Min is an ActionFuture, which computes the minimum of all elements
@@ -658,8 +722,16 @@ public:
      *
      * \ingroup dia_actions
      */
-    Future<ValueType> MinFuture(
-        const ValueType& initial_value = ValueType()) const;
+    Future<ValueType> MinFuture(const ValueType& initial_value) const;
+
+    /*!
+     * Max is an Action, which computes the maximum of all elements globally.
+     *
+     * \image html dia_ops/Sum.svg
+     *
+     * \ingroup dia_actions
+     */
+    ValueType Max() const;
 
     /*!
      * Max is an Action, which computes the maximum of all elements globally.
@@ -670,7 +742,17 @@ public:
      *
      * \ingroup dia_actions
      */
-    ValueType Max(const ValueType& initial_value = ValueType()) const;
+    ValueType Max(const ValueType& initial_value) const;
+
+    /*!
+     * Max is an ActionFuture, which computes the maximum of all elements
+     * globally.
+     *
+     * \image html dia_ops/Sum.svg
+     *
+     * \ingroup dia_actions
+     */
+    Future<ValueType> MaxFuture() const;
 
     /*!
      * Max is an ActionFuture, which computes the maximum of all elements
@@ -682,8 +764,7 @@ public:
      *
      * \ingroup dia_actions
      */
-    Future<ValueType> MaxFuture(
-        const ValueType& initial_value = ValueType()) const;
+    Future<ValueType> MaxFuture(const ValueType& initial_value) const;
 
     /*!
      * Compute the approximate number of distinct elements in the DIA.

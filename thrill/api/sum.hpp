@@ -20,6 +20,40 @@ namespace api {
 
 template <typename ValueType, typename Stack>
 template <typename SumFunction>
+ValueType DIA<ValueType, Stack>::Sum(const SumFunction& sum_function) const {
+    assert(IsValid());
+
+    using SumNode = api::AllReduceNode<ValueType, SumFunction>;
+
+    static_assert(
+        std::is_convertible<
+            ValueType,
+            typename FunctionTraits<SumFunction>::template arg<0> >::value,
+        "SumFunction has the wrong input type");
+
+    static_assert(
+        std::is_convertible<
+            ValueType,
+            typename FunctionTraits<SumFunction>::template arg<1> >::value,
+        "SumFunction has the wrong input type");
+
+    static_assert(
+        std::is_convertible<
+            typename FunctionTraits<SumFunction>::result_type,
+            ValueType>::value,
+        "SumFunction has the wrong input type");
+
+    auto node = tlx::make_counting<SumNode>(
+        *this, "Sum", ValueType(), /* with_initial_value */ false,
+        sum_function);
+
+    node->RunScope();
+
+    return node->result();
+}
+
+template <typename ValueType, typename Stack>
+template <typename SumFunction>
 ValueType DIA<ValueType, Stack>::Sum(
     const SumFunction& sum_function, const ValueType& initial_value) const {
     assert(IsValid());
@@ -45,7 +79,8 @@ ValueType DIA<ValueType, Stack>::Sum(
         "SumFunction has the wrong input type");
 
     auto node = tlx::make_counting<SumNode>(
-        *this, "Sum", initial_value, sum_function);
+        *this, "Sum", initial_value, /* with_initial_value */ true,
+        sum_function);
 
     node->RunScope();
 
@@ -79,7 +114,8 @@ Future<ValueType> DIA<ValueType, Stack>::SumFuture(
         "SumFunction has the wrong input type");
 
     auto node = tlx::make_counting<SumNode>(
-        *this, "Sum", initial_value, sum_function);
+        *this, "Sum", initial_value, /* with_initial_value */ true,
+        sum_function);
 
     return Future<ValueType>(node);
 }
