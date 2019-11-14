@@ -580,8 +580,6 @@ public:
      *
      * \param reduce_function Reduce function.
      *
-     * \param initial_value Initial value of the reduction.
-     *
      * \ingroup dia_actions
      */
     template <typename ReduceFunction>
@@ -610,8 +608,6 @@ public:
      * \image html dia_ops/AllReduce.svg
      *
      * \param reduce_function Reduce function.
-     *
-     * \param initial_value Initial value of the reduction.
      *
      * \ingroup dia_actions
      */
@@ -642,8 +638,6 @@ public:
      * \image html dia_ops/Sum.svg
      *
      * \param sum_function Sum function.
-     *
-     * \param initial_value Initial value of the sum.
      *
      * \ingroup dia_actions
      */
