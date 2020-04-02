@@ -34,13 +34,15 @@ void DIA<ValueType, Stack>::Print(const std::string& name, std::ostream& os) con
 
     if (node->context().my_rank() == 0)
     {
-        os << name
-           << " --- Begin DIA.Print() --- size=" << output.size() << '\n';
+        if (!name.empty())
+            os << name << ' ';
+        os << "--- Begin DIA.Print() --- size=" << output.size() << '\n';
         for (size_t i = 0; i < output.size(); ++i) {
             os << name << '[' << i << "]: " << output[i] << '\n';
         }
-        os << name
-           << " --- End DIA.Print() --- size=" << output.size() << std::endl;
+        if (!name.empty())
+            os << name << ' ';
+        os << "--- End DIA.Print() --- size=" << output.size() << std::endl;
     }
 }
 

@@ -538,7 +538,7 @@ public:
      *
      * \ingroup dia_actions
      */
-    void Print(const std::string& name) const;
+    void Print(const std::string& name = std::string()) const;
 
     /*!
      * Print is an Action, which collects all data of the DIA at the worker 0
