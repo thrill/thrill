@@ -3,13 +3,41 @@
 language: cpp
 
 sudo: false
-dist: trusty
+dist: bionic
+
+env:
+  global:
+    # LeakSanitizer suppressions
+    - LSAN_OPTIONS="suppressions=$PWD/misc/leak_sanitizer.supp"
+    # die on ThreadSanitizer errors
+    - TSAN_OPTIONS="halt_on_error=1"
+    # change THRILL_TRY_COMPILE_HEADERS cmake setting
+    - THRILL_TRY_COMPILE_HEADERS=ON
 
 matrix:
   include:
-    # gcc 4.9 with AddressSanitizer, Debug
-    - env: CMAKE_CC="gcc-4.9" CMAKE_CXX="g++-4.9" BUILD_TYPE="Debug" COMPILER_FLAGS="-fsanitize=address" CMAKE_ARGS="-DTHRILL_TRY_COMPILE_HEADERS=OFF"
+    # gcc 8.x, Debug & Release, with OpenMPI
+    - env: CMAKE_CC="gcc-8" CMAKE_CXX="g++-8" BUILD_TYPE="Debug" COMPILER_FLAGS="-O1"
       os: linux
+      addons: &gcc8
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-8
+            - openmpi-bin
+            - libopenmpi-dev
+            - libbz2-dev
+            - libssl-dev
+
+    - env: CMAKE_CC="gcc-8" CMAKE_CXX="g++-8" BUILD_TYPE="Release" COMPILER_FLAGS=""
+      os: linux
+      addons: *gcc8
+
+    # gcc 4.9 with AddressSanitizer, Debug, skip headers for speed
+    - env: CMAKE_CC="gcc-4.9" CMAKE_CXX="g++-4.9" BUILD_TYPE="Debug" COMPILER_FLAGS="-fsanitize=address" THRILL_TRY_COMPILE_HEADERS=OFF
+      os: linux
+      dist: trusty
       addons:
         apt:
           sources:
@@ -18,82 +46,33 @@ matrix:
            - g++-4.9
            - libssl-dev
 
-    # gcc 5.x, Debug & Release, with OpenMPI
-    - env: CMAKE_CC="gcc-5" CMAKE_CXX="g++-5" BUILD_TYPE="Debug" COMPILER_FLAGS="-O1"
+    # gcc 9 Debug with -O1 and -D_GLIBCXX_DEBUG, skip headers for speed
+    - env: CMAKE_CC="gcc-9" CMAKE_CXX="g++-9" BUILD_TYPE="Debug" COMPILER_FLAGS="-O1 -D_GLIBCXX_DEBUG" THRILL_TRY_COMPILE_HEADERS=OFF
       os: linux
-      addons: &gcc5
+      addons: &gcc9
         apt:
           sources:
             - ubuntu-toolchain-r-test
           packages:
-            - g++-5
-            - mpich
-            - libmpich-dev
+            - g++-9
             - libbz2-dev
             - libssl-dev
 
-    - env: CMAKE_CC="gcc-5" CMAKE_CXX="g++-5" BUILD_TYPE="Release" COMPILER_FLAGS=""
-      os: linux
-      addons: *gcc5
-
-    # gcc 6.x, Debug with -O1
-    - env: CMAKE_CC="gcc-6" CMAKE_CXX="g++-6" BUILD_TYPE="Debug" COMPILER_FLAGS="-O1"
-      os: linux
-      addons: &gcc6
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - g++-6
-            - libbz2-dev
-            - libssl-dev
-
-    # gcc 7.x, Debug with -O1 and -D_GLIBCXX_DEBUG
-    - env: CMAKE_CC="gcc-7" CMAKE_CXX="g++-7" BUILD_TYPE="Debug" COMPILER_FLAGS="-O1 -D_GLIBCXX_DEBUG"
-      os: linux
-      addons: &gcc7
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - g++-7
-            - libbz2-dev
-            - libssl-dev
-
-    # clang 3.7 without AddressSanitizer, Debug & Release
-    - env: CMAKE_CC="clang-3.7" CMAKE_CXX="clang++-3.7" BUILD_TYPE="Debug" COMPILER_FLAGS="" CMAKE_ARGS="-DTHRILL_FULL_BUILD=ON" BUILD_DOXYGEN="1"
+    # clang (default version), Debug with -O1
+    - env: CMAKE_CC="clang" CMAKE_CXX="clang++" BUILD_TYPE="Release" COMPILER_FLAGS="-O1" BUILD_DOXYGEN="1"
       os: linux
       addons: &clang37
         apt:
-          sources:
-            - ubuntu-toolchain-r-test
-            - llvm-toolchain-precise-3.7
-            - george-edison55-precise-backports # doxygen 1.8.3
           packages:
-            - clang-3.7
             - libbz2-dev
             - libssl-dev
             - doxygen
             - graphviz
 
-    # clang 3.7 without AddressSanitizer (there are some system-dependent LeakSanitizer errors)
-    - env: CMAKE_CC="clang-3.7" CMAKE_CXX="clang++-3.7" BUILD_TYPE="Release" COMPILER_FLAGS="" CMAKE_ARGS="-DTHRILL_FULL_BUILD=ON"
-      os: linux
-      addons: *clang37
-
-    # clang 3.7 on MacOSX without AddressSanitizer, Debug & Release, not FULL_BUILD
-    - env: CMAKE_CC="clang" CMAKE_CXX="clang++" BUILD_TYPE="Debug" COMPILER_FLAGS=""
-      os: osx
-
-    - env: CMAKE_CC="clang" CMAKE_CXX="clang++" BUILD_TYPE="Release" COMPILER_FLAGS=""
-      os: osx
-
-env:
-  global:
-    # LeakSanitizer suppressions
-    - LSAN_OPTIONS="suppressions=$PWD/misc/leak_sanitizer.supp"
-    # die on ThreadSanitizer errors
-    - TSAN_OPTIONS="halt_on_error=1"
+    # # Tests on MacOS randomly fail, unclear if it is Thrill or MacOS
+    # # clang on MacOS only Debug with -O1
+    # - env: CMAKE_CC="clang" CMAKE_CXX="clang++" BUILD_TYPE="Debug" COMPILER_FLAGS="-O1"
+    #   os: osx
 
 before_script:
 
@@ -118,7 +97,7 @@ before_script:
       -DTHRILL_BUILD_TESTS=ON
       -DTHRILL_BUILD_EXAMPLES=ON
       -DTHRILL_BUILD_EXAMPLES_MORE=ON
-      -DTHRILL_TRY_COMPILE_HEADERS=ON
+      -DTHRILL_TRY_COMPILE_HEADERS="$THRILL_TRY_COMPILE_HEADERS"
       -DTHRILL_ON_TRAVIS=ON
       $CMAKE_ARGS ..
 
@@ -134,8 +113,7 @@ script:
       -DCTEST_BUILD_NAME:STRING="$TRAVIS_OS_NAME-$CMAKE_CC-$BUILD_TYPE"
       -S ../misc/cmake/script.ctest -VV
 
-# Generate and deploy documentation
-after_success:
+  # Generate and deploy documentation
   - cd $TRAVIS_BUILD_DIR
   - if [ -n "$BUILD_DOXYGEN" -a "$TRAVIS_REPO_SLUG" == "thrill/thrill" -a "$TRAVIS_BRANCH" == "master" ]; then
       ./misc/doxygen/mk-doxygen-travis.sh;

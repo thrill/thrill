@@ -290,6 +290,19 @@ public:
     //! \}
 
     /*!
+     * Dispose of the DIANode's data.
+     */
+    const DIA& Dispose() const {
+        assert(IsValid());
+        if (node_->context().consume() && node_->consume_counter() == 0) {
+            die("Dispose() called on "
+                << *node_ << " which was already consumed.");
+        }
+        node_->Dispose();
+        return *this;
+    }
+
+    /*!
      * Mark the referenced DIANode for keeping, which makes children not consume
      * the data when executing. This does not create a new DIA, but returns the
      * existing one.
