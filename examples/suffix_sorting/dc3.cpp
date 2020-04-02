@@ -82,7 +82,7 @@ struct IndexChars {
     Index               index;
     Chars<AlphabetType> chars;
 
-    const AlphabetType& at_radix(size_t depth) const { return chars.ch[depth]; }
+    AlphabetType at_radix(size_t depth) const { return chars.ch[depth]; }
 
     friend std::ostream& operator << (std::ostream& os, const IndexChars& tc) {
         return os << '[' << tc.index << '|' << tc.chars << ']';
