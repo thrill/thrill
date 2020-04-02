@@ -397,8 +397,9 @@ endif()
 
 set(THRILL_LINK_LIBRARIES ${CMAKE_DL_LIBS} ${THRILL_LINK_LIBRARIES})
 
-# use tlx
+# use tlx - die() with exception instead of abort()
 
+add_definitions(-DTLX_DIE_WITH_EXCEPTION=1)
 add_subdirectory(extlib/tlx)
 set(THRILL_LINK_LIBRARIES tlx ${THRILL_LINK_LIBRARIES})
 
