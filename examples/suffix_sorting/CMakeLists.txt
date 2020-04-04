@@ -69,5 +69,10 @@ if(MSVC)
   # requires /bigobj flag to build
   set_target_properties(suffix_sorting PROPERTIES COMPILE_FLAGS /bigobj)
 endif()
+if(NOT MSVC)
+  # disable bogus warnings
+  set_source_files_properties(
+    dc3.cpp dc7.cpp PROPERTIES COMPILE_FLAGS "-Wno-maybe-uninitialized")
+endif()
 
 ################################################################################
