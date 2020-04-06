@@ -88,6 +88,8 @@ before_script:
       COMPILER_FLAGS="$COMPILER_FLAGS -Werror";
     fi
 
+  - COMPILER_FLAGS="$COMPILER_FLAGS -Werror";
+
   # configure
   - mkdir build; cd build
   - cmake
