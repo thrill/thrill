@@ -26,7 +26,7 @@ df
 set +x
 
 # set and export environment for Thrill
-THRILL_HOSTLIST=$(${slurm}/slurm_hostlist.sh | awk -f ${slurm}/map_ib0.awk)
+THRILL_HOSTLIST=$(${slurm}/slurm_hostlist.sh | ruby -e 'print STDIN.gets.chomp.split.each_with_index.map { |host, i| match = /(uc1|ic2)n(\d+)/.match(host); id = match[2].to_i; "172.26.#{{ "uc1" => 4, "ic2" => 20 }[match[1]] + id / 256}.#{id % 256}:#{51000 + i}" }.join(" ")')
 THRILL_NUM_HOSTS=$(echo $THRILL_HOSTLIST | wc -w)
 
 # fixup SLURM_NNODES on uc1 cluster

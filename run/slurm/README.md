@@ -26,4 +26,3 @@ Due to the shortcomings of the MOAB submission system, we have to write wrappers
 ## Other Scripts
 
 Other scripts contain small components that are used by the scripts mentioned above. These may have to be adapted to other HPC schedulers.
-`map_ib0.awk` maps the hostnames to the appropriate Infiniband IPs which Thrill should use to communicate.
