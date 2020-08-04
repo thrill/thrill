@@ -64,7 +64,7 @@ class TestOperations(unittest.TestCase):
             test_size = 1024
 
             dia1 = ctx.Generate(
-                lambda x: [int(x), "hello %d" % (x)], test_size)
+                test_size, lambda x: [int(x), "hello %d" % (x)])
             self.assertEqual(dia1.Size(), test_size)
 
             check = [[int(x), "hello %d" % (x)] for x in range(0, test_size)]
@@ -77,7 +77,7 @@ class TestOperations(unittest.TestCase):
         def test(ctx):
             test_size = 1024
 
-            dia1 = ctx.Generate(lambda x: int(x), test_size)
+            dia1 = ctx.Generate(test_size, lambda x: int(x))
             self.assertEqual(dia1.Size(), test_size)
 
             dia2 = dia1.Map(lambda x: [int(x), "hello %d" % (x)])
@@ -112,6 +112,21 @@ class TestOperations(unittest.TestCase):
 
         run_tests(test)
 
+    def test_generate_sum(self):
+
+        def test(ctx):
+            test_size = 16
+
+            dia1 = ctx.Generate(test_size, lambda x: int(x))
+
+            self.assertEqual(dia1.Size(), test_size)
+
+            sum = dia1.Sum(lambda x = 0, y = 0: (x + y))
+
+            self.assertEqual(120, sum)
+
+        run_tests(test)
+
     def my_generator(self, index):
         #print("generator at index", index)
         return (index, "hello at %d" % (index))
@@ -119,7 +134,7 @@ class TestOperations(unittest.TestCase):
     def my_thread(self, ctx):
         print("thread in python, rank", ctx.my_rank())
 
-        dia1 = ctx.Generate(lambda x: [int(x), x], 50)
+        dia1 = ctx.Generate(50, lambda x: [int(x), x])
         dia2 = dia1.Map(lambda x: (x[0], x[1] + " mapped"))
 
         s = dia2.Size()
@@ -128,8 +143,8 @@ class TestOperations(unittest.TestCase):
 
         print("AllGather:", dia2.AllGather())
 
-        dia3 = dia2.ReduceBy(lambda x: x[0] % 10,
-                             lambda x, y: (x + y))
+        dia3 = dia2.ReduceByKey(lambda x: x[0] % 10,
+                                lambda x, y: (x + y))
 
         print("dia3.Size:", dia3.Size())
         print("dia3.AllGather:", dia3.AllGather())

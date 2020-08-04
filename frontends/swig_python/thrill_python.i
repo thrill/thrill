@@ -28,6 +28,8 @@ using namespace thrill;
 %feature("director") KeyExtractorFunction;
 %feature("director") ReduceFunction;
 
+%feature("director") SumFunction;
+
 %feature("director:except") {
     if ($error != NULL) {
         // print backtrace
@@ -73,21 +75,22 @@ callback_wrapper('thrill::PyDIA::Map(MapFunction&) const',
 callback_wrapper('thrill::PyDIA::Filter(FilterFunction&) const',
                  'FilterFunction');
 ]]]*/
-%feature("pythonprepend") thrill::PyContext::Generate(GeneratorFunction&, size_t) %{
+%feature("pythonprepend") thrill::PyContext::Generate(size_t, GeneratorFunction&) %{
   wa = []
-  if not isinstance(args[0], GeneratorFunction) and callable(args[0]):
+  wa.append(args[0])
+  if not isinstance(args[1], GeneratorFunction) and callable(args[1]):
     class CallableWrapper(GeneratorFunction):
       def __init__(self, f):
         super(CallableWrapper, self).__init__()
         self.f_ = f
       def __call__(self, *args):
         return self.f_(*args)
-    wa.append(CallableWrapper(args[0]))
+    wa.append(CallableWrapper(args[1]))
   else:
-    wa.append(args[0])
-  wa.append(args[1])
+    wa.append(args[1])
   args = tuple(wa)
 %}
+
 %feature("pythonprepend") thrill::PyDIA::Map(MapFunction&) const %{
   wa = []
   if not isinstance(args[0], MapFunction) and callable(args[0]):
@@ -102,6 +105,7 @@ callback_wrapper('thrill::PyDIA::Filter(FilterFunction&) const',
     wa.append(args[0])
   args = tuple(wa)
 %}
+
 %feature("pythonprepend") thrill::PyDIA::Filter(FilterFunction&) const %{
   wa = []
   if not isinstance(args[0], FilterFunction) and callable(args[0]):
@@ -116,43 +120,75 @@ callback_wrapper('thrill::PyDIA::Filter(FilterFunction&) const',
     wa.append(args[0])
   args = tuple(wa)
 %}
+
+%feature("pythonprepend") thrill::PyDIA::Sum(SumFunction&) const %{
+  wa = []
+  if not isinstance(args[0], SumFunction) and callable(args[0]):
+    class CallableWrapper(SumFunction):
+      def __init__(self, f):
+        super(CallableWrapper, self).__init__()
+        self.f_ = f
+      def __call__(self, *args):
+        return self.f_(*args)
+    wa.append(CallableWrapper(args[0]))
+  else:
+    wa.append(args[0])
+  args = tuple(wa)
+%}
 // [[[end]]]
 
+// %define CallbackHelper(FunctionType,function_var) %{
+//    if not isinstance(function_var, FunctionType) and callable(function_var):
+//       class CallableWrapper(FunctionType):
+//          def __init__(self, f):
+//             super(CallableWrapper, self).__init__()
+//             self.f_ = f
+//          def __call__(self, *args):
+//             return self.f_(*args)
+//       function_var = CallableWrapper(function_var)
+// %}
+// %enddef
 
-%define CallbackHelper(FunctionType,function_var) %{
-   if not isinstance(function_var, FunctionType) and callable(function_var):
-      class CallableWrapper(FunctionType):
+// %define CallbackHelper2(FunctionType1,function_var1,FunctionType2,function_var2) %{
+//    if not isinstance(function_var1, FunctionType1) and callable(function_var1):
+//       class CallableWrapper(FunctionType1):
+//          def __init__(self, f):
+//             super(CallableWrapper, self).__init__()
+//             self.f_ = f
+//          def __call__(self, *args):
+//             return self.f_(*args)
+//       function_var1 = CallableWrapper(function_var1)
+//    if not isinstance(function_var2, FunctionType2) and callable(function_var2):
+//       class CallableWrapper(FunctionType2):
+//          def __init__(self, f):
+//             super(CallableWrapper, self).__init__()
+//             self.f_ = f
+//          def __call__(self, *args):
+//             return self.f_(*args)
+//       function_var2 = CallableWrapper(function_var2)
+// %}
+// %enddef
+
+%feature("pythonprepend") thrill::PyDIA::ReduceByKey(KeyExtractorFunction&, ReduceFunction&) const %{
+    wa = []
+    if not isinstance(args[0], KeyExtractorFunction) and callable(args[0]):
+      class CallableWrapper(KeyExtractorFunction):
          def __init__(self, f):
             super(CallableWrapper, self).__init__()
             self.f_ = f
          def __call__(self, *args):
             return self.f_(*args)
-      function_var = CallableWrapper(function_var)
+      wa.append(CallableWrapper(args[0]))
+    if not isinstance(args[1], ReduceFunction) and callable(args[1]):
+      class CallableWrapper(ReduceFunction):
+         def __init__(self, f):
+            super(CallableWrapper, self).__init__()
+            self.f_ = f
+         def __call__(self, *args):
+            return self.f_(*args)
+      wa.append(CallableWrapper(args[1]))
+    args = tuple(wa)
 %}
-%enddef
-
-%define CallbackHelper2(FunctionType1,function_var1,FunctionType2,function_var2) %{
-   if not isinstance(function_var1, FunctionType1) and callable(function_var1):
-      class CallableWrapper(FunctionType1):
-         def __init__(self, f):
-            super(CallableWrapper, self).__init__()
-            self.f_ = f
-         def __call__(self, *args):
-            return self.f_(*args)
-      function_var1 = CallableWrapper(function_var1)
-   if not isinstance(function_var2, FunctionType2) and callable(function_var2):
-      class CallableWrapper(FunctionType2):
-         def __init__(self, f):
-            super(CallableWrapper, self).__init__()
-            self.f_ = f
-         def __call__(self, *args):
-            return self.f_(*args)
-      function_var2 = CallableWrapper(function_var2)
-%}
-%enddef
-
-%feature("pythonprepend") thrill::PyDIA::ReduceBy(KeyExtractorFunction&, ReduceFunction&) const
-CallbackHelper2(KeyExtractorFunction, key_extractor, ReduceFunction, reduce_function)
 
 %include <std_string.i>
 %include <std_vector.i>
@@ -178,7 +214,7 @@ CallbackHelper2(KeyExtractorFunction, key_extractor, ReduceFunction, reduce_func
     self._host_context = host_context
     %}
 
-%include <thrill/api/context.hpp>
+//%include <thrill/api/context.hpp>
 %include "thrill_python.hpp"
 
 // Local Variables:

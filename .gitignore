@@ -39,3 +39,6 @@ __pycache__
 # YCM files
 *.ycm_*
 *~
+
+# OSX
+.DS_Store
