@@ -122,7 +122,13 @@ public:
 private:
     bool is_closed_ = false;
 
-    struct SeqReordering;
+    struct SeqReordering {
+        //! current top sequence number
+        uint32_t                  seq_ = 0;
+
+        //! queue of waiting Blocks, ordered by sequence number
+        std::map<uint32_t, Block> waiting_;
+    };
 
     //! Block Sequence numbers
     std::vector<SeqReordering> seq_;
