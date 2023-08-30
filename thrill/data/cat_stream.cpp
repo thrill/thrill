@@ -232,14 +232,6 @@ bool CatStreamData::is_queue_closed(size_t from) {
     return queues_[from].write_closed();
 }
 
-struct CatStreamData::SeqReordering {
-    //! current top sequence number
-    uint32_t                  seq_ = 0;
-
-    //! queue of waiting Blocks, ordered by sequence number
-    std::map<uint32_t, Block> waiting_;
-};
-
 void CatStreamData::OnStreamBlock(size_t from, uint32_t seq, Block&& b) {
     assert(from < queues_.size());
     rx_timespan_.StartEventually();

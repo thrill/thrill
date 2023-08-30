@@ -157,14 +157,6 @@ bool MixStreamData::is_queue_closed(size_t from) {
     return queue_.is_queue_closed(from);
 }
 
-struct MixStreamData::SeqReordering {
-    //! current top sequence number
-    uint32_t                  seq_ = 0;
-
-    //! queue of waiting Blocks, ordered by sequence number
-    std::map<uint32_t, Block> waiting_;
-};
-
 void MixStreamData::OnStreamBlock(size_t from, uint32_t seq, Block&& b) {
     assert(from < num_workers());
     rx_timespan_.StartEventually();
