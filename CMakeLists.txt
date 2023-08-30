@@ -345,7 +345,7 @@ if(THRILL_BUILD_TESTS)
   enable_testing()
   include(CTest)
 
-  ### google test + mock - enable "make test" and add_test()
+  ### google test - enable "make test" and add_test()
 
   # this fixes compilation with static libs on MSVC
   set(gtest_force_shared_crt ON CACHE BOOL "on" FORCE)
@@ -355,7 +355,8 @@ if(THRILL_BUILD_TESTS)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-field-initializers -Wno-deprecated")
   endif()
 
-  add_subdirectory(extlib/googletest/googletest)
+  set(BUILD_GMOCK OFF)
+  add_subdirectory(extlib/googletest)
 
   if(NOT MSVC)
     set(CMAKE_CXX_FLAGS "${GTEST_SAVE_CXX_FLAGS}")
